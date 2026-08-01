@@ -1,0 +1,13 @@
+{
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "siak",
+    "user": "siak",
+    "password": "siak_dev_password"
+  },
+  "migrationsTable": "pgmigrations",
+  "migrationsDirectory": "./migrations",
+  "driver": "pg",
+  "verbose": true
+}
