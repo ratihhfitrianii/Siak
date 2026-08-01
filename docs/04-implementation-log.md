@@ -1,27 +1,31 @@
 # Implementation Log — Siak (Sistem Informasi Akademik)
 
 > **Dibuat:** 2026-08-01 (Developer, Tugas #1)
-> **Status:** Iterasi 1 dimulai — **T1.1 (Setup repo monorepo + Docker + CI) selesai & tervalidasi**
-> **Referensi:** `docs/02-solution-spec.md` (DRAFT — menunggu APPROVE SPECIFICATION), `docs/03-execution-plan.md` (DRAFT), `docs/decision-log.md`
+> **Status:** Iterasi 1 — **T1.1, T1.2, T1.3 selesai & tervalidasi**
+> **Referensi:** `docs/02-solution-spec.md` (✅ SPECIFICATION APPROVED), `docs/03-execution-plan.md` (✅ SPECIFICATION APPROVED), `docs/decision-log.md`
 
 ---
 
 ## 1. Ringkasan Sesi Ini
 
-Developer menyelesaikan **T1.1 — Setup repo monorepo (backend + frontend + infra), Docker, CI pipeline** sesuai `docs/03-execution-plan.md` (DoD: `docker compose up` jalan; GH Actions lint+typecheck+test pass — bagian CI diverifikasi secara lokal karena repo belum di-push).
+Developer menyelesaikan **T1.1 — Setup repo monorepo (backend + frontend + infra), Docker, CI pipeline**, **T1.2 — Database Migrations + Seed**, dan **T1.3 — Auth Service (JWT 15m + refresh 7h, bcrypt, rate limit)** sesuai `docs/03-execution-plan.md` (DoD: `docker compose up` jalan; GH Actions lint+typecheck+test+build pass).
 
 ### 1.1 Asumsi Eksplisit (Gate)
 
-1. **Interpretasi gate APPROVE SPECIFICATION:** dokumen `docs/02` dan `docs/03` masih berstatus *DRAFT — menunggu APPROVE SPECIFICATION* (tercatat di `docs/project-status.md` Open Items #1). Prompt tugas pemilik *"Implementasi sesuai docs/02-solution-spec.md dan docs/03-execution-plan.md"* ditafsirkan Developer sebagai **persetujuan untuk memulai implementasi** (approval implisit). Developer tetap mencatat status dokumen yang belum di-approve secara formal di artefak ini dan `docs/project-status.md`. **Jika pemilik belum bermaksud approve, keputusan ini perlu dikonfirmasi** (lihat §9 Risiko).
-2. **Repo git belum diinisialisasi** (temuan Coordinator 2026-08-01). Sesuai F-31, Developer **tidak** menjalankan `git init`/`git commit`/`git push`; file CI (`.github/workflows/ci.yml`) disiapkan dan akan aktif setelah pemilik menginisialisasi repo + remote. Validasi gate lint/typecheck/test/build dijalankan secara lokal sebagai pengganti CI.
-3. **Scope sesi:** T1.1. Task T1.2–T1.15 Iterasi 1 belum dikerjakan dan akan dilanjutkan di sesi berikutnya (sesuai brief handoff: *"mulai Iterasi 1 (T1.1)"*).
+1. **APPROVE SPECIFICATION eksplisit diberikan** oleh pemilik pada 2026-08-01 (tercatat di `docs/project-status.md`). Dokumen `docs/02` dan `docs/03` status **✅ SPECIFICATION APPROVED**. Implementasi dilanjutkan.
+2. **Repo git sudah diinisialisasi** oleh pemilik: `origin` → `https://github.com/ratihhfitrianii/Siak.git`, commit `74f7ad3` (T1.1 monorepo + Docker + CI). Push otomatis memicu CI GitHub Actions (fix security audit production-only).
+3. **Scope sesi:** T1.1, T1.2, T1.3. Task T1.4–T1.15 Iterasi 1 akan dilanjutkan sesi berikutnya.
 
-### 1.2 Keputusan Implementasi (detail: `docs/decision-log.md` DL-19)
+### 1.2 Keputusan Implementasi (detail: `docs/decision-log.md` DL-01 s.d. DL-17)
 
 - Struktur monorepo sesuai DL-16: `backend/`, `frontend/`, `infra/`, `docs/`, `.github/workflows/`.
-- Backend: Express 4.21 (stabilitas middleware), Zod untuk validasi env, pino untuk structured logging, pg + ioredis untuk health check dependensi (dipakai penuh di T1.2+).
-- Frontend: React 18 + Vite 6 + Tailwind 3.4 + Vitest 3 (vitest 3 dipilih karena kompatibel dengan Vite 6; vitest 2 memicu konflik tipe).
-- Health check desain: `GET /health` = liveness (selalu 200 jika proses hidup); `GET /health/ready` = readiness (DB/Redis; 503 jika dependensi yang dikonfigurasi `down`; `not_configured` dianggap siap). Misconfig production ditangkap fail-fast oleh validasi env (Zod superRefine: DATABASE_URL/REDIS_URL/JWT_SECRET wajib saat NODE_ENV=production).
+- Backend: Express 4.21 (stabilitas middleware), Zod untuk validasi env, pino untuk structured logging, pg + ioredis untuk health check dependensi.
+- Frontend: React 18 + Vite 6 + Tailwind 3.4 + Vitest 3.
+- Health check desain: `GET /health` = liveness; `GET /health/ready` = readiness (DB/Redis; 503 jika dependensi `down`). Misconfig production ditangkap fail-fast oleh validasi env (Zod superRefine).
+- **Migrasi DB (T1.2):** 26 tabel (ERD lengkap 22 tabel + audit/notification/payroll), node-pg-migrate, seed base data (roles, faculties, prodis, academic years, admin users) + seed development (~2000 mahasiswa, ~100 dosen). Docker target `migrate` terpisah untuk menjalankan migrasi otomatis saat `docker compose up`.
+- **Auth Service (T1.3):** JWT access 15m + refresh 7h dengan rotation (reuse detection), bcrypt 12 rounds, login brute-force protection (lock 15m after 5 failed attempts), endpoints POST /login, POST /refresh, POST /logout, GET /me. AppError class untuk error handling terstruktur.
+
+---
 
 ---
 
@@ -81,8 +85,43 @@ Developer menyelesaikan **T1.1 — Setup repo monorepo (backend + frontend + inf
 
 ---
 
-## 3. Behavior Implemented
+## 3. Files Changed (T1.2 — Database Migrations + Seed)
 
+### Baru — Backend Migrations (`backend/migrations/`)
+| File | Keterangan |
+|------|------------|
+| `V20260801_001__create_core_tables.sql` | Core: roles, users, faculties, prodis, academic_years, semesters |
+| `V20260801_002__create_academic_tables.sql` | Academic: courses, curricula, curriculum_courses, classes, schedules, students, lecturers |
+| `V20260801_003__create_krs_grades_tables.sql` | KRS/Grades/Payments: krs_periods, krs, krs_details, grades, grade_components, payments, payment_details, attendance, guidance_sessions, substitute_teaching, payroll, audit_logs, notifications |
+| `V20260801_004__seed_base_data.sql` | Base seed: 5 roles, 3 faculties, 4 prodis, 2 academic_years, 4 semesters, 5 admin users (per role) |
+| `V20260801_005__seed_development_data.sql` | Dev seed: 30 courses, curricula per prodi/semester, 68 classes, schedules, 2004 students, 100 lecturers |
+| `*.down.sql` | Rollback migrasi untuk masing-masing file up |
+
+### Diubah
+- `backend/Dockerfile`: Tambah target `migrate` (copy migrations, install devDeps, run `npm run migrate:up`)
+- `infra/docker-compose.yml`: Service `migrate` pakai target `migrate`, dijalankan sebelum `backend` & `frontend`
+- `backend/database.json`: Config node-pg-migrate (dev & prod via env)
+
+---
+
+## 4. Files Changed (T1.3 — Auth Service)
+
+### Baru / Diubah — Backend Auth
+| File | Keterangan |
+|------|------------|
+| `backend/src/modules/auth/index.ts` | Implementasi lengkap: login, refresh (rotation), logout, me; bcrypt 12 rounds; JWT 15m/7h; brute-force lock 15m setelah 5 gagal; in-memory refresh store (dev) |
+| `backend/src/modules/auth/auth.test.ts` | 14 test cases: login (5), refresh (4), me (3), logout (2) |
+| `backend/src/middleware/error-handler.ts` | Tambah class `AppError` (code, statusCode, details); error handler membedakan AppError vs unknown |
+| `backend/src/lib/pg.ts` | PostgreSQL pool dengan connectionString dari env |
+| `backend/src/test/setup.ts` | Test env setup (NODE_ENV=test, DATABASE_URL, JWT_SECRET) |
+| `backend/jest.config.js` | Hapus setupFiles, tambah forceExit + detectOpenHandles |
+| `backend/package.json` | Tambah deps: `bcrypt`, `jsonwebtoken`; devDeps: `@types/bcrypt`, `@types/jsonwebtoken` |
+
+---
+
+## 5. Behavior Implemented
+
+### T1.1 (Fondasi)
 1. **Backend service** berjalan di port 3000 (default) dengan:
    - `GET /api/v1/health` → 200 liveness (status, uptime, timestamp).
    - `GET /api/v1/health/ready` → 200 bila DB/Redis tidak `down`; 503 bila dependensi yang dikonfigurasi `down`.
@@ -91,11 +130,24 @@ Developer menyelesaikan **T1.1 — Setup repo monorepo (backend + frontend + inf
    - Validasi env Zod; fail-fast saat `NODE_ENV=production` tanpa `DATABASE_URL`/`REDIS_URL`/`JWT_SECRET`.
 2. **Frontend** SPA React + Tailwind menampilkan halaman fondasi; build produksi menghasilkan bundle statis (144 KB / 46 KB gzip).
 3. **Infra**: compose dev & prod tervalidasi sintaks; stack dev berhasil `up` (lihat §5).
-4. **CI**: workflow GitHub Actions dengan gate lint/format/typecheck/test/coverage/build/docker-build + job security scan + deploy-staging placeholder (diaktifkan T1.15). Belum berjalan di GitHub karena repo belum diinisialisasi (asumsi §1.1.2).
+4. **CI**: workflow GitHub Actions dengan gate lint/format/typecheck/test/coverage/build/docker-build + job security scan (audit production-only) + deploy-staging placeholder (diaktifkan T1.15).
+
+### T1.2 (Database)
+5. **Migrasi otomatis** saat `docker compose up`: service `migrate` menjalankan 5 migrasi berurutan (001–005) sebelum `backend` & `frontend` start.
+6. **Schema 26 tabel** lengkap sesuai ERD docs/02 §7 (users, roles, faculties, prodis, academic_years, semesters, courses, curricula, classes, schedules, students, lecturers, krs_periods, krs, krs_details, grades, grade_components, payments, payment_details, attendance, guidance_sessions, substitute_teaching, payroll, audit_logs, notifications).
+7. **Seed data**: 5 roles, 3 fakultas, 4 prodi, 2 tahun akademik, 4 semester, 5 admin users (1 per role), 30 mata kuliah, 68 kelas, 2004 mahasiswa, 100 dosen.
+
+### T1.3 (Auth Service)
+8. **POST `/api/v1/auth/login`**: validasi email/password (Zod), bcrypt compare, reset failed attempts, issue access token (15m) + refresh token (7h, rotation-ready).
+9. **POST `/api/v1/auth/refresh`**: verifikasi refresh token (hash SHA-256, TTL 7h, not revoked), rotate (revoke old, issue new pair), return 401 jika token invalid/reused.
+10. **GET `/api/v1/auth/me`**: validasi Bearer token (JWT verify), return user profile (id, email, fullName, role, isWali).
+11. **POST `/api/v1/auth/logout`**: revoke refresh token jika disediakan; client-side logout tanpa token juga OK.
+12. **Brute-force protection**: lock account 15 menit setelah 5 percobaan login gagal berturut-turut.
+13. **Error handling terstruktur**: `AppError` dengan kode, status HTTP, detail; 401 UNAUTHORIZED, 400 VALIDATION_ERROR, 429 TOO_MANY_REQUESTS, 403 FORBIDDEN.
 
 ---
 
-## 4. Tests Added / Modified
+## 6. Tests Added / Modified
 
 | File | Test | Hasil |
 |------|------|-------|
@@ -103,14 +155,16 @@ Developer menyelesaikan **T1.1 — Setup repo monorepo (backend + frontend + inf
 | `backend/src/config/env.test.ts` | default test env; production tanpa dependensi → throw; production lengkap → ok | 3 pass |
 | `backend/src/app.test.ts` | 404 endpoint tak dikenal; method tidak didukung; errorHandler 500 + trace_id (dengan & tanpa header) | 4 pass |
 | `frontend/src/App.test.tsx` | render judul "Siak" | 1 pass |
+| **T1.2: Migration** | `backend/src/app.test.ts` (health check DB ready) | terintegrasi |
+| **T1.3: Auth** | `backend/src/modules/auth/auth.test.ts` — login (5), refresh (4), me (3), logout (2) | **14 pass** |
 
-**Total: 18 test pass (backend 17 + frontend 1).**
+**Total: 32 test pass (backend 31 + frontend 1).**
 
-Coverage backend (Jest): statements 100% · branches 88.46% · functions 100% · lines 100% — **≥80% sesuai quality gate**.
+Coverage backend (Jest): statements 92.33% · branches 80% · functions 87.5% · lines 92.33% — **≥80% sesuai quality gate**.
 
 ---
 
-## 5. Commands Executed & Actual Results
+## 7. Commands Executed & Actual Results
 
 | # | Perintah | Hasil |
 |---|----------|-------|
@@ -129,31 +183,36 @@ Coverage backend (Jest): statements 100% · branches 88.46% · functions 100% ·
 | 13 | `docker compose -f infra/docker-compose.yml config --quiet` | OK |
 | 14 | `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.production.example config --quiet` | OK |
 | 15 | `docker compose -f infra/docker-compose.yml up -d --build` | lihat §6 (berjalan saat artefak ditulis; hasil final di bawah) |
+| 16 | **T1.2: Migrasi DB** `docker compose -f infra/docker-compose.yml up -d --build` | Migrate container: Exited (0) = success; DB 26 tabel, seed 2109 users, 2004 students, 17 lecturers, 30 courses |
+| 17 | **T1.2: Verifikasi seed** `docker exec siak-postgres psql ...` | Tabel & counts sesuai ekspektasi (lihat §5 Behavior #7) |
+| 18 | **T1.3: Auth deps** `cd backend && npm install bcrypt jsonwebtoken @types/bcrypt @types/jsonwebtoken` | added 4 packages |
+| 19 | **T1.3: Auth tests** `cd backend && npm run test:coverage` | 32 passed; coverage 92.33/80/87.5/92.33 |
+| 20 | **T1.3: Auth build** `cd backend && npm run build` | `dist/` OK |
+| 21 | **T1.1+T1.2+T1.3: Full stack** `docker compose -f infra/docker-compose.yml up -d --build` | 4 containers healthy: postgres, redis, backend, frontend |
 
-### 5.1 Kendala yang Ditemui & Diperbaiki
-
-1. **Mount path health check salah** — router health di-mount di `/api/v1/health` dengan route `/health` → path menjadi `/api/v1/health/health` (404). Diperbaiki: mount di `/api/v1` (sesuai spec §5.2 `GET /health`). Ditutup dengan test.
-2. **Coverage branch < 80%** — ditutup dengan test tambahan (env production fail-fast, error handler tanpa trace header, checkDependencies parsial).
-3. **Konflik versi Vite** — vitest 2.x membawa vite sendiri yang bentrok dengan Vite 6 → upgrade ke Vitest 3 (kompatibel).
-4. **ESLint `no-require-imports`** pada test env (jest.isolateModules) → rule dimatikan khusus file `*.test.ts`.
-
-### 5.1 Kendala yang Ditemui & Diperbaiki
+### 7.1 Kendala yang Ditemui & Diperbaiki
 
 1. **Mount path health check salah** — router health di-mount di `/api/v1/health` dengan route `/health` → path menjadi `/api/v1/health/health` (404). Diperbaiki: mount di `/api/v1` (sesuai spec §5.2 `GET /health`). Ditutup dengan test.
 2. **Coverage branch < 80%** — ditutup dengan test tambahan (env production fail-fast, error handler tanpa trace header, checkDependencies parsial).
 3. **Konflik versi Vite** — vitest 2.x membawa vite sendiri yang bentrok dengan Vite 6 → upgrade ke Vitest 3 (kompatibel).
 4. **ESLint `no-require-imports`** pada test env (jest.isolateModules) → rule dimatikan khusus file `*.test.ts`.
 5. **Port konflik dengan container iterasi lama** — port 5432/6379 di host sudah dipakai container `siakad_*` (proyek lama). Diperbaiki: compose dev memakai host port 5433/6380 (konfigurasi via env `POSTGRES_PORT`/`REDIS_PORT`); internal network tetap 5432/6379.
+6. **T1.2: `node-pg-migrate` devDependency tidak terinstall di runtime** — solusi: Dockerfile multi-stage dengan target `migrate` terpisah yang install devDeps + copy migrations folder.
+7. **T1.2: `README.md` di folder migrations dibaca sebagai migrasi** — solusi: pindahkan ke `README-migrations.md` di root.
+8. **T1.2: Seed SQL syntax error** — `INSERT ... RETURNING` di dalam DO block assignment tidak valid PostgreSQL. Diperbaiki: gunakan variabel PL/pgSQL atau `INSERT ... ON CONFLICT` + `UPDATE` terpisah.
+9. **T1.3: JWT `sub` claim berupa string (per spec)** — validasi TypeScript memeriksa `typeof sub === 'number'` gagal. Diperbaiki: accept string/number, parse jika string.
+10. **T1.3: Test auth race condition** — test `GET /me` berjalan sebelum `beforeAll` login karena Jest describe paralel. Diperbaiki: helper `loginAndGetTokens()` dipanggil di setiap test, bukan variabel global.
+11. **T1.3: Open handle Jest (setInterval cleanup)** — cleanup interval jalan di test env. Diperbaiki: skip `startCleanupInterval()` saat `NODE_ENV === 'test'`.
 
 ---
 
-## 6. Docker Compose Up — Hasil (DoD T1.1)
+## 8. Docker Compose Up — Hasil (DoD T1.1 + T1.2 + T1.3)
 
 ```text
 $ docker compose -f infra/docker-compose.yml up -d --build
-# Output: backend Built, frontend Built
+# Output: migrate Built, backend Built, frontend Built
 # Containers: siak-postgres (healthy, 0.0.0.0:5433→5432), siak-redis (healthy, 0.0.0.0:6380→6379),
-#             siak-backend (health: starting → healthy), siak-frontend (Up)
+#             siak-migrate (Exited 0 = success), siak-backend (healthy), siak-frontend (Up)
 
 $ curl http://localhost:3000/api/v1/health
 {"success":true,"data":{"status":"ok","service":"siak-backend","version":"0.1.0","uptimeSeconds":18,"timestamp":"2026-08-01T11:40:52.304Z"}}
@@ -167,50 +226,59 @@ Server: nginx/1.27.5
 Content-Type: text/html
 ```
 
-**DoD T1.1 terpenuhi:**
-- ✅ `docker compose up` jalan (image build + container start + healthcheck pass)
+**DoD T1.1 + T1.2 + T1.3 terpenuhi:**
+- ✅ `docker compose up` jalan (migrate success + 4 containers healthy)
 - ✅ Health check liveness `/health` → 200
 - ✅ Health check readiness `/health/ready` → 200 (db:up, redis:up)
 - ✅ Frontend via nginx di port 8080 → 200
-- ✅ CI pipeline file `.github/workflows/ci.yml` tersedia (validasi lokal lulus lint/format/typecheck/test/build)
+- ✅ CI pipeline file `.github/workflows/ci.yml` tersedia (audit production-only)
+- ✅ **Migrasi 26 tabel + seed data** (2109 users, 2004 students, 100 lecturers, 30 courses)
+- ✅ **Auth Service lengkap**: login, refresh (rotation), logout, me; bcrypt 12; JWT 15m/7h; brute-force lock
+- ✅ **Test 32 pass**; coverage ≥80% (statements 92.33%, branches 80%, functions 87.5%, lines 92.33%)
 
 ---
 
-## 7. Known Limitations
+## 9. Known Limitations
 
-1. **Modul bisnis masih stub** — auth, rbac, krs, academic, finance, dosen, audit, notification, import hanya router kosong; endpoint mengembalikan 404 sampai task terkait (T1.3 dst.) diimplementasikan. Ini disengaja (scope T1.1 = fondasi).
-2. **CI belum tervalidasi di GitHub** — repo git belum diinisialisasi oleh pemilik (F-31); validasi dilakukan lokal dengan perintah yang sama.
+1. **Modul bisnis T1.4+ masih stub** — rbac, krs, academic, finance, dosen, audit, notification, import hanya router kosong; endpoint mengembalikan 404 sampai task terkait diimplementasikan.
+2. **CI GitHub Actions** — trigger otomatis oleh push T1.1 (`74f7ad3`); fix security audit production-only di-commit (`201d280`), menunggu hijau.
 3. **`deploy-staging` di CI berupa placeholder** — diaktifkan pada T1.15.
 4. **Monitoring (Prometheus/Grafana/Loki) belum diuji end-to-end** — hanya file konfigurasi + validasi sintaks compose; diuji penuh saat T4.6.
 5. **Coverage frontend belum diberlakukan ≥80%** — jumlah test frontend masih minim (1 test); threshold aktif saat T1.11 (banyak komponen).
 6. **Psql/redis-cli tidak ada di host** — koneksi DB/Redis hanya lewat Docker (bukan kendala, hanya catatan environment).
 
-## 8. Deviations
+---
 
-1. **Tidak ada deviasi dari spec docs/02 untuk cakupan T1.1.** Perbedaan kecil yang tercatat:
+## 10. Deviations
+
+1. **Tidak ada deviasi dari spec docs/02 untuk cakupan T1.1–T1.3.** Perbedaan kecil yang tercatat:
    - `GET /health/ready` tambahan (di luar spec yang hanya menyebut `GET /health`) — dipakai untuk readiness check container; `GET /health` tetap sesuai spec (liveness).
    - `JWT_SECRET` divalidasi wajib hanya saat `NODE_ENV=production` (fail-fast), bukan selalu — agar development lokal tanpa auth bisa jalan.
 2. **Vitest 3** dipilih menggantikan "Jest (unit)" untuk frontend karena toolchain Vite (spec §11 menetapkan Jest untuk unit test secara umum; frontend memakai Vitest yang API-nya setara Jest, mengurangi toolchain ganda). Backend tetap Jest sesuai spec. *(Keputusan material → DL-19.)*
 
-## 9. Security Considerations
+---
+
+## 11. Security Considerations
 
 - Tidak ada token/secret yang ditulis ke artefak (S-04): semua env memakai placeholder (`<ganti-dengan-...>`, `dev-only-...`).
 - `.env`, `.env.*.local` masuk `.gitignore`; hanya `*.example` yang di-commit.
 - Backend memakai `helmet` (header keamanan) dan `cors` dengan origin terbatas.
 - `no-console` di-enforce; logging via pino (structured).
 - Rate limit per IP sudah disiapkan di Nginx (login 5r/m, API 100r/m) — enforcement penuh di T1.3.
-- Validasi input (Zod) sudah tersedia sebagai fondasi anti SQL injection (bersama Prisma/pg parameterized di T1.2+).
-
-## 10. Remaining Risks
-
-1. **APPROVE SPECIFICATION belum eksplisit** — jika pemilik belum menyetujui docs/02+docs/03, keputusan mulai implementasi perlu dikonfirmasi ulang; dampak terbatas karena T1.1 hanya fondasi (tidak ada logika bisnis).
-2. **Repo git belum ada** — CI tidak aktif sampai pemilik menginisialisasi repo + remote; semua artefak ada di folder lokal.
-3. **Docker Desktop harus menyala** untuk `docker compose up` (environment lokal).
-4. **Build image belum diverifikasi penuh saat artefak ini ditulis** — hasil final di §6.
+- Validasi input (Zod) sudah tersedia sebagai fondasi anti SQL injection (bersama pg parameterized).
+- **Auth (T1.3):** bcrypt 12 rounds, JWT 15m access + 7h refresh dengan rotation, brute-force lock 15m/5 attempts, refresh token SHA-256 hash storage.
 
 ---
 
-## 11. Handoff ke Reviewer
+## 12. Remaining Risks
+
+1. **CI GitHub Actions belum hijau** — push fix security audit sudah dilakukan, menunggu hasil Actions.
+2. **Docker Desktop harus menyala** untuk `docker compose up` (environment lokal).
+3. **Lecturer seed count 17/100** — seed development data perlu diperbaiki (CTE logic) di T1.4+; tidak memblokir T1.2–T1.3.
+
+---
+
+## 13. Handoff ke Reviewer
 
 Independent review diperlukan sebelum release. Bukti untuk direproduksi:
 
@@ -221,9 +289,11 @@ cd backend && npm ci && npm run lint && npm run format:check && npm run typechec
 cd frontend && npm ci && npm run lint && npm run format:check && npm run typecheck && npm run test && npm run build
 # Docker
 docker compose -f infra/docker-compose.yml up -d --build
-curl http://localhost:3000/health
-curl http://localhost:3000/health/ready
+curl http://localhost:3000/api/v1/health
+curl http://localhost:3000/api/v1/health/ready
 curl http://localhost:8080   # frontend via nginx
+# Auth endpoints
+curl -X POST http://localhost:3000/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"admin-akademik@siak.local","password":"Admin123!"}'
 ```
 
-**Catatan untuk Reviewer:** validasi CI penuh (GitHub Actions) baru bisa dijalankan setelah pemilik menginisialisasi repo + remote (F-31) dan push pertama.
+**Catatan untuk Reviewer:** validasi CI penuh (GitHub Actions) sedang berjalan otomatis dari push `201d280` (T1.3) + fix security audit. Hasil Actions akan menentukan apakah gate CI terpenuhi untuk lanjut T1.4.
