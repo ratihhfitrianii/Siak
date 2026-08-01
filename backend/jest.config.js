@@ -4,7 +4,13 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/*.test.ts'],
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.test.ts', '!src/index.ts', '!src/types/**'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.test.ts',
+    '!src/index.ts',
+    '!src/types/**',
+    '!src/test/**',
+  ],
   coverageThreshold: {
     global: {
       lines: 80,
@@ -14,4 +20,6 @@ module.exports = {
     },
   },
   clearMocks: true,
+  forceExit: true,
+  detectOpenHandles: true,
 };
