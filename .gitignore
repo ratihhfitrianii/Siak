@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Env & secrets — JANGAN commit (S-04)
+.env
+.env.local
+.env.*.local
+!.env.example
+!infra/.env.production.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+
+# Backup lokal (di luar repo)
+backup/
