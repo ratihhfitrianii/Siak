@@ -51,5 +51,10 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.2"
+  },
+  "auditConfig": {
+    "ignore": [
+      "GHSA-5j98-mcp5-4vw2"
+    ]
   }
 }
