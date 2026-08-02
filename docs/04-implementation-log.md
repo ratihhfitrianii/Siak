@@ -1,29 +1,30 @@
 # Implementation Log — Siak (Sistem Informasi Akademik)
 
 > **Dibuat:** 2026-08-01 (Developer, Tugas #1)
-> **Status:** Iterasi 1 — **T1.1, T1.2, T1.3 selesai & tervalidasi**
+> **Status:** Iterasi 1 — **T1.1–T1.4 selesai & tervalidasi**
 > **Referensi:** `docs/02-solution-spec.md` (✅ SPECIFICATION APPROVED), `docs/03-execution-plan.md` (✅ SPECIFICATION APPROVED), `docs/decision-log.md`
 
 ---
 
 ## 1. Ringkasan Sesi Ini
 
-Developer menyelesaikan **T1.1 — Setup repo monorepo (backend + frontend + infra), Docker, CI pipeline**, **T1.2 — Database Migrations + Seed**, dan **T1.3 — Auth Service (JWT 15m + refresh 7h, bcrypt, rate limit)** sesuai `docs/03-execution-plan.md` (DoD: `docker compose up` jalan; GH Actions lint+typecheck+test+build pass).
+Developer menyelesaikan **T1.1 — Setup repo monorepo (backend + frontend + infra), Docker, CI pipeline**, **T1.2 — Database Migrations + Seed**, **T1.3 — Auth Service (JWT 15m + refresh 7h, bcrypt, rate limit)**, dan **T1.4 — RBAC Middleware + User Service** sesuai `docs/03-execution-plan.md`.
 
 ### 1.1 Asumsi Eksplisit (Gate)
 
 1. **APPROVE SPECIFICATION eksplisit diberikan** oleh pemilik pada 2026-08-01 (tercatat di `docs/project-status.md`). Dokumen `docs/02` dan `docs/03` status **✅ SPECIFICATION APPROVED**. Implementasi dilanjutkan.
 2. **Repo git sudah diinisialisasi** oleh pemilik: `origin` → `https://github.com/ratihhfitrianii/Siak.git`, commit `74f7ad3` (T1.1 monorepo + Docker + CI). Push otomatis memicu CI GitHub Actions (fix security audit production-only).
-3. **Scope sesi:** T1.1, T1.2, T1.3. Task T1.4–T1.15 Iterasi 1 akan dilanjutkan sesi berikutnya.
+3. **Scope sesi:** T1.1–T1.4. Task T1.5–T1.15 Iterasi 1 akan dilanjutkan sesi berikutnya.
 
 ### 1.2 Keputusan Implementasi (detail: `docs/decision-log.md` DL-01 s.d. DL-17)
 
 - Struktur monorepo sesuai DL-16: `backend/`, `frontend/`, `infra/`, `docs/`, `.github/workflows/`.
 - Backend: Express 4.21 (stabilitas middleware), Zod untuk validasi env, pino untuk structured logging, pg + ioredis untuk health check dependensi.
 - Frontend: React 18 + Vite 6 + Tailwind 3.4 + Vitest 3.
-- Health check desain: `GET /health` = liveness; `GET /health/ready` = readiness (DB/Redis; 503 jika dependensi `down`). Misconfig production ditangkap fail-fast oleh validasi env (Zod superRefine).
+- Health check desain: `GET /api/v1/health` = liveness; `GET /api/v1/health/ready` = readiness (DB/Redis; 503 jika dependensi `down`). Misconfig production ditangkap fail-fast oleh validasi env (Zod superRefine).
 - **Migrasi DB (T1.2):** 26 tabel (ERD lengkap 22 tabel + audit/notification/payroll), node-pg-migrate, seed base data (roles, faculties, prodis, academic years, admin users) + seed development (~2000 mahasiswa, ~100 dosen). Docker target `migrate` terpisah untuk menjalankan migrasi otomatis saat `docker compose up`.
 - **Auth Service (T1.3):** JWT access 15m + refresh 7h dengan rotation (reuse detection), bcrypt 12 rounds, login brute-force protection (lock 15m after 5 failed attempts), endpoints POST /login, POST /refresh, POST /logout, GET /me. AppError class untuk error handling terstruktur.
+- **RBAC (T1.4):** Policy service `src/lib/policy.ts` = single source of truth matriks RBAC §6.1 (23 permission × 5 role; superuser = admin_sistem). Middleware `authenticate` (JWT → load user fresh dari DB, normalisasi BIGSERIAL string→number) + `authorize(permission)` + `authorizeWali` (atribut is_wali hanya bermakna untuk dosen, DL-08). User Service `src/modules/rbac/index.ts`: GET /users/me (profil + menu RBAC untuk UI, AC-10), PUT /users/me/contact, GET /users (list+filter, admin_sistem), POST /users, PUT /users/:id/role (anti self-lockout).
 
 ---
 
@@ -295,5 +296,46 @@ curl http://localhost:8080   # frontend via nginx
 # Auth endpoints
 curl -X POST http://localhost:3000/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"admin-akademik@siak.local","password":"Admin123!"}'
 ```
+
+---
+
+## 14. T1.4 — RBAC Middleware + User Service (2026-08-02)
+
+**Status: DONE ✅** — DoD: matriks RBAC §6.1 di-enforce di semua route; 1 test per sel matrix (115 sel + integration); coverage ≥80% hijau; build lulus.
+
+### 14.1 File Baru/Diubah
+
+| File | Keterangan |
+|------|------------|
+| `backend/src/lib/policy.ts` | **Single source of truth RBAC**: 23 permission × 5 role (`ROLE_PERMISSIONS`), `can()`, `permissionsFor()`, `isSuperuser()`, `isWaliRole()`. Matriks literal §6.1 (sel ⚠️ asumsi tidak dimasukkan sampai dikonfirmasi) |
+| `backend/src/lib/auth-middleware.ts` | `authenticate` (JWT → load user fresh dari DB, normalisasi BIGSERIAL string→number, tolak akun non-aktif 403), `authorize(permission)` (403 di luar peran), `authorizeWali` (hanya dosen ber-atribut is_wali) |
+| `backend/src/types/express.d.ts` | Deklarasi global `Express.Request.user` |
+| `backend/src/modules/rbac/index.ts` | User Service: GET /users/me (profil + menu RBAC untuk UI, AC-10), PUT /users/me/contact, GET /users (list+filter+pagination, admin_sistem), POST /users, PUT /users/:id/role (anti self-lockout 400) |
+| `backend/src/modules/rbac/rbac.test.ts` | 136 test: 115 sel matriks (data-driven dari spec literal, anti self-confirmation) + integration 5 peran |
+| `backend/src/lib/auth-middleware.test.ts` | Edge cases: token invalid/ghost/string-sub/no-sub, akun non-aktif, unit test authorize/authorizeWali |
+| `infra/docker-compose.yml` | Fix healthcheck backend: `/health` → `/api/v1/health` (sebelumnya salah path → container unhealthy) |
+
+### 14.2 Temuan & Perbaikan (Pitfalls)
+
+1. **jsonwebtoken mengubah claim `sub` jadi string** saat sign (JWT spec) — `authenticate` menerima number maupun string (`Number(decoded.sub)`), tidak lagi hard-reject.
+2. **pg driver mengembalikan BIGSERIAL (int8) sebagai string** — `req.user.id` sempat bertipe string → anti self-lockout (`targetId === actor.id`) gagal. Normalisasi `Number(row.id)` di `authenticate` menyelesaikan 15 test yang gagal sekaligus.
+3. **Healthcheck compose salah path** (`/health` vs `/api/v1/health`) — container `siak-backend` unhealthy sejak awal; diperbaiki & diverifikasi `Up (healthy)`.
+4. **Coverage branch turun ke 64.9%** setelah module rbac masuk — ditutup dengan test edge cases (invalid body, duplicate email, role ghost, id invalid, user not found, filter query).
+
+### 14.3 Verifikasi
+
+```text
+- 192 test lulus (6 suite) | coverage: Stmts 93.79% | Branch 81.45% | Funcs 89.58% | Lines 93.76%
+- lint, format:check, typecheck, build: exit 0
+- Docker: siak-backend Up (healthy), siak-postgres/siak-redis healthy, siak-migrate exited 0
+- Live: login admin@siak.local → GET /users/me (role admin_sistem, menu 23 item) → GET /users?limit=3 (total 2109)
+```
+
+### 14.4 Open Items (dilanjutkan T1.5+)
+
+1. **Seed password admin tidak cocok** dengan hash terdokumentasi di seed (hash `$2b$12$LQv...` ≠ `Admin123!`/`admin123`). Admin dev di-reset manual via SQL (`UPDATE users SET password_hash=...`). Perlu perbaiki seed development + dokumentasi password dev yang konsisten.
+2. **Lecturer seed count 17/100** — CTE `V20260801_005` perlu diperbaiki (bug sejak T1.2).
+3. **Menu RBAC** (`GET /users/me` → `menu[]`) siap dikonsumsi frontend (T1.9+ Login/Register UI).
+4. Healthcheck frontend (`siak-frontend`) belum diverifikasi healthy di compose (nginx proxy).
 
 **Catatan untuk Reviewer:** validasi CI penuh (GitHub Actions) sedang berjalan otomatis dari push `201d280` (T1.3) + fix security audit. Hasil Actions akan menentukan apakah gate CI terpenuhi untuk lanjut T1.4.
