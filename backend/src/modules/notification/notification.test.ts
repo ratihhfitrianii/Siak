@@ -128,7 +128,9 @@ describe('Notification module (T1.6)', () => {
           .get('/api/v1/notifications/my')
           .set('Authorization', `Bearer ${tokens.mahasiswa}`)
           .expect(200);
-        const item = verify.body.data.items.find((n: { id: number; isRead: boolean }) => n.id === nid);
+        const item = verify.body.data.items.find(
+          (n: { id: number; isRead: boolean }) => n.id === nid,
+        );
         expect(item?.isRead).toBe(true);
       }
     });
