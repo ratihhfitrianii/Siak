@@ -38,7 +38,7 @@ Detail lengkap: `docs/03-execution-plan.md`.
 
 | Iterasi | Task | Fokus | Estimasi | Status |
 |---------|------|-------|----------|--------|
-| **Iterasi 1 — MVP Core** | T1.1–T1.15 | Fondasi, Auth/RBAC, KRS flow, nilai dasar, import, audit, waiting room MVP, load test, staging | ~39 hari kerja | 🟢 **T1.1–T1.5 selesai & tervalidasi** (T1.1 reviewed CONDITIONALLY APPROVED 2026-08-01; T1.2–T1.5 verified 2026-08-02); T1.6+ siap start |
+| **Iterasi 1 — MVP Core** | T1.1–T1.15 | Fondasi, Auth/RBAC, KRS flow, nilai dasar, import, audit, waiting room MVP, load test, staging | ~39 hari kerja | 🟢 **T1.1–T1.6 selesai & tervalidasi** (T1.1 reviewed CONDITIONALLY APPROVED 2026-08-01; T1.2–T1.6 verified 2026-08-02); T1.7+ siap start |
 | **Iterasi 2 — Keuangan & Transkrip** | T2.1–T2.7 | Tagihan otomatis, SPP, gate lunas, transkrip PDF/Excel, notifikasi KRS | ~16 hari | ⬜ Belum dimulai |
 | **Iterasi 3 — Dosen Mengajar** | T3.1–T3.8 | Pilih MK, jadwal, absensi, bimbingan, substitute, nilai detail | ~20 hari | ⬜ Belum dimulai |
 | **Iterasi 4 — Skala & Integrasi** | T4.1–T4.7 | Waiting room production, payment gateway, PDDikti, payroll detail, security audit | ~23 hari | ⬜ Belum dimulai |

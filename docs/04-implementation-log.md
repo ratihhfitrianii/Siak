@@ -1,7 +1,7 @@
 # Implementation Log — Siak (Sistem Informasi Akademik)
 
 > **Dibuat:** 2026-08-01 (Developer, Tugas #1)
-> **Status:** Iterasi 1 — **T1.1–T1.5 selesai & tervalidasi**
+> **Status:** Iterasi 1 — **T1.1–T1.6 selesai & tervalidasi**
 > **Referensi:** `docs/02-solution-spec.md` (✅ SPECIFICATION APPROVED), `docs/03-execution-plan.md` (✅ SPECIFICATION APPROVED), `docs/decision-log.md`
 
 ---
@@ -394,3 +394,48 @@ curl -X POST http://localhost:3000/api/v1/auth/login -H "Content-Type: applicati
 4. CI T1.5 belum dikonfirmasi hijau di GitHub (push berikutnya).
 
 **Catatan untuk Reviewer:** semua quality gate lokal hijau (lint/format/typecheck/build/test:coverage ≥80%); CI GitHub Actions akan memvalidasi dari push T1.5 (commit berikutnya).
+
+---
+
+## 16. T1.6 — KRS Validasi Admin + Notifikasi (2026-08-02)
+
+**Status: DONE ✅** — DoD: Admin Akademik approve/reject + alasan (AC-04, AC-04c); revisi KRS setelah reject jalan saat periode (AC-04c); notifikasi in-app otomatis ke mahasiswa yang belum isi KRS (AC-04d, scheduler dasar); 218 test hijau, coverage ≥80%; verifikasi live end-to-end.
+
+### 16.1 File Baru/Diubah
+
+| File | Keterangan |
+|------|------------|
+| `backend/src/modules/notification/index.ts` | **Modul notifikasi in-app** (baru, 200 baris): `sendInAppNotification()` (helper untuk modul lain), `remindUnfilledStudents()` (AC-04d — idempotent via NOT EXISTS per (user, periode)), router `GET /notifications/my` + `PUT /notifications/:id/read` (hanya milik sendiri, AC-10) |
+| `backend/src/modules/krs/index.ts` | **Validasi admin** (tambah ~250 baris): `GET /krs/admin/pending` (list KRS submitted + NIM/nama/prodi/itemCount/SKS), `POST /krs/admin/:id/approve` (status approved + approved_by/at + notif atomik dalam transaksi), `POST /krs/admin/:id/reject` (alasan ≥5 karakter + is_locked=false + notif berisi alasan), `POST /krs/admin/remind-unfilled` (pemicu manual). Guard draft/submit diubah: status `rejected` boleh edit (AC-04c); submit ulang me-reset rejection_reason/approved_by |
+| `backend/src/index.ts` | **Scheduler dasar AC-04d**: tick pertama 60s setelah start, interval env `KRS_REMINDER_INTERVAL_MS` (default 6 jam), disabled di test, `.unref()` agar tidak menggantung shutdown |
+| `backend/src/modules/krs/krs.test.ts` | **13 test baru T1.6** (25 total): alur approve (pending→approve→notif→double-approve 409), reject (validasi alasan→reject→notif→revisi→submit ulang reset), RBAC 403 (mahasiswa/admin_keuangan), notif read (punya sendiri 200 / orang lain 404 / id invalid 400), reminder idempotent. Helper `restoreClassQuota()` di semua cleanup |
+| `backend/src/modules/rbac/rbac.test.ts` | beforeAll timeout 5s → 20s (full suite paralel membebani DB test) |
+| `backend/migrations/V20260801_010__reset_class_quota_dev.sql` | Reset `current_enrolled` kelas seed dev → 0 (V006 mengisi 28–30/30 → test submit selalu CLASS_FULL). Dev-only |
+
+### 16.2 Temuan & Perbaikan (Pitfalls)
+
+1. **Quota kelas terkuras antar-run test** — submit menaikkan `current_enrolled`; cleanup lama tidak menurunkannya → run berulang (atau full suite) kena `CLASS_FULL` 409 di test happy path. Fix ganda: (a) migrasi V010 reset kuota seed, (b) `restoreClassQuota()` di setiap afterAll/cleanup (decrement sebelum krs_items ter-CASCADE).
+2. **Seed V006 mengisi kelas nyaris penuh** (28–30 dari kapasitas 30) — kelas dev sebaiknya kosong/deterministik; test memilih `availableClasses.slice(0,2)` = kelas pertama yang sudah penuh.
+3. **Scheduler live aktif di container** — verifikasi live menemukan notif `krs_reminder` sudah terkirim otomatis (tick 60s), membuktikan AC-04d bekerja; di test disabled via NODE_ENV=test.
+4. **rbac beforeAll timeout 5s di full suite** — krs suite (lebih berat: 25 test + insert ribuan baris reminder) berjalan paralel; hook timeout dinaikkan ke 20s.
+5. **`Number(undefined)` = NaN → query bigint error** — cleanup T1.6 memanggil restoreClassQuota sebelum student dibuat (beforeAll); di-guard `Number.isFinite`.
+
+### 16.3 Verifikasi
+
+```text
+- 218 test lulus (7 suite) | coverage: Stmts 93.67% | Branch 80.69% | Funcs 91.66% | Lines 93.79%
+- lint, format:check, typecheck, build: exit 0
+- Docker: siak-backend Up (healthy), migrasi V010 terpasang (kelas kuota 0)
+- Live E2E (admin akademik + mhs seed): login → submit 200 → pending list (itemCount 2) →
+  approve 200 (approved) → notif mhs ['krs_approved','krs_reminder'] → approve ulang 409 KRS_NOT_PENDING →
+  reject mhs MNJ 200 (alasan) → draft ulang 200 → submit ulang 200 (locked) →
+  remind-unfilled idempotent (0 baris kedua) → mhs akses pending 403 FORBIDDEN
+- Scheduler AC-04d terbukti jalan di container (krs_reminder terkirim otomatis, idempotent)
+```
+
+### 16.4 Open Items (dilanjutkan T1.7+)
+
+1. **Notifikasi email/push + retry gagal** — dijadwalkan T2.5 (plan docs/03); saat ini in-app saja.
+2. **Lecturer seed count 17/100** — open item T1.2 (dibawa terus).
+3. **Refresh token store in-memory** — perlu Redis (T1.12/T4).
+4. **CI GitHub T1.5/T1.6** — konfirmasi Actions setelah push.
