@@ -259,6 +259,7 @@ describe('User Service (RBAC endpoints)', () => {
   ];
   const tokenByRole = new Map<string, string>();
 
+  // Timeout hook diperbesar (20s): full suite paralel (krs) membebani DB test.
   beforeAll(async () => {
     const roleResult = await pgPool.query('SELECT id, code FROM roles');
     const roleIdByCode = new Map(
@@ -280,7 +281,7 @@ describe('User Service (RBAC endpoints)', () => {
         .expect(200);
       tokenByRole.set(u.roleCode, loginRes.body.data.accessToken);
     }
-  });
+  }, 20_000);
 
   afterAll(async () => {
     for (const u of users) {

@@ -39,6 +39,26 @@ const server = app.listen(env.PORT, () => {
   logger.info(`listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
 });
 
+// Scheduler dasar AC-04d (T1.6): ingatkan mahasiswa yang belum mengisi KRS periode aktif.
+// Idempotent (sekali per mahasiswa per periode); disabled di test. Interval via env
+// KRS_REMINDER_INTERVAL_MS (default 6 jam), tick pertama 1 menit setelah start.
+const reminderIntervalMs = Number(process.env.KRS_REMINDER_INTERVAL_MS ?? 6 * 60 * 60 * 1000);
+if (env.NODE_ENV !== 'test' && Number.isFinite(reminderIntervalMs) && reminderIntervalMs > 0) {
+  const tick = () => {
+    void import('./modules/notification')
+      .then(({ remindUnfilledStudents }) => remindUnfilledStudents())
+      .then((notified) => {
+        if (notified > 0) logger.info({ notified }, 'reminder KRS terkirim');
+      })
+      .catch((err: unknown) => logger.error({ err }, 'reminder KRS gagal'));
+  };
+  setTimeout(tick, 60_000).unref();
+  setInterval(tick, reminderIntervalMs).unref();
+  logger.info(
+    `scheduler KRS reminder aktif (interval ${Math.round(reminderIntervalMs / 60_000)} menit)`,
+  );
+}
+
 async function shutdown(signal: string): Promise<void> {
   logger.info(`menerima ${signal} — graceful shutdown dimulai`);
 

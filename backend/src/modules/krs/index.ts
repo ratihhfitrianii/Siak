@@ -3,24 +3,38 @@ import { z } from 'zod';
 import { pgPool } from '../../lib/pg';
 import { AppError } from '../../middleware/error-handler';
 import { authenticate, authorize } from '../../lib/auth-middleware';
+import { remindUnfilledStudents } from '../notification';
 
 /**
- * Modul KRS Core — T1.5 (F-07, F-07a, F-07d, F-14, F-15, AC-02, AC-04b, AC-07).
+ * Modul KRS Core — T1.5 + Validasi Admin T1.6 (F-07, F-07a, F-07d, F-11, F-14, F-15,
+ * AC-02, AC-04, AC-04a, AC-04b, AC-04c, AC-04d, AC-07).
  *
  * Endpoints:
  *   GET  /krs/period            — periode KRS aktif (Mahasiswa, Admin)
  *   GET  /krs/available-classes — kelas tersedia kuota>0 utk prodi mhs (Mahasiswa)
- *   POST /krs/draft             — simpan draft (Mahasiswa)
+ *   POST /krs/draft             — simpan draft (Mahasiswa; boleh revisi setelah reject — AC-04c)
  *   POST /krs/submit            — locking transaksi SELECT FOR UPDATE (Mahasiswa)
  *   GET  /krs/my                — status + items KRS periode aktif (Mahasiswa)
+ *   GET  /krs/admin/pending     — daftar KRS menunggu persetujuan (Admin Akademik — AC-04)
+ *   POST /krs/admin/:id/approve — setujui KRS + notif in-app (AC-04)
+ *   POST /krs/admin/:id/reject  — tolak + alasan, unlock utk revisi (AC-04c)
+ *   POST /krs/admin/remind-unfilled — pemicu manual reminder AC-04d (idempotent)
  *
  * Integritas kuota: SELECT ... FOR UPDATE pada rows classes (A-5, AC-02).
- * Setelah submit, mahasiswa tidak bisa mengubah KRS (AC-07 → is_locked=true).
+ * Setelah submit, mahasiswa tidak bisa mengubah KRS (AC-07 → is_locked=true);
+ * reject membuka lagi (is_locked=false) agar bisa revisi & submit ulang (AC-04c).
  * Tidak ada daftar tunggu — kelas penuh berarti tidak bisa dipilih (AC-04b).
  */
 
 const classIdsSchema = z.object({
   classIds: z.array(z.number().int().positive()).min(1, 'Pilih minimal 1 kelas'),
+});
+
+const rejectSchema = z.object({
+  reason: z
+    .string()
+    .min(5, 'Alasan penolakan minimal 5 karakter')
+    .max(500, 'Alasan maksimal 500 karakter'),
 });
 
 /** Cari periode KRS aktif saat ini (is_active AND now() dalam rentang). */
@@ -237,7 +251,7 @@ export function createKrsRouter(): Router {
         try {
           await client.query('BEGIN');
 
-          // Kalau sudah submitted/approved → locked (AC-07)
+          // Gate: locked, atau status selain draft/rejected → tidak bisa diubah (AC-07, AC-04c)
           const existing = await client.query(
             `SELECT id, status, is_locked FROM krs_submissions
            WHERE student_id = $1 AND krs_period_id = $2`,
@@ -245,7 +259,7 @@ export function createKrsRouter(): Router {
           );
           if (
             existing.rows.length > 0 &&
-            (existing.rows[0].is_locked || existing.rows[0].status !== 'draft')
+            (existing.rows[0].is_locked || !['draft', 'rejected'].includes(existing.rows[0].status))
           ) {
             throw new AppError('KRS_LOCKED', 'KRS sudah dikunci — tidak bisa diubah lagi', 409);
           }
@@ -331,16 +345,16 @@ export function createKrsRouter(): Router {
         try {
           await client.query('BEGIN');
 
-          // Gate: sudah locked → tolak (AC-07)
+          // Gate: locked, atau status selain draft/rejected → tolak (AC-07, AC-04c)
           const existing = await client.query(
             `SELECT id, status, is_locked FROM krs_submissions
-           WHERE student_id = $1 AND krs_period_id = $2
-           FOR UPDATE`,
+          WHERE student_id = $1 AND krs_period_id = $2
+          FOR UPDATE`,
             [studentId, period.id],
           );
           if (
             existing.rows.length > 0 &&
-            (existing.rows[0].is_locked || existing.rows[0].status !== 'draft')
+            (existing.rows[0].is_locked || !['draft', 'rejected'].includes(existing.rows[0].status))
           ) {
             throw new AppError('KRS_LOCKED', 'KRS sudah dikunci — tidak bisa diubah lagi', 409);
           }
@@ -417,7 +431,8 @@ export function createKrsRouter(): Router {
 
           await client.query(
             `UPDATE krs_submissions
-           SET status = 'submitted', submitted_at = now(), is_locked = true, updated_at = now()
+           SET status = 'submitted', submitted_at = now(), is_locked = true,
+               rejection_reason = NULL, approved_by = NULL, approved_at = NULL, updated_at = now()
            WHERE id = $1`,
             [submissionId],
           );
@@ -430,6 +445,206 @@ export function createKrsRouter(): Router {
         } finally {
           client.release();
         }
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // GET /krs/admin/pending — daftar KRS menunggu persetujuan (Admin Akademik — AC-04)
+  router.get(
+    '/admin/pending',
+    authenticate,
+    authorize('krs.approve'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const result = await pgPool.query(
+          `SELECT ks.id, ks.submitted_at, ks.status,
+                  s.nim, u.full_name AS student_name, p.code AS prodi_code,
+                  (SELECT count(*) FROM krs_items ki WHERE ki.krs_submission_id = ks.id)::int AS item_count,
+                  COALESCE((SELECT sum(c.credits)
+                            FROM krs_items ki
+                            JOIN classes cl ON cl.id = ki.class_id
+                            JOIN curricula cur ON cur.id = cl.curriculum_id
+                            JOIN courses c ON c.id = cur.course_id
+                            WHERE ki.krs_submission_id = ks.id), 0) AS total_credits
+           FROM krs_submissions ks
+           JOIN students s ON s.id = ks.student_id
+           JOIN users u ON u.id = s.user_id
+           JOIN prodis p ON p.id = s.prodi_id
+           WHERE ks.status = 'submitted'
+           ORDER BY ks.submitted_at ASC, ks.id ASC`,
+        );
+        res.json({
+          success: true,
+          data: {
+            items: result.rows.map((r) => ({
+              id: Number(r.id),
+              nim: r.nim,
+              studentName: r.student_name,
+              prodiCode: r.prodi_code,
+              submittedAt: r.submitted_at,
+              itemCount: r.item_count,
+              totalCredits: Number(r.total_credits),
+            })),
+          },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /krs/admin/:id/approve — setujui KRS + notifikasi in-app (AC-04)
+  router.post(
+    '/admin/:id/approve',
+    authenticate,
+    authorize('krs.approve'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+          throw new AppError('VALIDATION_ERROR', 'ID pengajuan tidak valid', 400);
+        }
+
+        const client = await pgPool.connect();
+        try {
+          await client.query('BEGIN');
+          const sub = await client.query(
+            `SELECT ks.id, ks.status, s.user_id
+             FROM krs_submissions ks
+             JOIN students s ON s.id = ks.student_id
+             WHERE ks.id = $1
+             FOR UPDATE`,
+            [id],
+          );
+          if (sub.rows.length === 0) {
+            throw new AppError('NOT_FOUND', 'Pengajuan KRS tidak ditemukan', 404);
+          }
+          if (sub.rows[0].status !== 'submitted') {
+            throw new AppError(
+              'KRS_NOT_PENDING',
+              'Hanya KRS berstatus submitted yang bisa diproses',
+              409,
+            );
+          }
+
+          await client.query(
+            `UPDATE krs_submissions
+             SET status = 'approved', approved_by = $2, approved_at = now(), updated_at = now()
+             WHERE id = $1`,
+            [id, req.user!.id],
+          );
+
+          // Notifikasi in-app ke mahasiswa (AC-04) — atomik dalam transaksi yang sama
+          await client.query(
+            `INSERT INTO notifications (user_id, title, message, type, related_entity_type, related_entity_id, sent_via)
+             VALUES ($1, 'KRS Disetujui', 'KRS Anda telah disetujui oleh Admin Akademik.',
+                     'krs_approved', 'krs_submission', $2, ARRAY['in_app'])`,
+            [sub.rows[0].user_id, id],
+          );
+
+          await client.query('COMMIT');
+          res.json({
+            success: true,
+            data: { id, status: 'approved', approvedBy: req.user!.id },
+          });
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /krs/admin/:id/reject — tolak + alasan; unlock agar mahasiswa bisa revisi (AC-04c)
+  router.post(
+    '/admin/:id/reject',
+    authenticate,
+    authorize('krs.approve'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const parsed = rejectSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data penolakan tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+          throw new AppError('VALIDATION_ERROR', 'ID pengajuan tidak valid', 400);
+        }
+
+        const client = await pgPool.connect();
+        try {
+          await client.query('BEGIN');
+          const sub = await client.query(
+            `SELECT ks.id, ks.status, s.user_id
+             FROM krs_submissions ks
+             JOIN students s ON s.id = ks.student_id
+             WHERE ks.id = $1
+             FOR UPDATE`,
+            [id],
+          );
+          if (sub.rows.length === 0) {
+            throw new AppError('NOT_FOUND', 'Pengajuan KRS tidak ditemukan', 404);
+          }
+          if (sub.rows[0].status !== 'submitted') {
+            throw new AppError(
+              'KRS_NOT_PENDING',
+              'Hanya KRS berstatus submitted yang bisa diproses',
+              409,
+            );
+          }
+
+          await client.query(
+            `UPDATE krs_submissions
+             SET status = 'rejected', rejection_reason = $2,
+                 approved_by = $3, approved_at = now(),
+                 is_locked = false, updated_at = now()
+             WHERE id = $1`,
+            [id, parsed.data.reason, req.user!.id],
+          );
+
+          // Notifikasi in-app ke mahasiswa dengan alasan (AC-04c)
+          await client.query(
+            `INSERT INTO notifications (user_id, title, message, type, related_entity_type, related_entity_id, sent_via)
+             VALUES ($1, 'KRS Ditolak',
+                     'KRS Anda ditolak: ' || $3,
+                     'krs_rejected', 'krs_submission', $2, ARRAY['in_app'])`,
+            [sub.rows[0].user_id, id, parsed.data.reason],
+          );
+
+          await client.query('COMMIT');
+          res.json({
+            success: true,
+            data: { id, status: 'rejected', rejectionReason: parsed.data.reason },
+          });
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /krs/admin/remind-unfilled — pemicu manual reminder AC-04d (idempotent; scheduler otomatis di index.ts)
+  router.post(
+    '/admin/remind-unfilled',
+    authenticate,
+    authorize('krs.approve'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const notified = await remindUnfilledStudents();
+        res.json({ success: true, data: { notified } });
       } catch (err) {
         next(err);
       }
