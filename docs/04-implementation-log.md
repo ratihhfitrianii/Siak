@@ -1,7 +1,7 @@
 # Implementation Log — Siak (Sistem Informasi Akademik)
 
 > **Dibuat:** 2026-08-01 (Developer, Tugas #1)
-> **Status:** Iterasi 1 — **T1.1–T1.4 selesai & tervalidasi**
+> **Status:** Iterasi 1 — **T1.1–T1.5 selesai & tervalidasi**
 > **Referensi:** `docs/02-solution-spec.md` (✅ SPECIFICATION APPROVED), `docs/03-execution-plan.md` (✅ SPECIFICATION APPROVED), `docs/decision-log.md`
 
 ---
@@ -293,8 +293,9 @@ docker compose -f infra/docker-compose.yml up -d --build
 curl http://localhost:3000/api/v1/health
 curl http://localhost:3000/api/v1/health/ready
 curl http://localhost:8080   # frontend via nginx
-# Auth endpoints
-curl -X POST http://localhost:3000/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"admin-akademik@siak.local","password":"Admin123!"}'
+# Auth endpoints (password dev terdokumentasi — lihat §15.4)
+curl -X POST http://localhost:3000/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"admin@siak.local","password":"Admin123!"}'
+curl -X POST http://localhost:3000/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"mhs.TI_20232024_1@siak.local","password":"Mhs123!"}'
 ```
 
 ---
@@ -338,4 +339,58 @@ curl -X POST http://localhost:3000/api/v1/auth/login -H "Content-Type: applicati
 3. **Menu RBAC** (`GET /users/me` → `menu[]`) siap dikonsumsi frontend (T1.9+ Login/Register UI).
 4. Healthcheck frontend (`siak-frontend`) belum diverifikasi healthy di compose (nginx proxy).
 
-**Catatan untuk Reviewer:** validasi CI penuh (GitHub Actions) sedang berjalan otomatis dari push `201d280` (T1.3) + fix security audit. Hasil Actions akan menentukan apakah gate CI terpenuhi untuk lanjut T1.4.
+---
+
+## 15. T1.5 — KRS Core (2026-08-02)
+
+**Status: DONE ✅** — DoD: alur KRS mahasiswa (periode aktif → kelas tersedia → draft → submit → kunci, AC-07) + proteksi kelas penuh (AC-02/AC-04b) + 1 test per perilaku; coverage ≥80% hijau; build lulus; verifikasi live end-to-end.
+
+### 15.1 File Baru/Diubah
+
+| File | Keterangan |
+|------|------------|
+| `backend/src/modules/krs/index.ts` | **KRS Core** (400 baris): GET `/krs/period` (periode aktif/tutup), GET `/krs/available-classes` (kelas prodi + semester periode, kuota tersisa), POST `/krs/draft` (simpan draft, 1+ kelas, periode wajib buka), POST `/krs/submit` (validasi kelas tersedia + kuota, kunci submission, increment `current_enrolled`), GET `/krs/my` (KRS mahasiswa + status + total kredit). Error: `KRS_PERIOD_CLOSED` 403, `CLASS_NOT_AVAILABLE` 409, `CLASS_FULL` 409, `KRS_LOCKED` 409. Middleware `authenticate` + `authorize('krs.fill')` + `requireStudent` |
+| `backend/src/modules/krs/krs.test.ts` | 22 test: alur happy path, edge cases (tanpa token 401, admin tanpa studentId 403, kelas prodi lain 409, kelas penuh 409, periode tutup 403, draft setelah submit 409 KRS_LOCKED) |
+| `backend/src/modules/auth/index.ts` | UX fix: pesan validasi login kini spesifik per field (`Email tidak valid` + `details.fields`), bukan pesan generik |
+| `backend/migrations/V20260801_006__seed_krs_dev.sql` | Seed dev KRS: periode aktif relatif "sekarang" (buka 7 hari lalu, tutup 30 hari lagi) + kelas A/B untuk kurikulum 2024/2025-1 |
+| `backend/migrations/V20260801_007__fix_seed_emails.sql` | **Fix bug seed**: email mahasiswa mengandung `/` (mis. `mhs.AKT_2023/2024_1@…`) → invalid RFC 5322, selalu ditolak `loginSchema` zod → seluruh akun mahasiswa tidak bisa login. Buang `/`: `mhs.AKT_20232024_1@siak.local` |
+| `backend/migrations/V20260801_008__seed_krs_all_prodi.sql` | Kurikulum + kelas untuk MNJ/AKT/HKM/KN (V006 hanya TI/SI); total kelas 20 (semua 6 prodi) |
+| `backend/migrations/V20260801_009__fix_seed_passwords.sql` | **Fix open item T1.2**: hash seed `$2b$12$LQv…` tidak cocok password terdokumentasi (typo). Hash benar per role group (lihat §15.4) |
+| `backend/migrations/V20260801_005__seed_development_data.sql` | Email mahasiswa pakai `replace(ay.code,'/','')`; hash dosen/mahasiswa diperbarui |
+
+### 15.2 Temuan & Perbaikan (Pitfalls)
+
+1. **zod 3.25.76 menolak email `x@y.z`** (regex email ketat: TLD ≥ 2 karakter) — saat debugging live terlihat `400 VALIDATION_ERROR` padahal body terkirim benar. Pelajaran: verifikasi payload dengan email valid.
+2. **MSYS bash meng-mangle JSON berisi `/`** di argumen `curl -d '{"email":"mhs.AKT_2023/2024_1@…"}'` (path mangling) → body rusak → 400. Verifikasi API live memakai Python `urllib` (bebas masalah quoting shell).
+3. **`pgPool.end()` di `afterAll` suite pertama menutup pool untuk suite kedua** dalam file test yang sama → `Cannot use a pool after calling end`. Pool ditutup hanya di `afterAll` terakhir.
+4. **Cleanup FK berantai**: hapus `krs_submissions` sebelum `students` sebelum `users` (FK `krs_submissions_student_id_fkey`).
+5. **Draft response tidak mengembalikan items** (hanya `submissionId, status, message`) — kontrak disengaja; detail KRS dibaca via `GET /krs/my`.
+
+### 15.3 Verifikasi
+
+```text
+- 207 test lulus (7 suite) | coverage: Stmts 93.76% | Branch 82.22% | Funcs 91.93% | Lines 93.71%
+- lint, format:check, typecheck, build: exit 0
+- Docker: siak-backend Up (healthy), 12 migration tercatat (V001–V009 + down)
+- Live E2E (mahasiswa AKT): login 200 → period open "KRS Utama Ganjil 2024/2025" →
+  available-classes 2 kelas (AKT301 A/B) → draft 200 → submit 200 (submitted) →
+  /krs/my status submitted, isLocked true, totalCredits 6 → draft ulang 409 KRS_LOCKED (AC-07)
+- Semua akun seed login tanpa reset manual: admin*/Admin123!, dosen.*/Dosen123!, mhs.*/Mhs123!
+```
+
+### 15.4 Kredensial Dev Terdokumentasi
+
+| Akun | Format email | Password |
+|------|--------------|----------|
+| Admin (sistem/akademik/keuangan) | `admin@siak.local`, `akademik@siak.local`, `keuangan@siak.local`, `sistem@siak.local` | `Admin123!` |
+| Dosen | `dosen.<PRODI><n>@siak.local` (contoh `dosen.TI1@siak.local`) | `Dosen123!` |
+| Mahasiswa | `mhs.<PRODI>_<TA>_<n>@siak.local` (contoh `mhs.AKT_20232024_1@siak.local`) | `Mhs123!` |
+
+### 15.5 Open Items (dilanjutkan T1.6+)
+
+1. **Lecturer seed count 17/100** — CTE `V20260801_005` menghasilkan 17 dosen (bukan ~100); belum kritis untuk fungsionalitas (kelas sudah punya lecturer), perlu diperbaiki saat seed disempurnakan.
+2. **Refresh token store masih in-memory Map** — perlu Redis (multi-instance, skala 5k) di task infra selanjutnya.
+3. **Duplicate periode KRS dev** (id 1 & 2, semester 3, nama sama) — artefak seed V006; tidak mengganggu (query `ORDER BY id DESC LIMIT 1`), rapikan saat seed disempurnakan.
+4. CI T1.5 belum dikonfirmasi hijau di GitHub (push berikutnya).
+
+**Catatan untuk Reviewer:** semua quality gate lokal hijau (lint/format/typecheck/build/test:coverage ≥80%); CI GitHub Actions akan memvalidasi dari push T1.5 (commit berikutnya).
