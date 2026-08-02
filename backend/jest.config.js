@@ -8,6 +8,7 @@ module.exports = {
     'src/**/*.ts',
     '!src/**/*.test.ts',
     '!src/index.ts',
+    '!src/lib/pg.ts',
     '!src/types/**',
     '!src/test/**',
   ],
