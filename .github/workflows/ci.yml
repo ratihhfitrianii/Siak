@@ -17,6 +17,22 @@ jobs:
   backend-quality:
     name: Backend — lint, typecheck, test, build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: siak
+          POSTGRES_PASSWORD: siak_dev_password
+          POSTGRES_DB: siak
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U siak"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgres://siak:siak_dev_password@localhost:5432/siak
     defaults:
       run:
         working-directory: backend
@@ -28,6 +44,8 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      - name: Run DB migrations (V001–V010)
+        run: npx node-pg-migrate up
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
