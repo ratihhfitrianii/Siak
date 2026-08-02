@@ -1,9 +1,440 @@
-import { Router } from 'express';
+import { Router, type Request, type Response, type NextFunction } from 'express';
+import { z } from 'zod';
+import { pgPool } from '../../lib/pg';
+import { AppError } from '../../middleware/error-handler';
+import { authenticate, authorize } from '../../lib/auth-middleware';
 
 /**
- * Modul KRS — T1.5/T1.6: periode, kelas tersedia, draft, submit locking transaksi, validasi admin (F-07, F-07a, F-07d, F-11, F-14, F-15).
- * Stub sementara.
+ * Modul KRS Core — T1.5 (F-07, F-07a, F-07d, F-14, F-15, AC-02, AC-04b, AC-07).
+ *
+ * Endpoints:
+ *   GET  /krs/period            — periode KRS aktif (Mahasiswa, Admin)
+ *   GET  /krs/available-classes — kelas tersedia kuota>0 utk prodi mhs (Mahasiswa)
+ *   POST /krs/draft             — simpan draft (Mahasiswa)
+ *   POST /krs/submit            — locking transaksi SELECT FOR UPDATE (Mahasiswa)
+ *   GET  /krs/my                — status + items KRS periode aktif (Mahasiswa)
+ *
+ * Integritas kuota: SELECT ... FOR UPDATE pada rows classes (A-5, AC-02).
+ * Setelah submit, mahasiswa tidak bisa mengubah KRS (AC-07 → is_locked=true).
+ * Tidak ada daftar tunggu — kelas penuh berarti tidak bisa dipilih (AC-04b).
  */
+
+const classIdsSchema = z.object({
+  classIds: z.array(z.number().int().positive()).min(1, 'Pilih minimal 1 kelas'),
+});
+
+/** Cari periode KRS aktif saat ini (is_active AND now() dalam rentang). */
+async function findActivePeriod() {
+  const result = await pgPool.query(
+    `SELECT kp.id, kp.semester_id, kp.name, kp.start_date, kp.end_date, kp.is_revision,
+            s.code AS semester_code
+     FROM krs_periods kp
+     JOIN semesters s ON s.id = kp.semester_id
+     WHERE kp.is_active AND now() BETWEEN kp.start_date AND kp.end_date
+     ORDER BY kp.id DESC
+     LIMIT 1`,
+  );
+  return result.rows[0] ?? null;
+}
+
+/** Validasi mahasiswa punya studentId (dari JOIN users→students di authenticate). */
+function requireStudent(req: Request): number {
+  if (!req.user?.studentId) {
+    throw new AppError('FORBIDDEN', 'Akun bukan mahasiswa aktif', 403);
+  }
+  return req.user.studentId;
+}
+
+/** Ambil prodi mahasiswa (satu query). */
+async function getStudentProdi(studentId: number): Promise<number> {
+  const result = await pgPool.query('SELECT prodi_id FROM students WHERE id = $1', [studentId]);
+  if (result.rows.length === 0) {
+    throw new AppError('NOT_FOUND', 'Data mahasiswa tidak ditemukan', 404);
+  }
+  return Number(result.rows[0].prodi_id);
+}
+
 export function createKrsRouter(): Router {
-  return Router();
+  const router = Router();
+
+  // GET /krs/period — info periode aktif (Mahasiswa, Admin)
+  router.get('/period', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const period = await findActivePeriod();
+      if (!period) {
+        res.json({
+          success: true,
+          data: { status: 'closed', message: 'Tidak ada periode KRS yang sedang buka' },
+        });
+        return;
+      }
+      res.json({
+        success: true,
+        data: {
+          id: Number(period.id),
+          semesterId: Number(period.semester_id),
+          semesterCode: period.semester_code,
+          name: period.name,
+          startDate: period.start_date,
+          endDate: period.end_date,
+          isRevision: period.is_revision,
+          status: 'open',
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // GET /krs/available-classes — kelas tersedia kuota>0 untuk prodi mahasiswa (F-07, AC-04b)
+  router.get(
+    '/available-classes',
+    authenticate,
+    authorize('krs.view_classes'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const studentId = requireStudent(req);
+        const prodiId = await getStudentProdi(studentId);
+        const period = await findActivePeriod();
+        if (!period) {
+          throw new AppError('KRS_PERIOD_CLOSED', 'Periode KRS tidak sedang buka', 403);
+        }
+
+        const result = await pgPool.query(
+          `SELECT cl.id, cl.class_code, cl.capacity, cl.current_enrolled,
+                  (cl.capacity - cl.current_enrolled) AS quota_left,
+                  cl.room, cl.day_of_week, cl.start_time, cl.end_time,
+                  c.code AS course_code, c.name AS course_name, c.credits,
+                  cur.is_mandatory, cur.semester_number
+           FROM classes cl
+           JOIN curricula cur ON cur.id = cl.curriculum_id
+           JOIN courses c ON c.id = cur.course_id
+           WHERE cur.prodi_id = $1
+             AND cur.semester_id = $2
+             AND cl.is_active
+             AND cl.current_enrolled < cl.capacity
+           ORDER BY c.code, cl.class_code`,
+          [prodiId, period.semester_id],
+        );
+
+        res.json({
+          success: true,
+          data: {
+            period: { id: Number(period.id), name: period.name },
+            items: result.rows.map((r) => ({
+              id: Number(r.id),
+              classCode: r.class_code,
+              capacity: r.capacity,
+              currentEnrolled: r.current_enrolled,
+              quotaLeft: Number(r.quota_left),
+              room: r.room,
+              dayOfWeek: r.day_of_week,
+              startTime: r.start_time,
+              endTime: r.end_time,
+              course: { code: r.course_code, name: r.course_name, credits: r.credits },
+              isMandatory: r.is_mandatory,
+              semesterNumber: r.semester_number,
+            })),
+          },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // GET /krs/my — status + items periode aktif (Mahasiswa)
+  router.get(
+    '/my',
+    authenticate,
+    authorize('krs.fill'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const studentId = requireStudent(req);
+        const period = await findActivePeriod();
+        if (!period) {
+          res.json({ success: true, data: { status: 'no_period', items: [] } });
+          return;
+        }
+
+        const submission = await pgPool.query(
+          `SELECT ks.id, ks.status, ks.submitted_at, ks.is_locked, ks.rejection_reason
+         FROM krs_submissions ks
+         WHERE ks.student_id = $1 AND ks.krs_period_id = $2`,
+          [studentId, period.id],
+        );
+
+        if (submission.rows.length === 0) {
+          res.json({
+            success: true,
+            data: { status: 'not_filled', items: [], submissionId: null },
+          });
+          return;
+        }
+
+        const items = await pgPool.query(
+          `SELECT cl.id, cl.class_code, cl.capacity, cl.current_enrolled,
+                c.code AS course_code, c.name AS course_name, c.credits,
+                cl.day_of_week, cl.start_time, cl.end_time, cl.room
+         FROM krs_items ki
+         JOIN classes cl ON cl.id = ki.class_id
+         JOIN curricula cur ON cur.id = cl.curriculum_id
+         JOIN courses c ON c.id = cur.course_id
+         WHERE ki.krs_submission_id = $1
+         ORDER BY c.code`,
+          [submission.rows[0].id],
+        );
+
+        const totalCredits = items.rows.reduce((sum: number, r) => sum + Number(r.credits), 0);
+
+        res.json({
+          success: true,
+          data: {
+            submissionId: Number(submission.rows[0].id),
+            status: submission.rows[0].status,
+            isLocked: submission.rows[0].is_locked,
+            submittedAt: submission.rows[0].submitted_at,
+            rejectionReason: submission.rows[0].rejection_reason,
+            totalCredits,
+            items: items.rows.map((r) => ({
+              id: Number(r.id),
+              classCode: r.class_code,
+              course: { code: r.course_code, name: r.course_name, credits: r.credits },
+              dayOfWeek: r.day_of_week,
+              startTime: r.start_time,
+              endTime: r.end_time,
+              room: r.room,
+            })),
+          },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /krs/draft — simpan draft (Mahasiswa). Belum mengunci kuota (lock saat submit).
+  router.post(
+    '/draft',
+    authenticate,
+    authorize('krs.fill'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const parsed = classIdsSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data draft tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const studentId = requireStudent(req);
+        const prodiId = await getStudentProdi(studentId);
+        const period = await findActivePeriod();
+        if (!period) {
+          throw new AppError('KRS_PERIOD_CLOSED', 'Periode KRS tidak sedang buka', 403);
+        }
+
+        const client = await pgPool.connect();
+        try {
+          await client.query('BEGIN');
+
+          // Kalau sudah submitted/approved → locked (AC-07)
+          const existing = await client.query(
+            `SELECT id, status, is_locked FROM krs_submissions
+           WHERE student_id = $1 AND krs_period_id = $2`,
+            [studentId, period.id],
+          );
+          if (
+            existing.rows.length > 0 &&
+            (existing.rows[0].is_locked || existing.rows[0].status !== 'draft')
+          ) {
+            throw new AppError('KRS_LOCKED', 'KRS sudah dikunci — tidak bisa diubah lagi', 409);
+          }
+
+          // Validasi kelas: milik prodi mahasiswa + aktif
+          const classes = await client.query(
+            `SELECT cl.id FROM classes cl
+           JOIN curricula cur ON cur.id = cl.curriculum_id
+           WHERE cl.id = ANY($1::bigint[]) AND cur.prodi_id = $2 AND cur.semester_id = $3 AND cl.is_active`,
+            [parsed.data.classIds, prodiId, period.semester_id],
+          );
+          if (classes.rows.length !== parsed.data.classIds.length) {
+            throw new AppError(
+              'CLASS_NOT_AVAILABLE',
+              'Ada kelas yang tidak tersedia untuk prodi Anda',
+              409,
+            );
+          }
+
+          let submissionId: number;
+          if (existing.rows.length > 0) {
+            submissionId = Number(existing.rows[0].id);
+            await client.query('DELETE FROM krs_items WHERE krs_submission_id = $1', [
+              submissionId,
+            ]);
+          } else {
+            const inserted = await client.query(
+              `INSERT INTO krs_submissions (student_id, krs_period_id, status)
+             VALUES ($1, $2, 'draft')
+             RETURNING id`,
+              [studentId, period.id],
+            );
+            submissionId = Number(inserted.rows[0].id);
+          }
+
+          for (const classId of parsed.data.classIds) {
+            await client.query(
+              `INSERT INTO krs_items (krs_submission_id, class_id)
+             VALUES ($1, $2)
+             ON CONFLICT (krs_submission_id, class_id) DO NOTHING`,
+              [submissionId, classId],
+            );
+          }
+
+          await client.query('COMMIT');
+          res.json({
+            success: true,
+            data: { submissionId, status: 'draft', message: 'Draft tersimpan' },
+          });
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /krs/submit — locking transaksi + kuota (F-07, AC-02); terkunci setelah submit (AC-07)
+  router.post(
+    '/submit',
+    authenticate,
+    authorize('krs.fill'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const parsed = classIdsSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data KRS tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const studentId = requireStudent(req);
+        const prodiId = await getStudentProdi(studentId);
+        const period = await findActivePeriod();
+        if (!period) {
+          throw new AppError('KRS_PERIOD_CLOSED', 'Periode KRS tidak sedang buka', 403);
+        }
+
+        const client = await pgPool.connect();
+        try {
+          await client.query('BEGIN');
+
+          // Gate: sudah locked → tolak (AC-07)
+          const existing = await client.query(
+            `SELECT id, status, is_locked FROM krs_submissions
+           WHERE student_id = $1 AND krs_period_id = $2
+           FOR UPDATE`,
+            [studentId, period.id],
+          );
+          if (
+            existing.rows.length > 0 &&
+            (existing.rows[0].is_locked || existing.rows[0].status !== 'draft')
+          ) {
+            throw new AppError('KRS_LOCKED', 'KRS sudah dikunci — tidak bisa diubah lagi', 409);
+          }
+
+          // Validasi kelas + kunci kuota (SELECT ... FOR UPDATE — A-5, AC-02)
+          const classes = await client.query(
+            `SELECT cl.id, cl.class_code, cl.capacity, cl.current_enrolled, c.code AS course_code
+           FROM classes cl
+           JOIN curricula cur ON cur.id = cl.curriculum_id
+           JOIN courses c ON c.id = cur.course_id
+           WHERE cl.id = ANY($1::bigint[]) AND cur.prodi_id = $2 AND cur.semester_id = $3 AND cl.is_active
+           FOR UPDATE`,
+            [parsed.data.classIds, prodiId, period.semester_id],
+          );
+          if (classes.rows.length !== parsed.data.classIds.length) {
+            throw new AppError(
+              'CLASS_NOT_AVAILABLE',
+              'Ada kelas yang tidak tersedia untuk prodi Anda',
+              409,
+            );
+          }
+
+          const fullClasses = classes.rows.filter(
+            (r) => Number(r.current_enrolled) >= Number(r.capacity),
+          );
+          if (fullClasses.length > 0) {
+            throw new AppError(
+              'CLASS_FULL',
+              `Kelas ${fullClasses[0].course_code}-${fullClasses[0].class_code} sudah penuh.`,
+              409,
+              {
+                details: fullClasses.map((r) => ({
+                  field: `classIds[${classes.rows.indexOf(r)}]`,
+                  message: `Kelas ${r.course_code}-${r.class_code} tidak tersedia`,
+                })),
+              },
+            );
+          }
+
+          // Update kuota (increment current_enrolled)
+          for (const row of classes.rows) {
+            await client.query(
+              `UPDATE classes SET current_enrolled = current_enrolled + 1, updated_at = now()
+             WHERE id = $1`,
+              [row.id],
+            );
+          }
+
+          // Buat/update submission → submitted + locked (AC-07)
+          let submissionId: number;
+          if (existing.rows.length > 0) {
+            submissionId = Number(existing.rows[0].id);
+            await client.query('DELETE FROM krs_items WHERE krs_submission_id = $1', [
+              submissionId,
+            ]);
+          } else {
+            const inserted = await client.query(
+              `INSERT INTO krs_submissions (student_id, krs_period_id, status)
+             VALUES ($1, $2, 'submitted')
+             RETURNING id`,
+              [studentId, period.id],
+            );
+            submissionId = Number(inserted.rows[0].id);
+          }
+
+          for (const classId of parsed.data.classIds) {
+            await client.query(
+              `INSERT INTO krs_items (krs_submission_id, class_id, is_confirmed)
+             VALUES ($1, $2, true)
+             ON CONFLICT (krs_submission_id, class_id) DO NOTHING`,
+              [submissionId, classId],
+            );
+          }
+
+          await client.query(
+            `UPDATE krs_submissions
+           SET status = 'submitted', submitted_at = now(), is_locked = true, updated_at = now()
+           WHERE id = $1`,
+            [submissionId],
+          );
+
+          await client.query('COMMIT');
+          res.json({ success: true, data: { submissionId, status: 'submitted', locked: true } });
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  return router;
 }

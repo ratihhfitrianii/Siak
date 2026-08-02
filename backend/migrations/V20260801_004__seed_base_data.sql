@@ -56,15 +56,15 @@ ON CONFLICT (semester_id, name) DO NOTHING;
 -- default admin users (password: 'Admin123!' - bcrypt hash)
 -- Admin Sistem
 INSERT INTO users (email, password_hash, full_name, role_id, is_active) VALUES
-    ('admin@siak.local', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.PZvO.S', 'Admin Sistem', (SELECT id FROM roles WHERE code='admin_sistem'), true)
+    ('admin@siak.local', '$2b$12$8HU58T/7ACy5X9z2WhzQveyfvkvbEEhJOlB8Mz.xpyvTdUMMsVKCa', 'Admin Sistem', (SELECT id FROM roles WHERE code='admin_sistem'), true)
 ON CONFLICT (email) DO NOTHING;
 
 -- Admin Akademik
 INSERT INTO users (email, password_hash, full_name, role_id, is_active) VALUES
-    ('akademik@siak.local', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.PZvO.S', 'Admin Akademik', (SELECT id FROM roles WHERE code='admin_akademik'), true)
+    ('akademik@siak.local', '$2b$12$8HU58T/7ACy5X9z2WhzQveyfvkvbEEhJOlB8Mz.xpyvTdUMMsVKCa', 'Admin Akademik', (SELECT id FROM roles WHERE code='admin_akademik'), true)
 ON CONFLICT (email) DO NOTHING;
 
 -- Admin Keuangan
 INSERT INTO users (email, password_hash, full_name, role_id, is_active) VALUES
-    ('keuangan@siak.local', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.PZvO.S', 'Admin Keuangan', (SELECT id FROM roles WHERE code='admin_keuangan'), true)
+    ('keuangan@siak.local', '$2b$12$8HU58T/7ACy5X9z2WhzQveyfvkvbEEhJOlB8Mz.xpyvTdUMMsVKCa', 'Admin Keuangan', (SELECT id FROM roles WHERE code='admin_keuangan'), true)
 ON CONFLICT (email) DO NOTHING;

@@ -70,7 +70,7 @@ export function createRbacRouter(): Router {
       res.json({
         success: true,
         data: {
-          id: row.id,
+          id: Number(row.id), // BIGSERIAL int8 → string dari pg; normalize ke number
           email: row.email,
           fullName: row.full_name,
           role: row.role_code,
@@ -182,10 +182,12 @@ export function createRbacRouter(): Router {
           [...params, limit, offset],
         );
 
+        const items = listResult.rows.map((row) => ({ ...row, id: Number(row.id) }));
+
         res.json({
           success: true,
           data: {
-            items: listResult.rows,
+            items,
             pagination: { page, limit, total: countResult.rows[0].total },
           },
         });
@@ -238,7 +240,11 @@ export function createRbacRouter(): Router {
 
         res.status(201).json({
           success: true,
-          data: { ...result.rows[0], message: 'User berhasil dibuat' },
+          data: {
+            ...result.rows[0],
+            id: Number(result.rows[0].id),
+            message: 'User berhasil dibuat',
+          },
         });
       } catch (err) {
         next(err);
@@ -293,7 +299,12 @@ export function createRbacRouter(): Router {
 
         res.json({
           success: true,
-          data: { ...result.rows[0], role: roleCode, message: 'Role berhasil diperbarui' },
+          data: {
+            ...result.rows[0],
+            id: Number(result.rows[0].id),
+            role: roleCode,
+            message: 'Role berhasil diperbarui',
+          },
         });
       } catch (err) {
         next(err);

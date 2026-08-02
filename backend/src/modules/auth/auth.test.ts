@@ -73,6 +73,17 @@ describe('Auth Module', () => {
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
 
+    it('should return specific field message for invalid email (UX: bukan pesan generik)', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: 'bukan-email', password: testPassword })
+        .expect(400);
+
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      expect(res.body.error.message).toBe('Email tidak valid');
+      expect(res.body.error.details.fields.email).toBeDefined();
+    });
+
     it('should return 401 for invalid email', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')

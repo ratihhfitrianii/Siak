@@ -109,7 +109,16 @@ export function createAuthRouter(): Router {
     try {
       const parsed = loginSchema.safeParse(req.body);
       if (!parsed.success) {
-        throw new AppError('VALIDATION_ERROR', 'Email dan password wajib diisi', 400);
+        // UX: tampilkan pesan spesifik field (mis. email tidak valid), bukan pesan generik.
+        const firstIssue = parsed.error.issues[0];
+        throw new AppError(
+          'VALIDATION_ERROR',
+          firstIssue?.message ?? 'Email dan password wajib diisi',
+          400,
+          {
+            fields: parsed.error.flatten().fieldErrors,
+          },
+        );
       }
 
       const { email, password } = parsed.data;
