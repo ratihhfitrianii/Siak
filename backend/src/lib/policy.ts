@@ -42,6 +42,10 @@ export const PERMISSIONS = [
   'user.manage', // User Management (CRUD)
   'audit.view', // Audit Log View
   'import.data', // Impor Data
+  'academic.manage', // Fakultas/Prodi/Departemen CRUD
+  'kurikulum.manage', // Kurikulum per prodi/semester CRUD
+  'course.manage', // Mata Kuliah CRUD (global)
+  'schedule.manage', // Jadwal Kelas CRUD
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -87,6 +91,10 @@ const ROLE_PERMISSIONS: Record<RoleCode, ReadonlySet<Permission>> = {
     'guidance.manage',
     'substitute.manage',
     'audit.view',
+    'academic.manage',
+    'kurikulum.manage',
+    'course.manage',
+    'schedule.manage',
   ]),
   admin_keuangan: new Set([
     'auth.profile',
