@@ -79,6 +79,7 @@ export function createRbacRouter(): Router {
           isWali: user.isWali,
           isActive: row.is_active,
           mustChangePassword: row.must_change_password === true,
+          studentId: user.studentId, // untuk transkrip mandiri (T1.11b); null untuk non-mahasiswa
           createdAt: row.created_at,
           menu,
         },

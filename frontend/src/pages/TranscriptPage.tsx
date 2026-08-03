@@ -1,0 +1,164 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import { ApiError, apiRequest } from '../lib/api';
+import type { GradeItem } from '../lib/types';
+
+function computeStats(items: GradeItem[]) {
+  const sks = items.reduce((sum, it) => sum + it.course.credits, 0);
+  let weighted = 0;
+  let gradedSks = 0;
+  for (const it of items) {
+    if (it.gradePoint !== null) {
+      weighted += it.course.credits * it.gradePoint;
+      gradedSks += it.course.credits;
+    }
+  }
+  const ipk = gradedSks > 0 ? weighted / gradedSks : null;
+  return { sks, gradedSks, ipk };
+}
+
+/**
+ * Transkrip nilai mahasiswa (T1.11b):
+ * - GET /grades/student/:studentId (diri sendiri; studentId dari /users/me)
+ * - dikelompokkan per semester (urut periode terbaru), IP per semester + IPK total
+ */
+export function TranscriptPage() {
+  const { user } = useAuth();
+  const studentId = user?.studentId ?? null;
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [items, setItems] = useState<GradeItem[]>([]);
+
+  useEffect(() => {
+    if (studentId === null) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    apiRequest<{ items: GradeItem[] }>(`/grades/student/${studentId}`)
+      .then((data) => {
+        if (!cancelled) setItems(data.items);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Gagal memuat transkrip');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [studentId]);
+
+  const groups = useMemo(() => {
+    const map = new Map<string, GradeItem[]>();
+    for (const it of items) {
+      const arr = map.get(it.semester) ?? [];
+      arr.push(it);
+      map.set(it.semester, arr);
+    }
+    return Array.from(map.entries());
+  }, [items]);
+
+  const overall = useMemo(() => computeStats(items), [items]);
+
+  if (studentId === null) {
+    return (
+      <div className="rounded-2xl bg-white p-6 shadow-sm">
+        <h1 className="text-xl font-bold text-slate-900">Transkrip</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Transkrip nilai tersedia untuk akun mahasiswa. Akun ini tidak terhubung ke data mahasiswa.
+        </p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20" role="status" aria-label="Memuat">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+        <p className="font-medium text-red-700">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold text-slate-900">Transkrip Nilai</h1>
+        <p className="text-sm text-slate-600">
+          Total SKS: <span className="font-bold text-slate-900">{overall.sks}</span> · IPK:{' '}
+          <span className="font-bold text-slate-900">
+            {overall.ipk === null ? '—' : overall.ipk.toFixed(2)}
+          </span>
+        </p>
+      </div>
+
+      {groups.length === 0 ? (
+        <div className="rounded-2xl bg-white p-6 text-sm text-slate-500 shadow-sm">
+          Belum ada nilai yang tercatat.
+        </div>
+      ) : (
+        groups.map(([semester, semesterItems]) => {
+          const stats = computeStats(semesterItems);
+          return (
+            <section key={semester} className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-semibold text-slate-900">Semester {semester}</h2>
+                <p className="text-sm text-slate-600">
+                  SKS: {stats.sks} · IP: {stats.ipk === null ? '—' : stats.ipk.toFixed(2)}
+                </p>
+              </div>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[560px] text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                      <th className="py-2 pr-3 font-medium">Kode</th>
+                      <th className="py-2 pr-3 font-medium">Mata Kuliah</th>
+                      <th className="py-2 pr-3 font-medium">SKS</th>
+                      <th className="py-2 pr-3 font-medium">Nilai</th>
+                      <th className="py-2 font-medium">Poin</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {semesterItems.map((it) => (
+                      <tr key={it.id}>
+                        <td className="py-3 pr-3 font-medium text-slate-900">{it.course.code}</td>
+                        <td className="py-3 pr-3 text-slate-700">{it.course.name}</td>
+                        <td className="py-3 pr-3 text-slate-600">{it.course.credits}</td>
+                        <td className="py-3 pr-3">
+                          <span
+                            className={`rounded px-2 py-0.5 text-xs font-bold ${
+                              it.gradeLetter
+                                ? 'bg-primary-100 text-primary-700'
+                                : 'bg-slate-100 text-slate-500'
+                            }`}
+                          >
+                            {it.gradeLetter ?? '—'}
+                          </span>
+                        </td>
+                        <td className="py-3 text-slate-600">
+                          {it.gradePoint === null ? '—' : it.gradePoint.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          );
+        })
+      )}
+    </div>
+  );
+}

@@ -13,6 +13,7 @@ const USER: MeUser = {
   isWali: false,
   isActive: true,
   mustChangePassword: false,
+  studentId: null,
   createdAt: '2026-01-01T00:00:00Z',
   menu: [],
 };
@@ -25,7 +26,7 @@ function jsonResponse(payload: unknown, status = 200) {
   } as Response;
 }
 
-function renderAt(path: string) {
+function renderAt(path: string, perm?: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <AuthProvider>
@@ -35,7 +36,7 @@ function renderAt(path: string) {
           <Route
             path="/aman"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute perm={perm}>
                 <div>KONTEN_PROTEKSI</div>
               </ProtectedRoute>
             }
@@ -75,5 +76,31 @@ describe('ProtectedRoute (T1.11a)', () => {
 
     renderAt('/aman');
     expect(await screen.findByText('HALAMAN_GANTI_PASSWORD')).toBeInTheDocument();
+  });
+
+  it('perm tidak dimiliki user → Access Denied 403', async () => {
+    const tanpaIzin = { ...USER, menu: ['krs.fill'] };
+    localStorage.setItem('siak.access_token', 'access-ada');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ success: true, data: tanpaIzin })),
+    );
+
+    renderAt('/aman', 'user.manage');
+    expect(await screen.findByText('Akses ditolak')).toBeInTheDocument();
+    expect(screen.getByText('403')).toBeInTheDocument();
+    expect(screen.queryByText('KONTEN_PROTEKSI')).not.toBeInTheDocument();
+  });
+
+  it('perm dimiliki user → konten ditampilkan', async () => {
+    const berizin = { ...USER, menu: ['krs.fill'] };
+    localStorage.setItem('siak.access_token', 'access-ada');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ success: true, data: berizin })),
+    );
+
+    renderAt('/aman', 'krs.fill');
+    expect(await screen.findByText('KONTEN_PROTEKSI')).toBeInTheDocument();
   });
 });

@@ -327,6 +327,7 @@ describe('User Service (RBAC endpoints)', () => {
       expect(res.body.data.role).toBe('mahasiswa');
       expect(res.body.data.menu).toContain('krs.fill');
       expect(res.body.data.menu).not.toContain('user.manage');
+      expect(res.body.data).toHaveProperty('studentId'); // T1.11b: transkrip mandiri butuh studentId
     });
 
     it('admin_sistem mendapat semua menu', async () => {

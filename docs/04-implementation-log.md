@@ -629,3 +629,46 @@ Scope: fondasi SPA (router + api client + auth context + guard) + halaman Login 
 3. **npm audit `--audit-level=high` vs default** — CI scan memakai `--audit-level=high` (moderate tidak memblokir); evaluasi keputusan dependency harus pakai flag CI, bukan `npm audit` polos.
 4. **react-router v8 ESM-only** — `require('react-router')` di node -e gagal (bukan error proyek; Vite ESM-native fine).
 5. **Patch fuzzy merusak import block** 2× (AuthContext.tsx) — pelajaran: setelah prettier merapikan multi-line import, patch old_string harus cocok format baru (baca file dulu).
+
+## 21. T1.11b — Dashboard Mahasiswa: KRS + Transkrip (2026-08-03)
+
+Scope: halaman KRS (periode aktif, kelas tersedia, draft→submit, total SKS, status pengisian) + Transkrip (grup per semester, IP/IPK) + dashboard role-aware. Frontend hanya; 1 perubahan kecil backend.
+
+### 21.1 Perubahan
+
+**Backend** (`backend/`):
+- `src/modules/rbac/index.ts` — `GET /users/me` kini mengembalikan `studentId` (`user.studentId`, number|null; null untuk non-mahasiswa). Dibutuhkan frontend untuk memanggil `/grades/student/:studentId` (transkrip mandiri). Test `rbac.test.ts` +1 assertion (field ada).
+
+**Frontend** (`frontend/`):
+- `src/lib/types.ts` — tipe API KRS/transkrip (KrsPeriod, AvailableClass, MyKrs, GradeItem, dst); `dayOfWeek` number 1-7 (SMALLINT).
+- `src/pages/KrsPage.tsx` — muat period + my + available (paralel; available di-skip bila periode tutup); pilih/hapus kelas secara lokal; total SKS; Simpan Draft / Submit (dialog konfirmasi, AC-07 lock); banner status & rejection; locked saat submitted/approved/periode tutup; error inline + loading.
+- `src/pages/TranscriptPage.tsx` — `GET /grades/student/:studentId`; grup per semester (urutan backend); IP per semester & IPK total **dari SKS yang sudah dinilai saja**; empty/error state; akun non-mahasiswa (studentId null) → info.
+- `src/pages/DashboardPage.tsx` — kartu aksi disaring dari `menu` (KRS/Transkrip untuk mahasiswa, Kelola Pengguna untuk admin).
+- `src/auth/ProtectedRoute.tsx` — prop `perm` opsional → AccessDenied 403 bila permission tidak dimiliki.
+- `src/App.tsx` — `/krs` (perm krs.fill) & `/transkrip` (perm transcript.view_own) ke halaman nyata.
+- 4 file test baru/diubah: KrsPage (8 test), TranscriptPage (4), DashboardPage (2), ProtectedRoute (+2 perm).
+
+### 21.2 Keputusan (DL-22)
+
+1. **IPK dihitung dari SKS yang sudah dinilai saja** — MK tanpa nilai tidak menurunkan IPK (menunggu nilai = bukan gagal). Dihitung client-side dari `gradePoint` (nilai poin dari backend, konsisten grade letter).
+2. **Available classes di-skip bila periode tutup** — `/krs/available-classes` melempar KRS_PERIOD_CLOSED 403; frontend menangkap kode itu dan menampilkan state kosong alih-alih error.
+3. **Admin `krs.approve`/`krs.view_classes` tanpa `krs.fill`** → `/krs` tampil 403 untuk admin di T1.11b (halaman admin KRS menyusul di T1.11c).
+
+### 21.3 Verifikasi
+
+```text
+- Backend: 341/341 PASS | coverage 93.72% stmts / 82.42% branch (rbac 165/165)
+- Frontend: 39/39 PASS (9 file) | lint/format/typecheck/build OK (bundle 81.10 kB gzip)
+- E2E nyata (backend dist :3100, user mahasiswa temp): login → /users/me studentId=studentId
+  → period open → available-classes ada → POST /krs/draft → /krs/my status draft (SKS 3)
+  → /grades/student/:id sukses → cleanup tuntas (0 sisa user/student/submission)
+- npm audit frontend: tetap 0 (tanpa dep baru)
+```
+
+### 21.4 Temuan & Pitfalls
+
+1. **Instance backend basi di port 3100** — proses `node dist/index.js` dari verifikasi T1.11a (PID berbeda dari yang dilacak) masih memegang port; verifikasi E2E sempat menguji build lama (`/users/me` tanpa studentId). Pelajaran: sebelum verifikasi live, pastikan port bersih (`netstat -ano | grep :3100`) & matikan semua PID yang listen.
+2. **BIGINT string di script verifikasi** — `RETURNING id` dan `class_id` dari pg = string; zod `/krs/draft` menolak `classIds: ['1']`. Fix: `Number()` di script. (Pelajaran yang sama berulang: int8 → string di node-postgres.)
+3. **Cleanup E2E harus berurutan** — `DELETE FROM users` kena FK `krs_submissions.student_id` (tidak cascade); hapus krs_submissions dulu, lalu users (cascade students).
+4. **Query Testing Library** — `getByText('3')` ambigu (Total SKS vs kolom SKS); teks gabungan `MAT1 — Matematika Dasar` tidak cocok exact-match; IP header `SKS: 5 · IP: 3.72` bukan elemen tunggal. Fix: `within(section)` + regex.
+5. **IPK 2.66 ≠ 3.72** — kesalahan hitung manual di test: IPK = Σ(SKS×poin)/ΣSKS dinilai = 18.6/5 (bukan /7).

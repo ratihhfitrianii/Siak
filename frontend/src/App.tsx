@@ -5,16 +5,19 @@ import { AppLayout } from './components/AppLayout';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { KrsPage } from './pages/KrsPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { TranscriptPage } from './pages/TranscriptPage';
 
 /**
- * Router aplikasi T1.11a.
- * - /login        → halaman masuk (redirect ke '/' bila sudah login)
+ * Router aplikasi T1.11b.
+ * - /login          → halaman masuk (redirect ke '/' bila sudah login)
  * - /ganti-password → wajib saat mustChangePassword (F-18)
- * - /             → dashboard (protected)
- * - menu peran (krs, transkrip, nilai, users, audit, pembayaran) → ComingSoon di T1.11a,
- *   diisi konten nyata di T1.11b (mahasiswa) & T1.11c (admin).
+ * - /               → dashboard (protected, role-aware)
+ * - /krs            → KRS mahasiswa (permission krs.fill)
+ * - /transkrip      → transkrip nilai (permission transcript.view_own)
+ * - /nilai, /users, /audit, /pembayaran → ComingSoon (T1.11c admin, iterasi berikutnya)
  */
 export default function App() {
   return (
@@ -42,9 +45,9 @@ export default function App() {
         <Route
           path="/krs"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute perm="krs.fill">
               <AppLayout>
-                <ComingSoonPage />
+                <KrsPage />
               </AppLayout>
             </ProtectedRoute>
           }
@@ -52,9 +55,9 @@ export default function App() {
         <Route
           path="/transkrip"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute perm="transcript.view_own">
               <AppLayout>
-                <ComingSoonPage />
+                <TranscriptPage />
               </AppLayout>
             </ProtectedRoute>
           }

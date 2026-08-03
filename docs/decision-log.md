@@ -197,5 +197,6 @@
 | DL-19 | Implementasi T1.1: gate approval implisit, versi library, desain health check | DIPUTUSKAN (Developer) |
 | DL-20 | Frontend: React 19.2 + react-router 8.3.0 (0 advisory; router 7.x tak lolos semua) | DIPUTUSKAN (Developer) |
 | DL-21 | Token access/refresh di localStorage (SPA iterasi 1; migrasi httpOnly cookie di T5 bila perlu) | DIPUTUSKAN (Developer) |
+| DL-22 | IPK transkrip dihitung dari SKS yang sudah dinilai saja (MK tanpa nilai tidak menurunkan IPK) | DIPUTUSKAN (Developer) |
 
 **Keputusan yang menunggu pemilik:** penyedia hosting + admin teknis (DL-18), skema payroll (DL-14), kanal notifikasi, format impor, visibilitas transkrip Dosen Wali (asumsi → Open Question), **konfirmasi approval implisit T1.1 (DL-19)**.

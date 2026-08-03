@@ -7,8 +7,9 @@ import { useAuth } from './AuthContext';
  * - booting (restore sesi) → spinner
  * - belum login → /login (simpan lokasi asal untuk redirect setelah login)
  * - mustChangePassword → paksa /ganti-password (kecuali sudah di halaman itu)
+ * - perm (opsional) → user tanpa permission mendapat AccessDenied (403)
  */
-export function ProtectedRoute({ children }: { children: ReactNode }) {
+export function ProtectedRoute({ children, perm }: { children: ReactNode; perm?: string }) {
   const { user, booting } = useAuth();
   const location = useLocation();
 
@@ -30,6 +31,16 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (user.mustChangePassword && location.pathname !== '/ganti-password') {
     return <Navigate to="/ganti-password" replace />;
+  }
+
+  if (perm && !user.menu.includes(perm)) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-100 px-4 text-center">
+        <p className="text-5xl font-bold text-slate-300">403</p>
+        <h1 className="mt-2 text-lg font-semibold text-slate-900">Akses ditolak</h1>
+        <p className="mt-1 text-sm text-slate-500">Anda tidak memiliki izin untuk halaman ini.</p>
+      </div>
+    );
   }
 
   return <>{children}</>;

@@ -20,6 +20,8 @@ export interface MeUser {
   isActive: boolean;
   mustChangePassword: boolean;
   createdAt: string;
+  /** null untuk non-mahasiswa; dipakai transkrip mandiri (T1.11b). */
+  studentId: number | null;
   /** daftar permission (RBAC UI — sumber menu) */
   menu: string[];
 }
