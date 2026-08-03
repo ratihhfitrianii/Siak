@@ -45,7 +45,7 @@ const server = app.listen(env.PORT, () => {
 const reminderIntervalMs = Number(process.env.KRS_REMINDER_INTERVAL_MS ?? 6 * 60 * 60 * 1000);
 if (env.NODE_ENV !== 'test' && Number.isFinite(reminderIntervalMs) && reminderIntervalMs > 0) {
   const tick = () => {
-    void import('./modules/notification')
+    void import('./modules/notification/index.js')
       .then(({ remindUnfilledStudents }) => remindUnfilledStudents())
       .then((notified) => {
         if (notified > 0) logger.info({ notified }, 'reminder KRS terkirim');
