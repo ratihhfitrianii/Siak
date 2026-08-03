@@ -2,6 +2,7 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import { z } from 'zod';
 import { pgPool } from '../../lib/pg';
 import { authenticate, authorize } from '../../lib/auth-middleware';
+import { auditFromRequest } from '../../lib/audit-service';
 
 /**
  * Modul Akademik — T1.7 (F-07b, F-07c, F-22).
@@ -62,6 +63,13 @@ export function createAcademicRouter(): Router {
           'INSERT INTO faculties (code, name) VALUES ($1, $2) RETURNING *',
           [data.code, data.name],
         );
+        // Audit trail (F-13, S-06, S-07)
+        await auditFromRequest(req.user!, req, {
+          tableName: 'faculties',
+          recordId: Number(result.rows[0].id),
+          action: 'INSERT',
+          newValues: { code: data.code, name: data.name },
+        });
         res.status(201).json({ success: true, data: result.rows[0] });
       } catch (err) {
         next(err);
@@ -95,6 +103,18 @@ export function createAcademicRouter(): Router {
           'INSERT INTO prodis (faculty_id, code, name, degree, accreditation) VALUES ($1, $2, $3, $4, $5) RETURNING *',
           [data.facultyId, data.code, data.name, data.degree, data.accreditation ?? null],
         );
+        // Audit trail (F-13, S-06, S-07)
+        await auditFromRequest(req.user!, req, {
+          tableName: 'prodis',
+          recordId: Number(result.rows[0].id),
+          action: 'INSERT',
+          newValues: {
+            facultyId: data.facultyId,
+            code: data.code,
+            name: data.name,
+            degree: data.degree,
+          },
+        });
         res.status(201).json({ success: true, data: result.rows[0] });
       } catch (err) {
         next(err);
@@ -132,6 +152,13 @@ export function createAcademicRouter(): Router {
           'INSERT INTO departemens (prodi_id, code, name) VALUES ($1, $2, $3) RETURNING *',
           [data.prodiId, data.code, data.name],
         );
+        // Audit trail (F-13, S-06, S-07)
+        await auditFromRequest(req.user!, req, {
+          tableName: 'departemens',
+          recordId: Number(result.rows[0].id),
+          action: 'INSERT',
+          newValues: { prodiId: data.prodiId, code: data.code, name: data.name },
+        });
         res.status(201).json({ success: true, data: result.rows[0] });
       } catch (err) {
         next(err);
@@ -160,6 +187,13 @@ export function createAcademicRouter(): Router {
           'INSERT INTO courses (code, name, credits, description) VALUES ($1, $2, $3, $4) RETURNING *',
           [data.code, data.name, data.credits, data.description ?? null],
         );
+        // Audit trail (F-13, S-06, S-07)
+        await auditFromRequest(req.user!, req, {
+          tableName: 'courses',
+          recordId: Number(result.rows[0].id),
+          action: 'INSERT',
+          newValues: { code: data.code, name: data.name, credits: data.credits },
+        });
         res.status(201).json({ success: true, data: result.rows[0] });
       } catch (err) {
         next(err);

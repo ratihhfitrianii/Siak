@@ -22,5 +22,7 @@ module.exports = {
   },
   clearMocks: true,
   forceExit: true,
-  detectOpenHandles: true,
+  // T1.9: detectOpenHandles dimatikan — suite TIDAK memanggil pgPool.end() lagi
+  // (pool dibagikan antar suite dalam worker; menutupnya = race "pool after end").
+  // forceExit: true sudah menutup proses (dan pool) setelah semua suite selesai.
 };

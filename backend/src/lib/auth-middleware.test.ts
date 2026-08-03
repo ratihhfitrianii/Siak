@@ -58,7 +58,7 @@ describe('Auth Middleware — edge cases (coverage branches)', () => {
       testEmail,
       'rbac-edge-inactive@siak.local',
     ]);
-    await pgPool.end();
+    // T1.9: pgPool.end() dihapus — pool dibagikan antar suite (race; jest forceExit: true).
   });
 
   it('invalid/expired token → 401 UNAUTHORIZED', async () => {

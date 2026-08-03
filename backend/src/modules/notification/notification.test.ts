@@ -42,7 +42,7 @@ afterAll(async () => {
     userIdByRole.admin_akademik,
     userIdByRole.mahasiswa,
   ]);
-  await pgPool.end();
+  // T1.9: pgPool.end() dihapus — pool dibagikan antar suite (race; jest forceExit: true).
 });
 
 describe('Notification module (T1.6)', () => {

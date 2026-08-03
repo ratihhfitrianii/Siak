@@ -133,7 +133,9 @@ describe('Grades module (T1.8)', () => {
     if (cleanupIds.periodId) {
       await pgPool.query('DELETE FROM krs_periods WHERE id = $1', [cleanupIds.periodId]);
     }
-    await pgPool.end();
+    // T1.9: pgPool.end() dihapus — pool dibagikan antar suite dalam worker yang sama;
+    // menutupnya menyebabkan race "Cannot use a pool after calling end" (jest forceExit: true).
+    // Cleanup data dilakukan per-suite.
   });
 
   describe('POST /api/v1/grades — input nilai baru', () => {

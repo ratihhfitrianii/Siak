@@ -50,6 +50,19 @@ describe('KRS Core (T1.5)', () => {
   let semesterId: number;
 
   beforeAll(async () => {
+    // T1.10: purge sisa data test dari run yang terputus (mis. grades T1.8-TEST-*).
+    // findActivePeriod (produksi) memilih periode aktif TERBARU — sisa periode test
+    // (is_active, id lebih tinggi dari seed) akan dipilih dan menggagalkan suite ini.
+    // Urutan hapus sesuai FK: submissions (cascade krs_items+grades) → classes → periods.
+    // Aman dihapus di sini: test:coverage berjalan --runInBand (sekuensial), jadi tidak
+    // ada suite lain yang sedang memakai data test saat describe ini berjalan.
+    await pgPool.query(
+      `DELETE FROM krs_submissions WHERE krs_period_id IN (SELECT id FROM krs_periods WHERE name LIKE 'T1.%-TEST%')`,
+    );
+    await pgPool.query(
+      `DELETE FROM classes WHERE class_code LIKE 'T18-%' OR class_code LIKE 'T19-%'`,
+    );
+    await pgPool.query(`DELETE FROM krs_periods WHERE name LIKE 'T1.%-TEST%'`);
     // Defensive cleanup: hapus sisa submission/student/user dari run test sebelumnya
     await pgPool.query(
       `DELETE FROM krs_submissions WHERE student_id IN (SELECT id FROM students WHERE user_id IN (SELECT id FROM users WHERE email = $1))`,
@@ -70,7 +83,10 @@ describe('KRS Core (T1.5)', () => {
     prodiId = Number(prodiRes.rows[0].id);
 
     const periodRes = await pgPool.query(
-      `SELECT kp.id, kp.semester_id FROM krs_periods kp WHERE kp.is_active AND now() BETWEEN kp.start_date AND kp.end_date ORDER BY kp.id DESC LIMIT 1`,
+      `SELECT kp.id, kp.semester_id FROM krs_periods kp
+       WHERE kp.is_active AND now() BETWEEN kp.start_date AND kp.end_date
+         AND kp.name NOT LIKE 'T1.%-TEST%'
+       ORDER BY kp.id DESC LIMIT 1`,
     );
     semesterId = Number(periodRes.rows[0].semester_id);
 
@@ -266,7 +282,10 @@ describe('KRS Core edge cases (coverage branches)', () => {
     edgeProdiId = Number(prodiRes.rows[0].id);
 
     const periodRes = await pgPool.query(
-      `SELECT kp.id, kp.semester_id FROM krs_periods kp WHERE kp.is_active AND now() BETWEEN kp.start_date AND kp.end_date ORDER BY kp.id DESC LIMIT 1`,
+      `SELECT kp.id, kp.semester_id FROM krs_periods kp
+       WHERE kp.is_active AND now() BETWEEN kp.start_date AND kp.end_date
+         AND kp.name NOT LIKE 'T1.%-TEST%'
+       ORDER BY kp.id DESC LIMIT 1`,
     );
     edgePeriodId = Number(periodRes.rows[0].id);
 
@@ -462,7 +481,10 @@ describe('KRS Validasi Admin (T1.6)', () => {
     prodiId = Number(prodiRes.rows[0].id);
 
     const periodRes = await pgPool.query(
-      `SELECT kp.id, kp.semester_id FROM krs_periods kp WHERE kp.is_active AND now() BETWEEN kp.start_date AND kp.end_date ORDER BY kp.id DESC LIMIT 1`,
+      `SELECT kp.id, kp.semester_id FROM krs_periods kp
+       WHERE kp.is_active AND now() BETWEEN kp.start_date AND kp.end_date
+         AND kp.name NOT LIKE 'T1.%-TEST%'
+       ORDER BY kp.id DESC LIMIT 1`,
     );
     semesterId = Number(periodRes.rows[0].semester_id);
 
@@ -514,7 +536,7 @@ describe('KRS Validasi Admin (T1.6)', () => {
 
   afterAll(async () => {
     await cleanup();
-    await pgPool.end(); // pool ditutup di describe terakhir (pitfall T1.5)
+    // T1.9: pgPool.end() dihapus — pool dibagikan antar suite (race; jest forceExit: true).
   });
 
   it('GET /krs/admin/pending → 403 utk mahasiswa & admin_keuangan (RBAC krs.approve)', async () => {

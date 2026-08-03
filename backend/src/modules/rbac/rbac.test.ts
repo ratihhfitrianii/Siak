@@ -315,7 +315,7 @@ describe('User Service (RBAC endpoints)', () => {
     for (const u of users) {
       await pgPool.query('DELETE FROM users WHERE email = $1', [u.email]);
     }
-    await pgPool.end();
+    // T1.9: pgPool.end() dihapus — pool dibagikan antar suite (race; jest forceExit: true).
   });
 
   describe('GET /users/me', () => {

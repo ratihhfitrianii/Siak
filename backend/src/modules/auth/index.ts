@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pgPool } from '../../lib/pg';
 import { logger } from '../../lib/logger';
 import { AppError } from '../../middleware/error-handler';
+import { writeAuditLog, buildChangedByLabel } from '../../lib/audit-service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -124,7 +125,7 @@ export function createAuthRouter(): Router {
       const { email, password } = parsed.data;
 
       const result = await pgPool.query(
-        `SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.failed_login_attempts, u.locked_until, r.code as role_code
+        `SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.must_change_password, u.failed_login_attempts, u.locked_until, r.code as role_code
          FROM users u
          JOIN roles r ON u.role_id = r.id
          WHERE u.email = $1`,
@@ -179,6 +180,21 @@ export function createAuthRouter(): Router {
 
       logger.info({ userId: user.id, role: user.role_code }, 'User logged in');
 
+      // Audit trail (F-13, S-06) — login dicatat untuk akuntabilitas
+      await writeAuditLog({
+        tableName: 'users',
+        recordId: Number(user.id),
+        action: 'LOGIN',
+        newValues: { email: user.email },
+        changedBy: Number(user.id),
+        changedByLabel: buildChangedByLabel({
+          fullName: user.full_name,
+          roleCode: user.role_code,
+        }),
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+
       res.json({
         success: true,
         data: {
@@ -190,6 +206,7 @@ export function createAuthRouter(): Router {
             fullName: user.full_name,
             role: user.role_code,
             isWali: user.is_wali,
+            mustChangePassword: user.must_change_password === true,
           },
           expiresIn: 15 * 60, // 15 minutes in seconds
         },

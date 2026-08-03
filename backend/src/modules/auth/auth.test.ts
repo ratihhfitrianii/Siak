@@ -38,7 +38,7 @@ describe('Auth Module', () => {
   afterAll(async () => {
     // Cleanup
     await pgPool.query('DELETE FROM users WHERE email = $1', [testEmail]);
-    await pgPool.end();
+    // T1.9: pgPool.end() dihapus — pool dibagikan antar suite (race; jest forceExit: true).
   });
 
   async function loginAndGetTokens() {

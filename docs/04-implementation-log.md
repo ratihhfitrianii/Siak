@@ -439,3 +439,128 @@ curl -X POST http://localhost:3000/api/v1/auth/login -H "Content-Type: applicati
 2. **Lecturer seed count 17/100** — open item T1.2 (dibawa terus).
 3. **Refresh token store in-memory** — perlu Redis (T1.12/T4).
 4. **CI GitHub T1.5/T1.6** — konfirmasi Actions setelah push.
+
+---
+
+## 17. T1.7 — Academic (Struktur Organisasi + Kurikulum) & T1.8 — Grades (2026-08-03)
+
+**Status: DONE ✅** (ringkasan — detail lengkap di commit `2962759` & `989e89e`)
+
+### 17.1 T1.7 — Academic (F-07b, F-07c, F-22)
+
+| File | Keterangan |
+|------|------------|
+| `backend/src/modules/academic/index.ts` | Fakultas, Prodi, Departemen, Mata Kuliah, Kurikulum: GET (semua peran login) + POST (admin: `academic.manage`/`course.manage`) |
+| `backend/src/lib/policy.ts` | Permission baru: `academic.manage`, `kurikulum.manage`, `course.manage`, `schedule.manage` |
+| `backend/migrations/V20260801_011__add_departemen_and_extend_curriculum.sql` | Tabel `departemens` + relasi kurikulum diperluas |
+| `backend/src/modules/academic/academic.test.ts` | 10 test, branch 100% |
+
+### 17.2 T1.8 — Grades (F-06, F-06a, F-06b, F-06c, F-10)
+
+| File | Keterangan |
+|------|------------|
+| `backend/src/modules/grades/index.ts` | Input nilai bobot tugas 20% / UTS 30% / UAS 50%; remedial `max(asli, remedial)`; skala A=4.0 s.d. E=0.0; POST/PUT `/api/v1/grades`; GET `/grades/class/:id` & `/grades/student/:id`; atribusi `input_by`/`updated_by`; RBAC `grade.input`/`grade.edit` |
+| `backend/src/modules/grades/grades.test.ts` | 37 test mengeksekusi endpoint dengan data test sendiri (bukan skip); 3 bug nyata ditemukan & diperbaiki: kolom `c.code`→`class_code` (500), BIGINT string vs number pada `lecturer_id` (dosen tak pernah dianggap pengampu), `grade_point || null` memakan nilai 0 (E) |
+| `backend/src/app.ts` | Router grades terdaftar di `/api/v1/grades` |
+
+### 17.3 Verifikasi T1.7 + T1.8
+
+```text
+- 294 test lulus (10 suite) | global: Stmts 94.01% | Branch 84.02% | Funcs 95.4%
+- grades module: branch 86.22%, funcs 100%
+- lint, format:check, typecheck, build: exit 0
+- Commit 989e89e → CI GitHub Actions run 30785369708: 5/5 job SUCCESS
+  (Backend lint/typecheck/test:coverage/build, Security npm audit, Frontend, Docker images, Deploy staging)
+```
+
+---
+
+## 18. T1.9 — Audit Trail Service + Atribusi (2026-08-03)
+
+**Status: DONE ✅** — DoD: semua mutasi tercatat (user, action, old/new JSONB, label atribusi "diinput oleh X"); RBAC `audit.view` (Admin Akademik/Keuangan/Sistem per matriks §6.1); 320 test hijau, coverage ≥80%; quality gates lulus.
+
+### 18.1 File Baru/Diubah
+
+| File | Keterangan |
+|------|------------|
+| `backend/src/lib/audit-service.ts` | **Audit Service** (baru): `writeAuditLog()` (INSERT ke `audit_logs`, dukung transaksi via `client` — pola KRS), `buildChangedByLabel()` ("diinput oleh {nama} ({role})", potong 100 char), `sanitizeIp()` (INET hanya terima IP valid), `auditFromRequest()` (ambil user/IP/user-agent otomatis) |
+| `backend/src/modules/audit/index.ts` | **Router audit** (stub → penuh): `GET /api/v1/audit-logs` — filter `tableName`, `action`, `changedBy`, `from`/`to` (ISO), pagination, sort whitelist (anti SQLi S-03); JOIN `users` untuk `changedByEmail` |
+| `backend/src/modules/auth/index.ts` | Hook audit: login sukses → `LOGIN` (akuntabilitas F-13) |
+| `backend/src/modules/grades/index.ts` | Hook audit: POST → `INSERT grades`, PUT → `UPDATE grades` (old/new JSONB) |
+| `backend/src/modules/krs/index.ts` | Hook audit atomik dalam transaksi: draft/submit (INSERT/UPDATE `krs_submissions`), approve/reject (UPDATE) |
+| `backend/src/modules/academic/index.ts` | Hook audit: INSERT faculties/prodis/departemens/courses |
+| `backend/src/modules/rbac/index.ts` | Hook audit: INSERT users (create), UPDATE users (contact — password TIDAK dicatat S-04; role change — old/new roleCode) |
+| `backend/migrations/V20260801_012__audit_logs_changed_by_set_null.sql` | **Fix desain**: `audit_logs.changed_by` → `ON DELETE SET NULL` (kolom nullable). Saat user dihapus, jejak audit TETAP ada (append-only S-06); sebelumnya FK default → hapus user = error FK |
+| `backend/src/modules/audit/audit.test.ts` | 26 test: unit service (label, sanitizeIp, writeAuditLog pool + transaksi), RBAC 6 sel (401/403×2/200×3), filter/pagination/sort/validasi, integrasi mutasi→audit (login, grades INSERT/UPDATE, faculties, users — verifikasi label + old/new + tanpa password) |
+
+### 18.2 Temuan & Perbaikan (Pitfalls)
+
+1. **FK `audit_logs_changed_by_fkey` memblokir hapus user** — setelah hook login aktif, test lama yang `DELETE users` di cleanup gagal FK; ini juga bug produksi (Admin Sistem hapus user → 500). Solusi: migration V012 `ON DELETE SET NULL` — jejak audit tidak pernah hilang (append-only).
+2. **`current_enrolled` kelas seed terkuras antar-run test** — menjalankan `krs.test.ts` berulang kali menaikkan kuota tanpa reset (masalah pre-existing T1.6, open item §16.4); reset manual dev `UPDATE classes SET current_enrolled = 0` sebelum verifikasi. KRS test sebaiknya reset kuota di cleanup (sudah ada `restoreClassQuota` untuk kasus spesifik).
+3. **pg driver BIGSERIAL → string** — `findByRole()` di test perlu `Number()`; `changedBy`/`recordId` dinormalisasi di response router audit.
+4. **oldValues dari DB NUMERIC berupa string** (`'81.00'`) vs newValues number — assertion test menyesuaikan.
+5. **`z.enum` butuh tuple `as const`** — `AuditAction[]` (array) ditolak typecheck.
+
+### 18.3 Verifikasi
+
+```text
+- 320 test lulus (11 suite) | global: Stmts 94.52% | Branch 84.37% | Funcs 95.69%
+- audit module: 100% | audit-service: branch 84.61%
+- lint, format:check, typecheck, build: exit 0
+- Migrasi V012 terpasang (dev: pgmigrations tercatat, constraint SET NULL aktif)
+- Integrasi terbukti: login → LOGIN tercatat; POST/PUT grades → INSERT/UPDATE grades
+  dengan old/new JSONB + label "diinput oleh X (role)"; fakultas & user tercatat (tanpa password)
+```
+
+### 18.4 Open Items (dilanjutkan T1.10+)
+
+1. **UI badge "diinput oleh X"** — backend sudah menyediakan `changed_by_label`; rendering badge di frontend menyusul T1.11 (Login/Dashboard) / T5.
+2. **Audit untuk modul stub** (finance, import, dosen) — otomatis aktif saat modul diimplementasikan (hook wajib per A-4).
+3. **Retensi & arsip audit_logs** — kebijakan (mis. arsip >1 tahun) dijadwalkan T4.7 (security audit).
+4. **CI T1.9** — konfirmasi Actions setelah push (commit menyusul manual owner, F-31).
+
+## 19. T1.10 — Import Data Excel/CSV (F-18, K-08) (2026-08-03)
+
+**Status: DONE ✅** — DoD: upsert NIM/NIDN existing; laporan baris gagal + alasan; validasi schema; 336 test hijau, coverage ≥80%; quality gates lulus. RBAC: hanya Admin Sistem (`import.data`).
+
+### 19.1 File Baru/Diubah
+
+| File | Keterangan |
+|------|------------|
+| `backend/src/modules/import/index.ts` | **Modul Impor** (stub → penuh): `POST /import/students`, `/import/lecturers`, `/import/courses` — parse CSV (`csv-parse/sync`) & XLSX (`exceljs`), batas 2MB (multer memory), validasi header + schema per baris (zod), upsert per baris dalam SATU transaksi + SAVEPOINT per baris (baris gagal tidak menggagalkan baris lain), audit `IMPORT` atomik dengan mutasi |
+| `backend/src/modules/import/import.test.ts` | 16 test: RBAC 4 sel (401/403×3), validasi file (tanpa file, ekstensi, kosong, header hilang, >2MB, xlsx rusak), mahasiswa (baru+existing, baris invalid 4 alasan, duplikat NIM, konflik user), dosen (baru+existing, tanpa NIDN), matkul (CSV + XLSX, sks 0), audit IMPORT, login mustChangePassword |
+| `backend/migrations/V20260801_013__users_must_change_password.sql` | Kolom `users.must_change_password` (default false) — password default hasil impor WAJIB diganti saat login pertama (spec §6.3); flag dilaporkan di respon login |
+| `backend/src/modules/auth/index.ts` | Login: SELECT + respon `user.mustChangePassword` |
+| `backend/src/lib/audit-service.ts` | `AuditAction` + `'IMPORT'` |
+| `backend/package.json` | Deps baru: `multer`, `csv-parse`, `exceljs`; `overrides.uuid ^11.1.1` (tutup GHSA-w5hq-g745-h8pq moderate di tree exceljs) |
+| `backend/src/modules/krs/krs.test.ts` | Purge sisa data test dari run terputus (lihat §19.2 #3) |
+
+Kolom file impor (per docs/02 §6.6): **students** `nim, full_name, prodi_code, angkatan, [kontak=email]`; **lecturers** `nidn, full_name, prodi_code, [kontak=email]`; **courses** `kode, nama, sks`. Alias kolom diterima (mis. `nama`↔`full_name`, `kode_prodi`↔`prodi_code`, `nik`/`nip`↔`nidn`). Email kosong → otomatis `{nim}@student.siak.local` / `{nidn}@siak.local` (lowercase). Password default: env `IMPORT_DEFAULT_PASSWORD` (default `Siak123!`), bcrypt cost 10.
+
+### 19.2 Temuan & Perbaikan (Pitfalls)
+
+1. **`xlsx` (SheetJS) npm 0.18.5 membawa 2 advisory HIGH** (prototype pollution GHSA-4r6h-8v6p-xvw6 + ReDoS GHSA-5pgg-2g8v-p4x9, tanpa fix) → **ganti ke `exceljs`** — aktif dipelihara, 0 advisory, dan sudah direncanakan untuk export transkrip (docs/02 §6.4: pdfmake/exceljs). `auditConfig.ignore` yang ada (`GHSA-5j98-mcp5-4vw2`) tidak menutup 2 advisory baru ini — CI audit prod akan merah jika tetap pakai xlsx.
+2. **ExcelJS 4.4 → uuid <11.1.1 (moderate GHSA-w5hq-g745-h8pq)** — override `uuid ^11.1.1` (masih CJS, kompatibel); audit prod `--omit=dev` = 0 vuln. Sisa 2 high di `node-pg-migrate→glob` = devDependency pre-existing (bukan blokir CI prod).
+3. **Periode test sisa dari run terputus menggagalkan krs.test.ts** — `findActivePeriod()` (produksi) memilih periode aktif TERBARU; run yang di-kill (mis. timeout) meninggalkan `krs_periods T1.8-TEST-*` aktif + id lebih tinggi dari seed → suite krs berikutnya memilih periode itu (semester acak) → `availableClasses` 0 / draft 409. Solusi: purge deterministik di beforeAll krs (submissions → classes → periods, urutan FK) — aman karena `--runInBand` sekuensial.
+4. **Email impor di-lowercase** (`toLowerCase()`) tapi query login case-sensitive — NIM test harus lowercase agar login test cocok (bug di test, bukan modul). **Efek lanjutan**: run test lama (pra-patch, NIM uppercase) membuat user via modul (email lowercase) lalu test login gagal 401 → `createdEmails.push` tak dieksekusi → user sisa tanpa cleanup. Cleanup diubah ke **berbasis pola** (`LIKE 'imp-%-{ts}@siak.local'`, `t110%@...`) — robust walau test gagal di tengah (setelahAll tetap jalan).
+5. **Buffer generic mismatch** (`Buffer<ArrayBufferLike>` vs tipe `Buffer` lama di exceljs/csv-parse/supertest) — cast via `unknown` / `Parameters<typeof load>[0]`; runtime exceljs terima Buffer apa pun.
+6. **Typecheck lint "error TS6053 File not found"** saat `patch` — noise path MSYS (`/c/...` vs `C:\...`), bukan error nyata; verifikasi dengan `npm run typecheck` yang benar.
+
+### 19.3 Verifikasi
+
+```text
+- 336 test lulus (12 suite) | global: Stmts 93.65% | Branch 82.58% | Funcs 96.52%
+- import module: Stmts 90.14% | Branch 69.44% | Funcs 100%
+- lint, format:check, typecheck, build: exit 0
+- npm audit --omit=dev (prod): 0 vulnerabilities
+- Migrasi V013 terpasang (dev); determinisme: 2× run penuh 336/336 identik
+- Terbukti end-to-end: impor CSV mahasiswa → inserted+updated → login default password
+  (mustChangePassword=true) → jejak audit IMPORT (table_name + ringkasan newValues)
+```
+
+### 19.4 Open Items (dilanjutkan T1.11+)
+
+1. **UI upload impor** — frontend (T1.11) memakai endpoint di atas; template file contoh (.csv/.xlsx) + tampilan laporan baris gagal.
+2. **Performa import skala 5.000 baris** — saat ini 1 transaksi + SAVEPOINT per baris (aman, ~2-5s untuk 2.000 baris di dev); jika load test (T1.14) menunjukkan kebutuhan, optimasi batch upsert (CTE multi-row) dijadwalkan.
+3. **Alur ganti password paksa** — `must_change_password` sudah dilaporkan di login; UI + endpoint ganti password menyusul T1.11.
+4. **Validasi NIM duplikat lintas-format** — kontak email yang sudah dipakai user lain dilaporkan sebagai baris gagal (sudah ditest); perilaku upsert NIM yang "pindah user" (email beda) didokumentasikan sebagai keputusan: NIM existing → update profil user lama, tidak membuat user baru.

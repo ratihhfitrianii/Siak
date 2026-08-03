@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import { pgPool } from '../../lib/pg';
 import { AppError } from '../../middleware/error-handler';
 import { authenticate, authorize } from '../../lib/auth-middleware';
+import { auditFromRequest } from '../../lib/audit-service';
 import { permissionsFor, ROLE_CODES } from '../../lib/policy';
 
 /**
@@ -126,6 +127,19 @@ export function createRbacRouter(): Router {
           [fullName ?? null, email ?? null, passwordHash ?? null, user.id],
         );
 
+        // Audit trail (F-13, S-06, S-07) — password TIDAK pernah dicatat (S-04)
+        await auditFromRequest(req.user!, req, {
+          tableName: 'users',
+          recordId: user.id,
+          action: 'UPDATE',
+          oldValues: { fullName: user.fullName, email: user.email },
+          newValues: {
+            fullName: fullName ?? null,
+            email: email ?? null,
+            passwordChanged: password ? true : false,
+          },
+        });
+
         res.json({
           success: true,
           data: { ...result.rows[0], message: 'Kontak berhasil diperbarui' },
@@ -238,6 +252,14 @@ export function createRbacRouter(): Router {
           ],
         );
 
+        // Audit trail (F-13, S-06, S-07) — password TIDAK pernah dicatat (S-04)
+        await auditFromRequest(req.user!, req, {
+          tableName: 'users',
+          recordId: Number(result.rows[0].id),
+          action: 'INSERT',
+          newValues: { email, fullName, roleCode, isWali: roleCode === 'dosen' ? isWali : false },
+        });
+
         res.status(201).json({
           success: true,
           data: {
@@ -284,7 +306,13 @@ export function createRbacRouter(): Router {
           throw new AppError('VALIDATION_ERROR', 'Role tidak ditemukan', 400);
         }
 
-        const target = await pgPool.query('SELECT id FROM users WHERE id = $1', [targetId]);
+        const target = await pgPool.query(
+          `SELECT u.id, u.email, u.full_name, r.code AS role_code, u.is_wali
+           FROM users u
+           JOIN roles r ON u.role_id = r.id
+           WHERE u.id = $1`,
+          [targetId],
+        );
         if (target.rows.length === 0) {
           throw new AppError('NOT_FOUND', 'User tidak ditemukan', 404);
         }
@@ -296,6 +324,15 @@ export function createRbacRouter(): Router {
          RETURNING id, email, full_name, is_wali`,
           [roleResult.rows[0].id, roleCode === 'dosen' ? isWali : false, targetId],
         );
+
+        // Audit trail (F-13, S-06, S-07) — perubahan RBAC paling penting dicatat
+        await auditFromRequest(req.user!, req, {
+          tableName: 'users',
+          recordId: targetId,
+          action: 'UPDATE',
+          oldValues: { roleCode: target.rows[0].role_code, isWali: target.rows[0].is_wali },
+          newValues: { roleCode, isWali: roleCode === 'dosen' ? isWali : false },
+        });
 
         res.json({
           success: true,

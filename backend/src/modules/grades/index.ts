@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pgPool } from '../../lib/pg';
 import { AppError } from '../../middleware/error-handler';
 import { authenticate, authorize } from '../../lib/auth-middleware';
+import { auditFromRequest } from '../../lib/audit-service';
 
 /**
  * Modul Nilai (Grades) — T1.8 (F-06, F-06a, F-06b, F-06c, F-10).
@@ -333,6 +334,22 @@ export function createGradesRouter(): Router {
           ],
         );
 
+        // Audit trail (F-13, S-06, S-07) — atribusi "diinput oleh X"
+        await auditFromRequest(req.user!, req, {
+          tableName: 'grades',
+          recordId: Number(result.rows[0].id),
+          action: 'INSERT',
+          newValues: {
+            krsItemId,
+            tugasScore: tugasScore ?? null,
+            utsScore: utsScore ?? null,
+            uasScore: uasScore ?? null,
+            finalScore,
+            gradeLetter: finalScore !== null ? letter : null,
+            isRemedial: isRemedial ?? false,
+          },
+        });
+
         res.status(201).json({ success: true, data: result.rows[0] });
       } catch (err) {
         next(err);
@@ -420,6 +437,29 @@ export function createGradesRouter(): Router {
             req.user!.id,
           ],
         );
+
+        // Audit trail (F-13, S-06, S-07) — old/new JSONB + atribusi
+        await auditFromRequest(req.user!, req, {
+          tableName: 'grades',
+          recordId: id,
+          action: 'UPDATE',
+          oldValues: {
+            tugasScore: grade.tugas_score,
+            utsScore: grade.uts_score,
+            uasScore: grade.uas_score,
+            finalScore: grade.final_score,
+            gradeLetter: grade.grade_letter,
+            updatedBy: grade.updated_by,
+          },
+          newValues: {
+            tugasScore: tugasScore ?? null,
+            utsScore: utsScore ?? null,
+            uasScore: uasScore ?? null,
+            finalScore,
+            gradeLetter: finalScore !== null ? letter : null,
+            updatedBy: req.user!.id,
+          },
+        });
 
         res.json({
           success: true,

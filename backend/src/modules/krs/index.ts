@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pgPool } from '../../lib/pg';
 import { AppError } from '../../middleware/error-handler';
 import { authenticate, authorize } from '../../lib/auth-middleware';
+import { auditFromRequest } from '../../lib/audit-service';
 import { remindUnfilledStudents } from '../notification';
 
 /**
@@ -304,6 +305,19 @@ export function createKrsRouter(): Router {
             );
           }
 
+          // Audit trail (F-13, S-06, S-07) — atomik dalam transaksi yang sama
+          await auditFromRequest(
+            req.user!,
+            req,
+            {
+              tableName: 'krs_submissions',
+              recordId: submissionId,
+              action: existing.rows.length > 0 ? 'UPDATE' : 'INSERT',
+              newValues: { status: 'draft', classIds: parsed.data.classIds },
+            },
+            client,
+          );
+
           await client.query('COMMIT');
           res.json({
             success: true,
@@ -437,6 +451,19 @@ export function createKrsRouter(): Router {
             [submissionId],
           );
 
+          // Audit trail (F-13, S-06, S-07) — atomik dalam transaksi yang sama
+          await auditFromRequest(
+            req.user!,
+            req,
+            {
+              tableName: 'krs_submissions',
+              recordId: submissionId,
+              action: existing.rows.length > 0 ? 'UPDATE' : 'INSERT',
+              newValues: { status: 'submitted', classIds: parsed.data.classIds, isLocked: true },
+            },
+            client,
+          );
+
           await client.query('COMMIT');
           res.json({ success: true, data: { submissionId, status: 'submitted', locked: true } });
         } catch (err) {
@@ -544,6 +571,19 @@ export function createKrsRouter(): Router {
             [sub.rows[0].user_id, id],
           );
 
+          // Audit trail (F-13, S-06, S-07)
+          await auditFromRequest(
+            req.user!,
+            req,
+            {
+              tableName: 'krs_submissions',
+              recordId: id,
+              action: 'UPDATE',
+              newValues: { status: 'approved', approvedBy: req.user!.id },
+            },
+            client,
+          );
+
           await client.query('COMMIT');
           res.json({
             success: true,
@@ -617,6 +657,19 @@ export function createKrsRouter(): Router {
                      'KRS Anda ditolak: ' || $3,
                      'krs_rejected', 'krs_submission', $2, ARRAY['in_app'])`,
             [sub.rows[0].user_id, id, parsed.data.reason],
+          );
+
+          // Audit trail (F-13, S-06, S-07)
+          await auditFromRequest(
+            req.user!,
+            req,
+            {
+              tableName: 'krs_submissions',
+              recordId: id,
+              action: 'UPDATE',
+              newValues: { status: 'rejected', rejectionReason: parsed.data.reason },
+            },
+            client,
           );
 
           await client.query('COMMIT');

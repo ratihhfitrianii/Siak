@@ -58,7 +58,7 @@ describe('Academic module (T1.7)', () => {
   });
 
   afterAll(async () => {
-    await pgPool.end();
+    // T1.9: pgPool.end() dihapus — pool dibagikan antar suite (race; jest forceExit: true).
   });
 
   // --- FAKULTAS ---
