@@ -14,6 +14,7 @@ import { createDosenRouter } from './modules/dosen';
 import { createAuditRouter } from './modules/audit';
 import { createNotificationRouter } from './modules/notification';
 import { createImportRouter } from './modules/import';
+import { createGradesRouter } from './modules/grades';
 
 /**
  * Membangun aplikasi Express (monolith modular — DL-07).
@@ -45,6 +46,7 @@ export function createApp(healthDeps: HealthDependencies = {}): Express {
   app.use('/api/v1', createAuditRouter());
   app.use('/api/v1', createNotificationRouter());
   app.use('/api/v1', createImportRouter());
+  app.use('/api/v1/grades', createGradesRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);
