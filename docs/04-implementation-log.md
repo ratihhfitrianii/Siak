@@ -566,3 +566,17 @@ Kolom file impor (per docs/02 §6.6): **students** `nim, full_name, prodi_code, 
 2. **Performa import skala 5.000 baris** — saat ini 1 transaksi + SAVEPOINT per baris (aman, ~2-5s untuk 2.000 baris di dev); jika load test (T1.14) menunjukkan kebutuhan, optimasi batch upsert (CTE multi-row) dijadwalkan.
 3. **Alur ganti password paksa** — `must_change_password` sudah dilaporkan di login; UI + endpoint ganti password menyusul T1.11.
 4. **Validasi NIM duplikat lintas-format** — kontak email yang sudah dipakai user lain dilaporkan sebagai baris gagal (sudah ditest); perilaku upsert NIM yang "pindah user" (email beda) didokumentasikan sebagai keputusan: NIM existing → update profil user lama, tidak membuat user baru.
+
+### 19.5 Fix CI pasca-commit 0bdffa5 (2026-08-03, commit 8719f6a + d911630)
+
+**Gejala**: CI run 30806477650 FAILURE (1m8s) — hanya `import.test.ts` 16/16 failed (beforeAll login admin seed → 500); suite lain lulus; log tanpa stack trace.
+
+**Akar masalah** (ditemukan setelah analisis menyeluruh): `import.test.ts` memakai `process.env.DATABASE_URL =` (assignment paksa) ke `localhost:5433` — port docker lokal. CI postgres:16 service listen di **5432**; assignment paksa menimpa env CI → ECONNREFUSED → login 500. 8 suite lain memakai `??=` (default saja) sehingga hormat ke env CI → hijau. Lokal selalu hijau karena port 5433 memang ada → bug tersembunyi.
+
+**Perbaikan**:
+1. `import.test.ts` — ganti `=` → `??=` (default 5433 hanya dipakai bila env tidak diset); verifikasi positif: preset env ke DB segar `siak_citest3` → suite 16/16 PASS dan jejak audit LOGIN tertulis di DB preset, DB dev tidak menerima baris baru.
+2. `tsconfig.json` — `module`/`moduleResolution` `Node`(alias node10, deprecated di TS 7.0) → **Node16**; dynamic import di `src/index.ts:48` perlu ekstensi eksplisit → `./modules/notification/index.js`; output tetap CommonJS, typecheck/build/runtime diverifikasi.
+
+**Verifikasi**: 2 run CI berikutnya SUCCESS — 30809445626 (fix `??=`; 2m29s) & 30811336103 (tsconfig Node16; 1m15s, 5/5 job hijau).
+
+**Pelajaran**: jangan pernah `=` env wajib di test file — selalu `??=` supaya konfigurasi CI (port/service env) dihormati; biasakan juga mensimulasikan env eksternal (port beda) saat verifikasi test suite, bukan hanya default lokal.
