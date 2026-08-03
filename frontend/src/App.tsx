@@ -1,25 +1,106 @@
+import { Route, Routes } from 'react-router';
+import { AuthProvider } from './auth/AuthContext';
+import { ProtectedRoute } from './auth/ProtectedRoute';
+import { AppLayout } from './components/AppLayout';
+import { ChangePasswordPage } from './pages/ChangePasswordPage';
+import { ComingSoonPage } from './pages/ComingSoonPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { LoginPage } from './pages/LoginPage';
+import { NotFoundPage } from './pages/NotFoundPage';
+
 /**
- * Halaman fondasi T1.1 — placeholder aplikasi.
- * Halaman Login/Dashboard mahasiswa & admin diimplementasikan pada T1.11.
+ * Router aplikasi T1.11a.
+ * - /login        → halaman masuk (redirect ke '/' bila sudah login)
+ * - /ganti-password → wajib saat mustChangePassword (F-18)
+ * - /             → dashboard (protected)
+ * - menu peran (krs, transkrip, nilai, users, audit, pembayaran) → ComingSoon di T1.11a,
+ *   diisi konten nyata di T1.11b (mahasiswa) & T1.11c (admin).
  */
-function App() {
+export default function App() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100">
-      <main className="max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
-        <p className="text-sm font-semibold uppercase tracking-wide text-primary-600">
-          Sistem Informasi Akademik
-        </p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-900">Siak</h1>
-        <p className="mt-3 text-sm text-slate-600">
-          Fondasi iterasi 1 (T1.1) sudah siap. Halaman login dan dashboard menyusul.
-        </p>
-        <p className="mt-6 text-xs text-slate-400">
-          Backend: <code className="font-mono">http://localhost:3000</code> · Frontend dev:{' '}
-          <code className="font-mono">http://localhost:5173</code>
-        </p>
-      </main>
-    </div>
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/ganti-password"
+          element={
+            <ProtectedRoute>
+              <ChangePasswordPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <DashboardPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/krs"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ComingSoonPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transkrip"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ComingSoonPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/nilai"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ComingSoonPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ComingSoonPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/audit"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ComingSoonPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pembayaran"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ComingSoonPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </AuthProvider>
   );
 }
-
-export default App;

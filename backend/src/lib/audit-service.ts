@@ -13,7 +13,8 @@ import type { AuthUser } from './auth-middleware';
  * mutasi "diam-diam" tanpa jejak).
  */
 
-export type AuditAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'IMPORT';
+export type AuditAction =
+  'INSERT' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'IMPORT' | 'PASSWORD_CHANGED';
 
 export interface AuditLogParams {
   /** Nama tabel entitas yang dimutasi (mis. 'grades', 'krs_submissions'). */

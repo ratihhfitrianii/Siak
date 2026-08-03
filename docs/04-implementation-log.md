@@ -580,3 +580,52 @@ Kolom file impor (per docs/02 §6.6): **students** `nim, full_name, prodi_code, 
 **Verifikasi**: 2 run CI berikutnya SUCCESS — 30809445626 (fix `??=`; 2m29s) & 30811336103 (tsconfig Node16; 1m15s, 5/5 job hijau).
 
 **Pelajaran**: jangan pernah `=` env wajib di test file — selalu `??=` supaya konfigurasi CI (port/service env) dihormati; biasakan juga mensimulasikan env eksternal (port beda) saat verifikasi test suite, bukan hanya default lokal.
+
+## 20. T1.11a — Frontend Fondasi: Router, Auth, Login, Ganti Password (2026-08-03)
+
+Scope: fondasi SPA (router + api client + auth context + guard) + halaman Login & Ganti Password paksa (F-18). Dashboard & halaman peran menyusul di T1.11b/11c.
+
+### 20.1 File Baru/Diubah
+
+**Frontend** (`frontend/`):
+- `src/lib/api.ts` — fetch wrapper: token localStorage, silent refresh 1× saat 401 (single-flight), normalisasi error → `ApiError {status, code, message, fields}`
+- `src/auth/AuthContext.tsx` — state user/menu, restore sesi via `/users/me`, `login/changePassword/logout`
+- `src/auth/ProtectedRoute.tsx` — guard: booting→spinner, belum login→/login (simpan asal), mustChangePassword→paksa /ganti-password
+- `src/components/AppLayout.tsx` — navbar sticky: brand, menu **disaring dari permissions** (`/users/me`), nama+role, Ganti Password, Keluar
+- `src/pages/LoginPage.tsx` — error inline per field (fields backend), toggle lihat password, redirect balik ke halaman asal
+- `src/pages/ChangePasswordPage.tsx` — validasi client (min 8 + konfirmasi) + error backend inline
+- `src/pages/{DashboardPage,ComingSoonPage,NotFoundPage}.tsx` — placeholder/404
+- `src/App.tsx` (router) + `src/main.tsx` (BrowserRouter) + `vite.config.ts` (proxy `/api` → `localhost:3000`)
+- 6 file test baru/diubah (api, AuthContext, ProtectedRoute, LoginPage, ChangePasswordPage, App)
+
+**Backend** (`backend/`):
+- `src/modules/auth/index.ts` — **POST /api/v1/auth/change-password** (F-18): verifikasi password lama, min 8 karakter, tolak sama dengan lama, clear `must_change_password`, **cabut semua refresh token user**, audit `PASSWORD_CHANGED` (tanpa nilai password — S-04)
+- `src/lib/audit-service.ts` — `AuditAction` += `'PASSWORD_CHANGED'`
+- `src/modules/rbac/index.ts` — `/users/me` kini mengembalikan `mustChangePassword` (dibutuhkan guard frontend)
+- `src/modules/auth/auth.test.ts` — +5 test (user khusus `test-auth-cp@`, cleanup audit di afterAll)
+
+### 20.2 Keputusan (decision-log: DL-20, DL-21)
+
+1. **React 18 → 19.2.8 + react-router-dom → react-router@8.3.0** — react-router 7.x tak lolos semua advisory (7.18.2: 2 high RSC-CSRF range ≥7.12<8.3; 7.11: 2 moderate open-redirect/SSR); 8.3.0 butuh React ≥19.2.7. CI scan `npm audit --audit-level=high` menjangkau frontend → wajib 0 high. Hasil: **0 vulnerabilities**, 23/23 test tetap hijau (API v8 library mode kompatibel).
+2. **Token di localStorage** — SPA iterasi 1; catatan: risk XSS, migrasi ke httpOnly cookie di polish (T5) bila diperlukan.
+3. **Error inline: fields backend tampil per field; alert umum hanya bila tanpa fields** — mencegah duplikat teks.
+4. **Guard RBAC UI berbasis `menu` dari `/users/me`** (bukan hardcode role) — menu di navbar disaring dari permissions.
+
+### 20.3 Verifikasi
+
+```text
+- Backend: 341 test / 12 suite PASS | coverage 93.72% stmts / 82.42% branch / 96.55% funcs
+- Frontend: 23 test / 6 file PASS (React 19 + router 8.3.0)
+- Gates frontend: lint, format:check, typecheck, build OK (bundle 77.98 kB gzip < 200 kB NF-02)
+- npm audit frontend prod: 0 vulnerabilities (sebelum: 2 moderate → 2 high → fix React 19 + router 8)
+- Integrasi nyata: backend dist baru di :3100 → health OK + change-password 401 tanpa token;
+  vite dev :5173 → proxy /api → backend OK
+```
+
+### 20.4 Temuan & Pitfalls
+
+1. **BIGINT string vs number di refreshTokenStore** — login handler menyimpan `user.id` string (pg int8) tapi `req.user.id` dinormalisasi number → revoke refresh token gagal diam-diam (`"2120" === 2120`). Fix di titik tunggal `generateTokens`: `userId: Number(userId)`. (Pelajaran T1.8 #3 terulang di tempat baru.)
+2. **Test mengubah password user bersama = fragility** — test 1 gagal di tengah → user test terkunci password baru → test 2-4 401 domino. Fix: user test kedua khusus (`test-auth-cp@`) yang password-nya boleh berubah.
+3. **npm audit `--audit-level=high` vs default** — CI scan memakai `--audit-level=high` (moderate tidak memblokir); evaluasi keputusan dependency harus pakai flag CI, bukan `npm audit` polos.
+4. **react-router v8 ESM-only** — `require('react-router')` di node -e gagal (bukan error proyek; Vite ESM-native fine).
+5. **Patch fuzzy merusak import block** 2× (AuthContext.tsx) — pelajaran: setelah prettier merapikan multi-line import, patch old_string harus cocok format baru (baca file dulu).

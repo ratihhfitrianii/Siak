@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { pgPool } from '../../lib/pg';
 import { logger } from '../../lib/logger';
 import { AppError } from '../../middleware/error-handler';
+import { authenticate } from '../../lib/auth-middleware';
 import { writeAuditLog, buildChangedByLabel } from '../../lib/audit-service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -11,11 +12,16 @@ import crypto from 'crypto';
 const ACCESS_EXPIRY = '15m';
 const _REFRESH_EXPIRY = '7d';
 const REFRESH_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
-const _BCRYPT_ROUNDS = 12;
+const BCRYPT_ROUNDS = 12;
 
 const loginSchema = z.object({
   email: z.string().email('Email tidak valid'),
   password: z.string().min(1, 'Password wajib diisi'),
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Password saat ini wajib diisi'),
+  newPassword: z.string().min(8, 'Password baru minimal 8 karakter'),
 });
 
 const refreshSchema = z.object({
@@ -45,7 +51,7 @@ function generateTokens(userId: number, email: string, roleId: number, isWali: b
   const refreshHash = hashToken(refreshToken);
 
   refreshTokenStore.set(refreshHash, {
-    userId,
+    userId: Number(userId), // normalize BIGINT string (login handler: pg int8 → string) — konsisten dgn req.user.id (number)
     expiresAt: Date.now() + REFRESH_EXPIRY_MS,
     revoked: false,
   });
@@ -284,6 +290,84 @@ export function createAuthRouter(): Router {
       next(err);
     }
   });
+
+  // POST /api/v1/auth/change-password (F-18: akun impor wajib ganti password saat login pertama)
+  // Auth: token valid (S-05); password lama diverifikasi; semua refresh token user dicabut (S-04).
+  // Password TIDAK pernah dicatat di audit — hanya fakta bahwa perubahan terjadi.
+  router.post(
+    '/change-password',
+    authenticate,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const parsed = changePasswordSchema.safeParse(req.body);
+        if (!parsed.success) {
+          const firstIssue = parsed.error.issues[0];
+          throw new AppError(
+            'VALIDATION_ERROR',
+            firstIssue?.message ?? 'Data password tidak valid',
+            400,
+            { fields: parsed.error.flatten().fieldErrors },
+          );
+        }
+
+        const { currentPassword, newPassword } = parsed.data;
+        if (currentPassword === newPassword) {
+          throw new AppError(
+            'VALIDATION_ERROR',
+            'Password baru harus berbeda dari password saat ini',
+            400,
+          );
+        }
+
+        const user = req.user!;
+        const result = await pgPool.query<{ id: number; password_hash: string; email: string }>(
+          `SELECT id, password_hash, email FROM users WHERE id = $1`,
+          [user.id],
+        );
+        if (result.rows.length === 0) {
+          throw new AppError('UNAUTHORIZED', 'User tidak ditemukan', 401);
+        }
+        const row = result.rows[0]!; // guard length di atas; noUncheckedIndexedAccess
+
+        const validCurrent = await bcrypt.compare(currentPassword, row.password_hash);
+        if (!validCurrent) {
+          logger.warn({ userId: user.id }, 'Change password: password saat ini salah');
+          throw new AppError('UNAUTHORIZED', 'Password saat ini salah', 401);
+        }
+
+        const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+        await pgPool.query(
+          `UPDATE users SET password_hash = $1, must_change_password = false,
+                failed_login_attempts = 0, locked_until = NULL
+         WHERE id = $2`,
+          [newHash, user.id],
+        );
+
+        // Cabut semua refresh token user (session lain ikut logout — keamanan ganti password)
+        for (const record of refreshTokenStore.values()) {
+          if (record.userId === user.id) {
+            record.revoked = true;
+          }
+        }
+
+        await writeAuditLog({
+          tableName: 'users',
+          recordId: user.id,
+          action: 'PASSWORD_CHANGED',
+          newValues: { mustChangePassword: false },
+          changedBy: user.id,
+          changedByLabel: buildChangedByLabel({ fullName: user.fullName, roleCode: user.roleCode }),
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+        });
+
+        logger.info({ userId: user.id }, 'Password changed');
+        res.json({ success: true, data: { message: 'Password berhasil diubah' } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
 
   // GET /api/v1/auth/me (get current user from access token)
   router.get('/me', async (req: Request, res: Response, next: NextFunction) => {

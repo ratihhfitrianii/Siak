@@ -1,0 +1,108 @@
+import type { ReactNode } from 'react';
+import { NavLink, useNavigate } from 'react-router';
+import { useAuth } from '../auth/AuthContext';
+
+/** Mapping permission → item menu (RBAC UI: menu disaring dari /users/me, bukan hardcode per role). */
+const MENU_ITEMS: { permissions: string[]; label: string; path: string }[] = [
+  { permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'], label: 'KRS', path: '/krs' },
+  {
+    permissions: ['transcript.view_own', 'transcript.view_mentee'],
+    label: 'Transkrip',
+    path: '/transkrip',
+  },
+  { permissions: ['grade.input', 'grade.edit'], label: 'Nilai', path: '/nilai' },
+  { permissions: ['user.manage'], label: 'User', path: '/users' },
+  { permissions: ['audit.view'], label: 'Audit', path: '/audit' },
+  { permissions: ['payment.generate', 'payment.update'], label: 'Pembayaran', path: '/pembayaran' },
+];
+
+const ROLE_LABEL: Record<string, string> = {
+  mahasiswa: 'Mahasiswa',
+  dosen: 'Dosen',
+  admin_akademik: 'Admin Akademik',
+  admin_keuangan: 'Admin Keuangan',
+  admin_sistem: 'Admin Sistem',
+};
+
+/** Layout shell: navbar sticky + konten (T1.11a). */
+export function AppLayout({ children }: { children: ReactNode }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  if (!user) {
+    return null;
+  }
+
+  const menu = MENU_ITEMS.filter((item) => item.permissions.some((p) => user.menu.includes(p)));
+
+  async function handleLogout() {
+    await logout();
+    navigate('/login', { replace: true });
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-100">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
+          <NavLink to="/" className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white">
+              S
+            </span>
+            <span className="text-lg font-bold text-slate-900">Siak</span>
+          </NavLink>
+
+          <nav className="flex flex-1 flex-wrap items-center gap-1" aria-label="Menu utama">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  isActive ? 'bg-primary-50 text-primary-700' : 'text-slate-600 hover:bg-slate-100'
+                }`
+              }
+            >
+              Dashboard
+            </NavLink>
+            {menu.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-sm font-semibold text-slate-900">{user.fullName}</p>
+              <p className="text-xs text-slate-500">{ROLE_LABEL[user.role] ?? user.roleName}</p>
+            </div>
+            <NavLink
+              to="/ganti-password"
+              className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+            >
+              Ganti Password
+            </NavLink>
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Keluar
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+    </div>
+  );
+}

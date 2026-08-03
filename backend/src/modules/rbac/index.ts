@@ -55,7 +55,7 @@ export function createRbacRouter(): Router {
       const menu = permissionsFor(user.roleCode);
 
       const result = await pgPool.query(
-        `SELECT u.id, u.email, u.full_name, u.is_active, u.created_at,
+        `SELECT u.id, u.email, u.full_name, u.is_active, u.must_change_password, u.created_at,
                 r.code AS role_code, r.name AS role_name
          FROM users u
          JOIN roles r ON u.role_id = r.id
@@ -78,6 +78,7 @@ export function createRbacRouter(): Router {
           roleName: row.role_name,
           isWali: user.isWali,
           isActive: row.is_active,
+          mustChangePassword: row.must_change_password === true,
           createdAt: row.created_at,
           menu,
         },

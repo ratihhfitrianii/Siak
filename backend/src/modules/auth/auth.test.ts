@@ -37,6 +37,10 @@ describe('Auth Module', () => {
 
   afterAll(async () => {
     // Cleanup
+    await pgPool.query(
+      `DELETE FROM audit_logs WHERE record_id = $1 AND action IN ('LOGIN', 'LOGOUT', 'PASSWORD_CHANGED')`,
+      [testUserId],
+    );
     await pgPool.query('DELETE FROM users WHERE email = $1', [testEmail]);
     // T1.9: pgPool.end() dihapus — pool dibagikan antar suite (race; jest forceExit: true).
   });
@@ -237,6 +241,146 @@ describe('Auth Module', () => {
         .expect(401);
 
       expect(res2.body.success).toBe(false);
+    });
+  });
+
+  describe('POST /api/v1/auth/change-password (T1.11a, F-18)', () => {
+    // User khusus change-password — password-nya boleh berubah tanpa memengaruhi suite lain.
+    const cpEmail = 'test-auth-cp@siak.local';
+    const cpPassword = 'CpPass123!';
+    let cpUserId: number;
+
+    beforeAll(async () => {
+      const passwordHash = await bcrypt.hash(cpPassword, 12);
+      const roleResult = await pgPool.query("SELECT id FROM roles WHERE code = 'mahasiswa'");
+      const roleId = roleResult.rows[0].id;
+      const result = await pgPool.query(
+        `INSERT INTO users (email, password_hash, full_name, role_id, is_active, must_change_password)
+         VALUES ($1, $2, $3, $4, true, false)
+         ON CONFLICT (email) DO UPDATE SET password_hash = $2, is_active = true
+         RETURNING id`,
+        [cpEmail, passwordHash, 'Test Change Password User', roleId],
+      );
+      cpUserId = Number(result.rows[0].id);
+    });
+
+    afterAll(async () => {
+      await pgPool.query(
+        `DELETE FROM audit_logs WHERE record_id = $1 AND action IN ('LOGIN', 'LOGOUT', 'PASSWORD_CHANGED')`,
+        [cpUserId],
+      );
+      await pgPool.query('DELETE FROM users WHERE email = $1', [cpEmail]);
+    });
+
+    async function cpLogin() {
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: cpEmail, password: cpPassword })
+        .expect(200);
+      return {
+        accessToken: res.body.data.accessToken,
+        refreshToken: res.body.data.refreshToken,
+      };
+    }
+
+    it('mengubah password dengan password lama benar; must_change_password di-clear; refresh token lama dicabut', async () => {
+      // Set must_change_password = true dulu (simulasi akun impor)
+      await pgPool.query('UPDATE users SET must_change_password = true WHERE id = $1', [cpUserId]);
+      const { accessToken, refreshToken } = await cpLogin();
+
+      const newPassword = 'CpNewPass456!';
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ currentPassword: cpPassword, newPassword })
+        .expect(200);
+
+      expect(res.body.data.message).toBe('Password berhasil diubah');
+
+      // must_change_password cleared
+      const user = await pgPool.query('SELECT must_change_password FROM users WHERE id = $1', [
+        cpUserId,
+      ]);
+      expect(user.rows[0].must_change_password).toBe(false);
+
+      // Password lama tidak valid lagi, password baru valid
+      await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: cpEmail, password: cpPassword })
+        .expect(401);
+      await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: cpEmail, password: newPassword })
+        .expect(200);
+
+      // Refresh token lama dicabut (ganti password → semua sesi logout)
+      const resRefresh = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken })
+        .expect(401);
+      expect(resRefresh.body.success).toBe(false);
+
+      // Jejak audit PASSWORD_CHANGED ada, tanpa nilai password (S-04)
+      const audit = await pgPool.query(
+        `SELECT action, new_values FROM audit_logs
+         WHERE action = 'PASSWORD_CHANGED' AND record_id = $1 ORDER BY id DESC LIMIT 1`,
+        [cpUserId],
+      );
+      expect(audit.rows[0].action).toBe('PASSWORD_CHANGED');
+      expect(JSON.stringify(audit.rows[0].new_values)).not.toContain(newPassword);
+
+      // Kembalikan password untuk test berikutnya di describe ini
+      const oldHash = await bcrypt.hash(cpPassword, 12);
+      await pgPool.query(
+        'UPDATE users SET password_hash = $1, must_change_password = false WHERE id = $2',
+        [oldHash, cpUserId],
+      );
+    });
+
+    it('menolak password saat ini salah (401)', async () => {
+      const { accessToken } = await cpLogin();
+
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ currentPassword: 'SalahPass123!', newPassword: 'CpNewPass456!' })
+        .expect(401);
+
+      expect(res.body.error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('menolak password baru < 8 karakter (400, error inline fields)', async () => {
+      const { accessToken } = await cpLogin();
+
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ currentPassword: cpPassword, newPassword: 'short' })
+        .expect(400);
+
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      expect(res.body.error.details.fields.newPassword).toBeDefined();
+    });
+
+    it('menolak password baru sama dengan password saat ini (400)', async () => {
+      const { accessToken } = await cpLogin();
+
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ currentPassword: cpPassword, newPassword: cpPassword })
+        .expect(400);
+
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('menolak tanpa token (401)', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/change-password')
+        .send({ currentPassword: cpPassword, newPassword: 'CpNewPass456!' })
+        .expect(401);
+
+      expect(res.body.success).toBe(false);
     });
   });
 });
