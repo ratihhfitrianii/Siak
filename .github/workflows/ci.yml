@@ -69,7 +69,8 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
-      - run: npm run test
+      # T1.11d: coverage threshold ≥80% (vite.config.ts) — konsisten dengan backend
+      - run: npm run test:coverage
       - run: npm run build
 
   security-scan:
