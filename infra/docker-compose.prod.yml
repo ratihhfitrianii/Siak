@@ -1,97 +1,23 @@
-# Docker Compose — Production (T1.1/T1.15)
-# Nginx (LB + SSL) + backend + PgBouncer + PostgreSQL + Redis + Prometheus/Grafana/Loki.
-# Catatan: horizontal scaling backend via deploy.replicas berlaku di Docker Swarm / orkestrasi
-# pendukung; pada compose standalone gunakan backend-1/backend-2/backend-3 (lihat docs/02 §12.2).
-# Usage: docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.production up -d --build
+# Docker Compose — Staging/Production (T1.15)
+# Menjalankan PostgreSQL 16 + Redis 7 + migrate + backend + frontend + Nginx (SSL) untuk staging.
+# Usage: docker compose -f infra/docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Prasyarat:
+# - .env.prod berisi: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, REDIS_URL, JWT_SECRET,
+#   CORS_ORIGIN, WAITING_ROOM_THRESHOLD, DATABASE_POOL_MAX, SSL_CERT, SSL_KEY
+# - SSL sertifikat di volume nginx-certs (Let's Encrypt / self-signed untuk staging)
 
 name: siak-prod
 
 services:
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: siak-nginx
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/sites:/etc/nginx/conf.d:ro
-      - ./certs:/etc/ssl/siak:ro
-    depends_on:
-      - backend
-
-  backend:
-    build:
-      context: ../backend
-    environment:
-      NODE_ENV: production
-      PORT: 3000
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
-      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-7d}
-      SESSION_TIMEOUT_MS: ${SESSION_TIMEOUT_MS:-900000}
-      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
-      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
-      WAITING_ROOM_THRESHOLD: ${WAITING_ROOM_THRESHOLD:-5000}
-      CORS_ORIGIN: ${CORS_ORIGIN}
-      NOTIFICATION_PROVIDER: ${NOTIFICATION_PROVIDER:-email}
-    healthcheck:
-      test:
-        [
-          'CMD',
-          'node',
-          '-e',
-          "fetch('http://localhost:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    depends_on:
-      pgbouncer:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
-
-  migrate:
-    build:
-      context: ../backend
-    command: ['npm', 'run', 'migrate:up']
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  pgbouncer:
-    image: edoburu/pgbouncer:latest
-    container_name: siak-pgbouncer
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      POOL_MODE: transaction
-      MAX_CLIENT_CONN: '1000'
-      DEFAULT_POOL_SIZE: '100'
-    ports:
-      - '6432:6432'
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -h localhost -p 6432']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   postgres:
     image: postgres:16-alpine
-    container_name: siak-postgres
+    container_name: siak-postgres-prod
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    command: ['postgres', '-c', 'max_connections=500']
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -99,11 +25,19 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
 
   redis:
     image: redis:7-alpine
-    container_name: siak-redis
-    command: ['redis-server', '--appendonly', 'yes']
+    container_name: siak-redis-prod
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory', '256mb', '--maxmemory-policy', 'allkeys-lru']
     volumes:
       - redisdata:/data
     healthcheck:
@@ -111,44 +45,106 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
-  prometheus:
-    image: prom/prometheus:v2.55.1
-    container_name: siak-prometheus
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - promdata:/prometheus
-    ports:
-      - '9090:9090'
-
-  grafana:
-    image: grafana/grafana:11.3.1
-    container_name: siak-grafana
+  migrate:
+    build:
+      context: ../backend
+      target: migrate
+    container_name: siak-migrate-prod
     environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - grafanadata:/var/lib/grafana
-    ports:
-      - '3001:3000'
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
-      - prometheus
-      - loki
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
-  loki:
-    image: grafana/loki:3.3.2
-    container_name: siak-loki
-    command: ['-config.file=/etc/loki/local-config.yaml']
-    volumes:
-      - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
-      - lokidata:/loki
+  backend:
+    build:
+      context: ../backend
+    container_name: siak-backend-prod
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      WAITING_ROOM_THRESHOLD: ${WAITING_ROOM_THRESHOLD:-5000}
+      DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-200}
+      NOTIFICATION_PROVIDER: ${NOTIFICATION_PROVIDER:-inapp}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  frontend:
+    build:
+      context: ../frontend
+    container_name: siak-frontend-prod
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    container_name: siak-nginx-prod
     ports:
-      - '3100:3100'
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - nginx-certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+      - frontend
+    healthcheck:
+      test: ['CMD', 'nginx', '-t']
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   pgdata:
   redisdata:
-  promdata:
-  grafanadata:
-  lokidata:
+  nginx-certs:

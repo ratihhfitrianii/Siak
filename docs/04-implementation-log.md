@@ -780,6 +780,28 @@ Scope: cache terpusat Redis untuk data read-heavy (spec §7.2), invalidation on 
 
 
 
+
+
+## 27. T1.15 — Deployment Staging (2026-08-04) — T1.15 SELESAI
+
+**Scope**: Docker Compose production-ready, Nginx SSL termination, rate limiting, zero-downtime rolling deploy.
+
+**Artefak:**
+- `infra/docker-compose.prod.yml` — 2x backend replicas, resource limits, migrate terpisah, healthchecks
+- `infra/nginx.prod.conf` — SSL (TLS 1.2/1.3), rate limiting zones (api/login/waiting-room), WebSocket proxy, security headers
+- `infra/.env.prod.example` — template environment (DB, Redis, JWT, CORS, WAITING_ROOM_THRESHOLD, DATABASE_POOL_MAX)
+- `infra/deploy-staging.sh` — script zero-downtime (build → migrate → rolling backend → frontend → nginx reload)
+- `docs/deployment-staging.md` — dokumentasi lengkap arsitektur, rate limit, deploy, SSL, resource limits
+
+**Keputusan:**
+- Migrasi service terpisah (sebelum backend up) → zero-downtime schema changes
+- Backend replicas=2, rolling update parallelism=1 → zero-downtime deploy
+- Nginx rate limiting: api 100r/s, login 5r/m, waiting-room 50r/s
+- SSL termination di Nginx → backend HTTP only (trust proxy true sudah di T1.14)
+- Resource limits: postgres 2CPU/2GB, redis 0.5CPU/512MB, backend 1CPU/1GB x2
+
+**Gates:** Semua file lint/format valid; compose syntax OK; nginx config valid.
+
 ## 26. T1.14 — Load Test k6 (2026-08-04) — T1.14 SELESAI (hanya bottleneck infrastruktur)
 
 **Scope**: simulasi puncak hari pertama KRS 1k→3k→5k VU (NF-06, AC-01).
