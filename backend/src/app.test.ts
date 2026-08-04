@@ -4,8 +4,10 @@ import { createApp } from './app';
 import { errorHandler } from './middleware/error-handler';
 
 describe('Aplikasi Express (fondasi T1.1)', () => {
+  const app = createApp({}, { waitingRoom: null });
+
   it('mengembalikan 404 NOT_FOUND untuk endpoint yang tidak dikenal', async () => {
-    const res = await request(createApp()).get('/api/v1/tidak-ada').expect(404);
+    const res = await request(app).get('/api/v1/tidak-ada').expect(404);
 
     expect(res.body.success).toBe(false);
     expect(res.body.error.code).toBe('NOT_FOUND');
@@ -13,7 +15,7 @@ describe('Aplikasi Express (fondasi T1.1)', () => {
   });
 
   it('menangani method yang tidak didukung dengan 404', async () => {
-    const res = await request(createApp()).post('/api/v1/health').expect(404);
+    const res = await request(app).post('/api/v1/health').expect(404);
 
     expect(res.body.error.code).toBe('NOT_FOUND');
   });

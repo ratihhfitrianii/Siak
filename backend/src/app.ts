@@ -69,12 +69,12 @@ export function createApp(healthDeps: HealthDependencies = {}, options: AppOptio
   app.use('/api/v1/auth', createAuthRouter(waitingRoom));
   app.use('/api/v1/users', createRbacRouter());
   app.use('/api/v1/krs', createKrsRouter());
+  app.use('/api/v1/finance', createFinanceRouter());
   app.use('/api/v1', createAcademicRouter());
-  app.use('/api/v1', createFinanceRouter());
-  app.use('/api/v1', createDosenRouter());
+  app.use('/api/v1/dosen', createDosenRouter());
   app.use('/api/v1', createAuditRouter());
   app.use('/api/v1', createNotificationRouter());
-  app.use('/api/v1', createImportRouter());
+  app.use('/api/v1/import', createImportRouter());
   app.use('/api/v1/grades', createGradesRouter());
 
   app.use(notFoundHandler);

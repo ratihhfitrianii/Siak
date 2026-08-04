@@ -12,7 +12,6 @@ name: siak-prod
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: siak-postgres-prod
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -36,7 +35,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: siak-redis-prod
     command: ['redis-server', '--appendonly', 'yes', '--maxmemory', '256mb', '--maxmemory-policy', 'allkeys-lru']
     volumes:
       - redisdata:/data
@@ -55,7 +53,6 @@ services:
     build:
       context: ../backend
       target: migrate
-    container_name: siak-migrate-prod
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -70,7 +67,6 @@ services:
   backend:
     build:
       context: ../backend
-    container_name: siak-backend-prod
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -122,19 +118,17 @@ services:
   frontend:
     build:
       context: ../frontend
-    container_name: siak-frontend-prod
     depends_on:
       - backend
 
   nginx:
     image: nginx:alpine
-    container_name: siak-nginx-prod
     ports:
       - '80:80'
       - '443:443'
     volumes:
       - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - nginx-certs:/etc/nginx/certs:ro
+      - ./certs:/etc/nginx/certs:ro
     depends_on:
       - backend
       - frontend
@@ -147,4 +141,3 @@ services:
 volumes:
   pgdata:
   redisdata:
-  nginx-certs:
