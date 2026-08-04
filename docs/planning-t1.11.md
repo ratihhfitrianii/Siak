@@ -1,6 +1,6 @@
 # Rencana T1.11 — Frontend: Login + Dashboard (Mahasiswa & Admin)
 
-**Status**: T1.11a ✅ (91ecf05) · T1.11b ✅ (6233e37) · T1.11c ✅ (8c3f2c4) · **T1.11d ✅ selesai** (polish + gate + docs) · **T1.11 TUNTAS** — menunggu commit manual.
+**Status**: T1.11a ✅ (`91ecf05`) · T1.11b ✅ (`6233e37`) · T1.11c ✅ (`8c3f2c4`) · T1.11d ✅ (`4e77700`) · CI ✅ (`2dcfa4b`) · **T1.11 TUNTAS** · **T1.12 IN PROGRESS** (Redis cache layer + pre-existing test fixes)
 **Tanggal**: 2026-08-03 · **Referensi**: 03-execution-plan.md baris 28 (T1.11), 02-solution-spec.md, docs/04-implementation-log.md §19.4 open item #3.
 
 ---

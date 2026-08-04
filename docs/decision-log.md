@@ -200,5 +200,6 @@
 | DL-22 | IPK transkrip dihitung dari SKS yang sudah dinilai saja (MK tanpa nilai tidak menurunkan IPK) | DIPUTUSKAN (Developer) |
 | DL-23 | Route `/krs` di-share mahasiswa & admin via selector menu (krs.fill vs krs.approve); normalisasi snake_case di lapisan API client | DIPUTUSKAN (Developer) |
 | DL-24 | Coverage threshold frontend aktif (≥80% stmts/funcs/branch) via `@vitest/coverage-v8`; `frontend/nginx.conf` + proxy `/api` untuk SPA container | DIPUTUSKAN (Developer) |
+| DL-25 | Redis cache layer untuk data read-heavy (available-classes 30s, transkrip 5m, kurikulum 1h) dengan graceful degradation; invalidation on write | DIPUTUSKAN (Developer) | (≥80% stmts/funcs/branch) via `@vitest/coverage-v8`; `frontend/nginx.conf` + proxy `/api` untuk SPA container | DIPUTUSKAN (Developer) |
 
 **Keputusan yang menunggu pemilik:** penyedia hosting + admin teknis (DL-18), skema payroll (DL-14), kanal notifikasi, format impor, visibilitas transkrip Dosen Wali (asumsi → Open Question), **konfirmasi approval implisit T1.1 (DL-19)**.

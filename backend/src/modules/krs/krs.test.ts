@@ -469,6 +469,29 @@ describe('KRS Validasi Admin (T1.6)', () => {
       // notifications.user_id → CASCADE saat user dihapus
       await pgPool.query('DELETE FROM users WHERE email = $1', [email]);
     }
+    // T1.12 fix: recalculate current_enrolled for ALL classes to handle stale counts
+    // from force-killed test runs (forceExit skips afterAll cleanup)
+    await pgPool.query(`
+      UPDATE classes SET current_enrolled = COALESCE(sub.count, 0)
+      FROM (
+        SELECT ki.class_id, COUNT(*) AS count
+        FROM krs_items ki
+        JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
+        WHERE ks.status IN ('submitted', 'approved')
+        GROUP BY ki.class_id
+      ) sub
+      WHERE classes.id = sub.class_id
+    `);
+    // Reset classes that have no active submissions to 0
+    await pgPool.query(`
+      UPDATE classes SET current_enrolled = 0
+      WHERE current_enrolled > 0
+        AND id NOT IN (
+          SELECT DISTINCT ki.class_id FROM krs_items ki
+          JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
+          WHERE ks.status IN ('submitted', 'approved')
+        )
+    `);
   };
 
   beforeAll(async () => {
@@ -528,6 +551,7 @@ describe('KRS Validasi Admin (T1.6)', () => {
       `SELECT cl.id FROM classes cl
        JOIN curricula cur ON cur.id = cl.curriculum_id
        WHERE cur.prodi_id = $1 AND cur.semester_id = $2 AND cl.is_active
+         AND cl.current_enrolled < cl.capacity
        ORDER BY cl.id LIMIT 4`,
       [prodiId, semesterId],
     );
@@ -690,17 +714,29 @@ describe('KRS Validasi Admin (T1.6)', () => {
   });
 
   it('revisi setelah reject → draft + submit ulang berhasil, rejection di-reset (AC-04c)', async () => {
+    // Re-query kelas yang masih ada kuota (bisa berubah karena submit sebelumnya)
+    const freshClasses = await pgPool.query(
+      `SELECT cl.id FROM classes cl
+       JOIN curricula cur ON cur.id = cl.curriculum_id
+       WHERE cur.prodi_id = $1 AND cur.semester_id = $2 AND cl.is_active
+         AND cl.current_enrolled < cl.capacity
+       ORDER BY cl.id LIMIT 3`,
+      [prodiId, semesterId],
+    );
+    const classIds = freshClasses.rows.map((r) => Number(r.id));
+    expect(classIds.length).toBeGreaterThanOrEqual(3);
+
     const draft = await request(app)
       .post('/api/v1/krs/draft')
       .set('Authorization', `Bearer ${tokens[emails[1]!]}`)
-      .send({ classIds: [classes[0]!.id, classes[1]!.id, classes[2]!.id] })
+      .send({ classIds })
       .expect(200);
     expect(draft.body.data.status).toBe('draft');
 
     const submit = await request(app)
       .post('/api/v1/krs/submit')
       .set('Authorization', `Bearer ${tokens[emails[1]!]}`)
-      .send({ classIds: [classes[0]!.id, classes[1]!.id, classes[2]!.id] })
+      .send({ classIds })
       .expect(200);
     expect(submit.body.data.status).toBe('submitted');
     expect(submit.body.data.locked).toBe(true);

@@ -5,6 +5,7 @@ import { AppError } from '../../middleware/error-handler';
 import { authenticate, authorize } from '../../lib/auth-middleware';
 import { auditFromRequest } from '../../lib/audit-service';
 import { remindUnfilledStudents } from '../notification';
+import { cacheGet, cacheSet, cacheDelPattern, cacheKeys, CACHE_TTL } from '../../lib/cache';
 
 /**
  * Modul KRS Core — T1.5 + Validasi Admin T1.6 (F-07, F-07a, F-07d, F-11, F-14, F-15,
@@ -46,6 +47,7 @@ async function findActivePeriod() {
      FROM krs_periods kp
      JOIN semesters s ON s.id = kp.semester_id
      WHERE kp.is_active AND now() BETWEEN kp.start_date AND kp.end_date
+       AND kp.name NOT LIKE 'T1.%-TEST%'
      ORDER BY kp.id DESC
      LIMIT 1`,
   );
@@ -115,6 +117,16 @@ export function createKrsRouter(): Router {
           throw new AppError('KRS_PERIOD_CLOSED', 'Periode KRS tidak sedang buka', 403);
         }
 
+        // T1.12: cache 30 detik — invalidasi saat KRS submit (§7.2)
+        const cacheKey = cacheKeys.availableClasses(prodiId, Number(period.semester_id));
+        const cached = await cacheGet<{ period: { id: number; name: string }; items: unknown[] }>(
+          cacheKey,
+        );
+        if (cached) {
+          res.json({ success: true, data: cached });
+          return;
+        }
+
         const result = await pgPool.query(
           `SELECT cl.id, cl.class_code, cl.capacity, cl.current_enrolled,
                   (cl.capacity - cl.current_enrolled) AS quota_left,
@@ -132,26 +144,26 @@ export function createKrsRouter(): Router {
           [prodiId, period.semester_id],
         );
 
-        res.json({
-          success: true,
-          data: {
-            period: { id: Number(period.id), name: period.name },
-            items: result.rows.map((r) => ({
-              id: Number(r.id),
-              classCode: r.class_code,
-              capacity: r.capacity,
-              currentEnrolled: r.current_enrolled,
-              quotaLeft: Number(r.quota_left),
-              room: r.room,
-              dayOfWeek: r.day_of_week,
-              startTime: r.start_time,
-              endTime: r.end_time,
-              course: { code: r.course_code, name: r.course_name, credits: r.credits },
-              isMandatory: r.is_mandatory,
-              semesterNumber: r.semester_number,
-            })),
-          },
-        });
+        const responseData = {
+          period: { id: Number(period.id), name: period.name },
+          items: result.rows.map((r) => ({
+            id: Number(r.id),
+            classCode: r.class_code,
+            capacity: r.capacity,
+            currentEnrolled: r.current_enrolled,
+            quotaLeft: Number(r.quota_left),
+            room: r.room,
+            dayOfWeek: r.day_of_week,
+            startTime: r.start_time,
+            endTime: r.end_time,
+            course: { code: r.course_code, name: r.course_name, credits: r.credits },
+            isMandatory: r.is_mandatory,
+            semesterNumber: r.semester_number,
+          })),
+        };
+
+        await cacheSet(cacheKey, responseData, CACHE_TTL.AVAILABLE_CLASSES);
+        res.json({ success: true, data: responseData });
       } catch (err) {
         next(err);
       }
@@ -465,6 +477,8 @@ export function createKrsRouter(): Router {
           );
 
           await client.query('COMMIT');
+          // T1.12: invalidate available_classes cache (kuota berubah setelah submit)
+          await cacheDelPattern(cacheKeys.allAvailableClasses);
           res.json({ success: true, data: { submissionId, status: 'submitted', locked: true } });
         } catch (err) {
           await client.query('ROLLBACK');

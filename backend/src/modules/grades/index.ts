@@ -4,6 +4,7 @@ import { pgPool } from '../../lib/pg';
 import { AppError } from '../../middleware/error-handler';
 import { authenticate, authorize } from '../../lib/auth-middleware';
 import { auditFromRequest } from '../../lib/audit-service';
+import { cacheGet, cacheSet, cacheDelPattern, cacheKeys, CACHE_TTL } from '../../lib/cache';
 
 /**
  * Modul Nilai (Grades) — T1.8 (F-06, F-06a, F-06b, F-06c, F-10).
@@ -211,6 +212,14 @@ export function createGradesRouter(): Router {
         const limit = parsed.data?.limit ?? 50;
         const offset = parsed.data?.offset ?? 0;
 
+        // T1.12: cache transkrip per siswa (5 menit, §7.2) — invalidasi saat nilai diinput
+        const cacheKey = `${cacheKeys.transcript(studentId)}:${limit}:${offset}`;
+        const cached = await cacheGet<{ items: unknown[] }>(cacheKey);
+        if (cached) {
+          res.json({ success: true, data: cached });
+          return;
+        }
+
         const result = await pgPool.query(
           `SELECT g.*, ki.class_id,
                           cl.code as course_code, cl.name as course_name, cl.credits,
@@ -251,6 +260,8 @@ export function createGradesRouter(): Router {
           updatedAt: r.updated_at,
         }));
 
+        // T1.12: store cache (5 menit) — invalidasi saat nilai diinput
+        await cacheSet(cacheKey, { items }, CACHE_TTL.TRANSCRIPT);
         res.json({ success: true, data: { items } });
       } catch (err) {
         next(err);
@@ -279,11 +290,12 @@ export function createGradesRouter(): Router {
           throw new AppError('VALIDATION_ERROR', 'krsItemId wajib diisi', 400);
         }
 
-        // Verify class ownership
+        // Verify class ownership (+ studentId for cache invalidation)
         const itemCheck = await pgPool.query(
-          `SELECT ki.id, ki.class_id, c.lecturer_id
+          `SELECT ki.id, ki.class_id, c.lecturer_id, ks.student_id
            FROM krs_items ki
            JOIN classes c ON c.id = ki.class_id
+           JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
            WHERE ki.id = $1`,
           [krsItemId],
         );
@@ -350,6 +362,10 @@ export function createGradesRouter(): Router {
           },
         });
 
+        // T1.12: invalidate transkrip cache siswa (nilai berubah)
+        if (item.student_id) {
+          await cacheDelPattern(`${cacheKeys.transcript(Number(item.student_id))}*`);
+        }
         res.status(201).json({ success: true, data: result.rows[0] });
       } catch (err) {
         next(err);
@@ -377,12 +393,13 @@ export function createGradesRouter(): Router {
         }
         const { tugasScore, utsScore, uasScore, isRemedial, remedialScore } = parsed.data;
 
-        // Get current grade
+        // Get current grade (+ student_id for cache invalidation)
         const current = await pgPool.query(
-          `SELECT g.*, ki.class_id, c.lecturer_id
+          `SELECT g.*, ki.class_id, c.lecturer_id, ks.student_id
            FROM grades g
            JOIN krs_items ki ON ki.id = g.krs_item_id
            JOIN classes c ON c.id = ki.class_id
+           JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
            WHERE g.id = $1`,
           [id],
         );
@@ -461,6 +478,10 @@ export function createGradesRouter(): Router {
           },
         });
 
+        // T1.12: invalidate transkrip cache siswa (nilai diupdate)
+        if (grade.student_id) {
+          await cacheDelPattern(`${cacheKeys.transcript(Number(grade.student_id))}*`);
+        }
         res.json({
           success: true,
           data: result.rows[0],
