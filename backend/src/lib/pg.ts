@@ -8,7 +8,7 @@ export const pgPool = new Pool({
   connectionString:
     env.DATABASE_URL ||
     `postgres://${process.env.PGUSER || 'siak'}:${process.env.PGPASSWORD || 'siak_dev_password'}@${process.env.PGHOST || 'localhost'}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE || 'siak'}`,
-  max: 20,
+  max: env.DATABASE_POOL_MAX, // T1.14: kalibrasi via env (default 20)
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 });

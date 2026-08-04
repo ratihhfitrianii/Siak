@@ -281,7 +281,8 @@ export function createKrsRouter(): Router {
           const classes = await client.query(
             `SELECT cl.id FROM classes cl
            JOIN curricula cur ON cur.id = cl.curriculum_id
-           WHERE cl.id = ANY($1::bigint[]) AND cur.prodi_id = $2 AND cur.semester_id = $3 AND cl.is_active`,
+           WHERE cl.id = ANY($1::bigint[]) AND cur.prodi_id = $2 AND cur.semester_id = $3 AND cl.is_active
+           ORDER BY cl.id`,
             [parsed.data.classIds, prodiId, period.semester_id],
           );
           if (classes.rows.length !== parsed.data.classIds.length) {
@@ -386,12 +387,15 @@ export function createKrsRouter(): Router {
           }
 
           // Validasi kelas + kunci kuota (SELECT ... FOR UPDATE — A-5, AC-02)
+          // ORDER BY cl.id → urut locking deterministik, mencegah deadlock
+          // di concurrency tinggi (T1.14 load test: 5k VU → deadlock 40P01).
           const classes = await client.query(
             `SELECT cl.id, cl.class_code, cl.capacity, cl.current_enrolled, c.code AS course_code
            FROM classes cl
            JOIN curricula cur ON cur.id = cl.curriculum_id
            JOIN courses c ON c.id = cur.course_id
            WHERE cl.id = ANY($1::bigint[]) AND cur.prodi_id = $2 AND cur.semester_id = $3 AND cl.is_active
+           ORDER BY cl.id
            FOR UPDATE`,
             [parsed.data.classIds, prodiId, period.semester_id],
           );

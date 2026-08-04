@@ -165,13 +165,15 @@ describe('waiting room di api wrapper (T1.13)', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse(
-          { success: false, error: { code: 'RATE_LIMITED', message: 'Sistem ramai' } },
-          429,
-          { [WR_TOKEN_HEADER]: 'wr-token-abc' },
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(
+            { success: false, error: { code: 'RATE_LIMITED', message: 'Sistem ramai' } },
+            429,
+            { [WR_TOKEN_HEADER]: 'wr-token-abc' },
+          ),
         ),
-      ),
     );
 
     const err = await apiRequest('/krs/my').catch((e: unknown) => e);
@@ -186,9 +188,11 @@ describe('waiting room di api wrapper (T1.13)', () => {
     stubLocation('/krs');
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({ success: false, error: { code: 'RATE_LIMITED', message: 'X' } }, 429),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse({ success: false, error: { code: 'RATE_LIMITED', message: 'X' } }, 429),
+        ),
     );
 
     const err = await apiRequest('/krs/my').catch((e: unknown) => e);
@@ -199,9 +203,11 @@ describe('waiting room di api wrapper (T1.13)', () => {
   it('getWaitingRoomStatus → status waiting dengan posisi', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({ success: true, data: { status: 'waiting', position: 3 } }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse({ success: true, data: { status: 'waiting', position: 3 } }),
+        ),
     );
 
     const status = await getWaitingRoomStatus('wr-token-abc');

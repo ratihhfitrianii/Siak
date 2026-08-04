@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  clearWaitingToken,
-  getWaitingRoomStatus,
-  getWaitingToken,
-} from '../lib/api';
+import { clearWaitingToken, getWaitingRoomStatus, getWaitingToken } from '../lib/api';
 
 /**
  * Halaman Waiting Room — T1.13 (F-17, NF-05, K-09).
@@ -128,8 +124,8 @@ export function WaitingRoomPage() {
         )}
 
         <p className="mt-6 text-xs text-slate-400">
-          Halaman ini menyegarkan status secara otomatis. Anda juga dapat membuka
-          aplikasi di tab lain setelah posisi Anda mencapai 1.
+          Halaman ini menyegarkan status secara otomatis. Anda juga dapat membuka aplikasi di tab
+          lain setelah posisi Anda mencapai 1.
         </p>
       </div>
     </div>

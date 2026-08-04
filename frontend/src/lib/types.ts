@@ -148,6 +148,4 @@ export interface PaginationParams {
 /* ==== T1.13 — Waiting Room ==== */
 
 export type WaitingRoomStatus =
-  | { status: 'enter' }
-  | { status: 'waiting'; position: number }
-  | { status: 'unknown' };
+  { status: 'enter' } | { status: 'waiting'; position: number } | { status: 'unknown' };

@@ -65,9 +65,7 @@ describe('WaitingRoomPage (T1.13)', () => {
 
   it('menampilkan posisi antrean dari polling status', async () => {
     sessionStorage.setItem(WAITING_TOKEN_KEY, 'wr-pos');
-    const fetchMock = vi.fn().mockResolvedValue(
-      statusResponse({ status: 'waiting', position: 7 }),
-    );
+    const fetchMock = vi.fn().mockResolvedValue(statusResponse({ status: 'waiting', position: 7 }));
     vi.stubGlobal('fetch', fetchMock);
 
     renderPage();
@@ -92,7 +90,10 @@ describe('WaitingRoomPage (T1.13)', () => {
 
   it('WebSocket waiting:enter_now → langsung masuk (push real-time)', async () => {
     sessionStorage.setItem(WAITING_TOKEN_KEY, 'wr-push');
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(statusResponse({ status: 'waiting', position: 2 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(statusResponse({ status: 'waiting', position: 2 })),
+    );
 
     const { socket, emit } = createFakeSocket();
     const { io } = await import('socket.io-client');

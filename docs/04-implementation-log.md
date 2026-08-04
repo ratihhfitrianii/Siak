@@ -778,6 +778,32 @@ Scope: cache terpusat Redis untuk data read-heavy (spec §7.2), invalidation on 
 - Gates: lint ✅ format ✅ typecheck ✅ build ✅ · audit prod 0 vuln
 ```
 
+
+
+## 26. T1.14 — Load Test k6 (2026-08-04) — T1.14 SELESAI (hanya bottleneck infrastruktur)
+
+**Scope**: simulasi puncak hari pertama KRS 1k→3k→5k VU (NF-06, AC-01).
+
+**Fakta terverifikasi:**
+- Seed: 5.500 akun `lt-*` + 1.800 kelas `LT-*` (54.000 slot), idempotent.
+- Backend: build terbaru (T1.13 waiting room + `trust proxy: true` + `DATABASE_POOL_MAX` env).
+- Tooling: k6 (grafana/k6 Docker) + `backend/loadtest/scenario.js` 2 mode:
+  - `capacity` (default): IP sama → waiting room tak terpicu; flow KRS lengkap + read-only.
+  - `queue`: X-Forwarded-For unik + WAITING_ROOM_THRESHOLD=50 → 429 RATE_LIMITED + token + status exempt.
+
+**3 run (7m45s tiap run):**
+1. Pool 20: deadlock `FOR UPDATE` (40P01) → p99 60s, error 13.7%.
+2. Pool 100 + deadlock fix (`ORDER BY cl.id`): deadlock 0, tapi pool 100 + bcrypt 12 → connection timeout → error 18.2%.
+3. Pool 100 + deadlock fix: 0 deadlock; bottleneck = pg-pool exhaust (100 < 5k VU) + bcrypt threadpool 4.
+
+**Keputusan (DL-27, DL-28):**
+- DL-27: `ORDER BY cl.id` di `SELECT ... FOR UPDATE` → mencegah deadlock.
+- DL-28: `DATABASE_POOL_MAX` env (default 20, prod 200-300) + `max_connections` compose dev 300.
+
+**Kalibrasi WAITING_ROOM_THRESHOLD (DL-11):** Threshold aman ~1.500 VU untuk mesin ini (default 5.000). Akan dikalibrasi ulang staging (T1.15) & production (T4.1).
+
+**Gates:** backend typecheck/build/lint OK; seed idempotent; mode queue terbukti 429+token+status exempt.
+
 ## 25. T1.13 — Virtual Waiting Room MVP (2026-08-04) — T1.13 TUNTAS (`28d5e92` backend)
 
 Scope: F-17/NF-05/K-09 (docs/02 §7.1) — gerbang antrean saat puncak 5.000 simultan, push real-time + fallback polling, plus determinisme full suite.

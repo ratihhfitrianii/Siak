@@ -4,7 +4,7 @@ import prettierConfig from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'package-lock.json'],
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'package-lock.json', 'loadtest/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

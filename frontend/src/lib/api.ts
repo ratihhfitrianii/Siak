@@ -81,10 +81,9 @@ export function enterWaitingRoom(token: string): void {
 
 /** GET /waiting-room/status — fallback polling (K-09); endpoint publik, tanpa token JWT. */
 export async function getWaitingRoomStatus(token: string): Promise<WaitingRoomStatus> {
-  return apiRequest<WaitingRoomStatus>(
-    `/waiting-room/status?token=${encodeURIComponent(token)}`,
-    { auth: false },
-  );
+  return apiRequest<WaitingRoomStatus>(`/waiting-room/status?token=${encodeURIComponent(token)}`, {
+    auth: false,
+  });
 }
 
 /** Refresh access token; kembalikan true bila berhasil. Single-flight (hindari N permintaan 401 → N refresh). */

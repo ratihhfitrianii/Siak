@@ -39,6 +39,10 @@ export function createApp(healthDeps: HealthDependencies = {}, options: AppOptio
   const app = express();
 
   app.disable('x-powered-by');
+  // T1.14: trust proxy — backend hanya terekspos via nginx (infra + compose dev),
+  // yang sudah mengirim X-Forwarded-For; tanpa ini req.ip = IP nginx dan
+  // waiting room per-IP (userKey) serta IP audit tak pernah akurat.
+  app.set('trust proxy', true);
   app.use(helmet());
   app.use(
     cors({
