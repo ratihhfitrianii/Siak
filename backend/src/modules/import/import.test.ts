@@ -107,9 +107,12 @@ describe('Modul Impor (T1.10)', () => {
     // Cleanup BERBASIS POLA (bukan list createdEmails): robust walau sebuah test
     // gagal di tengah SEBELUM createdEmails.push dieksekusi — user yang sudah
     // dibuat modul tetap terhapus (pelajaran §19.2 #7). ts unik per run.
+    // T1.13: bersihkan SEMUA leftover imp-*/t110* dari run manapun — leftover
+    // run lama terpilih acak oleh grades.test.ts (dosen2/mahasiswa2 tanpa ORDER BY)
+    // → login 'Dosen123!' salah → failed_login_attempts → akun terkunci → suite lain 401.
     await pgPool.query(
       `DELETE FROM users
-       WHERE email LIKE 'imp-%-${ts}@siak.local'
+       WHERE email LIKE 'imp-%@siak.local'
           OR email LIKE 't110%@student.siak.local'
           OR email LIKE 't110%@siak.local'`,
     );

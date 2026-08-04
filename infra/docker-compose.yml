@@ -12,6 +12,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-siak}
       POSTGRES_USER: ${POSTGRES_USER:-siak}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-siak_dev_password}
+    command: ['postgres', '-c', 'max_connections=300']
     ports:
       # Host 5433 (default) — 5432 di mesin ini dipakai container siakad_* (iterasi lama).
       - '${POSTGRES_PORT:-5433}:5432'

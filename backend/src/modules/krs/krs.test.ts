@@ -494,6 +494,8 @@ describe('KRS Validasi Admin (T1.6)', () => {
     `);
   };
 
+  // Timeout diperpanjang (30s): bcrypt cost 12 + cleanup + inserts bisa > 5s saat DB sibuk
+  // (kegagalan hook timeout 5s default pernah terjadi saat full-suite paralel).
   beforeAll(async () => {
     await cleanup();
     const hash = await bcrypt.hash(password, 12);
@@ -556,7 +558,7 @@ describe('KRS Validasi Admin (T1.6)', () => {
       [prodiId, semesterId],
     );
     classes = classesRes.rows.map((r) => ({ id: Number(r.id) }));
-  });
+  }, 30_000);
 
   afterAll(async () => {
     await cleanup();

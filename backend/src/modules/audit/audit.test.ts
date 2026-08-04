@@ -9,6 +9,7 @@ process.env.BCRYPT_ROUNDS ??= '4';
 import request from 'supertest';
 import { createApp } from '../../app';
 import { pgPool } from '../../lib/pg';
+import bcrypt from 'bcrypt';
 import { buildChangedByLabel, sanitizeIp, writeAuditLog } from '../../lib/audit-service';
 
 describe('Audit module (T1.9) — F-13, S-06, S-07, AC-05', () => {
@@ -22,6 +23,7 @@ describe('Audit module (T1.9) — F-13, S-06, S-07, AC-05', () => {
   let gradeId: number;
   let facultyId: number;
   let newUserId: number;
+  let paginationUserId: number;
   const cleanup: { submissionId?: number; periodId?: number; classIds: number[] } = {
     classIds: [],
   };
@@ -59,6 +61,18 @@ describe('Audit module (T1.9) — F-13, S-06, S-07, AC-05', () => {
     for (const [label, uid] of Object.entries(ids)) {
       await login(label, uid);
     }
+
+    // User khusus untuk pagination test (T1.13 fix): terisolasi dari suite lain —
+    // baris audit user ini tidak pernah bertambah dari luar, jadi offset page 1/2
+    // deterministik (sebelumnya baris LOGIN suite paralel menggeser offset → overlap).
+    const pagHash = await bcrypt.hash('Pag123!', 4);
+    const pagUser = await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+       VALUES ($1, $2, 'Pagination Tester', (SELECT id FROM roles WHERE code = 'admin_sistem'), true)
+       RETURNING id`,
+      [`audit-pag-${Date.now().toString().slice(-8)}@siak.local`, pagHash],
+    );
+    paginationUserId = Number(pagUser.rows[0].id);
 
     // Setup data test: periode KRS + submission + kelas + krs_item (pola T1.8)
     const sem = await pgPool.query('SELECT id FROM semesters ORDER BY id LIMIT 1');
@@ -117,6 +131,10 @@ describe('Audit module (T1.9) — F-13, S-06, S-07, AC-05', () => {
     }
     if (facultyId) {
       await pgPool.query('DELETE FROM faculties WHERE id = $1', [facultyId]);
+    }
+    if (paginationUserId) {
+      // Baris audit user ini tetap ada (changed_by → NULL via SET NULL) — aman.
+      await pgPool.query('DELETE FROM users WHERE id = $1', [paginationUserId]);
     }
     if (newUserId) {
       await pgPool.query('DELETE FROM users WHERE id = $1', [newUserId]);
@@ -317,11 +335,23 @@ describe('Audit module (T1.9) — F-13, S-06, S-07, AC-05', () => {
       expect(res.body.data.pagination.total).toBeGreaterThanOrEqual(1);
     });
 
-    it('Pagination page=2 limit=5 → offset benar', async () => {
-      const page1 = await get('?limit=5&page=1').expect(200);
-      const page2 = await get('?limit=5&page=2').expect(200);
-      expect(page1.body.data.items.length).toBeLessThanOrEqual(5);
-      expect(page2.body.data.items.length).toBeLessThanOrEqual(5);
+    it('Pagination page=2 limit=5 → offset benar (dataset terisolasi)', async () => {
+      // Burst 12 baris audit untuk user khusus — tidak ada suite lain yang
+      // menulis baris untuk user ini → total & offset stabil selama assertion.
+      for (let i = 0; i < 12; i++) {
+        await writeAuditLog({
+          tableName: 'users',
+          recordId: paginationUserId,
+          action: 'LOGIN',
+          changedBy: paginationUserId,
+          changedByLabel: 'diinput oleh Pagination Tester (admin_sistem)',
+        });
+      }
+      const page1 = await get(`?limit=5&page=1&changedBy=${paginationUserId}`).expect(200);
+      const page2 = await get(`?limit=5&page=2&changedBy=${paginationUserId}`).expect(200);
+      expect(page1.body.data.items.length).toBe(5);
+      expect(page2.body.data.items.length).toBe(5);
+      expect(page1.body.data.pagination.total).toBe(12);
       const ids1 = new Set(page1.body.data.items.map((i: { id: number }) => i.id));
       const overlap = page2.body.data.items.some((i: { id: number }) => ids1.has(i.id));
       expect(overlap).toBe(false);

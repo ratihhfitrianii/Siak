@@ -15,12 +15,27 @@ import { createAuditRouter } from './modules/audit';
 import { createNotificationRouter } from './modules/notification';
 import { createImportRouter } from './modules/import';
 import { createGradesRouter } from './modules/grades';
+import {
+  WaitingRoomService,
+  WR_DEFAULT_OPTIONS,
+  createWaitingRoomService,
+} from './modules/waiting-room';
+import { createWaitingRoomRouter } from './modules/waiting-room/waiting-room.routes';
+import { createWaitingRoomMiddleware } from './modules/waiting-room/waiting-room.middleware';
+
+/**
+ * Options untuk createApp — injeksi dependensi (healthDeps untuk health check,
+ * waitingRoom untuk gate T1.13; default dibuat di sini, test boleh null).
+ */
+export interface AppOptions {
+  waitingRoom?: WaitingRoomService | null;
+}
 
 /**
  * Membangun aplikasi Express (monolith modular — DL-07).
  * Modul di luar health masih stub (diisi per task Iterasi 1: T1.3+).
  */
-export function createApp(healthDeps: HealthDependencies = {}): Express {
+export function createApp(healthDeps: HealthDependencies = {}, options: AppOptions = {}): Express {
   const app = express();
 
   app.disable('x-powered-by');
@@ -34,10 +49,20 @@ export function createApp(healthDeps: HealthDependencies = {}): Express {
   app.use(express.json({ limit: '1mb' }));
   app.use(pinoHttp({ autoLogging: false }));
 
+  // Waiting room service: default nyata di luar test; test bypass kecuali diinjeksi.
+  const waitingRoom: WaitingRoomService | null =
+    options.waitingRoom ??
+    (env.NODE_ENV === 'test' ? null : createWaitingRoomService(WR_DEFAULT_OPTIONS));
+
   app.use('/api/v1', createHealthRouter(healthDeps));
 
-  // Stub modul — diimplementasikan pada task Iterasi 1 (lihat docs/03).
-  app.use('/api/v1/auth', createAuthRouter());
+  // Waiting-room status (fallback polling) TIDAK digate — user dalam antrean harus bisa polling.
+  app.use('/api/v1/waiting-room', createWaitingRoomRouter(waitingRoom));
+
+  // Gerbang waiting room (T1.13): semua request /api/v1 lainnya dihitung sebagai user aktif.
+  app.use('/api/v1', createWaitingRoomMiddleware(waitingRoom));
+
+  app.use('/api/v1/auth', createAuthRouter(waitingRoom));
   app.use('/api/v1/users', createRbacRouter());
   app.use('/api/v1/krs', createKrsRouter());
   app.use('/api/v1', createAcademicRouter());

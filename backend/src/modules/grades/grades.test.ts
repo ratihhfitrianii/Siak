@@ -45,7 +45,8 @@ describe('Grades module (T1.8)', () => {
       `SELECT u.id FROM users u
        JOIN roles r ON r.id = u.role_id
        WHERE r.code = 'dosen' AND u.is_active AND u.id <> $1
-       LIMIT 1`,
+         AND u.email NOT LIKE 'imp-%' AND u.email NOT LIKE 't110%'
+       ORDER BY u.id LIMIT 1`,
       [dosenId],
     );
     const dosen2Id = dosen2.rows[0]?.id as number | undefined;
@@ -53,7 +54,8 @@ describe('Grades module (T1.8)', () => {
       `SELECT u.id FROM users u
        JOIN roles r ON r.id = u.role_id
        WHERE r.code = 'mahasiswa' AND u.is_active AND u.id <> $1
-       LIMIT 1`,
+         AND u.email NOT LIKE 'imp-%' AND u.email NOT LIKE 't110%'
+       ORDER BY u.id LIMIT 1`,
       [mahasiswaId],
     );
     const mahasiswa2Id = mahasiswa2.rows[0]?.id as number | undefined;

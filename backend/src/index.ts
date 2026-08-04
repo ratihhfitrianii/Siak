@@ -1,17 +1,20 @@
+import http from 'http';
 import { createApp } from './app';
 import { env } from './config/env';
 import { logger } from './lib/logger';
+import { closeRedis, getRedis } from './lib/redis';
 import { Pool } from 'pg';
-import { Redis } from 'ioredis';
+import { createWaitingRoomService, WR_DEFAULT_OPTIONS } from './modules/waiting-room';
+import { attachWaitingRoomSocket } from './modules/waiting-room/waiting-room.socket';
 
 /**
  * Entry point backend Siak.
  * - Graceful shutdown: SIGTERM/SIGINT → stop menerima request → tutup koneksi (docs/02 §7.3).
  * - DB/Redis bersifat opsional pada T1.1 (health check menangani status not_configured/down).
+ * - T1.13: HTTP server + Socket.io waiting room + sweeper sesi kadaluarsa.
  */
 
 let pool: Pool | undefined;
-let redis: Redis | undefined;
 
 function buildHealthDeps() {
   const deps: { pingDb?: () => Promise<void>; pingRedis?: () => Promise<void> } = {};
@@ -23,10 +26,10 @@ function buildHealthDeps() {
     };
   }
 
-  if (env.REDIS_URL) {
-    redis = new Redis(env.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1 });
+  const redis = getRedis();
+  if (redis) {
     deps.pingRedis = async () => {
-      await redis!.ping();
+      await redis.ping();
     };
   }
 
@@ -35,7 +38,12 @@ function buildHealthDeps() {
 
 const app = createApp(buildHealthDeps());
 
-const server = app.listen(env.PORT, () => {
+// T1.13: server HTTP nyata (bukan app.listen) agar Socket.io bisa menempel.
+const server = http.createServer(app);
+const waitingRoom = createWaitingRoomService(WR_DEFAULT_OPTIONS);
+const waitingRoomSocket = attachWaitingRoomSocket(server);
+
+server.listen(env.PORT, () => {
   logger.info(`listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
 });
 
@@ -59,13 +67,28 @@ if (env.NODE_ENV !== 'test' && Number.isFinite(reminderIntervalMs) && reminderIn
   );
 }
 
+// T1.13: sweeper sesi waiting room kadaluarsa → bebaskan slot → promosikan antrean.
+// Sesi TTL 15 menit (docs/02 §7.1); tick tiap 60 detik, unref agar tidak menahan exit.
+const wrSweepIntervalMs = 60_000;
+const wrSweeper = setInterval(() => {
+  void waitingRoom
+    .sweepExpired()
+    .then((promoted) => {
+      if (promoted > 0) logger.info({ promoted }, 'waiting room: slot terbebas + promosi');
+    })
+    .catch((err: unknown) => logger.warn({ err }, 'waiting room sweeper error'));
+}, wrSweepIntervalMs);
+if (env.NODE_ENV !== 'test') wrSweeper.unref();
+
 async function shutdown(signal: string): Promise<void> {
   logger.info(`menerima ${signal} — graceful shutdown dimulai`);
 
   server.close(async () => {
     try {
+      clearInterval(wrSweeper);
+      waitingRoomSocket.io.close();
       if (pool) await pool.end();
-      if (redis) await redis.quit();
+      await closeRedis();
     } catch (err) {
       logger.error({ err }, 'error saat menutup koneksi');
     } finally {

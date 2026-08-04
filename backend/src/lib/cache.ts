@@ -7,18 +7,18 @@
  * - transcript:<studentId>                       → 300 (5 menit)
  *
  * Graceful degradation: Redis down → cache bypass, semua request tembus ke DB.
+ * Koneksi Redis di-share dari lib/redis.ts (T1.13) — satu koneksi untuk seluruh backend.
  */
-import { Redis } from 'ioredis';
-import { env } from '../config/env';
+import { getRedis, closeRedis } from './redis';
 import { logger } from './logger';
 
 /** TTL constants (detik) — konsisten dengan docs/02 §7.2 */
 export const CACHE_TTL = {
   /** Kurikulum per prodi — 1 jam */
   CURRICULUM: 3600,
-  /** Kelas tersedia — 30 detik (d invalidate saat KRS submit) */
+  /** Kelas tersedia — 30 detik (dinvalidate saat KRS submit) */
   AVAILABLE_CLASSES: 30,
-  /** Transkrip mahasiswa — 5 menit (d invalidate saat nilai diinput) */
+  /** Transkrip mahasiswa — 5 menit (dinvalidate saat nilai diinput) */
   TRANSCRIPT: 300,
 } as const;
 
@@ -28,58 +28,6 @@ const PREFIX = {
   AVAILABLE_CLASSES: 'siak:avail_cls:',
   TRANSCRIPT: 'siak:transcript:',
 } as const;
-
-let redis: Redis | undefined;
-let redisAvailable = false;
-
-/** Inisialisasi koneksi Redis (lazy — dipanggil sekali saat module pertama kali diimport) */
-function getRedis(): Redis | undefined {
-  if (redisAvailable) return redis;
-  if (!env.REDIS_URL) {
-    logger.warn('REDIS_URL not configured — cache disabled (bypass)');
-    redisAvailable = false;
-    return undefined;
-  }
-  try {
-    redis = new Redis(env.REDIS_URL, {
-      lazyConnect: false,
-      maxRetriesPerRequest: 1,
-      connectTimeout: 3000,
-      retryStrategy(times: number) {
-        if (times > 3) {
-          logger.warn({ times }, 'Redis cache: giving up reconnection');
-          redisAvailable = false;
-          return null;
-        }
-        return Math.min(times * 200, 1000);
-      },
-    });
-    redis.on('error', (err: Error) => {
-      if (redisAvailable) {
-        logger.warn(
-          { err: err.message },
-          'Redis cache: connection lost — cache disabled temporarily',
-        );
-        redisAvailable = false;
-      }
-    });
-    redis.on('connect', () => {
-      if (!redisAvailable) {
-        logger.info('Redis cache: reconnected — cache enabled');
-        redisAvailable = true;
-      }
-    });
-    redisAvailable = true;
-    return redis;
-  } catch (err) {
-    logger.warn({ err }, 'Redis cache: init failed — cache disabled');
-    redisAvailable = false;
-    return undefined;
-  }
-}
-
-// Attempt connection eagerly on module load
-getRedis();
 
 /**
  * GET dari cache. Returns parsed object atau null (cache miss / Redis down).
@@ -178,16 +126,8 @@ export async function pingRedisCache(): Promise<{ status: 'up' | 'down'; latency
 }
 
 /**
- * Graceful shutdown.
+ * Graceful shutdown (alias ke shared closeRedis).
  */
 export async function closeRedisCache(): Promise<void> {
-  if (redis) {
-    try {
-      await redis.quit();
-    } catch {
-      // ignore
-    }
-    redis = undefined;
-    redisAvailable = false;
-  }
+  await closeRedis();
 }

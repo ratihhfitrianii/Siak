@@ -5,6 +5,7 @@ import { logger } from '../../lib/logger';
 import { AppError } from '../../middleware/error-handler';
 import { authenticate } from '../../lib/auth-middleware';
 import { writeAuditLog, buildChangedByLabel } from '../../lib/audit-service';
+import type { WaitingRoomService } from '../waiting-room/waiting-room.service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -108,7 +109,7 @@ if (process.env.NODE_ENV !== 'test') {
   process.on('SIGINT', stopCleanupInterval);
 }
 
-export function createAuthRouter(): Router {
+export function createAuthRouter(waitingRoom?: WaitingRoomService | null): Router {
   const router = Router();
 
   // POST /api/v1/auth/login
@@ -283,6 +284,10 @@ export function createAuthRouter(): Router {
       const parsed = logoutSchema.safeParse(req.body);
       if (parsed.success && parsed.data.refreshToken) {
         revokeRefreshToken(parsed.data.refreshToken);
+      }
+      // Waiting room (T1.13): bebaskan slot user + promosikan token antrean terdepan.
+      if (waitingRoom) {
+        await waitingRoom.leave(`ip:${req.ip}`);
       }
       // If no refreshToken provided, client-side logout only
       res.json({ success: true, data: { message: 'Logged out' } });
