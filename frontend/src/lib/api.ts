@@ -318,3 +318,68 @@ export async function updateUserRole(
     role: raw.role,
   };
 }
+
+/* ==== T2.6 — Finance API ==== */
+
+import type {
+  PaymentsResponse,
+  Payment,
+  MyPayment,
+  KrsAccessResult,
+  UpdatePaymentInput,
+} from './types';
+
+/** GET /finance/payments — list tagihan (admin keuangan/sistem). */
+export async function getFinancePayments(params?: {
+  semester_id?: number;
+  status?: string;
+  student_id?: number;
+  prodi_id?: number;
+  page?: number;
+  limit?: number;
+}): Promise<PaymentsResponse> {
+  const search = new URLSearchParams();
+  if (params?.semester_id) search.set('semester_id', String(params.semester_id));
+  if (params?.status) search.set('status', params.status);
+  if (params?.student_id) search.set('student_id', String(params.student_id));
+  if (params?.prodi_id) search.set('prodi_id', String(params.prodi_id));
+  if (params?.page) search.set('page', String(params.page));
+  if (params?.limit) search.set('limit', String(params.limit));
+  const qs = search.toString();
+  return apiRequest<PaymentsResponse>(`/finance/payments${qs ? `?${qs}` : ''}`);
+}
+
+/** GET /finance/payments/:id — detail tagihan. */
+export async function getFinancePayment(id: number): Promise<Payment> {
+  return apiRequest<Payment>(`/finance/payments/${id}`);
+}
+
+/** POST /finance/payments/:id/update — update status bayar (admin keuangan). */
+export async function updateFinancePayment(
+  id: number,
+  input: UpdatePaymentInput,
+): Promise<{ id: number; total_amount: number; paid_amount: number; status: string }> {
+  return apiRequest(`/finance/payments/${id}/update`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+/** POST /finance/generate — trigger generate tagihan untuk semester (admin keuangan). */
+export async function generateFinancePayments(semester_id: number): Promise<{ message: string }> {
+  return apiRequest('/finance/generate', {
+    method: 'POST',
+    body: { semester_id },
+  });
+}
+
+/** GET /finance/my-payment — mahasiswa lihat tagihan sendiri. */
+export async function getMyPayments(semester_id?: number): Promise<MyPayment[]> {
+  const qs = semester_id ? `?semester_id=${semester_id}` : '';
+  return apiRequest<MyPayment[]>(`/finance/my-payment${qs}`);
+}
+
+/** GET /finance/krs-access — cek apakah mahasiswa bisa akses KRS (sudah lunas). */
+export async function getKrsAccess(semester_id: number): Promise<KrsAccessResult> {
+  return apiRequest<KrsAccessResult>(`/finance/krs-access?semester_id=${semester_id}`);
+}

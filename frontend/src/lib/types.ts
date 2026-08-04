@@ -149,3 +149,63 @@ export interface PaginationParams {
 
 export type WaitingRoomStatus =
   { status: 'enter' } | { status: 'waiting'; position: number } | { status: 'unknown' };
+
+/* ==== T2.6 — Finance / Payment ==== */
+
+export type PaymentStatus = 'belum_lunas' | 'partial' | 'lunas';
+
+export interface PaymentItem {
+  id?: number;
+  type: string;
+  description: string;
+  amount: number;
+  isMandatory: boolean;
+}
+
+export interface Payment {
+  id: number;
+  studentId: number;
+  nim: string;
+  fullName: string;
+  prodiId: number;
+  prodiName: string;
+  semesterId: number;
+  semesterCode: string;
+  semesterName: string;
+  totalAmount: number;
+  paidAmount: number;
+  status: PaymentStatus;
+  dueDate: string;
+  isWaived: boolean;
+  waivedReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: PaymentItem[];
+}
+
+export interface PaymentsResponse {
+  data: Payment[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// MyPayment is semantically a student's view of Payment (same shape, different permission context)
+export type MyPayment = Payment;
+
+export interface KrsAccessResult {
+  canAccess: boolean;
+  payment: {
+    status: PaymentStatus;
+    totalAmount: number;
+    paidAmount: number;
+    dueDate: string;
+  } | null;
+}
+
+export interface UpdatePaymentInput {
+  paidAmount: number;
+}

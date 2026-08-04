@@ -6,8 +6,10 @@ import { AdminKrsPage } from './pages/AdminKrsPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { FinancePaymentsPage } from './pages/FinancePaymentsPage';
 import { KrsPage } from './pages/KrsPage';
 import { LoginPage } from './pages/LoginPage';
+import { MyPaymentPage } from './pages/MyPaymentPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { TranscriptPage } from './pages/TranscriptPage';
 import { UsersPage } from './pages/UsersPage';
@@ -71,6 +73,26 @@ export default function App() {
             <ProtectedRoute perm="transcript.view_own">
               <AppLayout>
                 <TranscriptPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pembayaran"
+          element={
+            <ProtectedRoute perm="krs.fill">
+              <AppLayout>
+                <MyPaymentPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/keuangan/tagihan"
+          element={
+            <ProtectedRoute perm="payment.update">
+              <AppLayout>
+                <FinancePaymentsPage />
               </AppLayout>
             </ProtectedRoute>
           }
