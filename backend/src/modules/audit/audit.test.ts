@@ -41,20 +41,29 @@ describe('Audit module (T1.9) — F-13, S-06, S-07, AC-05', () => {
     tokenByRole.set(label, res.body.data.accessToken);
   }
 
+  // Timeout diperpanjang (30s): 5× query seed + 5 login + setup data + pagination user
+  // bisa > 5s saat DB sibuk (kegagalan hook timeout 5s default — pelajaran T1.13).
   beforeAll(async () => {
     startTime = new Date();
-    const users = await pgPool.query('SELECT id, role_id FROM users WHERE is_active');
-    const roles = await pgPool.query('SELECT id, code FROM roles');
-    const roleMap = new Map(roles.rows.map((r) => [r.id, r.code]));
-    const findByRole = (code: string) =>
-      Number(users.rows.find((u) => roleMap.get(u.role_id) === code)?.id) as number;
-
+    // T1.13 determinisme: user SEED terkecil per peran (ORDER BY id), eksklusi
+    // imp-*/t110* (leftover import bisa dihapus import.test.ts saat berjalan).
+    const seedUserId = async (code: string): Promise<number> => {
+      const res = await pgPool.query(
+        `SELECT u.id FROM users u
+         JOIN roles r ON r.id = u.role_id
+         WHERE r.code = $1 AND u.is_active
+           AND u.email NOT LIKE 'imp-%' AND u.email NOT LIKE 't110%'
+         ORDER BY u.id LIMIT 1`,
+        [code],
+      );
+      return Number(res.rows[0].id);
+    };
     const ids = {
-      admin_sistem: findByRole('admin_sistem'),
-      admin_akademik: findByRole('admin_akademik'),
-      admin_keuangan: findByRole('admin_keuangan'),
-      dosen: findByRole('dosen'),
-      mahasiswa: findByRole('mahasiswa'),
+      admin_sistem: await seedUserId('admin_sistem'),
+      admin_akademik: await seedUserId('admin_akademik'),
+      admin_keuangan: await seedUserId('admin_keuangan'),
+      dosen: await seedUserId('dosen'),
+      mahasiswa: await seedUserId('mahasiswa'),
     };
     userIdByRole = new Map(Object.entries(ids));
     tokenByRole = new Map();
@@ -116,7 +125,7 @@ describe('Audit module (T1.9) — F-13, S-06, S-07, AC-05', () => {
       [cleanup.submissionId, classId],
     );
     krsItemId = Number(item.rows[0].id);
-  });
+  }, 30_000);
 
   afterAll(async () => {
     if (cleanup.submissionId) {

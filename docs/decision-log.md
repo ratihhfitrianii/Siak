@@ -202,4 +202,5 @@
 | DL-24 | Coverage threshold frontend aktif (≥80% stmts/funcs/branch) via `@vitest/coverage-v8`; `frontend/nginx.conf` + proxy `/api` untuk SPA container | DIPUTUSKAN (Developer) |
 | DL-25 | Redis cache layer untuk data read-heavy (available-classes 30s, transkrip 5m, kurikulum 1h) dengan graceful degradation; invalidation on write | DIPUTUSKAN (Developer) | (≥80% stmts/funcs/branch) via `@vitest/coverage-v8`; `frontend/nginx.conf` + proxy `/api` untuk SPA container | DIPUTUSKAN (Developer) |
 
+| DL-26 | Waiting room T1.13: gate 429 + x-waiting-token + ZSET antrean + sweeper + Socket.io push + polling fallback; Redis down → allow semua (graceful); threshold configurable (WR_THRESHOLD, default 5000); client token di sessionStorage + redirect /tunggu | DIPUTUSKAN (Developer) |
 **Keputusan yang menunggu pemilik:** penyedia hosting + admin teknis (DL-18), skema payroll (DL-14), kanal notifikasi, format impor, visibilitas transkrip Dosen Wali (asumsi → Open Question), **konfirmasi approval implisit T1.1 (DL-19)**.

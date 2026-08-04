@@ -745,3 +745,80 @@ Scope: coverage threshold frontend, polish aksesibilitas & states, verifikasi ng
 2. **`@vitest/coverage-v8@latest` (4.x) butuh vitest 4** → ERESOLVE; pasang versi minor yang sama dengan vitest (`@^3.2.7`).
 3. **`nginx -t` gagal "host not found in upstream backend"** di luar network compose — bukan error config; hostname service hanya resolve di dalam network. Verifikasi config harus dijalankan di network tempat service tersebut ada.
 4. **Coverage funcs 76.19% → 82.35%** — AppLayout & ComingSoonPage belum punya test langsung (funcs 0); dua file test baru menaikkan funcs melewati 80.
+
+
+## 24. T1.12 — Redis Cache Layer + Fix Pre-existing Tests (2026-08-04) — T1.12 TUNTAS (`9a7c1d1`)
+
+Scope: cache terpusat Redis untuk data read-heavy (spec §7.2), invalidation on write, perbaikan test pre-existing (krs, kelas penuh).
+
+### 24.1 Perubahan
+
+**`backend/src/lib/cache.ts` (BARU, 189 baris)** — Redis cache layer terpusat:
+- `cacheGet`/`cacheSet`/`cacheDel`/`cacheDelPattern`; namespace `siak:*`; TTL per tipe: KELAS=30s, TRANSCRIPT=300s, KURIKULUM=3600s (spec §7.2).
+- **Graceful degradation**: Redis down/tidak terkonfigurasi → `cacheGet` resolve null, `cacheSet`/`cacheDel` no-op — BUKAN error (NF-05: sistem tetap berfungsi tanpa cache).
+
+**Penerapan di endpoint**:
+- `GET /krs/available-classes` → cache 30s; `POST /krs/submit` → `cacheDelPattern(allAvailableClasses)` (invalidasi saat kuota berubah).
+- `GET /grades/student/:studentId` → cache 300s, key `transcript:<id>:<limit>:<offset>`; POST/PUT grades → `cacheDelPattern(transcript:<id>*)`.
+- `findActivePeriod()` eksklusi periode test (`NOT LIKE 'T1.%-TEST%'`) — grades.test.ts membuat periode `T1.8-TEST-*` is_active yang meracuni test KRS.
+
+**`backend/src/lib/cache.test.ts` (BARU, 68 baris)** — unit test tanpa Redis live: graceful degradation + konstruksi key.
+
+### 24.2 Fix pre-existing test (instruksi user "Fix pre-existing test dulu")
+
+**Root cause CLASS_FULL krs.test.ts (ganda)**:
+1. `classes` array dari beforeAll STALE — seed TI101-A/TI103-A 28/30; submit mhsA (+2) + mhsB (+2) → penuh 30/30 sebelum test "revisi setelah reject" (pakai `classes[0..2]`). Fix: beforeAll filter `current_enrolled < capacity` + test "revisi" re-query kelas berkuota fresh.
+2. `current_enrolled` stale antar-run (leftover submission dari run yang dibunuh). Fix: `cleanup()` hitung ulang `current_enrolled` dari jumlah submission aktual per kelas → idempoten antar-run (25/25 × 3 run).
+
+### 24.3 Verifikasi
+
+```text
+- krs.test.ts 25/25 PASS (3× run konsisten) · cache.test.ts PASS · keduanya 2/2 PASS
+- Full suite baseline: 9/12 (3 gagal = grades/audit/academic TOO_MANY_REQUESTS login — pre-existing, lockout ±15 menit)
+- Gates: lint ✅ format ✅ typecheck ✅ build ✅ · audit prod 0 vuln
+```
+
+## 25. T1.13 — Virtual Waiting Room MVP (2026-08-04) — T1.13 TUNTAS (`28d5e92` backend)
+
+Scope: F-17/NF-05/K-09 (docs/02 §7.1) — gerbang antrean saat puncak 5.000 simultan, push real-time + fallback polling, plus determinisme full suite.
+
+### 25.1 Perubahan
+
+**`backend/src/lib/redis.ts` (BARU)** — koneksi Redis SHARED (lazy, reconnect, `closeRedis()`); dipakai cache dan waiting room (satu koneksi, DRY). `cache.ts` direfactor ke client ini.
+
+**`backend/src/modules/waiting-room/` (BARU)**:
+- `waiting-room.service.ts` — ZSET antrean + active set + sweeper 60s + TTL 30m + EventEmitter `promoted`; **Redis down → allow semua** (graceful). Ambang `WR_THRESHOLD` env, default 5000 (DL-11).
+- `waiting-room.middleware.ts` — gate: `active_users_count` > ambang → 429 `RATE_LIMITED` + header `x-waiting-token` + posisi; di bawah ambang → lewat.
+- `waiting-room.routes.ts` — `GET /waiting-room/status?token=` (fallback polling K-09; exempt dari gate).
+- `waiting-room.socket.ts` — Socket.io namespace `/waiting-room`; client join `wr:<token>`; `promoted` → emit `waiting:enter_now`.
+- `app.ts` — router + middleware + injeksi (test bypass via service null); `index.ts` — attach socket + sweeper + shutdown bersih.
+- `auth/index.ts` — logout: `release()` + promote antrean.
+
+**Frontend (T1.13)**:
+- `lib/api.ts` — 429 + `x-waiting-token` → simpan token (sessionStorage) + redirect `/tunggu`; `getWaitingRoomStatus()` (polling).
+- `pages/WaitingRoomPage.tsx` (BARU) + route `/tunggu` (publik) — WebSocket push + polling 15s fallback; UI kartu estetik.
+- `frontend/nginx.conf` — `location /socket.io/` + upgrade headers (prod infra sudah ada).
+
+**Fix determinisme full suite** (menyelesaikan 3 suite yang dulu selalu merah):
+- `infra/docker-compose.yml` — postgres `max_connections` 100 → **300** (12+ worker jest × pool max 20 = 240+ koneksi → `auth_failed`/Connection terminated).
+- `grades.test.ts` — query dosen2/mahasiswa2 eksklusi `imp-%` + `ORDER BY id` (leftover import run lama dipilih acak → login salah → akun terkunci → 401 beruntun).
+- `import.test.ts` — cleanup bersihkan SEMUA `imp-%` (semua run, bukan hanya ts sendiri).
+- `audit.test.ts` — pagination pakai user khusus + burst 12 baris + filter `?changedBy=` (deterministik vs LOGIN suite paralel yang menggeser offset).
+- `krs.test.ts` — timeout beforeAll 5s → 30s (bcrypt cost 12 + cleanup saat DB sibuk).
+
+### 25.2 Verifikasi
+
+```text
+- Backend full suite: 15/15 PASS × 3 run beruntun (sebelumnya baseline 9/12)
+- Frontend: 66/66 PASS · coverage 95.72/82.75/83.69 (≥80 ✓) · lint/typecheck/build OK
+- Bundle: 85.60 kB gzip main (<200KB NF-02 ✓) + chunk socket.io lazy 13.12 kB
+- audit: backend prod 0 vuln · frontend 0 vuln
+```
+
+### 25.3 Temuan & Pitfalls
+
+1. **`max_connections` postgres 100 default** — full suite paralel (12 worker × pool 20) meledakkan koneksi; gejala `password authentication failed`/`Connection terminated` acak. Fix di compose dev; CI lolos karena runner punya core lebih sedikit (worker lebih sedikit).
+2. **Leftover `imp-*` dari run import yang dibunuh** — dipilih acak sebagai dosen2/mahasiswa2 oleh grades.test.ts (tanpa ORDER BY) → login `Dosen123!` salah → 5× gagal → akun terkunci ±15 menit → SELURUH suite lain 401 `TOO_MANY_REQUESTS`. Ini akar "TOO_MANY_REQUESTS pre-existing" yang dulu dikira rate limiter murni.
+3. **`vi.spyOn(window.location, 'assign')` ditolak jsdom** ("Cannot redefine property") — ganti `window.location` utuh via `Object.defineProperty(window, 'location', { value: { pathname, assign } })`.
+4. **`vi.useFakeTimers()` + `waitFor`/`findByText` = timeout** — waitFor internal pakai timer nyata; polling 15s tidak perlu dikontrol timer.
+5. **Debug artifact `dbg-login.ts` bocor ke commit** — wajib dihapus sebelum commit; verifikasi `git show --stat` setiap commit.

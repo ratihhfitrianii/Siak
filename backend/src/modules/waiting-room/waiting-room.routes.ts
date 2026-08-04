@@ -17,26 +17,23 @@ const statusQuery = z.object({
 export function createWaitingRoomRouter(service: WaitingRoomService | null): Router {
   const router = Router();
 
-  router.get(
-    '/status',
-    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-      try {
-        const parsed = statusQuery.safeParse(req.query);
-        if (!parsed.success) {
-          throw new AppError('VALIDATION_ERROR', 'Parameter token tidak valid', 400);
-        }
-        if (!service) {
-          // Waiting room non-aktif (test/Redis down) → tidak ada antrean
-          res.json({ success: true, data: { status: 'enter' } });
-          return;
-        }
-        const status = await service.status(parsed.data.token);
-        res.json({ success: true, data: status });
-      } catch (err) {
-        next(err);
+  router.get('/status', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const parsed = statusQuery.safeParse(req.query);
+      if (!parsed.success) {
+        throw new AppError('VALIDATION_ERROR', 'Parameter token tidak valid', 400);
       }
-    },
-  );
+      if (!service) {
+        // Waiting room non-aktif (test/Redis down) → tidak ada antrean
+        res.json({ success: true, data: { status: 'enter' } });
+        return;
+      }
+      const status = await service.status(parsed.data.token);
+      res.json({ success: true, data: status });
+    } catch (err) {
+      next(err);
+    }
+  });
 
   return router;
 }

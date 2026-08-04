@@ -48,9 +48,7 @@ export interface WaitingRoomEntry {
 }
 
 export type WaitingRoomStatus =
-  | { status: 'enter' }
-  | { status: 'waiting'; position: number }
-  | { status: 'unknown' };
+  { status: 'enter' } | { status: 'waiting'; position: number } | { status: 'unknown' };
 
 export interface WaitingRoomOptions {
   threshold: number;

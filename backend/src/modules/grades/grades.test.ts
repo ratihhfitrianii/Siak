@@ -33,14 +33,27 @@ describe('Grades module (T1.8)', () => {
     return login.body.data.accessToken;
   }
 
+  // Timeout diperpanjang (30s): 4× query seed + 6 login + setup data bisa > 5s saat DB sibuk
+  // (kegagalan hook timeout 5s default saat full-suite paralel — pelajaran T1.13).
   beforeAll(async () => {
-    const users = await pgPool.query('SELECT id, role_id FROM users WHERE is_active');
-    const roles = await pgPool.query('SELECT id, code FROM roles');
-    const roleMap = new Map(roles.rows.map((r) => [r.id, r.code]));
-    const adminSistemId = users.rows.find((u) => roleMap.get(u.role_id) === 'admin_sistem')?.id;
-    const adminAkademikId = users.rows.find((u) => roleMap.get(u.role_id) === 'admin_akademik')?.id;
-    const dosenId = users.rows.find((u) => roleMap.get(u.role_id) === 'dosen')?.id;
-    const mahasiswaId = users.rows.find((u) => roleMap.get(u.role_id) === 'mahasiswa')?.id;
+    // T1.13 determinisme: ambil user SEED terkecil per peran (ORDER BY id) dan
+    // eksklusi imp-*/t110* — leftover import run lama (paralel/terbunuh) bisa
+    // terpilih `find` acak lalu DIHAPUS import.test.ts saat berjalan → login gagal.
+    const seedUserIds = async (code: string): Promise<number | undefined> => {
+      const res = await pgPool.query(
+        `SELECT u.id FROM users u
+         JOIN roles r ON r.id = u.role_id
+         WHERE r.code = $1 AND u.is_active
+           AND u.email NOT LIKE 'imp-%' AND u.email NOT LIKE 't110%'
+         ORDER BY u.id LIMIT 1`,
+        [code],
+      );
+      return res.rows[0]?.id as number | undefined;
+    };
+    const adminSistemId = await seedUserIds('admin_sistem');
+    const adminAkademikId = await seedUserIds('admin_akademik');
+    const dosenId = await seedUserIds('dosen');
+    const mahasiswaId = await seedUserIds('mahasiswa');
     const dosen2 = await pgPool.query(
       `SELECT u.id FROM users u
        JOIN roles r ON r.id = u.role_id
@@ -68,7 +81,7 @@ describe('Grades module (T1.8)', () => {
       ['mahasiswa', mahasiswaId],
       ['dosen2', dosen2Id],
       ['mahasiswa2', mahasiswa2Id],
-    ]) {
+    ] as Array<[string, number | undefined]>) {
       if (uid) tokenByRole.set(label, await login(label, uid));
       else tokenByRole.set(label, '');
     }
@@ -122,7 +135,7 @@ describe('Grades module (T1.8)', () => {
       );
       krsItemIds.push(Number(item.rows[0].id));
     }
-  });
+  }, 30_000);
 
   afterAll(async () => {
     if (cleanupIds.submissionId) {

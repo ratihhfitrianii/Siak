@@ -269,9 +269,7 @@ describe('Waiting Room Middleware (T1.13)', () => {
     await mw({ ip: '3.3.3.3' } as never, res as never, next);
     expect(next).toHaveBeenCalledTimes(2); // tidak bertambah
     expect(res.status).toHaveBeenCalledWith(429);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 'RATE_LIMITED' }),
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'RATE_LIMITED' }));
     const payload = (res.json as jest.Mock).mock.calls[0][0] as {
       data: { token: string; position: number };
     };
@@ -340,9 +338,6 @@ describe('Waiting Room Routes — polling fallback (T1.13, K-09)', () => {
   it('service null (NODE_ENV=test default) → tidak ada gate, status selalu enter', async () => {
     const app = createApp({});
     await request(app).get('/api/v1/health').expect(200);
-    await request(app)
-      .get('/api/v1/waiting-room/status')
-      .query({ token: 'apa-saja' })
-      .expect(200);
+    await request(app).get('/api/v1/waiting-room/status').query({ token: 'apa-saja' }).expect(200);
   });
 });

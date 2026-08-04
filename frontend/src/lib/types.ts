@@ -144,3 +144,10 @@ export interface PaginationParams {
   role?: string;
   search?: string;
 }
+
+/* ==== T1.13 — Waiting Room ==== */
+
+export type WaitingRoomStatus =
+  | { status: 'enter' }
+  | { status: 'waiting'; position: number }
+  | { status: 'unknown' };

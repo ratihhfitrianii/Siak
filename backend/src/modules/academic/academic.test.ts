@@ -16,13 +16,23 @@ describe('Academic module (T1.7)', () => {
   let userIdByRole: Map<string, number | null>;
 
   beforeAll(async () => {
-    const users = await pgPool.query('SELECT id, role_id FROM users WHERE is_active');
-    const roles = await pgPool.query('SELECT id, code FROM roles');
-    const roleMap = new Map(roles.rows.map((r) => [r.id, r.code]));
-    const adminSistemId = users.rows.find((u) => roleMap.get(u.role_id) === 'admin_sistem')?.id;
-    const adminAkademikId = users.rows.find((u) => roleMap.get(u.role_id) === 'admin_akademik')?.id;
-    const dosenId = users.rows.find((u) => roleMap.get(u.role_id) === 'dosen')?.id;
-    const mahasiswaId = users.rows.find((u) => roleMap.get(u.role_id) === 'mahasiswa')?.id;
+    // T1.13 determinisme: user SEED terkecil per peran (ORDER BY id), eksklusi
+    // imp-*/t110* (leftover import bisa dihapus import.test.ts saat berjalan).
+    const seedUserIds = async (code: string): Promise<number | undefined> => {
+      const res = await pgPool.query(
+        `SELECT u.id FROM users u
+         JOIN roles r ON r.id = u.role_id
+         WHERE r.code = $1 AND u.is_active
+           AND u.email NOT LIKE 'imp-%' AND u.email NOT LIKE 't110%'
+         ORDER BY u.id LIMIT 1`,
+        [code],
+      );
+      return res.rows[0]?.id as number | undefined;
+    };
+    const adminSistemId = await seedUserIds('admin_sistem');
+    const adminAkademikId = await seedUserIds('admin_akademik');
+    const dosenId = await seedUserIds('dosen');
+    const mahasiswaId = await seedUserIds('mahasiswa');
 
     tokenByRole = new Map();
     userIdByRole = new Map();
@@ -31,7 +41,7 @@ describe('Academic module (T1.7)', () => {
       ['admin_akademik', adminAkademikId],
       ['dosen', dosenId],
       ['mahasiswa', mahasiswaId],
-    ]) {
+    ] as Array<[string, number | undefined]>) {
       if (uid) {
         const password =
           label === 'admin_sistem' || label === 'admin_akademik'
@@ -55,7 +65,7 @@ describe('Academic module (T1.7)', () => {
         userIdByRole.set(label, null);
       }
     }
-  });
+  }, 30_000);
 
   afterAll(async () => {
     // T1.9: pgPool.end() dihapus — pool dibagikan antar suite (race; jest forceExit: true).

@@ -38,7 +38,7 @@ Detail lengkap: `docs/03-execution-plan.md`.
 
 | Iterasi | Task | Fokus | Estimasi | Status |
 |---------|------|-------|----------|--------|
-| **Iterasi 1 — MVP Core** | T1.1–T1.15 | Fondasi, Auth/RBAC, KRS flow, nilai dasar, import, audit, waiting room MVP, load test, staging | ~39 hari kerja | 🟢 **T1.1–T1.10 selesai**; 🟢 **T1.11 TUNTAS** (`91ecf05`→`6233e37`→`8c3f2c4`→`4e77700`→ci `2dcfa4b`); 🟢 **T1.12 IN PROGRESS** (Redis cache layer + pre-existing test fixes) |
+| **Iterasi 1 — MVP Core** | T1.1–T1.15 | Fondasi, Auth/RBAC, KRS flow, nilai dasar, import, audit, waiting room MVP, load test, staging | ~39 hari kerja | 🟢 **T1.1–T1.10 selesai**; 🟢 **T1.11 TUNTAS** (`91ecf05`→`6233e37`→`8c3f2c4`→`4e77700`→ci `2dcfa4b`); 🟢 **T1.12 TUNTAS** (`9a7c1d1`); 🟢 **T1.13 SELESAI** (`28d5e92` backend; frontend+docs menunggu commit) |
 | **Iterasi 2 — Keuangan & Transkrip** | T2.1–T2.7 | Tagihan otomatis, SPP, gate lunas, transkrip PDF/Excel, notifikasi KRS | ~16 hari | ⬜ Belum dimulai |
 | **Iterasi 3 — Dosen Mengajar** | T3.1–T3.8 | Pilih MK, jadwal, absensi, bimbingan, substitute, nilai detail | ~20 hari | ⬜ Belum dimulai |
 | **Iterasi 4 — Skala & Integrasi** | T4.1–T4.7 | Waiting room production, payment gateway, PDDikti, payroll detail, security audit | ~23 hari | ⬜ Belum dimulai |

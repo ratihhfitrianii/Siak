@@ -12,6 +12,7 @@ import type {
   CreateUserInput,
   UpdateRoleInput,
   PaginationParams,
+  WaitingRoomStatus,
 } from './types';
 export class ApiError extends Error {
   readonly status: number;
@@ -54,6 +55,37 @@ export function setTokens(access: string | null, refresh: string | null): void {
 }
 
 let refreshInFlight: Promise<boolean> | null = null;
+
+/* ==== T1.13 — Waiting Room token (429 RATE_LIMITED) ==== */
+
+/** Header respons backend saat gerbang waiting room menahan request (429). */
+export const WR_TOKEN_HEADER = 'x-waiting-token';
+/** Tempat token antrean disimpan — sessionStorage (hilang saat tab ditutup). */
+export const WAITING_TOKEN_KEY = 'siak.waiting_token';
+
+export function getWaitingToken(): string | null {
+  return sessionStorage.getItem(WAITING_TOKEN_KEY);
+}
+
+export function clearWaitingToken(): void {
+  sessionStorage.removeItem(WAITING_TOKEN_KEY);
+}
+
+/** Simpan token antrean + arahkan ke halaman tunggu (jika belum di sana). */
+export function enterWaitingRoom(token: string): void {
+  sessionStorage.setItem(WAITING_TOKEN_KEY, token);
+  if (typeof window !== 'undefined' && window.location.pathname !== '/tunggu') {
+    window.location.assign('/tunggu');
+  }
+}
+
+/** GET /waiting-room/status — fallback polling (K-09); endpoint publik, tanpa token JWT. */
+export async function getWaitingRoomStatus(token: string): Promise<WaitingRoomStatus> {
+  return apiRequest<WaitingRoomStatus>(
+    `/waiting-room/status?token=${encodeURIComponent(token)}`,
+    { auth: false },
+  );
+}
 
 /** Refresh access token; kembalikan true bila berhasil. Single-flight (hindari N permintaan 401 → N refresh). */
 export async function tryRefresh(): Promise<boolean> {
@@ -148,6 +180,15 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
   }
 
   if (!res.ok) {
+    // T1.13: 429 dari gerbang waiting room → simpan token antrean + arahkan ke /tunggu.
+    // (Tetap lempar ApiError agar pemanggil tahu request gagal; halaman tunggu
+    // menangani navigasi masuk-ulang setelah slot bebas.)
+    if (res.status === 429) {
+      const waitingToken = res.headers.get(WR_TOKEN_HEADER);
+      if (waitingToken) {
+        enterWaitingRoom(waitingToken);
+      }
+    }
     const err = payload as {
       error?: { code?: string; message?: string; details?: { fields?: Record<string, string[]> } };
     };

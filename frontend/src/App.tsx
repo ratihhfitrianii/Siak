@@ -11,6 +11,7 @@ import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { TranscriptPage } from './pages/TranscriptPage';
 import { UsersPage } from './pages/UsersPage';
+import { WaitingRoomPage } from './pages/WaitingRoomPage';
 
 /** Pilih halaman KRS sesuai peran: mahasiswa (krs.fill) → KRS sendiri; admin (krs.approve) → persetujuan. */
 function KrsRoute() {
@@ -34,6 +35,8 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        {/* T1.13: waiting room — publik (token antrean di sessionStorage, bukan JWT) */}
+        <Route path="/tunggu" element={<WaitingRoomPage />} />
         <Route
           path="/ganti-password"
           element={
