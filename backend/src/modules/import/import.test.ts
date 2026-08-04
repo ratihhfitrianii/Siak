@@ -14,7 +14,8 @@ process.env.JWT_SECRET = 'test-secret-import';
 import { createApp } from '../../app';
 import { pgPool } from '../../lib/pg';
 
-const app = createApp();
+// Pass waitingRoom: null to bypass waiting room middleware for tests
+const app = createApp({}, { waitingRoom: null });
 
 const password = 'TestPass123!';
 const adminEmail = 'admin@siak.local';

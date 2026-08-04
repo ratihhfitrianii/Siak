@@ -471,21 +471,21 @@ function handleImport(kind: ImportKind) {
 export function createImportRouter(): Router {
   const router = Router();
   router.post(
-    '/import/students',
+    '/students',
     authenticate,
     authorize('import.data'),
     uploadSingle('file'),
     handleImport('students'),
   );
   router.post(
-    '/import/lecturers',
+    '/lecturers',
     authenticate,
     authorize('import.data'),
     uploadSingle('file'),
     handleImport('lecturers'),
   );
   router.post(
-    '/import/courses',
+    '/courses',
     authenticate,
     authorize('import.data'),
     uploadSingle('file'),

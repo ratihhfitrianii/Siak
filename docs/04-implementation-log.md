@@ -870,3 +870,50 @@ Scope: F-17/NF-05/K-09 (docs/02 §7.1) — gerbang antrean saat puncak 5.000 sim
 3. **`vi.spyOn(window.location, 'assign')` ditolak jsdom** ("Cannot redefine property") — ganti `window.location` utuh via `Object.defineProperty(window, 'location', { value: { pathname, assign } })`.
 4. **`vi.useFakeTimers()` + `waitFor`/`findByText` = timeout** — waitFor internal pakai timer nyata; polling 15s tidak perlu dikontrol timer.
 5. **Debug artifact `dbg-login.ts` bocor ke commit** — wajib dihapus sebelum commit; verifikasi `git show --stat` setiap commit.
+
+
+## 28. T2.1 — Payment Service (Generate Tagihan Otomatis)
+
+**Status**: ✅ SELESAI & TER-PUSH
+**Tanggal**: 2026-08-04
+**PRD Ref**: F-08, F-12, F-15, AC-03, AC-08, K-08
+
+### Database Migration (V20260804_014__add_payment_generation.sql)
+
+- `get_spp_amount(semester_code)` — SPP ganjil Rp970.000, genap Rp950.000
+- `generate_payments_for_semester(p_semester_id)` — generate untuk SEMUA mahasiswa aktif (tanpa filter angkatan):
+  - Mahasiswa lama (angkatan ≠ academic_year semester): SPP saja
+  - Mahasiswa baru (angkatan = academic_year semester): SPP + Gedung 200k + Tes 50k
+  - Due date: 7 hari sebelum KRS end date (atau semester end)
+  - Idempotent: skip jika payment sudah exist
+- `trigger_generate_payments()` — trigger AFTER UPDATE is_active ON semesters
+- `update_payment_status(payment_id, paid_amount, admin_id)` — manual update oleh admin keuangan:
+  - Validasi paid_amount (0 ≤ x ≤ total_amount)
+  - Status: belum_lunas / partial / lunas
+  - Audit log otomatis
+- `can_access_krs(student_id, semester_id)` — return TRUE hanya jika status = 'lunas'
+
+### Finance API Module (src/modules/finance/index.ts)
+
+Endpoints:
+- `GET /api/v1/finance/payments` — list + filter + pagination (admin_keuangan, admin_sistem)
+- `GET /api/v1/finance/payments/:id` — detail payment + items
+- `POST /api/v1/finance/payments/:id/update` — update status bayar (admin_keuangan)
+- `POST /api/v1/finance/generate` — trigger generate manual (admin_keuangan)
+- `GET /api/v1/finance/my-payment` — mahasiswa lihat tagihan sendiri
+- `GET /api/v1/finance/krs-access?semester_id=X` — cek apakah bisa akses KRS (gate T2.3)
+
+RBAC per matriks §6.1:
+- payment.generate → admin_keuangan, admin_sistem
+- payment.update → admin_keuangan, admin_sistem (read juga)
+- krs.fill → mahasiswa (my-payment, krs-access)
+
+### Verified on Staging
+
+- Auto-generate: 2004 payments created (1002 mhs lama = Rp970k, 1002 mhs baru = Rp1.22M)
+- Payment items: SPP / Gedung / Tes per rules
+- can_access_krs: mhs lama (lunas) = true, mhs baru (belum bayar) = false
+- Manual update: admin keuangan → lunas → can_access_krs jadi true
+- All backend tests: 15/15 suites, 374/374 PASS
+- Frontend tests: 13/13 T1.13 PASS
+- Lint / typecheck / build: HIJAU
