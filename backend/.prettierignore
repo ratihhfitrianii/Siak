@@ -1,4 +1,6 @@
-dist
-node_modules
-coverage
-package-lock.json
+# Ignore load test artifacts
+loadtest/
+dist/
+coverage/
+node_modules/
+EOF
