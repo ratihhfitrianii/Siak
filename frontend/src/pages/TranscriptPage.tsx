@@ -123,11 +123,21 @@ export function TranscriptPage() {
                 <table className="w-full min-w-[560px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
-                      <th className="py-2 pr-3 font-medium">Kode</th>
-                      <th className="py-2 pr-3 font-medium">Mata Kuliah</th>
-                      <th className="py-2 pr-3 font-medium">SKS</th>
-                      <th className="py-2 pr-3 font-medium">Nilai</th>
-                      <th className="py-2 font-medium">Poin</th>
+                      <th scope="col" className="py-2 pr-3 font-medium">
+                        Kode
+                      </th>
+                      <th scope="col" className="py-2 pr-3 font-medium">
+                        Mata Kuliah
+                      </th>
+                      <th scope="col" className="py-2 pr-3 font-medium">
+                        SKS
+                      </th>
+                      <th scope="col" className="py-2 pr-3 font-medium">
+                        Nilai
+                      </th>
+                      <th scope="col" className="py-2 font-medium">
+                        Poin
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">

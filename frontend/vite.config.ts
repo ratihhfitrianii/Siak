@@ -23,6 +23,23 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
-    // Coverage threshold frontend diberlakukan penuh saat T1.11 (banyak komponen & test).
+    // Coverage threshold frontend (T1.11d) — konsisten backend: ≥80% semua metrik (global).
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/test/**',
+        'src/main.tsx', // entry point (bukan logika)
+        'src/lib/types.ts', // deklarasi tipe murni
+      ],
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80,
+      },
+    },
   },
 });

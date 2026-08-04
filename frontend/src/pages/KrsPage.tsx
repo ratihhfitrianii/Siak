@@ -288,13 +288,25 @@ export function KrsPage() {
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
-                  <th className="py-2 pr-3 font-medium">Kode</th>
-                  <th className="py-2 pr-3 font-medium">Mata Kuliah</th>
-                  <th className="py-2 pr-3 font-medium">SKS</th>
-                  <th className="py-2 pr-3 font-medium">Jadwal</th>
-                  <th className="py-2 pr-3 font-medium">Ruang</th>
-                  <th className="py-2 pr-3 font-medium">Kuota</th>
-                  <th className="py-2 font-medium" />
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Kode
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Mata Kuliah
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    SKS
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Jadwal
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Ruang
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    Kuota
+                  </th>
+                  <th scope="col" className="py-2 font-medium" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

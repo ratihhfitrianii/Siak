@@ -131,13 +131,27 @@ export function AdminKrsPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-left">
               <tr>
-                <th className="px-4 py-3 font-medium text-slate-600">NIM</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Mahasiswa</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Prodi</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Diajukan</th>
-                <th className="px-4 py-3 text-center font-medium text-slate-600">Kelas</th>
-                <th className="px-4 py-3 text-center font-medium text-slate-600">SKS</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Aksi</th>
+                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                  NIM
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                  Mahasiswa
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                  Prodi
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                  Diajukan
+                </th>
+                <th scope="col" className="px-4 py-3 text-center font-medium text-slate-600">
+                  Kelas
+                </th>
+                <th scope="col" className="px-4 py-3 text-center font-medium text-slate-600">
+                  SKS
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                  Aksi
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

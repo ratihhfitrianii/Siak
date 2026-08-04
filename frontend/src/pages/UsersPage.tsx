@@ -248,12 +248,24 @@ export function UsersPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-left">
               <tr>
-                <th className="px-4 py-3 font-medium text-slate-600">Nama</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Email</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Peran</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Wali</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Status</th>
-                <th className="px-4 py-3 font-medium text-slate-600">Aksi</th>
+                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                  Nama
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                  Email
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                  Peran
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                  Wali
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                  Status
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                  Aksi
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

@@ -711,3 +711,37 @@ Scope: halaman admin untuk approve/reject KRS (perm `krs.approve`) + manajemen p
 3. **Patch fuzzy salah sasaran 2×** (AdminKrsPage.test.tsx) — old_string `(url, init)` cocok ke test "Coba lagi" padahal yang dimaksud test approve; akibatnya param `init` tak terdefinisi di body → TS2349/TS6133. Pelajaran: patch dengan konteks baris unik, dan cek seluruh kemunculan.
 4. **`role="status"` ambigu di test** — spinner loading juga `role="status"` (aria-label "Memuat"); query sukses pakai teks unik pesan, bukan `findByRole('status')`.
 5. **Label peran ambigu** — badge "Mahasiswa" vs `<option>Mahasiswa</option>` filter; gunakan `getAllByText(...).length` atau `within(table)`.
+
+## 23. T1.11d — Polish + Gate + Docs (2026-08-03) — T1.11 TUNTAS
+
+Scope: coverage threshold frontend, polish aksesibilitas & states, verifikasi nginx.conf, verifikasi kanonikal penuh, docs.
+
+### 23.1 Perubahan
+
+**Coverage threshold frontend (vite.config.ts)**:
+- `@vitest/coverage-v8@^3.2.7` (baru; versi 4.x butuh vitest 4 → ERESOLVE, pakai 3.2.7 agar cocok vitest 3.2.7).
+- Konfigurasi `test.coverage`: provider v8, exclude `main.tsx` (entry) & `lib/types.ts` (tipe murni), **threshold global 80% untuk lines/functions/branches/statements** — konsisten backend. Berlaku saat `npm run test:coverage`; CI tetap `npm run test` (tanpa blokir baru).
+
+**Test baru (a11y & coverage)**: `AppLayout.test.tsx` (4 test — menu filtering per permission, logout → /login, user null), `ComingSoonPage.test.tsx` (1). **58/58 PASS.**
+
+**Polish aksesibilitas**: `scope="col"` ditambahkan ke semua `<th>` tabel (AdminKrsPage, UsersPage, KrsPage, TranscriptPage) — screen reader mengasosiasikan header dengan kolom.
+
+**nginx.conf frontend diperbaiki (bug nyata)**: `frontend/nginx.conf` (dipakai Dockerfile → container `siak-frontend` di compose dev, port 8080) **tidak punya proxy `/api`** → SPA di 8080 tidak bisa memanggil API. Ditambahkan `location /api/ { proxy_pass http://backend:3000; ... }`.
+
+### 23.2 Verifikasi
+
+```text
+- Frontend: 58/58 PASS | coverage 95.81% stmts / 82.84% branch / 82.35% funcs (threshold 80 aktif ✅)
+- lint/format/typecheck/build OK | bundle 84.20 kB gzip (NF-02 < 200KB) | audit 0 vuln
+- nginx (docker, network siak-dev_default, container siak-backend di 3000):
+    / → 200 text/html · /krs → 200 (SPA fallback) · /api/v1/health → JSON backend (proxy ✅)
+    /api/v1/users/me tanpa token → 401 (auth lewat proxy ✅) — container test dihapus
+- infra/nginx/nginx.conf (prod edge) diverifikasi: SPA fallback + proxy /api + rate limit auth + WS ✅
+```
+
+### 23.3 Temuan & Pitfalls
+
+1. **`frontend/nginx.conf` tanpa proxy `/api`** — SPA container di compose dev (8080) hanya serve static; semua request API jatuh ke `try_files` → index.html. Terdeteksi saat verifikasi T1.11d; diperbaiki + diuji nyata (proxy → backend:3000).
+2. **`@vitest/coverage-v8@latest` (4.x) butuh vitest 4** → ERESOLVE; pasang versi minor yang sama dengan vitest (`@^3.2.7`).
+3. **`nginx -t` gagal "host not found in upstream backend"** di luar network compose — bukan error config; hostname service hanya resolve di dalam network. Verifikasi config harus dijalankan di network tempat service tersebut ada.
+4. **Coverage funcs 76.19% → 82.35%** — AppLayout & ComingSoonPage belum punya test langsung (funcs 0); dua file test baru menaikkan funcs melewati 80.

@@ -1,6 +1,6 @@
 # Rencana T1.11 — Frontend: Login + Dashboard (Mahasiswa & Admin)
 
-**Status**: T1.11a ✅ selesai (commit 91ecf05) · T1.11b ✅ selesai (commit 6233e37) · **T1.11c ✅ selesai** (admin KRS + user mgmt, menunggu commit manual) · T1.11d belum.
+**Status**: T1.11a ✅ (91ecf05) · T1.11b ✅ (6233e37) · T1.11c ✅ (8c3f2c4) · **T1.11d ✅ selesai** (polish + gate + docs) · **T1.11 TUNTAS** — menunggu commit manual.
 **Tanggal**: 2026-08-03 · **Referensi**: 03-execution-plan.md baris 28 (T1.11), 02-solution-spec.md, docs/04-implementation-log.md §19.4 open item #3.
 
 ---
