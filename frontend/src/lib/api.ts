@@ -6,6 +6,13 @@
  *
  * Backend selalu merespons {success, data} atau {success:false, error:{code,message,details}}.
  */
+import type {
+  AdminKrsPending,
+  UserListResponse,
+  CreateUserInput,
+  UpdateRoleInput,
+  PaginationParams,
+} from './types';
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -154,4 +161,120 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
 
   const data = (payload as { data?: T } | null)?.data;
   return data as T;
+}
+
+/* ==== T1.11c — Admin API ==== */
+
+/** GET /krs/admin/pending — daftar KRS menunggu persetujuan (perm krs.approve). */
+export async function getAdminPendingKrs(): Promise<AdminKrsPending> {
+  return apiRequest<AdminKrsPending>('/krs/admin/pending');
+}
+
+/** POST /krs/admin/:id/approve — setujui KRS. */
+export async function approveKrs(
+  id: number,
+): Promise<{ id: number; status: 'approved'; approvedBy: number }> {
+  return apiRequest<{ id: number; status: 'approved'; approvedBy: number }>(
+    `/krs/admin/${id}/approve`,
+    {
+      method: 'POST',
+    },
+  );
+}
+
+/** POST /krs/admin/:id/reject — tolak KRS + alasan. */
+export async function rejectKrs(
+  id: number,
+  reason: string,
+): Promise<{ id: number; status: 'rejected'; rejectionReason: string }> {
+  return apiRequest<{ id: number; status: 'rejected'; rejectionReason: string }>(
+    `/krs/admin/${id}/reject`,
+    { method: 'POST', body: { reason } },
+  );
+}
+
+/** GET /users — list pengguna (perm user.manage). Backend mengembalikan snake_case; dinormalisasi ke camelCase. */
+export async function listUsers(params?: PaginationParams): Promise<UserListResponse> {
+  const search = new URLSearchParams();
+  if (params?.page) search.set('page', String(params.page));
+  if (params?.limit) search.set('limit', String(params.limit));
+  if (params?.role) search.set('role', params.role);
+  if (params?.search) search.set('search', params.search);
+  const qs = search.toString();
+  const raw = await apiRequest<{
+    items: Array<{
+      id: number | string;
+      email: string;
+      full_name: string;
+      is_wali: boolean;
+      is_active: boolean;
+      last_login_at: string | null;
+      created_at: string;
+      role_code: string;
+      role_name: string;
+    }>;
+    pagination: { page: number; limit: number; total: number };
+  }>(`/users${qs ? `?${qs}` : ''}`);
+  return {
+    items: raw.items.map((r) => ({
+      id: Number(r.id),
+      email: r.email,
+      fullName: r.full_name,
+      isWali: r.is_wali,
+      isActive: r.is_active,
+      lastLoginAt: r.last_login_at ?? null,
+      createdAt: r.created_at,
+      roleCode: r.role_code,
+      roleName: r.role_name,
+    })),
+    pagination: raw.pagination,
+  };
+}
+
+interface CreatedUser {
+  id: number | string;
+  email: string;
+  full_name: string;
+  is_wali: boolean;
+  created_at: string;
+}
+
+/** POST /users — buat user baru (perm user.manage, admin_sistem). */
+export async function createUser(
+  input: CreateUserInput,
+): Promise<{ id: number; email: string; fullName: string; isWali: boolean; createdAt: string }> {
+  const raw = await apiRequest<CreatedUser>('/users', { method: 'POST', body: input });
+  return {
+    id: Number(raw.id),
+    email: raw.email,
+    fullName: raw.full_name,
+    isWali: raw.is_wali,
+    createdAt: raw.created_at,
+  };
+}
+
+interface UpdatedRoleUser {
+  id: number | string;
+  email: string;
+  full_name: string;
+  is_wali: boolean;
+  role: string;
+}
+
+/** PUT /users/:id/role — ubah role + is_wali (perm user.manage, admin_sistem). */
+export async function updateUserRole(
+  id: number,
+  input: UpdateRoleInput,
+): Promise<{ id: number; email: string; fullName: string; isWali: boolean; role: string }> {
+  const raw = await apiRequest<UpdatedRoleUser>(`/users/${id}/role`, {
+    method: 'PUT',
+    body: input,
+  });
+  return {
+    id: Number(raw.id),
+    email: raw.email,
+    fullName: raw.full_name,
+    isWali: raw.is_wali,
+    role: raw.role,
+  };
 }

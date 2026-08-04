@@ -26,7 +26,7 @@ function jsonResponse(payload: unknown, status = 200) {
   } as Response;
 }
 
-function renderAt(path: string, perm?: string) {
+function renderAt(path: string, perm?: string | string[]) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <AuthProvider>
@@ -102,5 +102,26 @@ describe('ProtectedRoute (T1.11a)', () => {
 
     renderAt('/aman', 'krs.fill');
     expect(await screen.findByText('KONTEN_PROTEKSI')).toBeInTheDocument();
+  });
+
+  it('array perm (OR): salah satu dimiliki → konten ditampilkan', async () => {
+    const admin = { ...USER, menu: ['krs.approve'] };
+    localStorage.setItem('siak.access_token', 'access-ada');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ success: true, data: admin })));
+
+    renderAt('/aman', ['krs.fill', 'krs.approve']);
+    expect(await screen.findByText('KONTEN_PROTEKSI')).toBeInTheDocument();
+  });
+
+  it('array perm (OR): tidak ada yang dimiliki → Access Denied 403', async () => {
+    const tanpaIzin = { ...USER, menu: ['transcript.view_own'] };
+    localStorage.setItem('siak.access_token', 'access-ada');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ success: true, data: tanpaIzin })),
+    );
+
+    renderAt('/aman', ['krs.fill', 'krs.approve']);
+    expect(await screen.findByText('Akses ditolak')).toBeInTheDocument();
   });
 });

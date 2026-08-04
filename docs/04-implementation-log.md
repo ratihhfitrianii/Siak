@@ -672,3 +672,42 @@ Scope: halaman KRS (periode aktif, kelas tersedia, draft→submit, total SKS, st
 3. **Cleanup E2E harus berurutan** — `DELETE FROM users` kena FK `krs_submissions.student_id` (tidak cascade); hapus krs_submissions dulu, lalu users (cascade students).
 4. **Query Testing Library** — `getByText('3')` ambigu (Total SKS vs kolom SKS); teks gabungan `MAT1 — Matematika Dasar` tidak cocok exact-match; IP header `SKS: 5 · IP: 3.72` bukan elemen tunggal. Fix: `within(section)` + regex.
 5. **IPK 2.66 ≠ 3.72** — kesalahan hitung manual di test: IPK = Σ(SKS×poin)/ΣSKS dinilai = 18.6/5 (bukan /7).
+
+## 22. T1.11c — Dashboard Admin: Persetujuan KRS + Manajemen Pengguna (2026-08-03)
+
+Scope: halaman admin untuk approve/reject KRS (perm `krs.approve`) + manajemen pengguna (perm `user.manage`). **Frontend only** — semua endpoint sudah ada sejak T1.1–T1.10.
+
+### 22.1 Perubahan (frontend)
+
+- `src/lib/types.ts` — tipe admin: `AdminKrsItem`, `AdminKrsPending`, `UserListItem`, `UserListResponse`, `CreateUserInput`, `UpdateRoleInput`, `PaginationParams`.
+- `src/lib/api.ts` — helper admin: `getAdminPendingKrs`, `approveKrs`, `rejectKrs`, `listUsers`, `createUser`, `updateUserRole`. **Normalisasi snake_case→camelCase di lapisan API** (backend list/create/update role mengembalikan kolom mentah `full_name`, `role_code`, dst).
+- `src/pages/AdminKrsPage.tsx` — daftar pengajuan submitted; Setujui / Tolak (dialog alasan min. 5 karakter); error inline + Coba lagi; busy state per baris.
+- `src/pages/UsersPage.tsx` — tabel pengguna + pencarian (debounce 300ms) + filter peran + pagination; modal **Buat User** (validasi per-field dari `err.fields`); modal **Ubah Peran** (checkbox Wali hanya untuk dosen); anti-self-lockout ditangani backend (400).
+- `src/auth/ProtectedRoute.tsx` — `perm` kini menerima **array (OR)** — `/krs` bisa diakses mahasiswa (`krs.fill`) ATAU admin (`krs.approve`).
+- `src/App.tsx` — `/krs` → selector `KrsRoute` (mahasiswa → KrsPage, admin → AdminKrsPage); `/users` → UsersPage (perm `user.manage`).
+- Test: AdminKrsPage (6), UsersPage (6), ProtectedRoute (+2 array perm). **Frontend 53/53 PASS.**
+
+### 22.2 Keputusan (DL-23)
+
+1. **Route `/krs` di-share mahasiswa & admin** — selector berbasis menu (`krs.fill` vs `krs.approve`), bukan rute terpisah. Menu navbar sudah menyatu ("KRS") sejak T1.11a.
+2. **Normalisasi snake_case di `listUsers`/`createUser`/`updateUserRole`** — bukan di komponen: UI tetap camelCase, backend tak diubah (menghindari perubahan API yang berisiko).
+3. **Tanpa `alert()`** — error aksi (approve/reject/create/role) tampil inline `actionError` konsisten dengan KrsPage.
+
+### 22.3 Verifikasi
+
+```text
+- Frontend: 53/53 PASS (11 file) | lint/format/typecheck/build OK (bundle 84.19 kB gzip < 200KB NF-02)
+- npm audit frontend: 0 vulnerabilities (tanpa dep baru)
+- E2E nyata (backend dist :3100, user temp): login admin → menu user.manage+krs.approve
+  → /krs/admin/pending berisi mhs temp → approve 200 → approve ulang 409
+  → /users?search → POST /users (dosen+wali) 201 → PUT /users/:id/role → admin_akademik 200
+  → PUT role sendiri 400 (anti self-lockout) → cleanup tuntas (users/students/subs/items/notif = 0)
+```
+
+### 22.4 Temuan & Pitfalls
+
+1. **Backend list users mengembalikan snake_case mentah** (tidak seperti /users/me yang camelCase) — `full_name`, `role_code`, `last_login_at`; asersi E2E memakai `role_code`. Normalisasi wajib di client.
+2. **Pola "instance backend basi di :3100" terulang** — proses `node dist/index.js` tak terdeteksi Hermes (PID berbeda) masih memegang port setelah `process kill`; verifikasi port wajib via `netstat -ano | grep :3100` + `taskkill` sebelum tiap sesi live.
+3. **Patch fuzzy salah sasaran 2×** (AdminKrsPage.test.tsx) — old_string `(url, init)` cocok ke test "Coba lagi" padahal yang dimaksud test approve; akibatnya param `init` tak terdefinisi di body → TS2349/TS6133. Pelajaran: patch dengan konteks baris unik, dan cek seluruh kemunculan.
+4. **`role="status"` ambigu di test** — spinner loading juga `role="status"` (aria-label "Memuat"); query sukses pakai teks unik pesan, bukan `findByRole('status')`.
+5. **Label peran ambigu** — badge "Mahasiswa" vs `<option>Mahasiswa</option>` filter; gunakan `getAllByText(...).length` atau `within(table)`.

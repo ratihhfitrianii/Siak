@@ -87,3 +87,60 @@ export interface GradeItem {
   updatedBy: number | null;
   updatedAt: string | null;
 }
+
+/* ==== T1.11c — Admin Dashboard ==== */
+
+export interface AdminKrsItem {
+  id: number;
+  nim: string;
+  studentName: string;
+  prodiCode: string;
+  submittedAt: string;
+  itemCount: number;
+  totalCredits: number;
+}
+
+export interface AdminKrsPending {
+  items: AdminKrsItem[];
+}
+
+export interface UserListItem {
+  id: number;
+  email: string;
+  fullName: string;
+  isWali: boolean;
+  isActive: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+  roleCode: string;
+  roleName: string;
+}
+
+export interface UserListResponse {
+  items: UserListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+}
+
+export interface CreateUserInput {
+  email: string;
+  password: string;
+  fullName: string;
+  roleCode: 'mahasiswa' | 'dosen' | 'admin_akademik' | 'admin_keuangan' | 'admin_sistem';
+  isWali: boolean;
+}
+
+export interface UpdateRoleInput {
+  roleCode: 'mahasiswa' | 'dosen' | 'admin_akademik' | 'admin_keuangan' | 'admin_sistem';
+  isWali: boolean;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  role?: string;
+  search?: string;
+}

@@ -1,7 +1,8 @@
 import { Route, Routes } from 'react-router';
-import { AuthProvider } from './auth/AuthContext';
+import { AuthProvider, useAuth } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppLayout } from './components/AppLayout';
+import { AdminKrsPage } from './pages/AdminKrsPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -9,15 +10,24 @@ import { KrsPage } from './pages/KrsPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { TranscriptPage } from './pages/TranscriptPage';
+import { UsersPage } from './pages/UsersPage';
+
+/** Pilih halaman KRS sesuai peran: mahasiswa (krs.fill) → KRS sendiri; admin (krs.approve) → persetujuan. */
+function KrsRoute() {
+  const { user } = useAuth();
+  if (!user) return null;
+  return user.menu.includes('krs.fill') ? <KrsPage /> : <AdminKrsPage />;
+}
 
 /**
- * Router aplikasi T1.11b.
+ * Router aplikasi T1.11c.
  * - /login          → halaman masuk (redirect ke '/' bila sudah login)
  * - /ganti-password → wajib saat mustChangePassword (F-18)
  * - /               → dashboard (protected, role-aware)
- * - /krs            → KRS mahasiswa (permission krs.fill)
+ * - /krs            → KRS mahasiswa (krs.fill) / persetujuan admin (krs.approve)
  * - /transkrip      → transkrip nilai (permission transcript.view_own)
- * - /nilai, /users, /audit, /pembayaran → ComingSoon (T1.11c admin, iterasi berikutnya)
+ * - /users          → manajemen pengguna (permission user.manage)
+ * - /nilai, /audit, /pembayaran → ComingSoon (iterasi berikutnya)
  */
 export default function App() {
   return (
@@ -45,9 +55,9 @@ export default function App() {
         <Route
           path="/krs"
           element={
-            <ProtectedRoute perm="krs.fill">
+            <ProtectedRoute perm={['krs.fill', 'krs.approve']}>
               <AppLayout>
-                <KrsPage />
+                <KrsRoute />
               </AppLayout>
             </ProtectedRoute>
           }
@@ -63,17 +73,17 @@ export default function App() {
           }
         />
         <Route
-          path="/nilai"
+          path="/users"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute perm="user.manage">
               <AppLayout>
-                <ComingSoonPage />
+                <UsersPage />
               </AppLayout>
             </ProtectedRoute>
           }
         />
         <Route
-          path="/users"
+          path="/nilai"
           element={
             <ProtectedRoute>
               <AppLayout>

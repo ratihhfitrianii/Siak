@@ -198,5 +198,6 @@
 | DL-20 | Frontend: React 19.2 + react-router 8.3.0 (0 advisory; router 7.x tak lolos semua) | DIPUTUSKAN (Developer) |
 | DL-21 | Token access/refresh di localStorage (SPA iterasi 1; migrasi httpOnly cookie di T5 bila perlu) | DIPUTUSKAN (Developer) |
 | DL-22 | IPK transkrip dihitung dari SKS yang sudah dinilai saja (MK tanpa nilai tidak menurunkan IPK) | DIPUTUSKAN (Developer) |
+| DL-23 | Route `/krs` di-share mahasiswa & admin via selector menu (krs.fill vs krs.approve); normalisasi snake_case di lapisan API client | DIPUTUSKAN (Developer) |
 
 **Keputusan yang menunggu pemilik:** penyedia hosting + admin teknis (DL-18), skema payroll (DL-14), kanal notifikasi, format impor, visibilitas transkrip Dosen Wali (asumsi → Open Question), **konfirmasi approval implisit T1.1 (DL-19)**.
