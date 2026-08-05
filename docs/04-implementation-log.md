@@ -1051,3 +1051,36 @@ RBAC per matriks §6.1:
 - Frontend: **17/17 files, 83/83 PASS**; coverage **94.75% stmts / 82.38% funcs / 82.92% branch** (≥80%)
 - Bundle: 90.42 kB gzip (< 200 kB NF-02)
 - Typecheck / lint / build / format:check HIJAU
+
+---
+
+## 33. T3.1 — Dosen Pilih MK (F-20) (2026-08-05)
+
+**Status**: ✅ SELESAI (menunggu commit manual — F-31)
+**Tanggal**: 2026-08-05
+**PRD Ref**: F-20, AC-11, K-10
+
+### Migration
+
+- `backend/migrations/V20260805_016__lecturer_course_selections.sql` — tabel `lecturer_course_selections` (id, lecturer_id, curriculum_id, status, priority, notes, reviewed_by, reviewed_at, created_at) dengan UNIQUE(lecturer_id, curriculum_id), index, FK ke lecturers & curricula, backfill untuk class assignments existing
+
+### Backend Module (`backend/src/modules/dosen/index.ts`)
+
+- `GET /dosen/courses/available` — daftar MK (curricula) dosen's prodi+semester aktif, join courses, kelas tersedia, status selection sendiri
+- `POST /dosen/courses/select` — submit/update pilihan MK (validasi curriculum belong to prodi, cek status bukan `diterima`, upsert priority+notes)
+- `GET /dosen/courses/my` — pilihan dosen sendiri per semester (join course info, lecturer info)
+- `GET /dosen/courses/all` — admin lihat semua pilihan (kurikulum.manage), join lecturer NIDN/nama, course code/nama
+- `PUT /dosen/courses/:id/review` — admin review (diterima/ditolak + reviewNotes), set reviewed_by/at, hanya admin akademik/sistem
+
+RBAC: dosen (auth), admin_akademik/admin_sistem (kurikulum.manage)
+
+### Test
+
+- `backend/src/modules/dosen/dosen.test.ts` — 8 test: available list, submit select, update existing (diajukan/ditolak), view my selections, admin view all, admin approve, cannot modify after diterima, admin reject
+
+### Test & Verifikasi
+
+- Backend: **dosen 8/8 PASS**; e2e 12/12 PASS; full backend 392/397 (5 pre-existing KRS failures unrelated)
+- Frontend: **17/17 files, 83/83 PASS**; coverage **94.75% stmts / 82.38% funcs / 82.92% branch** (≥80%)
+- Bundle: 90.42 kB gzip (< 200 kB NF-02)
+- Typecheck / lint / build / format:check HIJAU
