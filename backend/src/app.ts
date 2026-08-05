@@ -16,6 +16,7 @@ import { createNotificationRouter } from './modules/notification';
 import { createImportRouter } from './modules/import';
 import { createGradesRouter } from './modules/grades';
 import { createTranscriptRouter } from './modules/transcript';
+import { createScheduleRouter } from './modules/schedule';
 import {
   WaitingRoomService,
   WR_DEFAULT_OPTIONS,
@@ -78,6 +79,7 @@ export function createApp(healthDeps: HealthDependencies = {}, options: AppOptio
   app.use('/api/v1/import', createImportRouter());
   app.use('/api/v1/grades', createGradesRouter());
   app.use('/api/v1/transcript', createTranscriptRouter());
+  app.use('/api/v1/schedule', createScheduleRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

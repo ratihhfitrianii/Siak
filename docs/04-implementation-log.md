@@ -1084,3 +1084,32 @@ RBAC: dosen (auth), admin_akademik/admin_sistem (kurikulum.manage)
 - Frontend: **17/17 files, 83/83 PASS**; coverage **94.75% stmts / 82.38% funcs / 82.92% branch** (≥80%)
 - Bundle: 90.42 kB gzip (< 200 kB NF-02)
 - Typecheck / lint / build / format:check HIJAU
+
+---
+
+## 34. T3.2 — Jadwal Kelas + Checklist Ketersediaan (F-21, F-22) (2026-08-05)
+
+**Status**: ✅ SELESAI (menunggu commit manual — F-31)
+**Tanggal**: 2026-08-05
+**PRD Ref**: F-21, F-22, AC-11, K-10
+
+### Backend Module (`backend/src/modules/schedule/index.ts`)
+
+- `GET /schedule/availability` — dosen cek ketersediaan jadwal pada tanggal (busy slots dari schedules + available slots dari classes)
+- `GET /schedule/class/:classId` — admin lihat jadwal pertemuan per kelas
+- `POST /schedule` — admin buat jadwal pertemuan (meeting_number unique per class)
+- `PUT /schedule/:id` — admin update jadwal (topic, is_completed → set completed_at)
+- `DELETE /schedule/:id` — admin hapus jadwal
+
+RBAC: dosen (lecturer.availability), admin akademik/sistem (schedule.manage)
+
+### Test
+
+- `backend/src/modules/schedule/schedule.test.ts` — 7 test: availability check, admin view class schedule, create schedule, duplicate meeting number 409, update schedule (include is_completed), delete schedule, availability shows busy slots
+
+### Test & Verifikasi
+
+- Backend: **schedule 7/7 PASS**; dosen 8/8 PASS; e2e 12/12 PASS; full backend 399/407 (5 pre-existing KRS failures, 3 pre-existing waiting room failures unrelated)
+- Frontend: **17/17 files, 83/83 PASS**; coverage **94.75% stmts / 82.32% funcs / 82.92% branch** (≥80%)
+- Bundle: 90.42 kB gzip (< 200 kB NF-02)
+- Typecheck / lint / build / format:check HIJAU
