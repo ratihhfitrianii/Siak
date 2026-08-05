@@ -85,18 +85,18 @@ export function createFinanceRouter(): Router {
 
         res.json({
           success: true,
-          data: dataRes.rows.map(r => ({
+          data: dataRes.rows.map((r) => ({
             ...r,
             total_amount: parseFloat(r.total_amount),
             paid_amount: parseFloat(r.paid_amount),
-            items: r.items || []
+            items: r.items || [],
           })),
-          pagination: { page: p, limit: l, total, totalPages: Math.ceil(total / l) }
+          pagination: { page: p, limit: l, total, totalPages: Math.ceil(total / l) },
         });
       } catch (err) {
         next(err);
       }
-    }
+    },
   );
 
   // ── GET /api/v1/finance/payments/:id — Payment detail ───────────────────────────────────
@@ -135,13 +135,13 @@ export function createFinanceRouter(): Router {
             ...r,
             total_amount: parseFloat(r.total_amount),
             paid_amount: parseFloat(r.paid_amount),
-            items: r.items || []
-          }
+            items: r.items || [],
+          },
         });
       } catch (err) {
         next(err);
       }
-    }
+    },
   );
 
   // ── POST /api/v1/finance/payments/:id/update — Update payment status (admin keuangan) ──
@@ -184,20 +184,24 @@ export function createFinanceRouter(): Router {
           data: {
             ...result.rows[0],
             total_amount: parseFloat(result.rows[0].total_amount),
-            paid_amount: parseFloat(result.rows[0].paid_amount)
-          }
+            paid_amount: parseFloat(result.rows[0].paid_amount),
+          },
         });
       } catch (err) {
         if (err instanceof AppError) throw err;
         if (err instanceof Error && err.message.includes('Invalid paid amount')) {
           throw new AppError('VALIDATION_ERROR', 'paid_amount exceeds total_amount', 400);
         }
-        if (err instanceof Error && err.message.includes('Payment') && err.message.includes('not found')) {
+        if (
+          err instanceof Error &&
+          err.message.includes('Payment') &&
+          err.message.includes('not found')
+        ) {
           throw new AppError('NOT_FOUND', 'Payment not found', 404);
         }
         next(err);
       }
-    }
+    },
   );
 
   // ── POST /api/v1/finance/generate — Trigger payment generation for semester (admin) ─────
@@ -222,7 +226,7 @@ export function createFinanceRouter(): Router {
         }
         next(err);
       }
-    }
+    },
   );
 
   // ── GET /api/v1/finance/my-payment — Mahasiswa view own payment ────────────────────────
@@ -260,17 +264,17 @@ export function createFinanceRouter(): Router {
 
         res.json({
           success: true,
-          data: result.rows.map(r => ({
+          data: result.rows.map((r) => ({
             ...r,
             total_amount: parseFloat(r.total_amount),
             paid_amount: parseFloat(r.paid_amount),
-            items: r.items || []
-          }))
+            items: r.items || [],
+          })),
         });
       } catch (err) {
         next(err);
       }
-    }
+    },
   );
 
   // ── GET /api/v1/finance/krs-access — Check if student can access KRS (for gate) ────────
@@ -286,7 +290,10 @@ export function createFinanceRouter(): Router {
         const semId = parseInt(semester_id as string, 10);
         if (isNaN(semId)) throw new AppError('VALIDATION_ERROR', 'Invalid semester_id', 400);
 
-        const result = await pgPool.query('SELECT can_access_krs($1, $2) as can_access', [studentId, semId]);
+        const result = await pgPool.query('SELECT can_access_krs($1, $2) as can_access', [
+          studentId,
+          semId,
+        ]);
         const canAccess = result.rows[0].can_access;
 
         // Get payment status for context
@@ -302,18 +309,20 @@ export function createFinanceRouter(): Router {
           success: true,
           data: {
             can_access: canAccess,
-            payment: payment ? {
-              status: payment.status,
-              total_amount: parseFloat(payment.total_amount),
-              paid_amount: parseFloat(payment.paid_amount),
-              due_date: payment.due_date
-            } : null
-          }
+            payment: payment
+              ? {
+                  status: payment.status,
+                  total_amount: parseFloat(payment.total_amount),
+                  paid_amount: parseFloat(payment.paid_amount),
+                  due_date: payment.due_date,
+                }
+              : null,
+          },
         });
       } catch (err) {
         next(err);
       }
-    }
+    },
   );
 
   return router;

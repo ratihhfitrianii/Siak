@@ -70,7 +70,11 @@ if (env.NODE_ENV !== 'test' && Number.isFinite(reminderIntervalMs) && reminderIn
 // T2.5: delivery antrean notifikasi email (PENDING → SENT/FAILED, retry 3×).
 // Interval via env NOTIF_DELIVERY_INTERVAL_MS (default 5 menit); disabled di test.
 const notifDeliveryIntervalMs = Number(process.env.NOTIF_DELIVERY_INTERVAL_MS ?? 5 * 60 * 1000);
-if (env.NODE_ENV !== 'test' && Number.isFinite(notifDeliveryIntervalMs) && notifDeliveryIntervalMs > 0) {
+if (
+  env.NODE_ENV !== 'test' &&
+  Number.isFinite(notifDeliveryIntervalMs) &&
+  notifDeliveryIntervalMs > 0
+) {
   const deliveryTick = () => {
     void import('./modules/notification/index.js')
       .then(({ deliverPendingNotifications }) => deliverPendingNotifications())

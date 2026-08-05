@@ -108,13 +108,7 @@ export async function remindUnfilledStudents(): Promise<number> {
            AND n.related_entity_id = $1
        )
      RETURNING id`,
-    [
-      periodId,
-      periodName,
-      channels,
-      hasEmail ? 'PENDING' : 'SENT',
-      hasEmail ? null : new Date(),
-    ],
+    [periodId, periodName, channels, hasEmail ? 'PENDING' : 'SENT', hasEmail ? null : new Date()],
   );
 
   return result.rowCount ?? 0;

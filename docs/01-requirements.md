@@ -150,7 +150,7 @@ flowchart LR
 | S-02 | Session timeout (15 menit pada ruang tunggu; nilai pasti menunggu konfirmasi) |
 | S-03 | Proteksi SQL injection — prepared statements |
 | S-04 | Rate limiting anti brute force |
-| S-05 | RBAC — hak akses per peran (Mahasiswa/Dosen/Admin Akademik/Admin Keuangan/Admin Sistem) |
+| S-05 | RBAC — hak akses per peran (Mahasiswa/Dosen/Admin Akademik/ Keuangan/Admin Sistem) |
 | S-06 | Audit trail — log aktivitas untuk akuntabilitas |
 | S-07 | Atribusi perubahan: setiap data yang diubah/di-submit (termasuk saat admin mengedit menu dosen) mencatat & menampilkan "diinput oleh user X" |
 

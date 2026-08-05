@@ -232,14 +232,27 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
       t: string,
       x: number,
       yPos: number,
-      o: { size?: number; bold?: boolean; align?: 'left' | 'center' | 'right'; color?: string; width?: number } = {},
+      o: {
+        size?: number;
+        bold?: boolean;
+        align?: 'left' | 'center' | 'right';
+        color?: string;
+        width?: number;
+      } = {},
     ) => {
       const { size = 10, bold = false, align = 'left', color = '#000', width = pageWidth } = o;
-      doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size).fillColor(color);
+      doc
+        .font(bold ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(size)
+        .fillColor(color);
       doc.text(t, x, yPos, { width, align });
     };
     const line = (yPos: number, stroke = '#ccc') => {
-      doc.moveTo(50, yPos).lineTo(doc.page.width - 50, yPos).strokeColor(stroke).stroke();
+      doc
+        .moveTo(50, yPos)
+        .lineTo(doc.page.width - 50, yPos)
+        .strokeColor(stroke)
+        .stroke();
     };
 
     // HEADER
@@ -311,7 +324,10 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
           course.gradeLetter || '-',
           status,
         ];
-        doc.font('Helvetica').fontSize(8).fillColor(course.isRepeated ? '#dc2626' : '#000');
+        doc
+          .font('Helvetica')
+          .fontSize(8)
+          .fillColor(course.isRepeated ? '#dc2626' : '#000');
         rowData.forEach((v, i) => {
           doc.text(v, colStarts[i]!, y, {
             width: colWidths[i],
@@ -400,7 +416,11 @@ export function createTranscriptRouter(): Router {
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         if (!req.user?.studentId) {
-          throw new AppError('FORBIDDEN', 'Hanya mahasiswa yang bisa mengakses transkrip sendiri', 403);
+          throw new AppError(
+            'FORBIDDEN',
+            'Hanya mahasiswa yang bisa mengakses transkrip sendiri',
+            403,
+          );
         }
         const data = await fetchTranscriptData(req.user.studentId);
         res.json({ success: true, data });
@@ -438,11 +458,18 @@ export function createTranscriptRouter(): Router {
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         if (!req.user?.studentId) {
-          throw new AppError('FORBIDDEN', 'Hanya mahasiswa yang bisa download transkrip sendiri', 403);
+          throw new AppError(
+            'FORBIDDEN',
+            'Hanya mahasiswa yang bisa download transkrip sendiri',
+            403,
+          );
         }
         const pdf = await generateTranscriptPDF(await fetchTranscriptData(req.user.studentId));
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="transkrip-${req.user.studentId}.pdf"`);
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="transkrip-${req.user.studentId}.pdf"`,
+        );
         res.send(pdf);
       } catch (err) {
         next(err);
@@ -466,7 +493,10 @@ export function createTranscriptRouter(): Router {
         const data = await fetchTranscriptData(studentId);
         const pdf = await generateTranscriptPDF(data);
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="transkrip-${data.student.nim}.pdf"`);
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="transkrip-${data.student.nim}.pdf"`,
+        );
         res.send(pdf);
       } catch (err) {
         next(err);

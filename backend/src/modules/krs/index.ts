@@ -200,7 +200,7 @@ export function createKrsRouter(): Router {
         }
 
         const items = await pgPool.query(
-          `SELECT cl.id, cl.class_code, cl.capacity, cl.current_enrolled,
+          `SELECT ki.id as krs_item_id, cl.id, cl.class_code, cl.capacity, cl.current_enrolled,
                 c.code AS course_code, c.name AS course_name, c.credits,
                 cl.day_of_week, cl.start_time, cl.end_time, cl.room
          FROM krs_items ki
@@ -224,7 +224,7 @@ export function createKrsRouter(): Router {
             rejectionReason: submission.rows[0].rejection_reason,
             totalCredits,
             items: items.rows.map((r) => ({
-              id: Number(r.id),
+              id: Number(r.krs_item_id),
               classCode: r.class_code,
               course: { code: r.course_code, name: r.course_name, credits: r.credits },
               dayOfWeek: r.day_of_week,

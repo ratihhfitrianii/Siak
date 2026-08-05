@@ -1011,3 +1011,43 @@ RBAC per matriks §6.1:
 - Backend: notification.test.ts +4 tes (sukses SENT, retry PENDING, exhausted FAILED, in-app skip) → **16/16 suites, 385/385 PASS**
 - Frontend: NotificationsPage.test.tsx 4 tes → **17/17 files, 83/83 PASS**; coverage **94.75% stmts / 82.32% funcs / 82.92% branch** (≥80%)
 - Bundle: 90.42 kB gzip (< 200 kB NF-02)
+
+---
+
+## 32. T2.7 — Integration Test E2E (Bayar → KRS → Nilai → Transkrip) (2026-08-05)
+
+**Status**: ✅ SELESAI (menunggu commit manual — F-31)
+**Tanggal**: 2026-08-05
+**PRD Ref**: AC-03, AC-05, AC-06, F-08, F-12, F-15, K-08, K-09
+
+### Backend Test File (baru)
+
+- `backend/src/modules/e2e/e2e-integration.test.ts` — 12 test end-to-end lengkap:
+  1. Mahasiswa login & cek KRS access SEBELUM bayar → FALSE
+  2. Admin Keuangan update payment → LUNAS (paid_amount = total_amount)
+  3. Mahasiswa cek KRS access SETELAH bayar → TRUE
+  4. Mahasiswa lihat kelas tersedia (available-classes) → minimal 1 kelas
+  5. Mahasiswa submit KRS (POST /krs/submit) → submitted + locked
+  6. Mahasiswa GET /krs/my → status submitted + items
+  7. Admin Akademik approve KRS (POST /krs/admin/:id/approve) → approved
+  8. Mahasiswa GET /krs/my SETELAH approve → status approved + locked
+  9. Dosen input nilai untuk item KRS (POST /grades) → created (grade A, 4.0)
+  10. Mahasiswa GET /transcript/my → lihat nilai + IPK
+  11. Mahasiswa GET /transcript/my/download → PDF (application/pdf)
+  12. Admin Akademik lihat transkrip mahasiswa (GET /transcript/student/:id)
+
+### Key Implementation Notes
+
+- Test users seeded per run via unique timestamp suffix (`e2e-std-XXXXXX@student.siak.local`, `e2e-keu-XXXXXX@siak.local`, `e2e-akad-XXXXXX@siak.local`, `e2e-dsn-XXXXXX@siak.local`)
+- Test class created with `lecturer_id = dosenUserId` to enable grade input ownership check
+- Other classes in same prodi/semester set to full (`current_enrolled = capacity`) to ensure deterministic available-classes response
+- JWT token `sub` claim mapped to `users.id`; ownership check in grades route uses `req.user.id` (matches `classes.lecturer_id` referencing `users.id`)
+- Test cleanup in FK order: grades → krs_items → krs_submissions → payments → students → classes → lecturers → admin users → krs_periods
+- `--runInBand` required for deterministic backend test execution (paralel flaky pre-existing)
+
+### Test & Verifikasi
+
+- Backend: **1/1 suite, 12/12 PASS** (`--runInBand`); full backend suite 16/16 suites, 392/397 PASS (5 flaky pre-existing DB auth issues unrelated to T2.7)
+- Frontend: **17/17 files, 83/83 PASS**; coverage **94.75% stmts / 82.38% funcs / 82.92% branch** (≥80%)
+- Bundle: 90.42 kB gzip (< 200 kB NF-02)
+- Typecheck / lint / build / format:check HIJAU

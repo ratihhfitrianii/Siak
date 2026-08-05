@@ -69,13 +69,15 @@ async function seed() {
     [waliEmail, hash],
   );
   waliUserId = Number(waliUser.rows[0].id);
-  await pgPool.query(
-    `INSERT INTO lecturers (user_id, prodi_id) VALUES ($1, $2)`,
-    [waliUserId, Number(prodiRes.rows[0].id)],
-  );
+  await pgPool.query(`INSERT INTO lecturers (user_id, prodi_id) VALUES ($1, $2)`, [
+    waliUserId,
+    Number(prodiRes.rows[0].id),
+  ]);
 
   // Seed grades: 2 courses di semester pertama
-  const periodRes = await pgPool.query(`SELECT kp.id, kp.semester_id FROM krs_periods kp ORDER BY kp.id LIMIT 1`);
+  const periodRes = await pgPool.query(
+    `SELECT kp.id, kp.semester_id FROM krs_periods kp ORDER BY kp.id LIMIT 1`,
+  );
   const periodId = Number(periodRes.rows[0].id);
 
   const krsRes = await pgPool.query(
@@ -118,7 +120,10 @@ beforeAll(async () => {
   await seed();
 
   const login = async (email: string, pw: string) => {
-    const res = await request(app).post('/api/v1/auth/login').send({ email, password: pw }).expect(200);
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email, password: pw })
+      .expect(200);
     return res.body.data.accessToken as string;
   };
 
@@ -146,7 +151,9 @@ afterAll(async () => {
 
 describe('T2.4 Transcript', () => {
   it('GET /transcript/my — mahasiswa dapat melihat transkrip sendiri', async () => {
-    const res = await request(app).get('/api/v1/transcript/my').set('Authorization', `Bearer ${studentToken}`);
+    const res = await request(app)
+      .get('/api/v1/transcript/my')
+      .set('Authorization', `Bearer ${studentToken}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.student.nim).toBe(`TR${ts}001`);
@@ -197,7 +204,9 @@ describe('T2.4 Transcript', () => {
   it('Matkul diulang — hanya nilai terbaik IPK', async () => {
     // Tambah attempt kedua (lebih rendah) untuk course yang sama, di periode 2
     // (krs_submissions UNIQUE (student_id, krs_period_id) → periode beda)
-    const periodRes = await pgPool.query(`SELECT kp.id FROM krs_periods kp ORDER BY kp.id LIMIT 1 OFFSET 1`);
+    const periodRes = await pgPool.query(
+      `SELECT kp.id FROM krs_periods kp ORDER BY kp.id LIMIT 1 OFFSET 1`,
+    );
     const periodId = Number(periodRes.rows[0].id);
     const krsRes = await pgPool.query(
       `INSERT INTO krs_submissions (student_id, krs_period_id, status) VALUES ($1, $2, 'disetujui') RETURNING id`,
@@ -217,13 +226,13 @@ describe('T2.4 Transcript', () => {
       [itemId, waliUserId],
     );
 
-    const res = await request(app).get('/api/v1/transcript/my').set('Authorization', `Bearer ${studentToken}`);
+    const res = await request(app)
+      .get('/api/v1/transcript/my')
+      .set('Authorization', `Bearer ${studentToken}`);
     expect(res.status).toBe(200);
 
     const allCourses = res.body.data.semesters.flatMap((s: { courses: unknown[] }) => s.courses);
-    const repeats = allCourses.filter(
-      (c: { isRepeated: boolean }) => c.isRepeated,
-    );
+    const repeats = allCourses.filter((c: { isRepeated: boolean }) => c.isRepeated);
     expect(repeats.length).toBe(1);
 
     // course1 = 3 SKS A (4.0), course2 = 3 SKS C (2.0) → IPK = (12 + 6)/6 = 3.0
