@@ -11,6 +11,7 @@ import { KrsPage } from './pages/KrsPage';
 import { LoginPage } from './pages/LoginPage';
 import { MyPaymentPage } from './pages/MyPaymentPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { TranscriptPage } from './pages/TranscriptPage';
 import { UsersPage } from './pages/UsersPage';
 import { WaitingRoomPage } from './pages/WaitingRoomPage';
@@ -103,6 +104,17 @@ export default function App() {
             <ProtectedRoute perm="user.manage">
               <AppLayout>
                 <UsersPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        {/* T2.5: notifikasi — semua role terautentikasi (melihat miliknya saja, AC-10) */}
+        <Route
+          path="/notifikasi"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <NotificationsPage />
               </AppLayout>
             </ProtectedRoute>
           }

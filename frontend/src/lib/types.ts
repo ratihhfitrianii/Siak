@@ -209,3 +209,18 @@ export interface KrsAccessResult {
 export interface UpdatePaymentInput {
   paidAmount: number;
 }
+
+/* ==== T2.5 — Notifikasi ==== */
+
+export interface AppNotification {
+  id: number;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationsResponse {
+  items: AppNotification[];
+}

@@ -8,6 +8,8 @@
  */
 import type {
   AdminKrsPending,
+  AppNotification,
+  NotificationsResponse,
   UserListResponse,
   CreateUserInput,
   UpdateRoleInput,
@@ -410,4 +412,19 @@ export async function downloadTranscriptPdf(): Promise<void> {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+/* ==== T2.5 — Notifikasi ==== */
+
+/** GET /notifications/my — daftar notifikasi user sendiri. */
+export async function getMyNotifications(): Promise<AppNotification[]> {
+  const data = await apiRequest<NotificationsResponse>('/notifications/my');
+  return data.items;
+}
+
+/** PUT /notifications/:id/read — tandai notifikasi sebagai dibaca. */
+export async function markNotificationRead(id: number): Promise<void> {
+  await apiRequest<{ id: number; isRead: boolean }>(`/notifications/${id}/read`, {
+    method: 'PUT',
+  });
 }

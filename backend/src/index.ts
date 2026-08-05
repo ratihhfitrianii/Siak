@@ -67,6 +67,27 @@ if (env.NODE_ENV !== 'test' && Number.isFinite(reminderIntervalMs) && reminderIn
   );
 }
 
+// T2.5: delivery antrean notifikasi email (PENDING → SENT/FAILED, retry 3×).
+// Interval via env NOTIF_DELIVERY_INTERVAL_MS (default 5 menit); disabled di test.
+const notifDeliveryIntervalMs = Number(process.env.NOTIF_DELIVERY_INTERVAL_MS ?? 5 * 60 * 1000);
+if (env.NODE_ENV !== 'test' && Number.isFinite(notifDeliveryIntervalMs) && notifDeliveryIntervalMs > 0) {
+  const deliveryTick = () => {
+    void import('./modules/notification/index.js')
+      .then(({ deliverPendingNotifications }) => deliverPendingNotifications())
+      .then(({ delivered, failed }) => {
+        if (delivered > 0 || failed > 0) {
+          logger.info({ delivered, failed }, 'delivery notifikasi email selesai');
+        }
+      })
+      .catch((err: unknown) => logger.error({ err }, 'delivery notifikasi email gagal'));
+  };
+  deliveryTick();
+  setInterval(deliveryTick, notifDeliveryIntervalMs).unref();
+  logger.info(
+    `scheduler delivery notifikasi aktif (interval ${Math.round(notifDeliveryIntervalMs / 60_000)} menit)`,
+  );
+}
+
 // T1.13: sweeper sesi waiting room kadaluarsa → bebaskan slot → promosikan antrean.
 // Sesi TTL 15 menit (docs/02 §7.1); tick tiap 60 detik, unref agar tidak menahan exit.
 const wrSweepIntervalMs = 60_000;

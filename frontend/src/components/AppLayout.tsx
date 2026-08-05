@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
+import { getMyNotifications } from '../lib/api';
 
 /** Mapping permission → item menu (RBAC UI: menu disaring dari /users/me, bukan hardcode per role). */
 const MENU_ITEMS: { permissions: string[]; label: string; path: string }[] = [
@@ -28,6 +30,28 @@ const ROLE_LABEL: Record<string, string> = {
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [unread, setUnread] = useState(0);
+
+  // T2.5: badge notifikasi unread — fetch ringan saat mount (polling 60s; tidak menggagalkan layout).
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const load = () => {
+      getMyNotifications()
+        .then((items) => {
+          if (!cancelled) setUnread(items.filter((n) => !n.isRead).length);
+        })
+        .catch(() => {
+          /* badge opsional — gagal fetch tidak menggagalkan layout */
+        });
+    };
+    load();
+    const t = setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [user]);
 
   if (!user) {
     return null;
@@ -81,6 +105,25 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-3">
+            <NavLink
+              to="/notifikasi"
+              aria-label="Notifikasi"
+              className="relative rounded-md p-2 text-slate-600 transition hover:bg-slate-100"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
+              </svg>
+              {unread > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                  {unread > 99 ? '99+' : unread}
+                </span>
+              )}
+            </NavLink>
             <div className="text-right">
               <p className="text-sm font-semibold text-slate-900">{user.fullName}</p>
               <p className="text-xs text-slate-500">{ROLE_LABEL[user.role] ?? user.roleName}</p>

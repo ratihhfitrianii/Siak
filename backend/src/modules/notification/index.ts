@@ -2,13 +2,18 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import { pgPool } from '../../lib/pg';
 import { AppError } from '../../middleware/error-handler';
 import { authenticate } from '../../lib/auth-middleware';
+import { logger } from '../../lib/logger';
+import { createEmailProvider, type NotificationProvider } from './provider';
 
 /**
- * Modul Notifikasi (in-app) — T1.6 (AC-04d, F-25).
+ * Modul Notifikasi (in-app + email) — T1.6 / T2.5 (AC-04d, F-25).
  *
  * - `sendInAppNotification()`: helper yang dipakai modul lain (KRS approve/reject/reminder).
  * - `remindUnfilledStudents()`: AC-04d — notif otomatis ke mahasiswa yang belum mengisi KRS
  *   pada periode aktif. Idempotent (sekali per mahasiswa per periode via NOT EXISTS).
+ * - `deliverPendingNotifications()`: T2.5 — antrean delivery email (PENDING → SENT/FAILED,
+ *   retry max 3). In-app langsung SENT saat insert; hanya notif dengan kanal email yang
+ *   melewati antrean.
  * - Router: baca notifikasi milik user sendiri (AC-10 — user hanya melihat miliknya).
  *
  * Delivery email/push + scheduler penuh dijadwalkan T2.5 (plan docs/03).
@@ -31,13 +36,21 @@ export interface SendInAppNotificationParams {
   message: string;
   relatedEntityType?: string;
   relatedEntityId?: number;
+  /** Kanal tambahan selain in_app (misal 'email'). Default: hanya in_app. */
+  channels?: Array<'in_app' | 'email'>;
 }
 
-/** Insert satu notifikasi in-app (antrean `notifications`, sent_via=['in_app']). */
+/**
+ * Insert satu notifikasi (antrean `notifications`).
+ * Kanal in_app → status langsung SENT (tersimpan = terkirim); kanal email → PENDING
+ * menunggu `deliverPendingNotifications()`.
+ */
 export async function sendInAppNotification(params: SendInAppNotificationParams): Promise<void> {
+  const channels = params.channels ?? ['in_app'];
+  const hasEmail = channels.includes('email');
   await pgPool.query(
-    `INSERT INTO notifications (user_id, title, message, type, related_entity_type, related_entity_id, sent_via)
-     VALUES ($1, $2, $3, $4, $5, $6, ARRAY['in_app'])`,
+    `INSERT INTO notifications (user_id, title, message, type, related_entity_type, related_entity_id, sent_via, status, sent_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::varchar[], $8, $9)`,
     [
       params.userId,
       params.title,
@@ -45,6 +58,9 @@ export async function sendInAppNotification(params: SendInAppNotificationParams)
       params.type,
       params.relatedEntityType ?? null,
       params.relatedEntityId ?? null,
+      channels,
+      hasEmail ? 'PENDING' : 'SENT',
+      hasEmail ? null : new Date(),
     ],
   );
 }
@@ -64,12 +80,15 @@ export async function remindUnfilledStudents(): Promise<number> {
   const periodId = Number(period.rows[0].id);
   const periodName = period.rows[0].name as string;
 
+  const channels = getEnabledChannels();
+  const hasEmail = channels.includes('email');
+
   const result = await pgPool.query(
-    `INSERT INTO notifications (user_id, title, message, type, related_entity_type, related_entity_id, sent_via)
+    `INSERT INTO notifications (user_id, title, message, type, related_entity_type, related_entity_id, sent_via, status, sent_at)
      SELECT s.user_id,
             'Ingat: isi KRS',
             'Anda belum mengisi KRS pada periode ' || $2 || '. Segera isi sebelum periode ditutup.',
-            'krs_reminder', 'krs_period', $1, ARRAY['in_app']
+            'krs_reminder', 'krs_period', $1, $3::varchar[], $4, $5
      FROM students s
      JOIN users u ON u.id = s.user_id
      WHERE u.role_id = (SELECT id FROM roles WHERE code = 'mahasiswa')
@@ -89,10 +108,86 @@ export async function remindUnfilledStudents(): Promise<number> {
            AND n.related_entity_id = $1
        )
      RETURNING id`,
-    [periodId, periodName],
+    [
+      periodId,
+      periodName,
+      channels,
+      hasEmail ? 'PENDING' : 'SENT',
+      hasEmail ? null : new Date(),
+    ],
   );
 
   return result.rowCount ?? 0;
+}
+
+/** Kanal aktif dari env NOTIFICATION_PROVIDER ('email' | 'inapp' | 'email,inapp'). */
+function getEnabledChannels(): Array<'in_app' | 'email'> {
+  const raw = (process.env.NOTIFICATION_PROVIDER ?? 'inapp').toLowerCase();
+  const channels: Array<'in_app' | 'email'> = ['in_app'];
+  if (raw.includes('email')) channels.push('email');
+  return channels;
+}
+
+const MAX_DELIVERY_ATTEMPTS = 3;
+const DELIVERY_BATCH_SIZE = 100;
+
+/**
+ * T2.5 — proses antrean email: PENDING + kanal email → kirim via provider →
+ * SENT (sukses) / FAILED (gagal 3×). Log delivery per notifikasi (DoD T2.5).
+ * Idempotent & crash-safe: UPDATE ... WHERE status='PENDING' mencegah double-send.
+ */
+export async function deliverPendingNotifications(
+  providers?: NotificationProvider[],
+): Promise<{ delivered: number; failed: number }> {
+  const active = providers ?? [createEmailProvider()];
+  const result = await pgPool.query(
+    `SELECT n.id, n.title, n.message, n.attempts, u.email, u.full_name
+     FROM notifications n
+     JOIN users u ON u.id = n.user_id
+     WHERE n.status = 'PENDING' AND 'email' = ANY(n.sent_via)
+       AND n.attempts < $1
+     ORDER BY n.id
+     LIMIT $2
+     FOR UPDATE SKIP LOCKED`,
+    [MAX_DELIVERY_ATTEMPTS, DELIVERY_BATCH_SIZE],
+  );
+
+  let delivered = 0;
+  let failed = 0;
+  for (const row of result.rows) {
+    const id = Number(row.id);
+    const attempts = Number(row.attempts) + 1;
+    try {
+      for (const provider of active) {
+        await provider.send(
+          { email: row.email as string, fullName: row.full_name as string },
+          { title: row.title as string, message: row.message as string },
+        );
+      }
+      await pgPool.query(
+        `UPDATE notifications SET status = 'SENT', sent_at = now(), attempts = $2, last_error = NULL
+         WHERE id = $1`,
+        [id, attempts],
+      );
+      delivered += 1;
+      logger.info({ id, attempts }, 'notifikasi terkirim (email)');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const isExhausted = attempts >= MAX_DELIVERY_ATTEMPTS;
+      await pgPool.query(
+        `UPDATE notifications
+         SET status = $2, attempts = $3, last_error = $4
+         WHERE id = $1`,
+        [id, isExhausted ? 'FAILED' : 'PENDING', attempts, msg],
+      );
+      failed += 1;
+      logger.warn(
+        { id, attempts, err: msg },
+        isExhausted ? 'notifikasi gagal permanen (retry habis)' : 'notifikasi gagal, akan retry',
+      );
+    }
+  }
+  return { delivered, failed };
 }
 
 export function createNotificationRouter(): Router {

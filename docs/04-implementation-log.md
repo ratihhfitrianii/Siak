@@ -984,3 +984,30 @@ RBAC per matriks §6.1:
 - Frontend: 16/16 files, 79/79 PASS; coverage 94.79% stmts / 81.8% funcs / 82.05% branch (≥80%)
 - Fix flaky pre-existing: `vi.setConfig({ testTimeout: 20_000 })` di UsersPage.test.tsx & ChangePasswordPage.test.tsx (userEvent + coverage > 5s default)
 - Bundle: 89.39 kB gzip (< 200 kB NF-02)
+
+## 31. T2.5 — Notifikasi KRS (AC-04d) (2026-08-05)
+
+**Status**: ✅ SELESAI (menunggu commit manual — F-31)
+**Tanggal**: 2026-08-05
+**PRD Ref**: AC-04d, F-25, K-09
+
+### Backend
+
+- `backend/migrations/V20260805_015__notification_delivery.sql` (baru) — kolom `status` (PENDING/SENT/FAILED), `sent_at`, `attempts`, `last_error` + index `(status, id)`; backfill in-app lama → SENT
+- `backend/src/modules/notification/provider.ts` (baru) — `NotificationProvider` interface + `EmailProvider` via **nodemailer** (SMTP_HOST/PORT/SECURE/USER/PASS/FROM); **fallback log-only** saat SMTP belum dikonfigurasi (graceful degradation)
+- `backend/src/modules/notification/index.ts` — `deliverPendingNotifications()`: proses antrean email (PENDING → SENT/FAILED, retry max 3×, `FOR UPDATE SKIP LOCKED` anti double-send, batch 100); `sendInAppNotification()` & `remindUnfilledStudents()` kini set status sesuai kanal (`channels` param, default in_app)
+- `backend/src/index.ts` — scheduler delivery (interval `NOTIF_DELIVERY_INTERVAL_MS` default 5 menit; disabled di test)
+- `backend/package.json` — + `nodemailer`, `@types/nodemailer`
+
+### Frontend
+
+- `frontend/src/pages/NotificationsPage.tsx` (baru) — daftar notifikasi sendiri (GET /notifications/my), badge tipe, tandai dibaca (PUT /notifications/:id/read, optimistik), unread count, empty/error state
+- `frontend/src/components/AppLayout.tsx` — ikon lonceng + badge unread (polling 60s, gagal fetch tidak menggagalkan layout)
+- `frontend/src/lib/api.ts` + `types.ts` — `getMyNotifications()`, `markNotificationRead()`, tipe `AppNotification`/`NotificationsResponse`
+- `frontend/src/App.tsx` — route `/notifikasi` (semua role terautentikasi; AC-10)
+
+### Test & Verifikasi
+
+- Backend: notification.test.ts +4 tes (sukses SENT, retry PENDING, exhausted FAILED, in-app skip) → **16/16 suites, 385/385 PASS**
+- Frontend: NotificationsPage.test.tsx 4 tes → **17/17 files, 83/83 PASS**; coverage **94.75% stmts / 82.32% funcs / 82.92% branch** (≥80%)
+- Bundle: 90.42 kB gzip (< 200 kB NF-02)

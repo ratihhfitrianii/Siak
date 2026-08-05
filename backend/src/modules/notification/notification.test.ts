@@ -7,7 +7,13 @@ process.env.JWT_ACCESS_EXPIRY = '15m';
 
 import { createApp } from '../../app';
 import { pgPool } from '../../lib/pg';
-import { createNotificationRouter, remindUnfilledStudents, sendInAppNotification } from './index';
+import {
+  createNotificationRouter,
+  deliverPendingNotifications,
+  remindUnfilledStudents,
+  sendInAppNotification,
+} from './index';
+import type { NotificationProvider } from './provider';
 import request from 'supertest';
 
 const app = createApp();
@@ -156,6 +162,131 @@ describe('Notification module (T1.6)', () => {
       const count = await remindUnfilledStudents();
       expect(typeof count).toBe('number');
       expect(count).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('deliverPendingNotifications (T2.5)', () => {
+    let createdIds: number[] = [];
+
+    function failingProvider(message: string): NotificationProvider {
+      return {
+        name: 'mock-fail',
+        send: async () => {
+          throw new Error(message);
+        },
+      };
+    }
+
+    beforeEach(async () => {
+      createdIds = [];
+    });
+
+    afterEach(async () => {
+      if (createdIds.length > 0) {
+        await pgPool.query('DELETE FROM notifications WHERE id = ANY($1::bigint[])', [createdIds]);
+      }
+    });
+
+    it('mengirim via provider sukses → status SENT + sent_at terisi', async () => {
+      const UID = userIdByRole.mahasiswa!;
+      const sent: Array<{ email: string }> = [];
+      const okProvider: NotificationProvider = {
+        name: 'mock-ok',
+        send: async (r) => {
+          sent.push(r);
+        },
+      };
+      const ins = await pgPool.query(
+        `INSERT INTO notifications (user_id, title, message, type, sent_via, status)
+         VALUES ($1, 'Email test', 'Pesan', 'system', ARRAY['in_app','email'], 'PENDING')
+         RETURNING id`,
+        [UID],
+      );
+      createdIds.push(Number(ins.rows[0].id));
+
+      const { delivered, failed } = await deliverPendingNotifications([okProvider]);
+
+      expect(delivered).toBe(1);
+      expect(failed).toBe(0);
+      expect(sent.length).toBe(1);
+      const row = await pgPool.query('SELECT status, sent_at FROM notifications WHERE id = $1', [
+        createdIds[0],
+      ]);
+      expect(row.rows[0].status).toBe('SENT');
+      expect(row.rows[0].sent_at).not.toBeNull();
+    });
+
+    it('provider gagal → attempts naik, status tetap PENDING (retry berikutnya)', async () => {
+      const UID = userIdByRole.mahasiswa!;
+      const ins = await pgPool.query(
+        `INSERT INTO notifications (user_id, title, message, type, sent_via, status)
+         VALUES ($1, 'Email retry', 'Pesan', 'system', ARRAY['in_app','email'], 'PENDING')
+         RETURNING id`,
+        [UID],
+      );
+      createdIds.push(Number(ins.rows[0].id));
+
+      const { delivered, failed } = await deliverPendingNotifications([
+        failingProvider('smtp down'),
+      ]);
+
+      expect(delivered).toBe(0);
+      expect(failed).toBe(1);
+      const row = await pgPool.query(
+        'SELECT status, attempts, last_error FROM notifications WHERE id = $1',
+        [createdIds[0]],
+      );
+      expect(row.rows[0].status).toBe('PENDING');
+      expect(Number(row.rows[0].attempts)).toBe(1);
+      expect(row.rows[0].last_error).toContain('smtp down');
+    });
+
+    it('gagal 3× → status FAILED (retry habis)', async () => {
+      const UID = userIdByRole.mahasiswa!;
+      const ins = await pgPool.query(
+        `INSERT INTO notifications (user_id, title, message, type, sent_via, status, attempts)
+         VALUES ($1, 'Email exhausted', 'Pesan', 'system', ARRAY['in_app','email'], 'PENDING', 2)
+         RETURNING id`,
+        [UID],
+      );
+      createdIds.push(Number(ins.rows[0].id));
+
+      const { delivered, failed } = await deliverPendingNotifications([
+        failingProvider('permanent failure'),
+      ]);
+
+      expect(delivered).toBe(0);
+      expect(failed).toBe(1);
+      const row = await pgPool.query(
+        'SELECT status, attempts, last_error FROM notifications WHERE id = $1',
+        [createdIds[0]],
+      );
+      expect(row.rows[0].status).toBe('FAILED');
+      expect(Number(row.rows[0].attempts)).toBe(3);
+      expect(row.rows[0].last_error).toContain('permanent failure');
+    });
+
+    it('in-app saja (tanpa kanal email) → tidak diproses oleh delivery', async () => {
+      const UID = userIdByRole.mahasiswa!;
+      const ins = await pgPool.query(
+        `INSERT INTO notifications (user_id, title, message, type, sent_via, status)
+         VALUES ($1, 'In-app only', 'Pesan', 'system', ARRAY['in_app'], 'SENT')
+         RETURNING id`,
+        [UID],
+      );
+      createdIds.push(Number(ins.rows[0].id));
+
+      let calls = 0;
+      const spyProvider: NotificationProvider = {
+        name: 'mock-spy',
+        send: async () => {
+          calls += 1;
+        },
+      };
+      const { delivered, failed } = await deliverPendingNotifications([spyProvider]);
+      expect(delivered).toBe(0);
+      expect(failed).toBe(0);
+      expect(calls).toBe(0);
     });
   });
 });
