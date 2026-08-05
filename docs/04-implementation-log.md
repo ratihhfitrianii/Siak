@@ -917,3 +917,70 @@ RBAC per matriks §6.1:
 - All backend tests: 15/15 suites, 374/374 PASS
 - Frontend tests: 13/13 T1.13 PASS
 - Lint / typecheck / build: HIJAU
+
+## 29. T2.6 — Frontend Payment Pages (T2.1–T2.3 UI)
+
+**Status**: ✅ SELESAI & TER-PUSH
+**Tanggal**: 2026-08-04
+**PRD Ref**: F-08, F-12, F-15, AC-03, AC-08, K-08
+
+### Files Created/Modified
+
+- `frontend/src/lib/types.ts` — Tipe `Payment`, `PaymentItem`, `PaymentStatus`, `PaymentsResponse`, `MyPayment`, `KrsAccessResult`, `UpdatePaymentInput`
+- `frontend/src/lib/api.ts` — Finance API: `getFinancePayments`, `getFinancePayment`, `updateFinancePayment`, `generateFinancePayments`, `getMyPayments`, `getKrsAccess`
+- `frontend/src/pages/MyPaymentPage.tsx` — Halaman tagihan mahasiswa (permission `krs.fill`)
+  - Tab semester, summary card, progress bar (partial), KRS access indicator
+  - Tabel rincian items (SPP/Gedung/Tes) dengan total
+  - Info pembayaran & syarat KRS
+- `frontend/src/pages/FinancePaymentsPage.tsx` — Halaman kelola tagihan admin keuangan (permission `payment.update`)
+  - Filter: semester, status, prodi + pagination
+  - Generate tagihan manual per semester
+  - Update status bayar via prompt (0 → belum_lunas, full → lunas, partial → cicil)
+  - Loading states, error handling
+- `frontend/src/App.tsx` — Routes baru:
+  - `/pembayaran` → `MyPaymentPage` (mahasiswa, `krs.fill`)
+  - `/keuangan/tagihan` → `FinancePaymentsPage` (admin keuangan, `payment.update`)
+
+### Verified on Staging
+
+- Mahasiswa login → `/pembayaran` menampilkan tagihan + status + KRS access indicator
+- Admin keuangan login → `/keuangan/tagihan` list 2004 tagihan, filter, update status → lunas → KRS access jadi true
+- Backend tests: 15/15 suites, 374/374 PASS
+- Frontend tests: 13/13 T1.13 PASS
+- Typecheck / lint / build / format:check HIJAU
+- Bundle: 88.95 kB gzip (< 200 kB NF-02)
+## 30. T2.4 — Transkrip PDF (2026-08-05)
+
+**Status**: ✅ SELESAI (menunggu commit manual — F-31)
+**Tanggal**: 2026-08-05
+**PRD Ref**: F-12, F-15, AC-03, AC-08, §6.2
+
+### Backend Module (baru)
+
+- `backend/src/modules/transcript/index.ts` (~486 baris) — router transkrip:
+  - `GET /transcript/my` — JSON transkrip sendiri (mahasiswa, `transcript.view_own`)
+  - `GET /transcript/my/download` — PDF transkrip sendiri (`transcript.download`)
+  - `GET /transcript/student/:studentId` — JSON transkrip binaan (dosen wali via `authorizeWali`, admin)
+  - `GET /transcript/student/:studentId/download` — PDF binaan (`authorizeWali`)
+  - PDF via **pdfkit** (dep baru); query via pgPool; AppError; cache Redis `siak:transcript:*` TTL 300s
+  - Skala nilai plus/minus (`A-` 3.7, `B+` 3.3, dst) — `GRADE_POINT` + helper konversi huruf→poin
+  - Matkul diulang → hanya nilai terbaik masuk IPK; baris lama ditandai `isRepeated` warna merah `#dc2626`
+  - Layout: `colWidths [40,180,50,50,50,60]`, headers `['No','Mata Kuliah','SKS','Angka','Huruf','Status']`, Helvetica-Bold 8pt
+- `backend/src/app.ts` — mount `app.use('/api/v1/transcript', ...)` di samping `/api/v1/grades`
+- `backend/package.json` — + `pdfkit`, `@types/pdfkit`
+- `backend/src/lib/policy.ts` — **tidak berubah**: dosen wali pakai atribut `is_wali` via `authorizeWali` (DL-08 pattern), bukan perm baru
+
+### Frontend
+
+- `frontend/src/lib/api.ts` — `downloadTranscriptPdf()` (blob + trigger download, silent refresh on 401)
+- `frontend/src/pages/TranscriptPage.tsx` — tombol **Download PDF** (disabled saat loading/kosong, error inline)
+- `frontend/src/pages/TranscriptPage.test.tsx` — test download: mock blob + anchor click + revokeObjectURL
+
+### Test
+
+- `backend/src/modules/transcript/transcript.test.ts` (baru, 7 tes): seed imp-TR% user + grades, JSON self, PDF download, repeat-best-only, wali access via authorizeWali, admin_akademik view, 403 non-wali dosen
+- RBAC matrix test tetap 1-per-sel (transcript.view_mentee: dosen=false, admin_akademik=true) — konsisten
+- Backend: 16/16 suites, 381/381 PASS (`--runInBand`; paralel flaky pre-existing)
+- Frontend: 16/16 files, 79/79 PASS; coverage 94.79% stmts / 81.8% funcs / 82.05% branch (≥80%)
+- Fix flaky pre-existing: `vi.setConfig({ testTimeout: 20_000 })` di UsersPage.test.tsx & ChangePasswordPage.test.tsx (userEvent + coverage > 5s default)
+- Bundle: 89.39 kB gzip (< 200 kB NF-02)

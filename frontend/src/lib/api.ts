@@ -383,3 +383,31 @@ export async function getMyPayments(semester_id?: number): Promise<MyPayment[]> 
 export async function getKrsAccess(semester_id: number): Promise<KrsAccessResult> {
   return apiRequest<KrsAccessResult>(`/finance/krs-access?semester_id=${semester_id}`);
 }
+
+/* ==== T2.4 — Transkrip PDF ==== */
+
+/** GET /transcript/my/download — unduh PDF transkrip (blob + trigger download). */
+export async function downloadTranscriptPdf(): Promise<void> {
+  const token = getAccessToken();
+  if (!token) return;
+  let res = await fetch(`${API_BASE}/transcript/my/download`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) {
+    const refreshed = await tryRefresh();
+    if (!refreshed) return;
+    res = await fetch(`${API_BASE}/transcript/my/download`, {
+      headers: { Authorization: `Bearer ${getAccessToken()}` },
+    });
+  }
+  if (!res.ok) return;
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `transkrip-${new Date().toISOString().slice(0, 10)}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { ApiError, apiRequest } from '../lib/api';
+import { ApiError, apiRequest, downloadTranscriptPdf } from '../lib/api';
 import type { GradeItem } from '../lib/types';
 
 function computeStats(items: GradeItem[]) {
@@ -29,6 +29,20 @@ export function TranscriptPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<GradeItem[]>([]);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  async function handleDownload() {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      await downloadTranscriptPdf();
+    } catch {
+      setDownloadError('Gagal mengunduh PDF. Coba lagi.');
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   useEffect(() => {
     if (studentId === null) {
@@ -96,13 +110,46 @@ export function TranscriptPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-slate-900">Transkrip Nilai</h1>
-        <p className="text-sm text-slate-600">
-          Total SKS: <span className="font-bold text-slate-900">{overall.sks}</span> · IPK:{' '}
-          <span className="font-bold text-slate-900">
-            {overall.ipk === null ? '—' : overall.ipk.toFixed(2)}
-          </span>
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-slate-600">
+            Total SKS: <span className="font-bold text-slate-900">{overall.sks}</span> · IPK:{' '}
+            <span className="font-bold text-slate-900">
+              {overall.ipk === null ? '—' : overall.ipk.toFixed(2)}
+            </span>
+          </p>
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading || items.length === 0}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {downloading ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Mengunduh…
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                Download PDF
+              </>
+            )}
+          </button>
+        </div>
       </div>
+
+      {downloadError && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {downloadError}
+        </div>
+      )}
 
       {groups.length === 0 ? (
         <div className="rounded-2xl bg-white p-6 text-sm text-slate-500 shadow-sm">

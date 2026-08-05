@@ -193,4 +193,44 @@ describe('TranscriptPage (T1.11b)', () => {
     render(<TranscriptPage />);
     expect(await screen.findByText('Belum ada nilai yang tercatat.')).toBeInTheDocument();
   });
+
+  it('tombol Download PDF — memicu fetch PDF + download (T2.4)', async () => {
+    mockUser = MAHASISWA;
+    localStorage.setItem('siak.access_token', 'test-token'); // token dibutuhkan helper download
+    const clickSpy = vi.fn();
+    const revokeSpy = vi.fn();
+    const blob = new Blob(['%PDF-1.4 test'], { type: 'application/pdf' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/transcript/my/download')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            blob: async () => blob,
+          } as Response);
+        }
+        return Promise.resolve(jsonResponse({ success: true, data: { items: GRADE_ITEMS } }));
+      }),
+    );
+    vi.stubGlobal(
+      'URL',
+      Object.assign(vi.fn(), {
+        createObjectURL: vi.fn(() => 'blob:mock'),
+        revokeObjectURL: revokeSpy,
+      }),
+    );
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(clickSpy);
+    render(<TranscriptPage />);
+
+    const downloadBtn = await screen.findByRole('button', { name: /Download PDF/i });
+    expect(downloadBtn).toBeEnabled();
+    downloadBtn.click();
+
+    // Tunggu fetch PDF dipanggil
+    await vi.waitFor(() => {
+      expect(clickSpy).toHaveBeenCalled();
+    });
+    expect(revokeSpy).toHaveBeenCalled();
+  });
 });
