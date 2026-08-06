@@ -1,0 +1,502 @@
+// Test setup - configure test database BEFORE importing app
+process.env.NODE_ENV = 'test';
+process.env.DATABASE_URL ??= 'postgres://siak:siak_dev_password@localhost:5433/siak';
+process.env.REDIS_URL = 'redis://localhost:6380';
+process.env.JWT_SECRET = 'test-secret-min-32-chars-long-for-hs256-alg';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-min-32-chars-long-for-hs256-alg';
+process.env.BCRYPT_ROUNDS = '4';
+
+import request from 'supertest';
+import bcrypt from 'bcrypt';
+import type { Express } from 'express';
+import { createApp } from '../../app';
+import { pgPool } from '../../lib/pg';
+
+const app = createApp();
+
+describe('T3.5 Substitute Teaching (F-25)', () => {
+  let dosenToken: string;
+  let dosenLecturerId: number;
+  let dosenUserId: number;
+  let dosen2Token: string;
+  let dosen2LecturerId: number;
+  let adminToken: string;
+  let adminUserId: number;
+  let classId: number;
+  let scheduleId: number;
+  let createdSubstituteIds: number[] = [];
+
+  async function login(email: string, password: string): Promise<string> {
+    const res = await request(app).post('/api/v1/auth/login').send({ email, password });
+    return res.body.data.accessToken;
+  }
+
+  beforeAll(async () => {
+    // Use existing seed dosen (pick first dosen with lecturer profile)
+    const seedDosenRes = await pgPool.query(
+      `SELECT u.id as user_id, u.email, l.id as lecturer_id
+       FROM users u
+       JOIN lecturers l ON l.user_id = u.id
+       JOIN roles r ON r.id = u.role_id
+       WHERE r.code = 'dosen' AND u.is_active AND l.is_active
+       ORDER BY u.id LIMIT 1`,
+    );
+    if (seedDosenRes.rows.length === 0) {
+      throw new Error('No seed dosen available');
+    }
+    dosenUserId = Number(seedDosenRes.rows[0].user_id);
+    dosenLecturerId = Number(seedDosenRes.rows[0].lecturer_id);
+    dosenToken = await login(seedDosenRes.rows[0].email, 'Dosen123!');
+
+    // Second dosen (for substitute)
+    const seedDosen2Res = await pgPool.query(
+      `SELECT u.id as user_id, u.email, l.id as lecturer_id
+       FROM users u
+       JOIN lecturers l ON l.user_id = u.id
+       JOIN roles r ON r.id = u.role_id
+       WHERE r.code = 'dosen' AND u.is_active AND l.is_active AND u.id != $1
+       ORDER BY u.id LIMIT 1`,
+      [dosenUserId],
+    );
+    if (seedDosen2Res.rows.length === 0) {
+      throw new Error('No second seed dosen available');
+    }
+    dosen2LecturerId = Number(seedDosen2Res.rows[0].lecturer_id);
+    dosen2Token = await login(seedDosen2Res.rows[0].email, 'Dosen123!');
+
+    // Get a class taught by dosen1
+    const classRes = await pgPool.query(
+      `SELECT c.id, c.curriculum_id
+       FROM classes c
+       WHERE c.lecturer_id = $1 AND c.is_active
+       LIMIT 1`,
+      [dosenUserId],
+    );
+    if (classRes.rows.length === 0) {
+      throw new Error('No class found for dosen1');
+    }
+    classId = Number(classRes.rows[0].id);
+
+    // Get a schedule for this class
+    const scheduleRes = await pgPool.query(
+      `SELECT id FROM schedules WHERE class_id = $1 LIMIT 1`,
+      [classId],
+    );
+    if (scheduleRes.rows.length === 0) {
+      throw new Error('No schedule found for class');
+    }
+    scheduleId = Number(scheduleRes.rows[0].id);
+
+    // Use existing seed admin akademik
+    const seedAdminRes = await pgPool.query(
+      `SELECT u.id, u.email FROM users u
+       JOIN roles r ON r.id = u.role_id
+       WHERE r.code = 'admin_akademik' AND u.is_active
+       ORDER BY u.id LIMIT 1`,
+    );
+    adminUserId = Number(seedAdminRes.rows[0].id);
+    adminToken = await login(seedAdminRes.rows[0].email, 'Admin123!');
+  }, 30000);
+
+  afterAll(async () => {
+    // Cleanup test substitutes
+    if (createdSubstituteIds.length > 0) {
+      await pgPool.query(`DELETE FROM substitute_teaching WHERE id = ANY($1)`, [createdSubstituteIds]);
+    }
+    await pgPool.end();
+  }, 30000);
+
+  it('POST /substitute — dosen ajukan substitute untuk kelas sendiri → 201', async () => {
+    // Use a different schedule to avoid conflicts
+    const otherScheduleRes = await pgPool.query(
+      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1`,
+      [dosenUserId, scheduleId],
+    );
+    const testScheduleId = otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [testScheduleId]);
+    const testClassId = Number(testClassRes.rows[0].class_id);
+
+    const res = await request(app)
+      .post('/api/v1/substitute')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({
+        originalLecturerId: dosenLecturerId,
+        substituteLecturerId: dosen2LecturerId,
+        classId: testClassId,
+        scheduleId: testScheduleId,
+        reason: 'Sakit mendadak',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(Number(res.body.data.original_lecturer_id)).toBe(dosenLecturerId);
+    expect(Number(res.body.data.substitute_lecturer_id)).toBe(dosen2LecturerId);
+    expect(Number(res.body.data.class_id)).toBe(testClassId);
+    expect(Number(res.body.data.schedule_id)).toBe(testScheduleId);
+    expect(res.body.data.status).toBe('active');
+    expect(res.body.data.reason).toBe('Sakit mendadak');
+    expect(res.body.data.requested_by).toBe(String(dosenUserId));
+    expect(res.body.data.approved_by).toBe(String(dosenUserId)); // langsung aktif
+    expect(res.body.data.approved_at).toBeDefined();
+
+    createdSubstituteIds.push(Number(res.body.data.id));
+  });
+
+  it('POST /substitute — admin ajukan substitute untuk kelas dosen lain → 201', async () => {
+    // Use a different schedule (second one)
+    const otherScheduleRes = await pgPool.query(
+      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1 OFFSET 1`,
+      [dosenUserId, scheduleId],
+    );
+    const testScheduleId = otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [testScheduleId]);
+    const testClassId = Number(testClassRes.rows[0].class_id);
+
+    const res = await request(app)
+      .post('/api/v1/substitute')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        originalLecturerId: dosenLecturerId,
+        substituteLecturerId: dosen2LecturerId,
+        classId: testClassId,
+        scheduleId: testScheduleId,
+        reason: 'Izin penelitian',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.requested_by).toBe(String(adminUserId));
+    expect(res.body.data.approved_by).toBe(String(adminUserId));
+
+    createdSubstituteIds.push(Number(res.body.data.id));
+  });
+
+  it('POST /substitute — original == substitute → 400', async () => {
+    const res = await request(app)
+      .post('/api/v1/substitute')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({
+        originalLecturerId: dosenLecturerId,
+        substituteLecturerId: dosenLecturerId,
+        classId,
+        scheduleId,
+        reason: 'Test',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toContain('Dosen pengganti tidak boleh sama');
+  });
+
+  it('POST /substitute — dosen bukan pengajar kelas → 400', async () => {
+    // Cari dosen lain yang BUKAN pengajar classId
+    const otherDosenRes = await pgPool.query(
+      `SELECT l.id FROM lecturers l
+       JOIN classes c ON c.lecturer_id = l.user_id
+       WHERE l.id != $1 AND c.id = $2
+       LIMIT 1`,
+      [dosenLecturerId, classId],
+    );
+
+    if (otherDosenRes.rows.length > 0) {
+      const otherLecturerId = Number(otherDosenRes.rows[0].id);
+      const res = await request(app)
+        .post('/api/v1/substitute')
+        .set('Authorization', `Bearer ${dosenToken}`)
+        .send({
+          originalLecturerId: otherLecturerId,
+          substituteLecturerId: dosen2LecturerId,
+          classId,
+          scheduleId,
+          reason: 'Test',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Dosen yang diganti bukan pengajar kelas ini');
+    }
+  });
+
+  it('POST /substitute — schedule bukan milik kelas → 400', async () => {
+    // Cari schedule lain
+    const otherScheduleRes = await pgPool.query(
+      `SELECT s.id FROM schedules s WHERE s.class_id != $1 LIMIT 1`,
+      [classId],
+    );
+    if (otherScheduleRes.rows.length > 0) {
+      const otherScheduleId = Number(otherScheduleRes.rows[0].id);
+      const res = await request(app)
+        .post('/api/v1/substitute')
+        .set('Authorization', `Bearer ${dosenToken}`)
+        .send({
+          originalLecturerId: dosenLecturerId,
+          substituteLecturerId: dosen2LecturerId,
+          classId,
+          scheduleId: otherScheduleId,
+          reason: 'Test',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Jadwal tidak ditemukan untuk kelas ini');
+    }
+  });
+
+  it('POST /substitute — duplicate active substitute untuk schedule sama → 409', async () => {
+    // Use a third schedule
+    const otherScheduleRes = await pgPool.query(
+      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1 OFFSET 2`,
+      [dosenUserId, scheduleId],
+    );
+    const testScheduleId = otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [testScheduleId]);
+    const testClassId = Number(testClassRes.rows[0].class_id);
+
+    // First create
+    const res1 = await request(app)
+      .post('/api/v1/substitute')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({
+        originalLecturerId: dosenLecturerId,
+        substituteLecturerId: dosen2LecturerId,
+        classId: testClassId,
+        scheduleId: testScheduleId,
+        reason: 'First',
+      });
+    if (res1.status === 201) {
+      createdSubstituteIds.push(Number(res1.body.data.id));
+    }
+
+    // Second create (duplicate)
+    const res = await request(app)
+      .post('/api/v1/substitute')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({
+        originalLecturerId: dosenLecturerId,
+        substituteLecturerId: dosen2LecturerId,
+        classId: testClassId,
+        scheduleId: testScheduleId,
+        reason: 'Duplicate',
+      });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain('Sudah ada substitute aktif');
+  });
+
+  it('GET /substitute — dosen lihat substitute sendiri (original & substitute) → 200', async () => {
+    const res = await request(app)
+      .get('/api/v1/substitute')
+      .set('Authorization', `Bearer ${dosenToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+    expect(res.body.data.items.length).toBeGreaterThanOrEqual(1);
+    // Semua item harus melibatkan dosen ini (sebagai original atau substitute)
+    for (const item of res.body.data.items) {
+      const isInvolved = Number(item.original_lecturer_id) === dosenLecturerId || Number(item.substitute_lecturer_id) === dosenLecturerId;
+      expect(isInvolved).toBe(true);
+    }
+    expect(res.body.data.pagination).toBeDefined();
+  });
+
+  it('GET /substitute — admin lihat semua substitute → 200', async () => {
+    const res = await request(app)
+      .get('/api/v1/substitute')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+  });
+
+  it('GET /substitute?status=active — filter by status → 200', async () => {
+    const res = await request(app)
+      .get('/api/v1/substitute?status=active')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    for (const item of res.body.data.items) {
+      expect(item.status).toBe('active');
+    }
+  });
+
+  it('GET /substitute/:id — dosen lihat detail substitute miliknya → 200', async () => {
+    const substituteId = createdSubstituteIds[0];
+    const res = await request(app)
+      .get(`/api/v1/substitute/${substituteId}`)
+      .set('Authorization', `Bearer ${dosenToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Number(res.body.data.id)).toBe(substituteId);
+    expect(res.body.data.original_lecturer_name).toBeDefined();
+    expect(res.body.data.substitute_lecturer_name).toBeDefined();
+    expect(res.body.data.course_code).toBeDefined();
+  });
+
+  it('GET /substitute/:id — id invalid → 400', async () => {
+    const res = await request(app)
+      .get('/api/v1/substitute/abc')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Invalid substitute ID');
+  });
+
+  it('GET /substitute/:id — tidak ada → 404', async () => {
+    const res = await request(app)
+      .get('/api/v1/substitute/999999999')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain('Substitute teaching tidak ditemukan');
+  });
+
+  it('GET /substitute/:id — dosen lihat substitute bukan miliknya → 404', async () => {
+    // Buat substitute milik dosen2 (dosen1 bukan original/substitute)
+    // Use a different schedule to avoid conflict
+    const otherScheduleRes = await pgPool.query(
+      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 LIMIT 1`,
+      [dosen2LecturerId],
+    );
+    if (otherScheduleRes.rows.length > 0) {
+      const otherScheduleId = Number(otherScheduleRes.rows[0].id);
+      const otherClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [otherScheduleId]);
+      const otherClassId = Number(otherClassRes.rows[0].class_id);
+
+      const createRes = await request(app)
+        .post('/api/v1/substitute')
+        .set('Authorization', `Bearer ${dosen2Token}`)
+        .send({
+          originalLecturerId: dosen2LecturerId,
+          substituteLecturerId: dosenLecturerId,
+          classId: otherClassId,
+          scheduleId: otherScheduleId,
+          reason: 'Test other dosen',
+        });
+
+      if (createRes.status === 201) {
+        const otherSubstituteId = Number(createRes.body.data.id);
+        createdSubstituteIds.push(otherSubstituteId);
+
+        // Dosen1 coba lihat
+        const res = await request(app)
+          .get(`/api/v1/substitute/${otherSubstituteId}`)
+          .set('Authorization', `Bearer ${dosenToken}`);
+
+        expect(res.status).toBe(404);
+        expect(res.body.error).toContain('Substitute teaching tidak ditemukan');
+      }
+    }
+  });
+
+  it('PUT /substitute/:id/cancel — original lecturer cancel → 200', async () => {
+    // Create a substitute for this test (admin creates, original = dosen1)
+    const otherScheduleRes = await pgPool.query(
+      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 LIMIT 1`,
+      [dosenUserId],
+    );
+    const testScheduleId = otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [testScheduleId]);
+    const testClassId = Number(testClassRes.rows[0].class_id);
+
+    const createRes = await request(app)
+      .post('/api/v1/substitute')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        originalLecturerId: dosenLecturerId,
+        substituteLecturerId: dosen2LecturerId,
+        classId: testClassId,
+        scheduleId: testScheduleId,
+        reason: 'Test cancel',
+      });
+
+    expect(createRes.status).toBe(201);
+    const substituteId = Number(createRes.body.data.id);
+    createdSubstituteIds.push(substituteId);
+
+    // Now cancel as original lecturer
+    const res = await request(app)
+      .put(`/api/v1/substitute/${substituteId}/cancel`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ reason: 'Sudah sembuh' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.status).toBe('cancelled');
+    expect(res.body.data.reason).toBe('Sudah sembuh');
+  });
+
+  it('PUT /substitute/:id/cancel — id invalid → 400', async () => {
+    const res = await request(app)
+      .put('/api/v1/substitute/abc/cancel')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ reason: 'Test' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Invalid substitute ID');
+  });
+
+  it('PUT /substitute/:id/cancel — tidak ada → 404', async () => {
+    const res = await request(app)
+      .put('/api/v1/substitute/999999999/cancel')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ reason: 'Test' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain('Substitute teaching tidak ditemukan');
+  });
+
+  it('PUT /substitute/:id/cancel — substitute lecturer (bukan original) coba cancel → 404', async () => {
+    // Substitute lecturer coba cancel milik dosen1
+    const substituteId = createdSubstituteIds[0]; // original = dosen1, substitute = dosen2
+    const res = await request(app)
+      .put(`/api/v1/substitute/${substituteId}/cancel`)
+      .set('Authorization', `Bearer ${dosen2Token}`)
+      .send({ reason: 'Test' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain('tidak berhak membatalkan');
+  });
+
+  it('PUT /substitute/:id/cancel — sudah cancelled → 400', async () => {
+    // Create a substitute and cancel it first, then try to cancel again
+    const otherScheduleRes = await pgPool.query(
+      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 LIMIT 1 OFFSET 2`,
+      [dosenUserId],
+    );
+    const testScheduleId = otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [testScheduleId]);
+    const testClassId = Number(testClassRes.rows[0].class_id);
+
+    const createRes = await request(app)
+      .post('/api/v1/substitute')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        originalLecturerId: dosenLecturerId,
+        substituteLecturerId: dosen2LecturerId,
+        classId: testClassId,
+        scheduleId: testScheduleId,
+        reason: 'Test double cancel',
+      });
+
+    expect(createRes.status).toBe(201);
+    const substituteId = Number(createRes.body.data.id);
+    createdSubstituteIds.push(substituteId);
+
+    // Cancel first time
+    await request(app)
+      .put(`/api/v1/substitute/${substituteId}/cancel`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ reason: 'Pertama' });
+
+    // Cancel second time - should fail with 400
+    const res = await request(app)
+      .put(`/api/v1/substitute/${substituteId}/cancel`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ reason: 'Lagi' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Substitute sudah dibatalkan');
+  });
+});
