@@ -7,8 +7,6 @@ process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-min-32-chars-long-for-hs25
 process.env.BCRYPT_ROUNDS = '4';
 
 import request from 'supertest';
-import bcrypt from 'bcrypt';
-import type { Express } from 'express';
 import { createApp } from '../../app';
 import { pgPool } from '../../lib/pg';
 
@@ -24,7 +22,7 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   let adminUserId: number;
   let classId: number;
   let scheduleId: number;
-  let createdSubstituteIds: number[] = [];
+  const createdSubstituteIds: number[] = [];
 
   async function login(email: string, password: string): Promise<string> {
     const res = await request(app).post('/api/v1/auth/login').send({ email, password });
@@ -78,10 +76,9 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     classId = Number(classRes.rows[0].id);
 
     // Get a schedule for this class
-    const scheduleRes = await pgPool.query(
-      `SELECT id FROM schedules WHERE class_id = $1 LIMIT 1`,
-      [classId],
-    );
+    const scheduleRes = await pgPool.query(`SELECT id FROM schedules WHERE class_id = $1 LIMIT 1`, [
+      classId,
+    ]);
     if (scheduleRes.rows.length === 0) {
       throw new Error('No schedule found for class');
     }
@@ -101,7 +98,9 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   afterAll(async () => {
     // Cleanup test substitutes
     if (createdSubstituteIds.length > 0) {
-      await pgPool.query(`DELETE FROM substitute_teaching WHERE id = ANY($1)`, [createdSubstituteIds]);
+      await pgPool.query(`DELETE FROM substitute_teaching WHERE id = ANY($1)`, [
+        createdSubstituteIds,
+      ]);
     }
     await pgPool.end();
   }, 30000);
@@ -112,8 +111,11 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
       `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1`,
       [dosenUserId, scheduleId],
     );
-    const testScheduleId = otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
-    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [testScheduleId]);
+    const testScheduleId =
+      otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [
+      testScheduleId,
+    ]);
     const testClassId = Number(testClassRes.rows[0].class_id);
 
     const res = await request(app)
@@ -148,8 +150,11 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
       `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1 OFFSET 1`,
       [dosenUserId, scheduleId],
     );
-    const testScheduleId = otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
-    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [testScheduleId]);
+    const testScheduleId =
+      otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [
+      testScheduleId,
+    ]);
     const testClassId = Number(testClassRes.rows[0].class_id);
 
     const res = await request(app)
@@ -240,14 +245,45 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     }
   });
 
+  it('POST /substitute — substitute lecturer tidak aktif → 400', async () => {
+    // Create an inactive lecturer
+    const inactiveRes = await pgPool.query(
+      `INSERT INTO lecturers (user_id, nidn, prodi_id, is_active)
+       VALUES ((SELECT id FROM users WHERE role_id = (SELECT id FROM roles WHERE code = 'dosen') AND id NOT IN (SELECT user_id FROM lecturers) LIMIT 1), 'INACTIVE_TEST', 1, false)
+       RETURNING id`,
+    );
+    if (inactiveRes.rows.length > 0) {
+      const inactiveLecturerId = Number(inactiveRes.rows[0].id);
+      const res = await request(app)
+        .post('/api/v1/substitute')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          originalLecturerId: dosenLecturerId,
+          substituteLecturerId: inactiveLecturerId,
+          classId,
+          scheduleId,
+          reason: 'Test inactive',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Dosen pengganti tidak aktif atau tidak ditemukan');
+
+      // Cleanup
+      await pgPool.query(`DELETE FROM lecturers WHERE id = $1`, [inactiveLecturerId]);
+    }
+  });
+
   it('POST /substitute — duplicate active substitute untuk schedule sama → 409', async () => {
-    // Use a third schedule
+    // Use a different schedule
     const otherScheduleRes = await pgPool.query(
-      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1 OFFSET 2`,
+      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1`,
       [dosenUserId, scheduleId],
     );
-    const testScheduleId = otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
-    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [testScheduleId]);
+    const testScheduleId =
+      otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [
+      testScheduleId,
+    ]);
     const testClassId = Number(testClassRes.rows[0].class_id);
 
     // First create
@@ -282,6 +318,7 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   });
 
   it('GET /substitute — dosen lihat substitute sendiri (original & substitute) → 200', async () => {
+    // List substitutes - the first test should have created one (scheduleId = 37)
     const res = await request(app)
       .get('/api/v1/substitute')
       .set('Authorization', `Bearer ${dosenToken}`);
@@ -292,7 +329,9 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     expect(res.body.data.items.length).toBeGreaterThanOrEqual(1);
     // Semua item harus melibatkan dosen ini (sebagai original atau substitute)
     for (const item of res.body.data.items) {
-      const isInvolved = Number(item.original_lecturer_id) === dosenLecturerId || Number(item.substitute_lecturer_id) === dosenLecturerId;
+      const isInvolved =
+        Number(item.original_lecturer_id) === dosenLecturerId ||
+        Number(item.substitute_lecturer_id) === dosenLecturerId;
       expect(isInvolved).toBe(true);
     }
     expect(res.body.data.pagination).toBeDefined();
@@ -343,6 +382,31 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     expect(res.body.error).toContain('Invalid substitute ID');
   });
 
+  it('GET /substitute/:id — dosen tanpa lecturerId → 403', async () => {
+    // Find user with dosen role but no lecturer profile
+    const noLecturerUserRes = await pgPool.query(
+      `SELECT u.id, u.email FROM users u
+       JOIN roles r ON r.id = u.role_id
+       LEFT JOIN lecturers l ON l.user_id = u.id
+       WHERE r.code = 'dosen' AND u.is_active AND l.id IS NULL
+       LIMIT 1`,
+    );
+    if (noLecturerUserRes.rows.length > 0) {
+      const loginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: noLecturerUserRes.rows[0].email, password: 'Dosen123!' });
+      if (loginRes.body.data?.accessToken) {
+        const noLecturerToken = loginRes.body.data.accessToken;
+        const substituteId = createdSubstituteIds[0];
+        const res = await request(app)
+          .get(`/api/v1/substitute/${substituteId}`)
+          .set('Authorization', `Bearer ${noLecturerToken}`);
+        expect(res.status).toBe(403);
+        expect(res.body.error).toContain('Akun bukan dosen aktif');
+      }
+    }
+  });
+
   it('GET /substitute/:id — tidak ada → 404', async () => {
     const res = await request(app)
       .get('/api/v1/substitute/999999999')
@@ -354,14 +418,16 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
 
   it('GET /substitute/:id — dosen lihat substitute bukan miliknya → 404', async () => {
     // Buat substitute milik dosen2 (dosen1 bukan original/substitute)
-    // Use a different schedule to avoid conflict
+    // Use a different schedule from dosen2's classes (or create one)
     const otherScheduleRes = await pgPool.query(
       `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 LIMIT 1`,
       [dosen2LecturerId],
     );
     if (otherScheduleRes.rows.length > 0) {
       const otherScheduleId = Number(otherScheduleRes.rows[0].id);
-      const otherClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [otherScheduleId]);
+      const otherClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [
+        otherScheduleId,
+      ]);
       const otherClassId = Number(otherClassRes.rows[0].class_id);
 
       const createRes = await request(app)
@@ -391,30 +457,8 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   });
 
   it('PUT /substitute/:id/cancel — original lecturer cancel → 200', async () => {
-    // Create a substitute for this test (admin creates, original = dosen1)
-    const otherScheduleRes = await pgPool.query(
-      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 LIMIT 1`,
-      [dosenUserId],
-    );
-    const testScheduleId = otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
-    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [testScheduleId]);
-    const testClassId = Number(testClassRes.rows[0].class_id);
-
-    const createRes = await request(app)
-      .post('/api/v1/substitute')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        originalLecturerId: dosenLecturerId,
-        substituteLecturerId: dosen2LecturerId,
-        classId: testClassId,
-        scheduleId: testScheduleId,
-        reason: 'Test cancel',
-      });
-
-    expect(createRes.status).toBe(201);
-    const substituteId = Number(createRes.body.data.id);
-    createdSubstituteIds.push(substituteId);
-
+    // Use the first test's substitute (schedule 37, createdSubstituteIds[0])
+    const substituteId = createdSubstituteIds[0];
     // Now cancel as original lecturer
     const res = await request(app)
       .put(`/api/v1/substitute/${substituteId}/cancel`)
@@ -425,6 +469,32 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.data.status).toBe('cancelled');
     expect(res.body.data.reason).toBe('Sudah sembuh');
+  });
+
+  it('PUT /substitute/:id/cancel — dosen tanpa lecturerId → 403', async () => {
+    // Find user with dosen role but no lecturer profile
+    const noLecturerUserRes = await pgPool.query(
+      `SELECT u.id, u.email FROM users u
+       JOIN roles r ON r.id = u.role_id
+       LEFT JOIN lecturers l ON l.user_id = u.id
+       WHERE r.code = 'dosen' AND u.is_active AND l.id IS NULL
+       LIMIT 1`,
+    );
+    if (noLecturerUserRes.rows.length > 0) {
+      const loginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: noLecturerUserRes.rows[0].email, password: 'Dosen123!' });
+      if (loginRes.body.data?.accessToken) {
+        const noLecturerToken = loginRes.body.data.accessToken;
+        const substituteId = createdSubstituteIds[0];
+        const res = await request(app)
+          .put(`/api/v1/substitute/${substituteId}/cancel`)
+          .set('Authorization', `Bearer ${noLecturerToken}`)
+          .send({ reason: 'Test' });
+        expect(res.status).toBe(403);
+        expect(res.body.error).toContain('Akun bukan dosen aktif');
+      }
+    }
   });
 
   it('PUT /substitute/:id/cancel — id invalid → 400', async () => {
@@ -460,13 +530,16 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   });
 
   it('PUT /substitute/:id/cancel — sudah cancelled → 400', async () => {
-    // Create a substitute and cancel it first, then try to cancel again
+    // Create a substitute and cancel it first, then try to cancel again — use schedule 52 (different from first test's 37)
     const otherScheduleRes = await pgPool.query(
-      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 LIMIT 1 OFFSET 2`,
-      [dosenUserId],
+      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1`,
+      [dosenUserId, scheduleId],
     );
-    const testScheduleId = otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
-    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [testScheduleId]);
+    const testScheduleId =
+      otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [
+      testScheduleId,
+    ]);
     const testClassId = Number(testClassRes.rows[0].class_id);
 
     const createRes = await request(app)
