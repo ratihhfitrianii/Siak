@@ -1228,3 +1228,31 @@ Catatan implementasi:
 - File `schedule/*` T3.2 sekarang diformat (sebelumnya dibiarkan merah tapi justru memblokir CI)
 - Bug finance latent terungkap oleh test baru (tanpa test error-path, `throw err` tak terdeteksi)
 - Semua test **self-sufficient** (buat & hapus data sendiri) — tidak bergantung urutan suite / DB kotor
+---
+
+## 38. T3.5 — Substitute Teaching (F-25) (2026-08-06)
+
+**Status**: ✅ SELESAI (menunggu commit manual — F-31)
+**Tanggal**: 2026-08-06
+**PRD Ref**: F-25
+
+### Backend Module (`backend/src/modules/substitute/index.ts`)
+
+- `POST /api/v1/substitute` — Dosen/Admin ajukan substitute teaching (langsung aktif tanpa approval). Validasi: original lecturer = pengajar kelas; substitute lecturer aktif & beda dari original; schedule milik kelas; tidak ada duplicate active untuk schedule sama.
+- `GET /api/v1/substitute` — List (dosen: kelas sendiri sebagai original/substitute; admin: semua). Query: `?page=`, `?limit=`, `?status=active|cancelled`.
+- `GET /api/v1/substitute/:id` — Detail dengan joins lengkap (nama dosen, matkul, jadwal, kelas, requester, approver).
+- `PUT /api/v1/substitute/:id/cancel` — Hanya original lecturer (atau admin) yang boleh cancel; status → `cancelled`, reason diperbarui.
+- Notifikasi real-time ke mahasiswa kelas terkait via tabel `notifications` saat create & cancel.
+
+RBAC: `substitute.manage` di policy.ts (baris 37, 77, 92, 124) untuk `admin_akademik`/`admin_sistem`/`dosen`. Dosen base role punya permission (tanpa tambahan) karena mengajar kelas — akses own classes sebagai original/substitute.
+
+### Test
+
+- `backend/src/modules/substitute/substitute.test.ts` — **21 test**: happy path (dosen & admin create, list, detail, cancel), validasi (original==substitute 400, substitute tidak aktif 400, schedule bukan kelas 400, duplicate 409, dosen bukan pengajar 400), filter status, dosen tanpa lecturerId → 403, id invalid 400, tidak ada 404, akses substitute orang lain 404, cancel sudah cancelled 404, substitute lecturer coba cancel 404.
+- Coverage modul: **stmts 86.71% / branch 50.9% / funcs 100% / lines 86.5%** (modul coverage partial; **global branch coverage 80.12%** ≥ threshold).
+
+### Test & Verifikasi
+
+- Backend: **substitute 21/21 PASS**; **full backend 23/23 suites, 578/578 PASS**
+- Typecheck / lint / build / format:check HIJAU
+- Frontend CI gates: lint / typecheck / build / format:check HIJAU (bundle 90.42 kB gzip — NF-02 <200 kB)
