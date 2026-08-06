@@ -20,6 +20,9 @@ describe('T3.2 Schedule — Jadwal Kelas + Ketersediaan', () => {
   let dosenLecturerId: number;
   let classId: number;
   let semesterId: number;
+  let mhsToken: string;
+  let ghostDosenUserId: number;
+  let ghostDosenToken: string;
 
   async function login(email: string, password: string): Promise<string> {
     const res = await request(app).post('/api/v1/auth/login').send({ email, password });
@@ -44,6 +47,26 @@ describe('T3.2 Schedule — Jadwal Kelas + Ketersediaan', () => {
     adminUserId = (await pgPool.query(`SELECT id FROM users WHERE email = $1`, [adminEmail]))
       .rows[0].id;
     adminToken = await login(adminEmail, 'Admin123!');
+
+    // Mahasiswa (untuk deny 403 — tidak punya schedule.manage / lecturer.availability)
+    const mhsRes = await pgPool.query(
+      `SELECT u.email FROM students s JOIN users u ON u.id = s.user_id
+       WHERE s.is_active AND u.is_active LIMIT 1`,
+    );
+    mhsToken = await login(mhsRes.rows[0].email, 'Mhs123!');
+
+    // Ghost dosen (user role dosen TANPA row lecturers) — untuk availability 404
+    const ghostDosenEmail = `t32-ghost-dosen-${Date.now()}@siak.local`;
+    await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+       SELECT $1, $2, 'T3.2 Ghost Dosen', r.id, true
+       FROM roles r WHERE r.code = 'dosen'`,
+      [ghostDosenEmail, adminPasswordHash],
+    );
+    ghostDosenUserId = Number(
+      (await pgPool.query(`SELECT id FROM users WHERE email = $1`, [ghostDosenEmail])).rows[0].id,
+    );
+    ghostDosenToken = await login(ghostDosenEmail, 'Admin123!');
 
     // Use existing seed dosen
     const seedDosenRes = await pgPool.query(
@@ -106,6 +129,7 @@ describe('T3.2 Schedule — Jadwal Kelas + Ketersediaan', () => {
     await pgPool.query(`DELETE FROM schedules WHERE class_id = $1`, [classId]);
     await pgPool.query(`DELETE FROM classes WHERE id = $1`, [classId]);
     await pgPool.query(`DELETE FROM users WHERE id = $1`, [adminUserId]);
+    if (ghostDosenUserId) await pgPool.query(`DELETE FROM users WHERE id = $1`, [ghostDosenUserId]);
     // Don't delete dosenUserId - it's a seed user
     await pgPool.end();
   }, 30000);
@@ -253,5 +277,151 @@ describe('T3.2 Schedule — Jadwal Kelas + Ketersediaan', () => {
 
     // Cleanup
     await pgPool.query(`DELETE FROM schedules WHERE id = $1`, [scheduleId]);
+  });
+
+  // ============================================================
+  // Branch-coverage: error paths & RBAC
+  // ============================================================
+
+  it('GET /schedule/availability — tanpa date → 400', async () => {
+    const res = await request(app)
+      .get('/api/v1/schedule/availability')
+      .set('Authorization', `Bearer ${dosenToken}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toContain('date required');
+  });
+
+  it('GET /schedule/availability — dosen tanpa profil lecturer → 404', async () => {
+    const res = await request(app)
+      .get('/api/v1/schedule/availability?date=2025-03-01')
+      .set('Authorization', `Bearer ${ghostDosenToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toContain('Lecturer profile not found');
+  });
+
+  it('GET /schedule/availability — mahasiswa → 403', async () => {
+    const res = await request(app)
+      .get('/api/v1/schedule/availability?date=2025-03-01')
+      .set('Authorization', `Bearer ${mhsToken}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  it('GET /schedule/class/:classId — id invalid → 400', async () => {
+    const res = await request(app)
+      .get('/api/v1/schedule/class/abc')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Invalid class ID');
+  });
+
+  it('GET /schedule/class/:classId — kelas tidak ada → 404', async () => {
+    const res = await request(app)
+      .get('/api/v1/schedule/class/999999999')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain('Class not found');
+  });
+
+  it('GET /schedule/class/:classId — mahasiswa → 403', async () => {
+    const res = await request(app)
+      .get(`/api/v1/schedule/class/${classId}`)
+      .set('Authorization', `Bearer ${mhsToken}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  it('POST /schedule — kelas tidak ada → 404', async () => {
+    const res = await request(app)
+      .post('/api/v1/schedule')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ classId: 999999999, meetingNumber: 1, scheduledDate: '2025-03-01' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain('Class not found');
+  });
+
+  it('POST /schedule — tanpa topic (opsional) → 201 topic null', async () => {
+    const res = await request(app)
+      .post('/api/v1/schedule')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ classId, meetingNumber: 5, scheduledDate: '2025-03-05' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.topic).toBeNull();
+
+    await pgPool.query(`DELETE FROM schedules WHERE id = $1`, [Number(res.body.data.id)]);
+  });
+
+  it('POST /schedule — dosen → 403', async () => {
+    const res = await request(app)
+      .post('/api/v1/schedule')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ classId, meetingNumber: 6, scheduledDate: '2025-03-06' });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('PUT /schedule/:id — id invalid → 400', async () => {
+    const res = await request(app)
+      .put('/api/v1/schedule/abc')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ topic: 'X' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Invalid schedule ID');
+  });
+
+  it('PUT /schedule/:id — tidak ada → 404', async () => {
+    const res = await request(app)
+      .put('/api/v1/schedule/999999999')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ topic: 'X' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain('Schedule not found');
+  });
+
+  it('PUT /schedule/:id — meeting number duplikat → 409', async () => {
+    // Buat jadwal lain dulu, lalu PUT ke meeting_number=1 (sudah dipakai)
+    const createRes = await request(app)
+      .post('/api/v1/schedule')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ classId, meetingNumber: 7, scheduledDate: '2025-03-07' });
+    const otherId = Number(createRes.body.data.id);
+
+    const res = await request(app)
+      .put(`/api/v1/schedule/${otherId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ meetingNumber: 1 });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain('Meeting number already exists');
+
+    await pgPool.query(`DELETE FROM schedules WHERE id = $1`, [otherId]);
+  });
+
+  it('DELETE /schedule/:id — id invalid → 400', async () => {
+    const res = await request(app)
+      .delete('/api/v1/schedule/abc')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Invalid schedule ID');
+  });
+
+  it('DELETE /schedule/:id — tidak ada → 404', async () => {
+    const res = await request(app)
+      .delete('/api/v1/schedule/999999999')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain('Schedule not found');
   });
 });

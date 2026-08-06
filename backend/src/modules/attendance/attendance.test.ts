@@ -20,6 +20,7 @@ describe('T3.3 Absensi — Attendance Sessions & Records', () => {
   let mahasiswaStudentId: number;
   let scheduleId: number;
   let sessionId: number;
+  let createdSubmissionId: number;
 
   // Branch-coverage helpers: second dosen + not-enrolled mahasiswa + ghost users
   let otherDosenToken: string;
@@ -102,21 +103,37 @@ describe('T3.3 Absensi — Attendance Sessions & Records', () => {
     if (adminRes.rows.length === 0) throw new Error('No admin akademik');
     adminToken = await login(adminRes.rows[0].email, 'Admin123!');
 
-    // Get a mahasiswa enrolled in the dosen's class
+    // Get a mahasiswa for this class — self-sufficient enrollment (CI DB fresh, seed
+    // tidak menyediakan krs_submissions; jangan bergantung data leftover dari suite lain)
     const mhsRes = await pgPool.query(
       `SELECT s.id as student_id, u.email
        FROM students s
        JOIN users u ON u.id = s.user_id
-       JOIN krs_items ki ON ki.class_id = $1
-       JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
-       WHERE ks.student_id = s.id AND ks.status IN ('submitted', 'approved')
-         AND u.is_active
+       WHERE s.is_active AND u.is_active
+         AND NOT EXISTS (
+           SELECT 1 FROM krs_submissions ks
+           WHERE ks.student_id = s.id AND ks.status IN ('submitted', 'approved')
+         )
        LIMIT 1`,
-      [classId],
     );
-    if (mhsRes.rows.length === 0) throw new Error('No enrolled mahasiswa for this class');
+    if (mhsRes.rows.length === 0) throw new Error('No eligible mahasiswa (tanpa submission aktif)');
     mahasiswaStudentId = Number(mhsRes.rows[0].student_id);
     mahasiswaToken = await login(mhsRes.rows[0].email, 'Mhs123!');
+
+    // Buat enrollment approved sendiri (krs_period aktif dari seed)
+    const periodRes = await pgPool.query(`SELECT id FROM krs_periods WHERE is_active LIMIT 1`);
+    if (periodRes.rows.length === 0) throw new Error('No active krs_period');
+    const periodId = Number(periodRes.rows[0].id);
+    const subRes = await pgPool.query(
+      `INSERT INTO krs_submissions (student_id, krs_period_id, status, submitted_at, approved_at, is_locked)
+       VALUES ($1, $2, 'approved', now(), now(), true) RETURNING id`,
+      [mahasiswaStudentId, periodId],
+    );
+    createdSubmissionId = Number(subRes.rows[0].id);
+    await pgPool.query(
+      `INSERT INTO krs_items (krs_submission_id, class_id, is_confirmed) VALUES ($1, $2, true)`,
+      [createdSubmissionId, classId],
+    );
 
     // --- Branch-coverage helpers ---
 
@@ -201,6 +218,13 @@ describe('T3.3 Absensi — Attendance Sessions & Records', () => {
       await pgPool.query(`DELETE FROM attendance_sessions WHERE schedule_id = $1`, [scheduleId]);
     }
     await pgPool.query(`DELETE FROM schedules WHERE meeting_number = 999`);
+    // Clean up enrollment buatan sendiri (krs_items cascade; submission dihapus eksplisit)
+    if (createdSubmissionId) {
+      await pgPool.query(`DELETE FROM krs_items WHERE krs_submission_id = $1`, [
+        createdSubmissionId,
+      ]);
+      await pgPool.query(`DELETE FROM krs_submissions WHERE id = $1`, [createdSubmissionId]);
+    }
     // Clean up branch-coverage helpers
     if (otherScheduleId) {
       await pgPool.query(

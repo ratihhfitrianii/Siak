@@ -20,6 +20,10 @@ describe('T3.1 Dosen Pilih MK', () => {
   let semesterId: number;
   let curriculumId: number;
   let prodiId: number;
+  let ghostDosenUserId: number;
+  let ghostDosenToken: string;
+  let otherProdiCurriculumId: number | null = null;
+  let otherProdiCurriculumCreated = false;
 
   async function login(email: string, password: string): Promise<string> {
     const res = await request(app).post('/api/v1/auth/login').send({ email, password });
@@ -87,6 +91,53 @@ describe('T3.1 Dosen Pilih MK', () => {
     );
     adminUserId = Number(seedAdminRes.rows[0].id);
     adminToken = await login(seedAdminRes.rows[0].email, 'Admin123!');
+
+    // Ghost dosen (user role dosen TANPA row lecturers) — untuk 404 lecturer profile
+    const ghostDosenEmail = `t31-ghost-dosen-${Date.now()}@siak.local`;
+    const adminHash = '$2b$12$8HU58T/7ACy5X9z2WhzQveyfvkvbEEhJOlB8Mz.xpyvTdUMMsVKCa';
+    await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+       SELECT $1, $2, 'T3.1 Ghost Dosen', r.id, true
+       FROM roles r WHERE r.code = 'dosen'`,
+      [ghostDosenEmail, adminHash],
+    );
+    ghostDosenUserId = Number(
+      (await pgPool.query(`SELECT id FROM users WHERE email = $1`, [ghostDosenEmail])).rows[0].id,
+    );
+    ghostDosenToken = await login(ghostDosenEmail, 'Admin123!');
+
+    // Curriculum di prodi LAIN — untuk test select bukan prodi → 400
+    const otherCurRes = await pgPool.query(
+      `SELECT cur.id FROM curricula cur WHERE cur.prodi_id != $1 LIMIT 1`,
+      [prodiId],
+    );
+    if (otherCurRes.rows.length > 0) {
+      otherProdiCurriculumId = Number(otherCurRes.rows[0].id);
+    } else {
+      const courseRes = await pgPool.query(
+        `INSERT INTO courses (code, name, credits) VALUES ($1, $2, 3) RETURNING id`,
+        [`T31X${Date.now()}`, 'T3.1 Cross Prodi'],
+      );
+      const otherProdi = await pgPool.query(`SELECT id FROM prodis WHERE id != $1 LIMIT 1`, [
+        prodiId,
+      ]);
+      if (otherProdi.rows.length > 0) {
+        const curResX = await pgPool.query(
+          `INSERT INTO curricula (prodi_id, semester_id, course_id, is_mandatory, semester_number)
+           VALUES ($1, $2, $3, true, 1) RETURNING id`,
+          [Number(otherProdi.rows[0].id), semesterId, Number(courseRes.rows[0].id)],
+        );
+        otherProdiCurriculumId = Number(curResX.rows[0].id);
+        otherProdiCurriculumCreated = true;
+      }
+    }
+  }, 30000);
+
+  afterAll(async () => {
+    if (ghostDosenUserId) await pgPool.query(`DELETE FROM users WHERE id = $1`, [ghostDosenUserId]);
+    if (otherProdiCurriculumId && otherProdiCurriculumCreated) {
+      await pgPool.query(`DELETE FROM curricula WHERE id = $1`, [otherProdiCurriculumId]);
+    }
   }, 30000);
 
   it('GET /dosen/courses/available → list MK for dosen prodi+semester', async () => {
@@ -272,5 +323,88 @@ describe('T3.1 Dosen Pilih MK', () => {
       expect(res.body.data.status).toBe('ditolak');
       expect(res.body.data.review_notes).toBe('Kuota sudah penuh');
     }
+  });
+
+  // ============================================================
+  // Branch-coverage: error paths & RBAC
+  // ============================================================
+
+  it('GET /courses/available — tanpa semesterId → 400', async () => {
+    const res = await request(app)
+      .get('/api/v1/dosen/courses/available')
+      .set('Authorization', `Bearer ${dosenToken}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('semesterId required');
+  });
+
+  it('GET /courses/available — dosen tanpa profil lecturer → 404', async () => {
+    const res = await request(app)
+      .get(`/api/v1/dosen/courses/available?semesterId=${semesterId}`)
+      .set('Authorization', `Bearer ${ghostDosenToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain('Lecturer profile not found');
+  });
+
+  it('POST /courses/select — dosen tanpa profil lecturer → 404', async () => {
+    const res = await request(app)
+      .post('/api/v1/dosen/courses/select')
+      .set('Authorization', `Bearer ${ghostDosenToken}`)
+      .send({ curriculumId, priority: 1 });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain('Lecturer profile not found');
+  });
+
+  it('POST /courses/select — curriculum bukan prodi dosen → 400', async () => {
+    if (!otherProdiCurriculumId) return; // tidak ada prodi lain di DB
+
+    const res = await request(app)
+      .post('/api/v1/dosen/courses/select')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ curriculumId: otherProdiCurriculumId, priority: 1 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Curriculum not found or not in your prodi');
+  });
+
+  it('GET /courses/my — dosen tanpa profil lecturer → 404', async () => {
+    const res = await request(app)
+      .get('/api/v1/dosen/courses/my')
+      .set('Authorization', `Bearer ${ghostDosenToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain('Lecturer profile not found');
+  });
+
+  it('GET /courses/all — admin filter semesterId + prodiId + status → 200', async () => {
+    const res = await request(app)
+      .get(`/api/v1/dosen/courses/all?semesterId=${semesterId}&prodiId=${prodiId}&status=diajukan`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+  });
+
+  it('PUT /courses/:id/review — id invalid → 400', async () => {
+    const res = await request(app)
+      .put('/api/v1/dosen/courses/abc/review')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'diterima' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Invalid selection ID');
+  });
+
+  it('PUT /courses/:id/review — tidak ada → 404', async () => {
+    const res = await request(app)
+      .put('/api/v1/dosen/courses/999999999/review')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'diterima' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain('Selection not found');
   });
 });

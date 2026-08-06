@@ -1179,3 +1179,52 @@ Catatan implementasi:
 
 - Backend: **guidance 41/41 PASS**; **full backend 21/21 suites, 491/491 PASS**
 - Typecheck / lint / build HIJAU; `format:check` hanya warn schedule/* (pre-existing T3.2, di luar scope)
+
+---
+
+## 37. T2.6 Finance Test Suite + CI Fixes + Coverage Threshold Achieved (2026-08-06)
+
+**Status**: ✅ SELESAI (menunggu commit manual — F-31)
+**Tanggal**: 2026-08-06
+**PRD Ref**: T2.6 (Finance)
+
+### Masalah CI Sebelumnya (Semua run sejak T1.15 gagal)
+1. **`format:check` gagal** — 2 file `schedule/*` T3.2 tidak lolos Prettier → memblokir semua commit selanjutnya
+2. **`attendance.test.ts` gagal di CI** — setup bergantung KRS submissions dari suite lain (lokal OK karena DB kotor, CI DB fresh)
+3. **`finance/index.ts` bug latent** — `throw err` di async handler Express 4.21 → request menggantung → timeout 5s (test `update` & `generate`)
+4. **Coverage threshold global 80% branch tidak tercapai** — modul `finance` (14.89%), `schedule` (52.77%), `dosen` (55.55%) tanpa test error-path
+
+### Perbaikan Dilakukan
+
+#### 1. Format + Schedule Tests (T3.2)
+- `prettier --write` 2 file schedule → `format:check` HIJAU
+- **+14 test error-path/RBAC** di `schedule.test.ts` (branch 52.77% → >80%)
+
+#### 2. Attendance Self-Sufficient (T3.3)
+- beforeAll buat enrollment sendiri: pilih mhs tanpa submission aktif → insert `krs_submissions` (`approved`) + `krs_items` → cleanup di afterAll
+- Lolos CI DB fresh tanpa bergantung data leftover
+
+#### 3. Finance Bug Fix + Test Suite Baru (T2.6)
+- Fix 3 tempat `throw err` → `return next(err)` di async handlers (`/update`, `/generate`)
+- **35 test baru** di `finance.test.ts`: CRUD payments, my-payment, krs-access gate, generate, error paths, ghost user, RBAC deny
+- Coverage finance: **14.89% → 93.61% branch**
+
+#### 4. Dosen Error-Path Tests (T3.1)
+- **+8 test**: tanpa semesterId, ghost dosen 404, curriculum bukan prodi 400, filter admin, invalid ID
+- Coverage dosen: **55.55% → >80% branch**
+
+### Hasil Verifikasi (Semua dijalankan langsung di terminal, bukan hanya di script)
+| Gate | Hasil |
+|---|---|
+| `npm run format:check` | ✅ All matched |
+| `npm run lint` (--max-warnings 0) | ✅ 0 error |
+| `npm run typecheck` | ✅ 0 error |
+| `npm run build` | ✅ OK |
+| `npm run test:coverage` (threshold 80% branch) | ✅ **80.02% branch** — **EXIT 0** |
+| Full backend suites | ✅ **22/22 passed, 548/548 tests** |
+| Simulasi CI (DB fresh + migrate + test:coverage) | ✅ **EXIT 0, 80.02% branch** |
+
+### Catatan
+- File `schedule/*` T3.2 sekarang diformat (sebelumnya dibiarkan merah tapi justru memblokir CI)
+- Bug finance latent terungkap oleh test baru (tanpa test error-path, `throw err` tak terdeteksi)
+- Semua test **self-sufficient** (buat & hapus data sendiri) — tidak bergantung urutan suite / DB kotor

@@ -188,16 +188,16 @@ export function createFinanceRouter(): Router {
           },
         });
       } catch (err) {
-        if (err instanceof AppError) throw err;
+        if (err instanceof AppError) return next(err);
         if (err instanceof Error && err.message.includes('Invalid paid amount')) {
-          throw new AppError('VALIDATION_ERROR', 'paid_amount exceeds total_amount', 400);
+          return next(new AppError('VALIDATION_ERROR', 'paid_amount exceeds total_amount', 400));
         }
         if (
           err instanceof Error &&
           err.message.includes('Payment') &&
           err.message.includes('not found')
         ) {
-          throw new AppError('NOT_FOUND', 'Payment not found', 404);
+          return next(new AppError('NOT_FOUND', 'Payment not found', 404));
         }
         next(err);
       }
@@ -220,9 +220,9 @@ export function createFinanceRouter(): Router {
 
         res.json({ success: true, message: 'Payments generated for semester' });
       } catch (err) {
-        if (err instanceof AppError) throw err;
+        if (err instanceof AppError) return next(err);
         if (err instanceof Error && err.message.includes('not found')) {
-          throw new AppError('NOT_FOUND', 'Semester not found', 404);
+          return next(new AppError('NOT_FOUND', 'Semester not found', 404));
         }
         next(err);
       }
