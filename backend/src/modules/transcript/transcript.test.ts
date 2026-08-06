@@ -31,6 +31,7 @@ let studentUserId: number;
 let waliToken: string;
 let waliUserId: number;
 let adminToken: string;
+let prodiRes: { rows: { id: number }[] }; // capture for error-path tests
 
 const ts = Date.now().toString().slice(-5);
 const studentEmail = `tr-std-${ts}@student.siak.local`;
@@ -51,8 +52,10 @@ async function seed() {
   );
   studentUserId = Number(studentUser.rows[0].id);
 
-  const prodiRes = await pgPool.query(`SELECT id FROM prodis ORDER BY id LIMIT 1`);
+  prodiRes = await pgPool.query(`SELECT id FROM prodis ORDER BY id LIMIT 1`);
+  if (!prodiRes.rows[0]) throw new Error('No prodi found');
   const ayRes = await pgPool.query(`SELECT id FROM academic_years ORDER BY id LIMIT 1`);
+  if (!ayRes.rows[0]) throw new Error('No academic year found');
   const studentRes = await pgPool.query(
     `INSERT INTO students (user_id, nim, prodi_id, academic_year_id, entry_type)
      VALUES ($1, $2, $3, $4, 'reguler')
@@ -242,5 +245,148 @@ describe('T2.4 Transcript', () => {
     await pgPool.query(`DELETE FROM grades WHERE krs_item_id = $1`, [itemId]);
     await pgPool.query(`DELETE FROM krs_items WHERE id = $1`, [itemId]);
     await pgPool.query(`DELETE FROM krs_submissions WHERE id = $1`, [subId]);
+  });
+
+  // ============================================================
+  // Branch-coverage: error paths
+  // ============================================================
+
+  it('GET /transcript/my — studentId missing on token (ghost) → 403', async () => {
+    const ghostEmail = `tr-ghost-${Date.now()}@test.local`;
+    const hash = await bcrypt.hash('TestPass123!', 10);
+    const ghostUser = await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+         VALUES ($1, $2, 'Ghost Student', (SELECT id FROM roles WHERE code = 'mahasiswa'), true)
+         RETURNING id`,
+      [ghostEmail, hash],
+    );
+    const ghostUserId = Number(ghostUser.rows[0].id);
+    const ghostToken = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: ghostEmail, password: 'TestPass123!' })
+      .then((r) => r.body.data.accessToken);
+
+    const res = await request(app)
+      .get('/api/v1/transcript/my')
+      .set('Authorization', `Bearer ${ghostToken}`);
+
+    expect(res.status).toBe(403);
+    await pgPool.query(`DELETE FROM users WHERE id = $1`, [ghostUserId]);
+  });
+
+  it('GET /transcript/student/:id — invalid ID → 400', async () => {
+    const res = await request(app)
+      .get('/api/v1/transcript/student/abc')
+      .set('Authorization', `Bearer ${waliToken}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toContain('Student ID tidak valid');
+  });
+
+  it('GET /transcript/student/:id — student not found (bukan mentee) → 403', async () => {
+    const res = await request(app)
+      .get('/api/v1/transcript/student/999999999')
+      .set('Authorization', `Bearer ${waliToken}`);
+
+    // Wali bukan pembina → assertWaliMentee throw 403
+    expect(res.status).toBe(403);
+    expect(res.body.error.message).toContain('Bukan binaan Anda');
+  });
+
+  it('GET /transcript/student/:id — student not found (admin) → 404', async () => {
+    const res = await request(app)
+      .get('/api/v1/transcript/student/999999999')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.message).toContain('Mahasiswa tidak ditemukan');
+  });
+
+  it('GET /transcript/student/:id — dosen wali bukan pembina (prodi beda) → 403', async () => {
+    // Buat dosen wali di prodi LAIN
+    const otherProdiRes = await pgPool.query(`SELECT id FROM prodis WHERE id != $1 LIMIT 1`, [
+      Number(prodiRes.rows[0]!.id),
+    ]);
+    if (otherProdiRes.rows.length === 0) return; // skip jika hanya 1 prodi
+    const otherProdiId = Number(otherProdiRes.rows[0].id);
+
+    const otherWaliEmail = `tr-wali2-${Date.now()}@siak.local`;
+    const hash = await bcrypt.hash('TestPass123!', 10);
+    const otherWaliUser = await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active, is_wali)
+             VALUES ($1, $2, 'Other Wali', (SELECT id FROM roles WHERE code = 'dosen'), true, true)
+             RETURNING id`,
+      [otherWaliEmail, hash],
+    );
+    const otherWaliUserId = Number(otherWaliUser.rows[0].id);
+    await pgPool.query(`INSERT INTO lecturers (user_id, prodi_id) VALUES ($1, $2)`, [
+      otherWaliUserId,
+      otherProdiId,
+    ]);
+    const otherWaliToken = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: otherWaliEmail, password: 'TestPass123!' })
+      .then((r) => r.body.data.accessToken);
+
+    const res = await request(app)
+      .get(`/api/v1/transcript/student/${studentId}`)
+      .set('Authorization', `Bearer ${otherWaliToken}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.message).toContain('Bukan binaan Anda');
+
+    await pgPool.query(`DELETE FROM lecturers WHERE user_id = $1`, [otherWaliUserId]);
+    await pgPool.query(`DELETE FROM users WHERE id = $1`, [otherWaliUserId]);
+  });
+
+  it('GET /transcript/my/download — invalid student (ghost) → 403', async () => {
+    const ghostEmail = `tr-ghost2-${Date.now()}@test.local`;
+    const hash = await bcrypt.hash('TestPass123!', 10);
+    const ghostUser = await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+         VALUES ($1, $2, 'Ghost2', (SELECT id FROM roles WHERE code = 'mahasiswa'), true)
+         RETURNING id`,
+      [ghostEmail, hash],
+    );
+    const ghostUserId = Number(ghostUser.rows[0].id);
+    const ghostToken = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: ghostEmail, password: 'TestPass123!' })
+      .then((r) => r.body.data.accessToken);
+
+    const res = await request(app)
+      .get('/api/v1/transcript/my/download')
+      .set('Authorization', `Bearer ${ghostToken}`);
+
+    expect(res.status).toBe(403);
+    await pgPool.query(`DELETE FROM users WHERE id = $1`, [ghostUserId]);
+  });
+
+  it('GET /transcript/student/:id/download — invalid ID → 400', async () => {
+    const res = await request(app)
+      .get('/api/v1/transcript/student/abc/download')
+      .set('Authorization', `Bearer ${waliToken}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toContain('Student ID tidak valid');
+  });
+
+  it('GET /transcript/student/:id/download — not found (bukan mentee) → 403', async () => {
+    const res = await request(app)
+      .get('/api/v1/transcript/student/999999999/download')
+      .set('Authorization', `Bearer ${waliToken}`);
+
+    // Wali bukan pembina → assertWaliMentee throw 403
+    expect(res.status).toBe(403);
+    expect(res.body.error.message).toContain('Bukan binaan Anda');
+  });
+
+  it('GET /transcript/student/:id/download — not found (admin) → 404', async () => {
+    const res = await request(app)
+      .get('/api/v1/transcript/student/999999999/download')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.message).toContain('Mahasiswa tidak ditemukan');
   });
 });
