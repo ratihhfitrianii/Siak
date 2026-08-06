@@ -1145,3 +1145,37 @@ RBAC: dosen (`attendance.input`), mahasiswa (`krs.fill`), admin akademik/sistem 
 - Root-cause fix polusi data: `e2e-integration.test.ts` kini membersihkan orphan `krs_periods` E2E-TEST-* di `beforeAll` (FK order grades → krs_items → krs_submissions → krs_periods) — run crash tidak lagi menumpuk polusi; diverifikasi: orphan simulasi (id 502) hilang setelah run e2e
 - Typecheck / lint / build HIJAU
 - Catatan: coverage global branch 72.37% < 80% — **PRE-EXISTING** (modul `finance` T2.6 belum punya test suite sendiri, hanya ter-cover e2e integration; modul attendance justru ≥80%)
+
+---
+
+## 36. T3.4 — Bimbingan Akademik (F-24) (2026-08-06)
+
+**Status**: ✅ SELESAI (menunggu commit manual — F-31)
+**Tanggal**: 2026-08-06
+**PRD Ref**: F-24
+
+### Backend Module (`backend/src/modules/guidance/index.ts`)
+
+- `POST /guidance/sessions` — dosen Wali catat pertemuan bimbingan yang SUDAH terjadi (tanggal ≤ hari ini; tanggal masa depan → 400), tentukan progress (`berjalan`/`selesai`/`bermasalah`) + notes; admin akademik/sistem juga bisa (wajib isi `lecturerId` dosen wali)
+- `GET /guidance/sessions` — wali lihat SEMUA binaannya; admin lihat semua; filter `?student_id=`
+- `GET /guidance/sessions/:id` — detail: wali (punya sendiri), mahasiswa (punya sendiri & `is_visible_to_student`), admin bebas
+- `PUT /guidance/sessions/:id` — wali update notes/progress/tanggal/visibilitas (hanya sesi miliknya)
+- `DELETE /guidance/sessions/:id` — wali hapus catatan (hanya miliknya)
+- `GET /guidance/mentees` — wali: daftar mahasiswa binaan (prodi sama, pola DL-29/transcript); admin: semua mahasiswa aktif
+- `GET /guidance/my` — mahasiswa lihat bimbingan SENDIRI (hanya yang visible)
+
+RBAC: `guidance.manage` (mahasiswa → `/my`, admin); dosen Wali via `authorizeWali` + guard `requireWaliOrAdmin` (authorizeWali saja TIDAK cukup — mahasiswa juga punya `guidance.manage`); dosen NON-wali → 403 (tanpa tambah permission ke base role — konsisten DL-08).
+
+Catatan implementasi:
+- `guidance_sessions.lecturer_id` → `lecturers.id` (bukan users.id — beda dari `classes.lecturer_id`, per skema migration V003)
+- ZodError → `parseOrThrow` (safeParse → AppError VALIDATION_ERROR 400); tanpa ini ZodError polos → 500 oleh error-handler (bug laten yang sama ada di modul lama yang tak ter-cover)
+
+### Test
+
+- `backend/src/modules/guidance/guidance.test.ts` — **41 test**: CRUD sesi (wali/admin), validasi (progress invalid, tanggal masa depan, format salah, body kosong), 404/403 (mhs tak ada, bukan binaan, dosen non-wali, mhs role, admin tanpa lecturerId, lecturerId bukan wali, kepemilikan sesi orang lain, invisible, id invalid), filter list, mentees, `/my` visibilitas
+- Coverage modul: **stmts 98.06% / branch 89.36% / funcs 100% / lines 98.05%** (≥80%)
+
+### Test & Verifikasi
+
+- Backend: **guidance 41/41 PASS**; **full backend 21/21 suites, 491/491 PASS**
+- Typecheck / lint / build HIJAU; `format:check` hanya warn schedule/* (pre-existing T3.2, di luar scope)
