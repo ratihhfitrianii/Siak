@@ -22,7 +22,10 @@ const scheduleCreateSchema = z.object({
 
 const scheduleUpdateSchema = z.object({
   meetingNumber: z.number().int().min(1).max(30).optional(),
-  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  scheduledDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   topic: z.string().max(200).optional(),
   isCompleted: z.boolean().optional(),
 });
@@ -74,7 +77,7 @@ export function createScheduleRouter(): Router {
            WHERE cl.lecturer_id = $1
              AND s.scheduled_date = $2
            ORDER BY s.meeting_number`,
-          [userId, date],  // classes.lecturer_id references users.id
+          [userId, date], // classes.lecturer_id references users.id
         );
 
         // Get classes for this lecturer (to check available time slots)
@@ -95,7 +98,7 @@ export function createScheduleRouter(): Router {
            WHERE cl.lecturer_id = $1
              AND cl.is_active
            ORDER BY cl.day_of_week, cl.start_time`,
-          [userId],  // classes.lecturer_id references users.id
+          [userId], // classes.lecturer_id references users.id
         );
 
         // Calculate busy slots on the given date
@@ -201,7 +204,9 @@ export function createScheduleRouter(): Router {
           [data.classId, data.meetingNumber],
         );
         if (existingRes.rows.length > 0) {
-          return res.status(409).json({ success: false, error: 'Meeting number already exists for this class' });
+          return res
+            .status(409)
+            .json({ success: false, error: 'Meeting number already exists for this class' });
         }
 
         const result = await pgPool.query(
@@ -243,7 +248,9 @@ export function createScheduleRouter(): Router {
         const data = scheduleUpdateSchema.parse(req.body);
 
         // Check exists
-        const existingRes = await pgPool.query('SELECT * FROM schedules WHERE id = $1', [scheduleId]);
+        const existingRes = await pgPool.query('SELECT * FROM schedules WHERE id = $1', [
+          scheduleId,
+        ]);
         if (existingRes.rows.length === 0) {
           return res.status(404).json({ success: false, error: 'Schedule not found' });
         }
@@ -253,10 +260,16 @@ export function createScheduleRouter(): Router {
           const checkRes = await pgPool.query(
             `SELECT id FROM schedules 
              WHERE class_id = $1 AND meeting_number = $2 AND id != $3`,
-            [existingRes.rows[0].class_id, data.meetingNumber ?? existingRes.rows[0].meeting_number, scheduleId],
+            [
+              existingRes.rows[0].class_id,
+              data.meetingNumber ?? existingRes.rows[0].meeting_number,
+              scheduleId,
+            ],
           );
           if (checkRes.rows.length > 0) {
-            return res.status(409).json({ success: false, error: 'Meeting number already exists for this class' });
+            return res
+              .status(409)
+              .json({ success: false, error: 'Meeting number already exists for this class' });
           }
         }
 
@@ -309,7 +322,9 @@ export function createScheduleRouter(): Router {
           return res.status(400).json({ success: false, error: 'Invalid schedule ID' });
         }
 
-        const existingRes = await pgPool.query('SELECT * FROM schedules WHERE id = $1', [scheduleId]);
+        const existingRes = await pgPool.query('SELECT * FROM schedules WHERE id = $1', [
+          scheduleId,
+        ]);
         if (existingRes.rows.length === 0) {
           return res.status(404).json({ success: false, error: 'Schedule not found' });
         }

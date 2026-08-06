@@ -41,7 +41,8 @@ describe('T3.2 Schedule — Jadwal Kelas + Ketersediaan', () => {
        FROM roles r WHERE r.code = 'admin_akademik'`,
       [adminEmail, adminPasswordHash],
     );
-    adminUserId = (await pgPool.query(`SELECT id FROM users WHERE email = $1`, [adminEmail])).rows[0].id;
+    adminUserId = (await pgPool.query(`SELECT id FROM users WHERE email = $1`, [adminEmail]))
+      .rows[0].id;
     adminToken = await login(adminEmail, 'Admin123!');
 
     // Use existing seed dosen
@@ -51,7 +52,7 @@ describe('T3.2 Schedule — Jadwal Kelas + Ketersediaan', () => {
        JOIN lecturers l ON l.user_id = u.id 
        JOIN roles r ON r.id = u.role_id 
        WHERE r.code = 'dosen' AND u.is_active AND l.is_active
-       ORDER BY u.id LIMIT 1`
+       ORDER BY u.id LIMIT 1`,
     );
     if (seedDosenRes.rows.length === 0) {
       throw new Error('No seed dosen available');
@@ -92,7 +93,7 @@ describe('T3.2 Schedule — Jadwal Kelas + Ketersediaan', () => {
       const classRes2 = await pgPool.query(
         `INSERT INTO classes (curriculum_id, class_code, lecturer_id, capacity, current_enrolled, day_of_week, start_time, end_time, is_active)
          VALUES ($1, 'A', $2, 30, 0, 1, '08:00', '10:00', true) RETURNING id`,
-        [curriculumId, dosenUserId],  // classes.lecturer_id references users.id
+        [curriculumId, dosenUserId], // classes.lecturer_id references users.id
       );
       classId = Number(classRes2.rows[0].id);
     } else {
@@ -111,7 +112,7 @@ describe('T3.2 Schedule — Jadwal Kelas + Ketersediaan', () => {
 
   it('GET /schedule/availability → dosen cek ketersediaan pada tanggal', async () => {
     const today = new Date().toISOString().split('T')[0];
-    
+
     const res = await request(app)
       .get('/api/v1/schedule/availability')
       .set('Authorization', `Bearer ${dosenToken}`)
@@ -245,7 +246,9 @@ describe('T3.2 Schedule — Jadwal Kelas + Ketersediaan', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.busySlots.length).toBeGreaterThan(0);
-    const busy = res.body.data.busySlots.find((s: { topic: string }) => s.topic === 'Availability Test');
+    const busy = res.body.data.busySlots.find(
+      (s: { topic: string }) => s.topic === 'Availability Test',
+    );
     expect(busy).toBeDefined();
 
     // Cleanup
