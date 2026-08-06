@@ -65,9 +65,7 @@ async function seedTestData() {
   const prodiRes = await pgPool.query(`SELECT id FROM prodis ORDER BY id LIMIT 1`);
   prodiId = Number(prodiRes.rows[0].id);
 
-  const semRes = await pgPool.query(
-    `SELECT id FROM semesters ORDER BY id DESC LIMIT 1`,
-  );
+  const semRes = await pgPool.query(`SELECT id FROM semesters ORDER BY id DESC LIMIT 1`);
   semesterId = Number(semRes.rows[0].id);
 
   // Buat periode KRS aktif (sekarang) — avoid conflict dengan seed base
@@ -124,10 +122,10 @@ async function seedTestData() {
   );
   dosenUserId = Number(dsnUser.rows[0].id);
 
-  await pgPool.query(
-    `INSERT INTO lecturers (user_id, prodi_id) VALUES ($1, $2)`,
-    [dosenUserId, prodiId],
-  );
+  await pgPool.query(`INSERT INTO lecturers (user_id, prodi_id) VALUES ($1, $2)`, [
+    dosenUserId,
+    prodiId,
+  ]);
 
   // Kelas aktif untuk prodi+semester ini YANG DIAJAR DOSEN TEST (agar bisa input nilai)
   const classRes = await pgPool.query(
@@ -184,6 +182,35 @@ async function login(email: string, pw: string): Promise<string> {
 
 beforeAll(async () => {
   app = createApp();
+
+  // Root-cause fix (T3.3): bersihkan orphan krs_periods E2E-TEST-* dari run yang crash
+  // sebelum afterAll sempat jalan (polusi membuat krs.test.ts 'periode tutup' gagal).
+  // FK order: grades → krs_items → krs_submissions → krs_periods.
+  const orphanPeriodRes = await pgPool.query(
+    `SELECT id FROM krs_periods WHERE name LIKE 'E2E-TEST%'`,
+  );
+  const orphanPeriodIds = (orphanPeriodRes.rows as Array<{ id: number }>).map((r) => Number(r.id));
+  if (orphanPeriodIds.length > 0) {
+    await pgPool.query(
+      `DELETE FROM grades WHERE krs_item_id IN (
+         SELECT id FROM krs_items WHERE krs_submission_id IN (
+           SELECT id FROM krs_submissions WHERE krs_period_id = ANY($1)
+         )
+       )`,
+      [orphanPeriodIds],
+    );
+    await pgPool.query(
+      `DELETE FROM krs_items WHERE krs_submission_id IN (
+         SELECT id FROM krs_submissions WHERE krs_period_id = ANY($1)
+       )`,
+      [orphanPeriodIds],
+    );
+    await pgPool.query(`DELETE FROM krs_submissions WHERE krs_period_id = ANY($1)`, [
+      orphanPeriodIds,
+    ]);
+    await pgPool.query(`DELETE FROM krs_periods WHERE id = ANY($1)`, [orphanPeriodIds]);
+  }
+
   await seedTestData();
 
   studentToken = await login(studentEmail, password);
@@ -202,7 +229,10 @@ afterAll(async () => {
     await pgPool.query(`DELETE FROM krs_submissions WHERE id = $1`, [krsSubmissionId]);
   }
   if (studentId) {
-    await pgPool.query(`DELETE FROM payments WHERE student_id = $1 AND semester_id = $2`, [studentId, semesterId]);
+    await pgPool.query(`DELETE FROM payments WHERE student_id = $1 AND semester_id = $2`, [
+      studentId,
+      semesterId,
+    ]);
     await pgPool.query(`DELETE FROM students WHERE id = $1`, [studentId]);
     await pgPool.query(`DELETE FROM users WHERE id = $1`, [studentUserId]);
   }
@@ -288,10 +318,9 @@ describe('T2.7 Integration E2E — Bayar → KRS → Nilai → Transkrip', () =>
     expect(res.body.data.locked).toBe(true);
     krsSubmissionId = res.body.data.submissionId;
     // Verify in DB
-    await pgPool.query(
-      `SELECT id, status, is_locked FROM krs_submissions WHERE id = $1`,
-      [krsSubmissionId],
-    );
+    await pgPool.query(`SELECT id, status, is_locked FROM krs_submissions WHERE id = $1`, [
+      krsSubmissionId,
+    ]);
   });
 
   it('6. Mahasiswa GET /krs/my → status submitted + items', async () => {
@@ -371,9 +400,11 @@ describe('T2.7 Integration E2E — Bayar → KRS → Nilai → Transkrip', () =>
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     // Find the test course in transcript (semesters -> courses)
-    const courses = res.body.data.semesters?.flatMap((s: { courses: unknown[] }) => s.courses) ?? [];
+    const courses =
+      res.body.data.semesters?.flatMap((s: { courses: unknown[] }) => s.courses) ?? [];
     const myCourse = courses.find(
-      (c: { courseCode: string; course_code: string }) => c.courseCode === `E2E${ts}C1` || c.course_code === `E2E${ts}C1`,
+      (c: { courseCode: string; course_code: string }) =>
+        c.courseCode === `E2E${ts}C1` || c.course_code === `E2E${ts}C1`,
     );
     expect(myCourse).toBeDefined();
     expect(myCourse.gradeLetter).toBe('A');

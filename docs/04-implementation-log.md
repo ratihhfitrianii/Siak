@@ -1142,5 +1142,6 @@ RBAC: dosen (`attendance.input`), mahasiswa (`krs.fill`), admin akademik/sistem 
 ### Test & Verifikasi
 
 - Backend: **attendance 38/38 PASS**; krs 25/25 PASS (setelah bersihkan 37 orphan `krs_periods` E2E-TEST-* sisa run e2e yang crash); **full backend 20/20 suites, 450/450 PASS**
+- Root-cause fix polusi data: `e2e-integration.test.ts` kini membersihkan orphan `krs_periods` E2E-TEST-* di `beforeAll` (FK order grades → krs_items → krs_submissions → krs_periods) — run crash tidak lagi menumpuk polusi; diverifikasi: orphan simulasi (id 502) hilang setelah run e2e
 - Typecheck / lint / build HIJAU
 - Catatan: coverage global branch 72.37% < 80% — **PRE-EXISTING** (modul `finance` T2.6 belum punya test suite sendiri, hanya ter-cover e2e integration; modul attendance justru ≥80%)
