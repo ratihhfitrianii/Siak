@@ -1113,3 +1113,34 @@ RBAC: dosen (lecturer.availability), admin akademik/sistem (schedule.manage)
 - Frontend: **17/17 files, 83/83 PASS**; coverage **94.75% stmts / 82.32% funcs / 82.92% branch** (≥80%)
 - Bundle: 90.42 kB gzip (< 200 kB NF-02)
 - Typecheck / lint / build / format:check HIJAU
+
+---
+
+## 35. T3.3 — Absensi Mahasiswa (F-23) (2026-08-06)
+
+**Status**: ✅ SELESAI (menunggu commit manual — F-31)
+**Tanggal**: 2026-08-06
+**PRD Ref**: F-23
+
+### Backend Module (`backend/src/modules/attendance/index.ts`)
+
+- `GET /attendance/sessions` — list sesi (dosen: kelas sendiri via `schedules→classes.lecturer_id = users.id`; admin: semua; filter `schedule_id`/`date_from`/`date_to`, pagination, total_records + hadir_count)
+- `POST /attendance/sessions` — dosen buat sesi (validasi kepemilikan jadwal; duplicate per schedule+date → 409)
+- `PUT /attendance/sessions/:id/open|close` — buka/tutup sesi (open ganda → 409; close sesi belum dibuka → 409)
+- `PUT /attendance/sessions/:id/qr` — generate/regenerate QR code (`SAIK-{sessionId}-{timestamp}`)
+- `POST /attendance/check-in` — mahasiswa self check-in via `sessionId` atau `qrCode` (validasi enrollment `krs_items→krs_submissions` status submitted/approved; sesi tertutup → 403; upsert record — update non-hadir → hadir jika sudah ada record)
+- `GET /attendance/sessions/:id/records` — daftar rekap (merge mahasiswa terdaftar + record; yang belum absen → status `belum_absen`)
+- `PUT /attendance/records/:id` — dosen/admin update status manual (hadir/tidak_hadir/izin/sakit) + audit
+
+RBAC: dosen (`attendance.input`), mahasiswa (`krs.fill`), admin akademik/sistem bypass; ownership check per kelas (`classes.lecturer_id` = `users.id`, bukan `lecturers.id` — konsisten DL-32).
+
+### Test
+
+- `backend/src/modules/attendance/attendance.test.ts` — **38 test**: CRUD sesi, duplicate 409, open/close + double-open 409, close-belum-dibuka 409, check-in via sessionId & qrCode, duplicate check-in, check-in sesi tertutup 403, update record non-hadir→hadir, record view/update dosen & admin, RBAC (mahasiswa 403), query filters, semua error path (404/403/400), ghost user tanpa data students/lecturers → 403
+- Coverage modul: **stmts 96.77% / branch 81.33% / funcs 100% / lines 99.44%** (≥80% — hanya catch-block tak terduga tersisa)
+
+### Test & Verifikasi
+
+- Backend: **attendance 38/38 PASS**; krs 25/25 PASS (setelah bersihkan 37 orphan `krs_periods` E2E-TEST-* sisa run e2e yang crash); **full backend 20/20 suites, 450/450 PASS**
+- Typecheck / lint / build HIJAU
+- Catatan: coverage global branch 72.37% < 80% — **PRE-EXISTING** (modul `finance` T2.6 belum punya test suite sendiri, hanya ter-cover e2e integration; modul attendance justru ≥80%)
