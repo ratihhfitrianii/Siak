@@ -4,11 +4,11 @@ import { DosenSchedule } from './DosenSchedule';
 import { DosenAttendance } from './DosenAttendance';
 import { DosenGuidance } from './DosenGuidance';
 import { DosenSubstitute } from './DosenSubstitute';
+import { DosenGrades } from './DosenGrades';
 
 /**
  * Dashboard Dosen (T3.7) — container tab untuk modul dosen:
- * Pilih MK, Jadwal, Absensi, Bimbingan, Substitute. Nilai diarahkan ke halaman
- * tersendiri (permission grade.input).
+ * Pilih MK, Jadwal, Absensi, Bimbingan, Substitute, Nilai (permission grade.input).
  */
 export function DosenDashboardPage() {
   const [activeTab, setActiveTab] = useState('pilih_mk');
@@ -19,6 +19,7 @@ export function DosenDashboardPage() {
     { id: 'absensi', label: 'Absensi', component: DosenAttendance },
     { id: 'bimbingan', label: 'Bimbingan', component: DosenGuidance },
     { id: 'substitute', label: 'Substitute', component: DosenSubstitute },
+    { id: 'nilai', label: 'Nilai', component: DosenGrades },
   ];
 
   const ActiveComponent = tabs.find((tab) => tab.id === activeTab)?.component ?? tabs[0].component;

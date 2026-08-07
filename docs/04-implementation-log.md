@@ -1261,7 +1261,7 @@ RBAC: `substitute.manage` di policy.ts (baris 37, 77, 92, 124) untuk `admin_akad
 
 ## 39. T3.6 — Nilai Detail (F-06a, F-10) (2026-08-06)
 
-**Status**: ✅ SELESAI (menunggu commit manual — F-31)
+**Status**: ✅ SELESAI (commit `9ee078d` + push, 2026-08-07)
 **Tanggal**: 2026-08-06
 **PRD Ref**: F-06a, F-10
 
@@ -1293,3 +1293,39 @@ RBAC: `substitute.manage` di policy.ts (baris 37, 77, 92, 124) untuk `admin_akad
 - Backend: **grades 37/37 PASS**; **full backend 23/23 suites, 578/578 PASS**
 - Global branch coverage **80.18%** (≥80% threshold)
 - Typecheck / lint / build / format:check HIJAU
+
+## 40. T3.7 — Dashboard Dosen Frontend (F-06, F-07, F-08, F-10, F-25) (2026-08-07)
+
+**Status**: ✅ SELESAI (commit `9ee078d` + push)
+**Tanggal**: 2026-08-07
+**PRD Ref**: F-06, F-07, F-08, F-10, F-25
+
+### Frontend (`frontend/src/pages/`)
+
+Dashboard Dosen (`DosenDashboardPage.tsx`) — container tab 6 modul, route `/` untuk role `dosen` (via `DashboardRoute` di `App.tsx`, gating `user.role === 'dosen'`):
+
+| Komponen | Tab | Permission backend terkait |
+|---|---|---|
+| `DosenSelectMK.tsx` | Pilih MK | `lecturer.select_course` |
+| `DosenSchedule.tsx` | Jadwal | `schedule.manage` |
+| `DosenAttendance.tsx` | Absensi | `attendance.input` |
+| `DosenGuidance.tsx` | Bimbingan | `guidance.manage` (Wali) |
+| `DosenSubstitute.tsx` | Substitute | `substitute.manage` |
+| `DosenGrades.tsx` | Nilai | `grade.input` |
+
+Pola seragam semua komponen: header + form + validasi + loading + pesan error/success **inline** (`role="alert"` / `role="status"`) — tidak ada library toast (pola existing project). `DosenGrades` menghitung final = max(asli, remedial) per komponen (bobot 20/30/50) sinkron dengan backend T3.6.
+
+> Catatan: komponen memakai **data statis** (mock) — integrasi API `lib/api` menyusul di iterasi berikutnya (T3.8).
+
+### Bug fix pada integrasi
+
+- `App.tsx`: `useAuth()` dipanggil di dalam `App()` sebelum `AuthProvider` mount → pindah ke komponen `KrsRoute`/`DashboardRoute` module-level (pola asli T1.11a).
+- Export konsisten: semua komponen Dosen memakai **named export** (pola `DashboardPage`, `AdminKrsPage`); `App.tsx` import named.
+- `useToast` dari `../hooks/useToast` **tidak ada** di project → diganti pola error/success inline (pola `AdminKrsPage`).
+- `user.roleCode` → `user.role` (field `MeUser` yang benar di `AuthContext`).
+
+### Test & Verifikasi
+
+- Frontend: **17 files / 83 tests PASS** (App.test, DashboardPage.test, dst.)
+- Lint / typecheck / format:check HIJAU; build **95.59 kB gzip** (NF-02 ≤200 kB)
+- Backend: 578/578 PASS, global branch coverage **80.08%** (≥80% threshold) — modul backend T3.1–T3.6 tidak berubah di T3.7 (hanya frontend) 
