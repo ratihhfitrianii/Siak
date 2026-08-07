@@ -1,99 +1,65 @@
-import { useState } from 'react';
-
-interface ProdiOption {
-  id: string;
-  name: string;
-}
-
-interface CourseOption {
-  id: string;
-  name: string;
-  semester: string;
-  credits: number;
-  quota: number;
-  enrolled: number;
-  prodi: string;
-}
+import { useState, useEffect } from 'react';
+import { getAvailableCourses, submitCourseSelection } from '../lib/api';
+import type { LecturerCourseAvailable } from '../lib/types';
 
 /**
- * Pilih MK (T3.7, perm lecturer.select_course) — filter prodi + cari MK.
- * UI saat ini memakai data statis; integrasi API mengikuti pola AdminKrsPage
- * (lib/api + lib/types) pada iterasi berikutnya.
+ * Pilih MK (T3.7 + T3.8, perm lecturer.select_course) — filter prodi + cari MK.
+ * Terhubung ke endpoint /dosen/courses/available dan /dosen/courses/select.
  */
 export function DosenSelectMK() {
-  const [selectedProdi, setSelectedProdi] = useState('');
+  const [semesterId, setSemesterId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [courses, setCourses] = useState<LecturerCourseAvailable[]>([]);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<number>>(new Set());
 
-  const prodiList: ProdiOption[] = [
-    { id: 'ti', name: 'Teknik Informatika' },
-    { id: 'si', name: 'Sistem Informasi' },
-    { id: 'mnj', name: 'Manajemen' },
-    { id: 'hkm', name: 'Hukum' },
-    { id: 'kn', name: 'Kesehatan' },
-  ];
+  // Load available courses when semester changes
+  useEffect(() => {
+    if (!semesterId) {
+      setCourses([]);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    getAvailableCourses(semesterId)
+      .then((res) => {
+        setCourses(res.items);
+      })
+      .catch(() => {
+        setError('Gagal memuat daftar MK');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [semesterId]);
 
-  const mockCourses: CourseOption[] = [
-    {
-      id: 'TI101',
-      name: 'Dasar-Dasar Pemrograman',
-      semester: 'Ganjil 2024',
-      credits: 3,
-      quota: 40,
-      enrolled: 35,
-      prodi: 'ti',
-    },
-    {
-      id: 'SI202',
-      name: 'Basis Data',
-      semester: 'Genap 2024',
-      credits: 3,
-      quota: 35,
-      enrolled: 28,
-      prodi: 'si',
-    },
-    {
-      id: 'MNJ301',
-      name: 'Manajemen Strategis',
-      semester: 'Ganjil 2024',
-      credits: 3,
-      quota: 25,
-      enrolled: 22,
-      prodi: 'mnj',
-    },
-    {
-      id: 'HKM401',
-      name: 'Hukum Bisnis',
-      semester: 'Genap 2024',
-      credits: 3,
-      quota: 30,
-      enrolled: 27,
-      prodi: 'hkm',
-    },
-    {
-      id: 'KN102',
-      name: 'Anatomi Tubuh Manusia',
-      semester: 'Ganjil 2024',
-      credits: 2,
-      quota: 50,
-      enrolled: 45,
-      prodi: 'kn',
-    },
-  ];
+  const filteredCourses = courses.filter(
+    (course) =>
+      course.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.courseCode.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
-  const filteredCourses = mockCourses.filter((course) => {
-    const matchesProdi = selectedProdi === '' || course.prodi === selectedProdi;
-    const matchesSearch =
-      course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.id.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesProdi && matchesSearch;
-  });
+  const toggleSelect = (curriculumId: number) => {
+    setSelectedCourseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(curriculumId)) {
+        next.delete(curriculumId);
+      } else {
+        next.add(curriculumId);
+      }
+      return next;
+    });
+  };
 
   const handleSubmit = async () => {
-    if (!selectedProdi) {
-      setError('Pilih prodi terlebih dahulu');
+    if (!semesterId) {
+      setError('Pilih semester terlebih dahulu');
+      return;
+    }
+    if (selectedCourseIds.size === 0) {
+      setError('Pilih minimal satu MK');
       return;
     }
 
@@ -101,16 +67,34 @@ export function DosenSelectMK() {
     setError(null);
     setSuccess(null);
     try {
-      // Integrasi API: POST pilih MK (lib/api) pada iterasi berikutnya.
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setSuccess('MK berhasil dipilih');
-      setSelectedProdi('');
-    } catch {
-      setError('Gagal memilih MK');
+      for (const curriculumId of selectedCourseIds) {
+        await submitCourseSelection({
+          curriculumId,
+          priority: 1,
+          notes: '',
+        });
+      }
+      setSuccess(`${selectedCourseIds.size} MK berhasil diajukan`);
+      setSelectedCourseIds(new Set());
+    } catch (err: unknown) {
+      const apiError = err as { code?: string; message?: string };
+      if (apiError.code === 'VALIDATION_ERROR') {
+        setError(apiError.message ?? 'Data tidak valid');
+      } else {
+        setError('Gagal mengajukan MK');
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Semester options - in real app these would come from API
+  const semesterOptions = [
+    { id: 1, code: '2024/2025-1', name: 'Ganjil 2024/2025' },
+    { id: 2, code: '2024/2025-2', name: 'Genap 2024/2025' },
+    { id: 3, code: '2023/2024-1', name: 'Ganjil 2023/2024' },
+    { id: 4, code: '2023/2024-2', name: 'Genap 2023/2024' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -118,26 +102,26 @@ export function DosenSelectMK() {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Pilih Mata Kuliah</h2>
         <p className="text-gray-600">
-          Pilih prodi dan pilih mata kuliah yang akan diajar. Sistem akan menampilkan kuota dan
-          jumlah mahasiswa yang sudah terdaftar.
+          Pilih semester dan ajukan mata kuliah yang akan diajar. Status: belum_diajukan → diajukan
+          → disetujui/ditolak.
         </p>
       </div>
 
       {/* Filter Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Filter &amp; Search</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Filter & Search</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Prodi</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Semester</label>
             <select
-              value={selectedProdi}
-              onChange={(e) => setSelectedProdi(e.target.value)}
+              value={semesterId ?? ''}
+              onChange={(e) => setSemesterId(e.target.value ? Number(e.target.value) : null)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Semua Prodi</option>
-              {prodiList.map((prodi) => (
-                <option key={prodi.id} value={prodi.id}>
-                  {prodi.name}
+              <option value="">Pilih Semester</option>
+              {semesterOptions.map((sem) => (
+                <option key={sem.id} value={sem.id}>
+                  {sem.name} ({sem.code})
                 </option>
               ))}
             </select>
@@ -148,7 +132,7 @@ export function DosenSelectMK() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari berdasarkan nama atau ID MK"
+              placeholder="Cari berdasarkan nama atau kode MK"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -174,34 +158,59 @@ export function DosenSelectMK() {
             {success}
           </p>
         )}
-        {filteredCourses.length === 0 ? (
+        {!semesterId ? (
+          <p className="text-gray-500">Pilih semester untuk menampilkan daftar MK.</p>
+        ) : isLoading ? (
+          <p className="text-gray-500">Memuat daftar MK...</p>
+        ) : filteredCourses.length === 0 ? (
           <p className="text-gray-500">Tidak ada mata kuliah yang sesuai dengan filter.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredCourses.map((course) => (
-              <div
-                key={course.id}
-                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-semibold text-gray-900">{course.name}</h4>
-                  <span className="text-sm text-gray-500">{course.id}</span>
+            {filteredCourses.map((course) => {
+              const isSelected = selectedCourseIds.has(course.curriculumId);
+              const statusColors: Record<string, string> = {
+                belum_diajukan: 'bg-gray-100 text-gray-800',
+                diajukan: 'bg-blue-100 text-blue-800',
+                disetujui: 'bg-green-100 text-green-800',
+                ditolak: 'bg-red-100 text-red-800',
+              };
+              return (
+                <div
+                  key={course.curriculumId}
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-semibold text-gray-900">{course.courseName}</h4>
+                    <span className="text-sm text-gray-500">{course.courseCode}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-1">Semester: {course.semesterNumber}</p>
+                  <p className="text-sm text-gray-600 mb-2">SKS: {course.credits}</p>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm text-gray-600">
+                      Kelas tersedia: {course.availableClasses}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${statusColors[course.selectionStatus] ?? 'bg-gray-100 text-gray-800'}`}
+                    >
+                      {course.selectionStatus.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(course.curriculumId)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {isSelected ? 'Dipilih' : 'Pilih'}
+                      </span>
+                    </label>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-600 mb-1">Semester: {course.semester}</p>
-                <p className="text-sm text-gray-600 mb-2">SKS: {course.credits}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
-                    Kuota: {course.enrolled}/{course.quota}
-                  </span>
-                  <button
-                    onClick={() => setSelectedProdi(course.prodi)}
-                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
-                  >
-                    Pilih
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -209,10 +218,10 @@ export function DosenSelectMK() {
         <div className="mt-6 flex justify-end">
           <button
             onClick={handleSubmit}
-            disabled={isLoading || !selectedProdi}
+            disabled={isLoading || selectedCourseIds.size === 0 || !semesterId}
             className="px-6 py-2 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Memproses...' : 'Pilih Mata Kuliah'}
+            {isLoading ? 'Memproses...' : `Ajukan ${selectedCourseIds.size} MK`}
           </button>
         </div>
       </div>

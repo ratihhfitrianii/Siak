@@ -19,7 +19,7 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO classes (curriculum_id, class_code, lecturer_id, capacity, current_enrolled, room, day_of_week, start_time, end_time, is_active)
 SELECT c.id, 'A',
-       (SELECT l.user_id FROM lecturers l WHERE l.prodi_id = c.prodi_id AND l.is_active ORDER BY l.id LIMIT 1),
+       (SELECT l.user_id FROM lecturers l JOIN users u ON u.id = l.user_id WHERE l.prodi_id = c.prodi_id AND l.is_active AND u.is_active ORDER BY u.id LIMIT 1),
        30, 12 + (c.id % 13),
        'R.' || (100 + (c.id % 20)), 1 + (c.id % 5),
        ('07:30'::time + ((c.id % 8) * interval '90 minutes')), ('07:30'::time + ((c.id % 8) * interval '90 minutes') + interval '90 minutes'),
@@ -31,7 +31,7 @@ ON CONFLICT (curriculum_id, class_code) DO NOTHING;
 
 INSERT INTO classes (curriculum_id, class_code, lecturer_id, capacity, current_enrolled, room, day_of_week, start_time, end_time, is_active)
 SELECT c.id, 'B',
-       (SELECT l.user_id FROM lecturers l WHERE l.prodi_id = c.prodi_id AND l.is_active ORDER BY l.id DESC LIMIT 1),
+       (SELECT l.user_id FROM lecturers l JOIN users u ON u.id = l.user_id WHERE l.prodi_id = c.prodi_id AND l.is_active AND u.is_active ORDER BY u.id DESC LIMIT 1),
        30, 10 + (c.id % 11),
        'R.' || (200 + (c.id % 20)), 1 + ((c.id + 2) % 5),
        ('08:00'::time + ((c.id + 3) % 8) * interval '90 minutes'), ('08:00'::time + ((c.id + 3) % 8) * interval '90 minutes') + interval '90 minutes',

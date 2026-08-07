@@ -1,7 +1,7 @@
-// V20260806_017__grades_remedial_per_component.sql
-// T3.6: Nilai Detail - remedial per komponen (F-06a, F-10)
-// Tambah kolom remedial per komponen: tugas, UTS, UAS
--- Migraso data existing: copy scores from column 'remedial_score' -> remedial_uas_score
+-- V20260806_017__grades_remedial_per_component.sql
+-- T3.6: Nilai Detail - remedial per komponen (F-06a, F-10)
+-- Tambah kolom remedial per komponen: tugas, UTS, UAS
+-- Migrasi data existing: copy scores from column 'remedial_score' -> remedial_uas_score
 
 BEGIN;
 

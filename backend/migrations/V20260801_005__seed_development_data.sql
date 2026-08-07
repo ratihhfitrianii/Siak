@@ -67,7 +67,7 @@ dosen_data AS (
         '$2b$12$fyQeFJg/KUQch2k9qB1iv.y/Z5wmz9rmKWSGBbsJiyYi2lIZq.ZZm' as password_hash,
         'Dosen ' || pl.code || ' ' || j as full_name,
         (SELECT id FROM roles WHERE code='dosen') as role_id,
-        (198001001 + j)::TEXT as nidn,
+        (198001001 + j + ((pl.rn - 1) * 100))::TEXT as nidn,
         CASE WHEN j <= 10 THEN 'tetap' ELSE 'kontrak' END as employment_type,
         '123456789' || LPAD(j::TEXT, 3, '0') as bank_account
     FROM prodi_list pl

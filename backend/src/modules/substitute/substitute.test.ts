@@ -22,6 +22,9 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   let adminUserId: number;
   let classId: number;
   let scheduleId: number;
+  let scheduleId2: number;
+  let scheduleId3: number;
+  let otherClassScheduleId: number | null = null;
   const createdSubstituteIds: number[] = [];
 
   async function login(email: string, password: string): Promise<string> {
@@ -75,14 +78,51 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     }
     classId = Number(classRes.rows[0].id);
 
-    // Get a schedule for this class
-    const scheduleRes = await pgPool.query(`SELECT id FROM schedules WHERE class_id = $1 LIMIT 1`, [
-      classId,
-    ]);
-    if (scheduleRes.rows.length === 0) {
-      throw new Error('No schedule found for class');
+    // Create a unique schedule for this test (self-sufficient — CI DB fresh,
+    // seed tidak menyediakan schedules; jangan bergantung data leftover dari suite lain)
+    const meetingNum = Math.floor(Math.random() * 30000) + 1000;
+    const schedRes = await pgPool.query(
+      `INSERT INTO schedules (class_id, meeting_number, scheduled_date, topic)
+       VALUES ($1, $2, CURRENT_DATE + interval '30 days', 'Test Schedule for Substitute')
+       RETURNING id`,
+      [classId, meetingNum],
+    );
+    if (schedRes.rows.length === 0) throw new Error('Failed to create schedule');
+    scheduleId = Number(schedRes.rows[0].id);
+
+    // Schedule kedua untuk kelas yang sama (test "admin ajukan" butuh schedule berbeda)
+    const schedRes2 = await pgPool.query(
+      `INSERT INTO schedules (class_id, meeting_number, scheduled_date, topic)
+       VALUES ($1, $2, CURRENT_DATE + interval '30 days', 'Test Schedule for Substitute 2')
+       RETURNING id`,
+      [classId, meetingNum + 1],
+    );
+    scheduleId2 = Number(schedRes2.rows[0].id);
+
+    // Schedule ketiga untuk kelas yang sama (test "sudah cancelled" butuh schedule bebas)
+    const schedRes3 = await pgPool.query(
+      `INSERT INTO schedules (class_id, meeting_number, scheduled_date, topic)
+       VALUES ($1, $2, CURRENT_DATE + interval '30 days', 'Test Schedule for Substitute 3')
+       RETURNING id`,
+      [classId, meetingNum + 3],
+    );
+    scheduleId3 = Number(schedRes3.rows[0].id);
+
+    // Schedule untuk kelas LAIN (test "schedule bukan milik kelas")
+    const otherClassRes = await pgPool.query(
+      `SELECT c.id FROM classes c WHERE c.id != $1 AND c.is_active LIMIT 1`,
+      [classId],
+    );
+    if (otherClassRes.rows.length > 0) {
+      const otherClassId = Number(otherClassRes.rows[0].id);
+      const otherSchedRes = await pgPool.query(
+        `INSERT INTO schedules (class_id, meeting_number, scheduled_date, topic)
+         VALUES ($1, $2, CURRENT_DATE + interval '30 days', 'Test Schedule for Other Class')
+         RETURNING id`,
+        [otherClassId, meetingNum + 2],
+      );
+      otherClassScheduleId = Number(otherSchedRes.rows[0].id);
     }
-    scheduleId = Number(scheduleRes.rows[0].id);
 
     // Use existing seed admin akademik
     const seedAdminRes = await pgPool.query(
@@ -102,17 +142,25 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
         createdSubstituteIds,
       ]);
     }
+    if (scheduleId) {
+      await pgPool.query(`DELETE FROM schedules WHERE id = $1`, [scheduleId]);
+    }
+    if (scheduleId2) {
+      await pgPool.query(`DELETE FROM schedules WHERE id = $1`, [scheduleId2]);
+    }
+    if (scheduleId3) {
+      await pgPool.query(`DELETE FROM schedules WHERE id = $1`, [scheduleId3]);
+    }
+    if (otherClassScheduleId) {
+      await pgPool.query(`DELETE FROM schedules WHERE id = $1`, [otherClassScheduleId]);
+    }
     await pgPool.end();
   }, 30000);
 
   it('POST /substitute — dosen ajukan substitute untuk kelas sendiri → 201', async () => {
-    // Use a different schedule to avoid conflicts
-    const otherScheduleRes = await pgPool.query(
-      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1`,
-      [dosenUserId, scheduleId],
-    );
-    const testScheduleId =
-      otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    // Pakai schedule pertama (milik kelas dosen ini) — test ini berjalan pertama,
+    // jadi scheduleId belum punya substitute aktif
+    const testScheduleId = scheduleId;
     const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [
       testScheduleId,
     ]);
@@ -145,13 +193,8 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   });
 
   it('POST /substitute — admin ajukan substitute untuk kelas dosen lain → 201', async () => {
-    // Use a different schedule (second one)
-    const otherScheduleRes = await pgPool.query(
-      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1 OFFSET 1`,
-      [dosenUserId, scheduleId],
-    );
-    const testScheduleId =
-      otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    // Pakai schedule kedua yang dibuat di beforeAll (self-sufficient)
+    const testScheduleId = scheduleId2;
     const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [
       testScheduleId,
     ]);
@@ -194,41 +237,48 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   });
 
   it('POST /substitute — dosen bukan pengajar kelas → 400', async () => {
-    // Cari dosen lain yang BUKAN pengajar classId
-    const otherDosenRes = await pgPool.query(
-      `SELECT l.id FROM lecturers l
-       JOIN classes c ON c.lecturer_id = l.user_id
-       WHERE l.id != $1 AND c.id = $2
-       LIMIT 1`,
-      [dosenLecturerId, classId],
+    // Buat dosen ghost (user + lecturer) yang TIDAK mengajar classId —
+    // self-sufficient: seed kini mengisi 1 dosen per kelas, jadi tak ada
+    // dosen lain yang mengajar kelas yang sama
+    const ghostEmail = `ghost-dosen-${Date.now()}@siak.test`;
+    const ghostUserRes = await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+       VALUES ($1, $2, 'Ghost Dosen Other Class', (SELECT id FROM roles WHERE code = 'dosen'), true)
+       RETURNING id`,
+      [ghostEmail, 'test-password-hash'],
     );
+    const ghostUserId = Number(ghostUserRes.rows[0].id);
+    const ghostLecturerRes = await pgPool.query(
+      `INSERT INTO lecturers (user_id, nidn, prodi_id, is_active)
+       VALUES ($1, 'GHOST_NIDN_OTHER', 1, true)
+       RETURNING id`,
+      [ghostUserId],
+    );
+    const ghostLecturerId = Number(ghostLecturerRes.rows[0].id);
 
-    if (otherDosenRes.rows.length > 0) {
-      const otherLecturerId = Number(otherDosenRes.rows[0].id);
-      const res = await request(app)
-        .post('/api/v1/substitute')
-        .set('Authorization', `Bearer ${dosenToken}`)
-        .send({
-          originalLecturerId: otherLecturerId,
-          substituteLecturerId: dosen2LecturerId,
-          classId,
-          scheduleId,
-          reason: 'Test',
-        });
+    const res = await request(app)
+      .post('/api/v1/substitute')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({
+        originalLecturerId: ghostLecturerId,
+        substituteLecturerId: dosen2LecturerId,
+        classId,
+        scheduleId,
+        reason: 'Test',
+      });
 
-      expect(res.status).toBe(400);
-      expect(res.body.error).toContain('Dosen yang diganti bukan pengajar kelas ini');
-    }
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Dosen yang diganti bukan pengajar kelas ini');
+
+    // Cleanup
+    await pgPool.query(`DELETE FROM lecturers WHERE id = $1`, [ghostLecturerId]);
+    await pgPool.query(`DELETE FROM users WHERE id = $1`, [ghostUserId]);
   });
 
   it('POST /substitute — schedule bukan milik kelas → 400', async () => {
-    // Cari schedule lain
-    const otherScheduleRes = await pgPool.query(
-      `SELECT s.id FROM schedules s WHERE s.class_id != $1 LIMIT 1`,
-      [classId],
-    );
-    if (otherScheduleRes.rows.length > 0) {
-      const otherScheduleId = Number(otherScheduleRes.rows[0].id);
+    // Pakai schedule dari kelas lain (dibuat di beforeAll)
+    if (otherClassScheduleId) {
+      const otherScheduleId = otherClassScheduleId;
       const res = await request(app)
         .post('/api/v1/substitute')
         .set('Authorization', `Bearer ${dosenToken}`)
@@ -246,11 +296,20 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   });
 
   it('POST /substitute — substitute lecturer tidak aktif → 400', async () => {
-    // Create an inactive lecturer
+    // Create an inactive lecturer (buat user dosen baru dulu — seed kini mengisi
+    // profil lecturer untuk SEMUA user dosen, jadi tak ada user dosen tanpa lecturer)
+    const inactiveUserRes = await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+       VALUES ($1, $2, 'Inactive Dosen Test', (SELECT id FROM roles WHERE code = 'dosen'), true)
+       RETURNING id`,
+      [`inactive-dosen-${Date.now()}@siak.test`, 'test-password-hash'],
+    );
+    const inactiveUserId = Number(inactiveUserRes.rows[0].id);
     const inactiveRes = await pgPool.query(
       `INSERT INTO lecturers (user_id, nidn, prodi_id, is_active)
-       VALUES ((SELECT id FROM users WHERE role_id = (SELECT id FROM roles WHERE code = 'dosen') AND id NOT IN (SELECT user_id FROM lecturers) LIMIT 1), 'INACTIVE_TEST', 1, false)
+       VALUES ($1, 'INACTIVE_TEST', 1, false)
        RETURNING id`,
+      [inactiveUserId],
     );
     if (inactiveRes.rows.length > 0) {
       const inactiveLecturerId = Number(inactiveRes.rows[0].id);
@@ -270,17 +329,13 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
 
       // Cleanup
       await pgPool.query(`DELETE FROM lecturers WHERE id = $1`, [inactiveLecturerId]);
+      await pgPool.query(`DELETE FROM users WHERE id = $1`, [inactiveUserId]);
     }
   });
 
   it('POST /substitute — duplicate active substitute untuk schedule sama → 409', async () => {
-    // Use a different schedule
-    const otherScheduleRes = await pgPool.query(
-      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1`,
-      [dosenUserId, scheduleId],
-    );
-    const testScheduleId =
-      otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    // Pakai schedule kedua (sudah punya substitute aktif dari test admin)
+    const testScheduleId = scheduleId2;
     const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [
       testScheduleId,
     ]);
@@ -359,6 +414,47 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     }
   });
 
+  it('GET /substitute?class_id & schedule_id — filter by class & schedule → 200', async () => {
+    const res = await request(app)
+      .get(`/api/v1/substitute?class_id=${classId}&schedule_id=${scheduleId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    for (const item of res.body.data.items) {
+      expect(Number(item.class_id)).toBe(classId);
+      expect(Number(item.schedule_id)).toBe(scheduleId);
+    }
+  });
+
+  it('GET /substitute — dosen tanpa lecturerId → 403', async () => {
+    // Buat user dosen tanpa profil lecturer (self-sufficient)
+    const ghostEmail = `ghost-dosen-${Date.now()}@siak.test`;
+    const ghostUserRes = await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+       VALUES ($1, $2, 'Ghost Dosen No Lecturer', (SELECT id FROM roles WHERE code = 'dosen'), true)
+       RETURNING id`,
+      [ghostEmail, 'test-password-hash'],
+    );
+    const ghostUserId = Number(ghostUserRes.rows[0].id);
+    await pgPool.query(`UPDATE users SET password_hash = $2 WHERE id = $1`, [
+      ghostUserId,
+      '$2b$12$fyQeFJg/KUQch2k9qB1iv.y/Z5wmz9rmKWSGBbsJiyYi2lIZq.ZZm',
+    ]);
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: ghostEmail, password: 'Dosen123!' });
+    if (loginRes.body.data?.accessToken) {
+      const res = await request(app)
+        .get('/api/v1/substitute')
+        .set('Authorization', `Bearer ${loginRes.body.data.accessToken}`);
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+    }
+    // Cleanup
+    await pgPool.query(`DELETE FROM users WHERE id = $1`, [ghostUserId]);
+  });
+
   it('GET /substitute/:id — dosen lihat detail substitute miliknya → 200', async () => {
     const substituteId = createdSubstituteIds[0];
     const res = await request(app)
@@ -383,28 +479,36 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   });
 
   it('GET /substitute/:id — dosen tanpa lecturerId → 403', async () => {
-    // Find user with dosen role but no lecturer profile
-    const noLecturerUserRes = await pgPool.query(
-      `SELECT u.id, u.email FROM users u
-       JOIN roles r ON r.id = u.role_id
-       LEFT JOIN lecturers l ON l.user_id = u.id
-       WHERE r.code = 'dosen' AND u.is_active AND l.id IS NULL
-       LIMIT 1`,
+    // Buat user dosen tanpa profil lecturer sendiri (self-sufficient — seed kini
+    // mengisi profil lecturer untuk semua user dosen, tak ada yang kosong)
+    const ghostEmail = `ghost-dosen-${Date.now()}@siak.test`;
+    const ghostUserRes = await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+       VALUES ($1, $2, 'Ghost Dosen No Lecturer', (SELECT id FROM roles WHERE code = 'dosen'), true)
+       RETURNING id`,
+      [ghostEmail, 'test-password-hash'],
     );
-    if (noLecturerUserRes.rows.length > 0) {
-      const loginRes = await request(app)
-        .post('/api/v1/auth/login')
-        .send({ email: noLecturerUserRes.rows[0].email, password: 'Dosen123!' });
-      if (loginRes.body.data?.accessToken) {
-        const noLecturerToken = loginRes.body.data.accessToken;
-        const substituteId = createdSubstituteIds[0];
-        const res = await request(app)
-          .get(`/api/v1/substitute/${substituteId}`)
-          .set('Authorization', `Bearer ${noLecturerToken}`);
-        expect(res.status).toBe(403);
-        expect(res.body.error).toContain('Akun bukan dosen aktif');
-      }
+    const ghostUserId = Number(ghostUserRes.rows[0].id);
+    // login butuh bcrypt hash; pakai hash seed 'Dosen123!' yang sudah dikenal (V009)
+    await pgPool.query(`UPDATE users SET password_hash = $2 WHERE id = $1`, [
+      ghostUserId,
+      '$2b$12$fyQeFJg/KUQch2k9qB1iv.y/Z5wmz9rmKWSGBbsJiyYi2lIZq.ZZm',
+    ]);
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: ghostEmail, password: 'Dosen123!' });
+    if (loginRes.body.data?.accessToken) {
+      const noLecturerToken = loginRes.body.data.accessToken;
+      const substituteId = createdSubstituteIds[0];
+      const res = await request(app)
+        .get(`/api/v1/substitute/${substituteId}`)
+        .set('Authorization', `Bearer ${noLecturerToken}`);
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+      expect(res.body.error.message).toContain('Akun bukan dosen aktif');
     }
+    // Cleanup
+    await pgPool.query(`DELETE FROM users WHERE id = $1`, [ghostUserId]);
   });
 
   it('GET /substitute/:id — tidak ada → 404', async () => {
@@ -472,29 +576,37 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   });
 
   it('PUT /substitute/:id/cancel — dosen tanpa lecturerId → 403', async () => {
-    // Find user with dosen role but no lecturer profile
-    const noLecturerUserRes = await pgPool.query(
-      `SELECT u.id, u.email FROM users u
-       JOIN roles r ON r.id = u.role_id
-       LEFT JOIN lecturers l ON l.user_id = u.id
-       WHERE r.code = 'dosen' AND u.is_active AND l.id IS NULL
-       LIMIT 1`,
+    // Buat user dosen tanpa profil lecturer sendiri (self-sufficient — seed kini
+    // mengisi profil lecturer untuk semua user dosen, tak ada yang kosong)
+    const ghostEmail = `ghost-dosen-${Date.now()}@siak.test`;
+    const ghostUserRes = await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+       VALUES ($1, $2, 'Ghost Dosen No Lecturer', (SELECT id FROM roles WHERE code = 'dosen'), true)
+       RETURNING id`,
+      [ghostEmail, 'test-password-hash'],
     );
-    if (noLecturerUserRes.rows.length > 0) {
-      const loginRes = await request(app)
-        .post('/api/v1/auth/login')
-        .send({ email: noLecturerUserRes.rows[0].email, password: 'Dosen123!' });
-      if (loginRes.body.data?.accessToken) {
-        const noLecturerToken = loginRes.body.data.accessToken;
-        const substituteId = createdSubstituteIds[0];
-        const res = await request(app)
-          .put(`/api/v1/substitute/${substituteId}/cancel`)
-          .set('Authorization', `Bearer ${noLecturerToken}`)
-          .send({ reason: 'Test' });
-        expect(res.status).toBe(403);
-        expect(res.body.error).toContain('Akun bukan dosen aktif');
-      }
+    const ghostUserId = Number(ghostUserRes.rows[0].id);
+    // login butuh bcrypt hash; pakai hash seed 'Dosen123!' yang sudah dikenal (V009)
+    await pgPool.query(`UPDATE users SET password_hash = $2 WHERE id = $1`, [
+      ghostUserId,
+      '$2b$12$fyQeFJg/KUQch2k9qB1iv.y/Z5wmz9rmKWSGBbsJiyYi2lIZq.ZZm',
+    ]);
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: ghostEmail, password: 'Dosen123!' });
+    if (loginRes.body.data?.accessToken) {
+      const noLecturerToken = loginRes.body.data.accessToken;
+      const substituteId = createdSubstituteIds[0];
+      const res = await request(app)
+        .put(`/api/v1/substitute/${substituteId}/cancel`)
+        .set('Authorization', `Bearer ${noLecturerToken}`)
+        .send({ reason: 'Test' });
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+      expect(res.body.error.message).toContain('Akun bukan dosen aktif');
     }
+    // Cleanup
+    await pgPool.query(`DELETE FROM users WHERE id = $1`, [ghostUserId]);
   });
 
   it('PUT /substitute/:id/cancel — id invalid → 400', async () => {
@@ -530,13 +642,9 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   });
 
   it('PUT /substitute/:id/cancel — sudah cancelled → 400', async () => {
-    // Create a substitute and cancel it first, then try to cancel again — use schedule 52 (different from first test's 37)
-    const otherScheduleRes = await pgPool.query(
-      `SELECT s.id FROM schedules s JOIN classes c ON c.id = s.class_id WHERE c.lecturer_id = $1 AND s.id != $2 LIMIT 1`,
-      [dosenUserId, scheduleId],
-    );
-    const testScheduleId =
-      otherScheduleRes.rows.length > 0 ? Number(otherScheduleRes.rows[0].id) : scheduleId;
+    // Create a substitute and cancel it first, then try to cancel again —
+    // pakai schedule ketiga (kelas dosen ini, belum punya substitute aktif)
+    const testScheduleId = scheduleId3;
     const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [
       testScheduleId,
     ]);
