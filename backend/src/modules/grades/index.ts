@@ -18,16 +18,18 @@ const gradeInputSchema = z.object({
   tugasScore: z.number().min(0).max(100).nullable().optional(),
   utsScore: z.number().min(0).max(100).nullable().optional(),
   uasScore: z.number().min(0).max(100).nullable().optional(),
-  isRemedial: z.boolean().optional(),
-  remedialScore: z.number().min(0).max(100).nullable().optional(),
+  remedialTugasScore: z.number().min(0).max(100).nullable().optional(),
+  remedialUtsScore: z.number().min(0).max(100).nullable().optional(),
+  remedialUasScore: z.number().min(0).max(100).nullable().optional(),
 });
 
 const gradeEditSchema = z.object({
   tugasScore: z.number().min(0).max(100).nullable().optional(),
   utsScore: z.number().min(0).max(100).nullable().optional(),
   uasScore: z.number().min(0).max(100).nullable().optional(),
-  isRemedial: z.boolean().optional(),
-  remedialScore: z.number().min(0).max(100).nullable().optional(),
+  remedialTugasScore: z.number().min(0).max(100).nullable().optional(),
+  remedialUtsScore: z.number().min(0).max(100).nullable().optional(),
+  remedialUasScore: z.number().min(0).max(100).nullable().optional(),
 });
 
 const queryParamsSchema = z.object({
@@ -39,34 +41,22 @@ const queryParamsSchema = z.object({
 
 /**
  * Hitung nilai akhir (bobot: tugas 20%, UTS 30%, UAS 50%).
- * Jika isRemedial=true, ambil max(komponen_asli, remedialScore) per komponen.
- * RemedialScore adalah skor tunggal yang menggantikan komponen terendah?
- * Per DL-12: "remedial per komponen, ambil max". Artinya remedial per komponen.
- * Kita simpan remedialScore sebagai objek? Tapi schema hanya punya 1 remedialScore.
- * Interpretasi: remedialScore adalah nilai pengganti untuk komponen yang diremedial.
- * Untuk simplicitas: jika isRemedial, gunakan remedialScore untuk komponen yang diremedial.
- * Tapi spec tidak jelas komponen mana. Asumsi: remedial menggantikan UAS (komponen terbesar).
- * Atau: remedialScore digunakan untuk UAS, tugas/UTS tetap asli.
- * Better: simpan remedial per komponen di kolom terpisah? Tapi migration sudah fixed.
- * Workaround: gunakan remedialScore sebagai nilai UAS remedial, tugas/UTS pakai asli.
+ * Jika ada remedial per komponen, ambil max(komponen_asli, remedial_komponen) per komponen.
+ * Per DL-12 / docs/00: "remedial per komponen, ambil nilai tertinggi"
  */
 function calculateFinalScore(
   tugas: number | null,
   uts: number | null,
   uas: number | null,
-  isRemedial: boolean,
-  remedialScore: number | null,
+  remedialTugas: number | null,
+  remedialUts: number | null,
+  remedialUas: number | null,
 ): number | null {
   if (tugas === null && uts === null && uas === null) return null;
 
-  const t = tugas ?? 0;
-  const u = uts ?? 0;
-  let a = uas ?? 0;
-
-  if (isRemedial && remedialScore !== null) {
-    // Remedial menggantikan UAS (komponen 50%)
-    a = Math.max(a, remedialScore);
-  }
+  const t = tugas !== null ? Math.max(tugas, remedialTugas ?? tugas) : 0;
+  const u = uts !== null ? Math.max(uts, remedialUts ?? uts) : 0;
+  const a = uas !== null ? Math.max(uas, remedialUas ?? uas) : 0;
 
   const final = Math.round((t * 0.2 + u * 0.3 + a * 0.5) * 100) / 100;
   return Math.min(100, Math.max(0, final));
@@ -150,8 +140,9 @@ export function createGradesRouter(): Router {
           finalScore: r.final_score ? Number(r.final_score) : null,
           gradeLetter: r.grade_letter,
           gradePoint: r.grade_point ? Number(r.grade_point) : null,
-          isRemedial: r.is_remedial,
-          remedialScore: r.remedial_score ? Number(r.remedial_score) : null,
+          remedialTugasScore: r.remedial_tugas_score ? Number(r.remedial_tugas_score) : null,
+          remedialUtsScore: r.remedial_uts_score ? Number(r.remedial_uts_score) : null,
+          remedialUasScore: r.remedial_uas_score ? Number(r.remedial_uas_score) : null,
           inputBy: Number(r.input_by),
           inputAt: r.input_at,
           updatedBy: r.updated_by ? Number(r.updated_by) : null,
@@ -252,8 +243,9 @@ export function createGradesRouter(): Router {
           finalScore: r.final_score ? Number(r.final_score) : null,
           gradeLetter: r.grade_letter,
           gradePoint: r.grade_point ? Number(r.grade_point) : null,
-          isRemedial: r.is_remedial,
-          remedialScore: r.remedial_score ? Number(r.remedial_score) : null,
+          remedialTugasScore: r.remedial_tugas_score ? Number(r.remedial_tugas_score) : null,
+          remedialUtsScore: r.remedial_uts_score ? Number(r.remedial_uts_score) : null,
+          remedialUasScore: r.remedial_uas_score ? Number(r.remedial_uas_score) : null,
           inputBy: Number(r.input_by),
           inputAt: r.input_at,
           updatedBy: r.updated_by ? Number(r.updated_by) : null,
@@ -282,7 +274,14 @@ export function createGradesRouter(): Router {
             fields: parsed.error.flatten().fieldErrors,
           });
         }
-        const { tugasScore, utsScore, uasScore, isRemedial, remedialScore } = parsed.data;
+        const {
+          tugasScore,
+          utsScore,
+          uasScore,
+          remedialTugasScore,
+          remedialUtsScore,
+          remedialUasScore,
+        } = parsed.data;
 
         // Need krs_item_id in body
         const { krsItemId } = req.body as { krsItemId?: number };
@@ -322,15 +321,16 @@ export function createGradesRouter(): Router {
           tugasScore ?? null,
           utsScore ?? null,
           uasScore ?? null,
-          isRemedial ?? false,
-          remedialScore ?? null,
+          remedialTugasScore ?? null,
+          remedialUtsScore ?? null,
+          remedialUasScore ?? null,
         );
         const { letter, point } =
           finalScore !== null ? scoreToGrade(finalScore) : { letter: '', point: 0 };
 
         const result = await pgPool.query(
-          `INSERT INTO grades (krs_item_id, tugas_score, uts_score, uas_score, final_score, grade_letter, grade_point, is_remedial, remedial_score, input_by)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          `INSERT INTO grades (krs_item_id, tugas_score, uts_score, uas_score, final_score, grade_letter, grade_point, remedial_tugas_score, remedial_uts_score, remedial_uas_score, input_by)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING *`,
           [
             krsItemId,
@@ -340,8 +340,9 @@ export function createGradesRouter(): Router {
             finalScore,
             finalScore !== null ? letter : null,
             finalScore !== null ? point : null,
-            isRemedial ?? false,
-            remedialScore ?? null,
+            remedialTugasScore ?? null,
+            remedialUtsScore ?? null,
+            remedialUasScore ?? null,
             req.user!.id,
           ],
         );
@@ -358,7 +359,9 @@ export function createGradesRouter(): Router {
             uasScore: uasScore ?? null,
             finalScore,
             gradeLetter: finalScore !== null ? letter : null,
-            isRemedial: isRemedial ?? false,
+            remedialTugasScore: remedialTugasScore ?? null,
+            remedialUtsScore: remedialUtsScore ?? null,
+            remedialUasScore: remedialUasScore ?? null,
           },
         });
 
@@ -391,7 +394,14 @@ export function createGradesRouter(): Router {
             fields: parsed.error.flatten().fieldErrors,
           });
         }
-        const { tugasScore, utsScore, uasScore, isRemedial, remedialScore } = parsed.data;
+        const {
+          tugasScore,
+          utsScore,
+          uasScore,
+          remedialTugasScore,
+          remedialUtsScore,
+          remedialUasScore,
+        } = parsed.data;
 
         // Get current grade (+ student_id for cache invalidation)
         const current = await pgPool.query(
@@ -420,8 +430,12 @@ export function createGradesRouter(): Router {
           tugasScore ?? (grade.tugas_score !== null ? Number(grade.tugas_score) : null),
           utsScore ?? (grade.uts_score !== null ? Number(grade.uts_score) : null),
           uasScore ?? (grade.uas_score !== null ? Number(grade.uas_score) : null),
-          isRemedial ?? grade.is_remedial,
-          remedialScore ?? (grade.remedial_score !== null ? Number(grade.remedial_score) : null),
+          remedialTugasScore ??
+            (grade.remedial_tugas_score !== null ? Number(grade.remedial_tugas_score) : null),
+          remedialUtsScore ??
+            (grade.remedial_uts_score !== null ? Number(grade.remedial_uts_score) : null),
+          remedialUasScore ??
+            (grade.remedial_uas_score !== null ? Number(grade.remedial_uas_score) : null),
         );
         const { letter, point } =
           finalScore !== null ? scoreToGrade(finalScore) : { letter: '', point: 0 };
@@ -435,9 +449,10 @@ export function createGradesRouter(): Router {
                final_score = $5,
                grade_letter = $6,
                grade_point = $7,
-               is_remedial = COALESCE($8, is_remedial),
-               remedial_score = COALESCE($9, remedial_score),
-               updated_by = $10,
+               remedial_tugas_score = COALESCE($8, remedial_tugas_score),
+               remedial_uts_score = COALESCE($9, remedial_uts_score),
+               remedial_uas_score = COALESCE($10, remedial_uas_score),
+               updated_by = $11,
                updated_at = now()
            WHERE id = $1
            RETURNING *`,
@@ -449,8 +464,9 @@ export function createGradesRouter(): Router {
             finalScore,
             finalScore !== null ? letter : null,
             finalScore !== null ? point : null,
-            isRemedial ?? null,
-            remedialScore ?? null,
+            remedialTugasScore ?? null,
+            remedialUtsScore ?? null,
+            remedialUasScore ?? null,
             req.user!.id,
           ],
         );
@@ -466,6 +482,9 @@ export function createGradesRouter(): Router {
             uasScore: grade.uas_score,
             finalScore: grade.final_score,
             gradeLetter: grade.grade_letter,
+            remedialTugasScore: grade.remedial_tugas_score,
+            remedialUtsScore: grade.remedial_uts_score,
+            remedialUasScore: grade.remedial_uas_score,
             updatedBy: grade.updated_by,
           },
           newValues: {
@@ -474,6 +493,9 @@ export function createGradesRouter(): Router {
             uasScore: uasScore ?? null,
             finalScore,
             gradeLetter: finalScore !== null ? letter : null,
+            remedialTugasScore: remedialTugasScore ?? null,
+            remedialUtsScore: remedialUtsScore ?? null,
+            remedialUasScore: remedialUasScore ?? null,
             updatedBy: req.user!.id,
           },
         });

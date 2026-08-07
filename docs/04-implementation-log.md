@@ -1256,3 +1256,40 @@ RBAC: `substitute.manage` di policy.ts (baris 37, 77, 92, 124) untuk `admin_akad
 - Backend: **substitute 21/21 PASS**; **full backend 23/23 suites, 578/578 PASS**
 - Typecheck / lint / build / format:check HIJAU
 - Frontend CI gates: lint / typecheck / build / format:check HIJAU (bundle 90.42 kB gzip — NF-02 <200 kB)
+
+---
+
+## 39. T3.6 — Nilai Detail (F-06a, F-10) (2026-08-06)
+
+**Status**: ✅ SELESAI (menunggu commit manual — F-31)
+**Tanggal**: 2026-08-06
+**PRD Ref**: F-06a, F-10
+
+### Migration
+- `V20260806_017__grades_remedial_per_component.sql` — tambah kolom `remedial_tugas_score`, `remedial_uts_score`, `remedial_uas_score` ke tabel `grades`
+- Migrasi data existing: `remedial_score` (UAS lama) → `remedial_uas_score`
+
+### Backend Module (`backend/src/modules/grades/index.ts`)
+
+- **POST /api/v1/grades** — input nilai dengan remedial per komponen:
+  - Body: `krsItemId`, `tugasScore`, `utsScore`, `uasScore`, `remedialTugasScore`, `remedialUtsScore`, `remedialUasScore`
+  - Final score = max(tugas, remedialTugas)*0.2 + max(uts, remedialUts)*0.3 + max(uas, remedialUas)*0.5
+  - Skala A=4.0, A-=3.7, B+=3.3, B=3.0, B-=2.7, C+=2.3, C=2.0, D=1.0, E=0.0
+  - RBAC: `grade.input` (Dosen pengampu, Admin Akademik/Sistem)
+- **PUT /api/v1/grades/:id** — edit nilai + atribusi `updated_by`:
+  - Admin Akademik/Sistem edit semua; Dosen hanya kelas sendiri
+  - Audit trail old/new JSONB + atribusi "diperbarui oleh X"
+  - RBAC: `grade.edit` (Admin Akademik, Admin Sistem, Dosen pengampu)
+- **GET /api/v1/grades/class/:classId** — daftar nilai kelas (Dosen pengampu, Admin)
+- **GET /api/v1/grades/student/:studentId** — transkrip mahasiswa (Mahasiswa sendiri, Dosen Wali, Admin)
+
+### Test
+
+- `backend/src/modules/grades/grades.test.ts` — **37 test**: input nilai dosen/admin, remedial per komponen, edit nilai + atribusi, validasi skala, GET class/student, RBAC 403/404/409
+- Coverage modul: **stmts 91.44% / branch 80.18% / funcs 91.25% / lines 92.02%**
+
+### Test & Verifikasi
+
+- Backend: **grades 37/37 PASS**; **full backend 23/23 suites, 578/578 PASS**
+- Global branch coverage **80.18%** (≥80% threshold)
+- Typecheck / lint / build / format:check HIJAU

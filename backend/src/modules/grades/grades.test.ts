@@ -177,16 +177,14 @@ describe('Grades module (T1.8)', () => {
           tugasScore: 70,
           utsScore: 65,
           uasScore: 60,
-          isRemedial: true,
-          remedialScore: 80,
+          remedialUasScore: 80,
         });
       expect(res.status).toBe(201);
       // 70*0.2 + 65*0.3 + max(60,80)*0.5 = 14 + 19.5 + 40 = 73.5 → B
       expect(res.body.data.final_score).toBe('73.50');
       expect(res.body.data.grade_letter).toBe('B');
       expect(res.body.data.grade_point).toBe('3.00');
-      expect(res.body.data.is_remedial).toBe(true);
-      expect(res.body.data.remedial_score).toBe('80.00');
+      expect(res.body.data.remedial_uas_score).toBe('80.00');
     });
 
     it('Admin Akademik input nilai untuk kelas mana pun → 201', async () => {

@@ -6,6 +6,7 @@ import { AdminKrsPage } from './pages/AdminKrsPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { DosenDashboardPage } from './pages/DosenDashboardPage';
 import { FinancePaymentsPage } from './pages/FinancePaymentsPage';
 import { KrsPage } from './pages/KrsPage';
 import { LoginPage } from './pages/LoginPage';
@@ -21,6 +22,13 @@ function KrsRoute() {
   const { user } = useAuth();
   if (!user) return null;
   return user.menu.includes('krs.fill') ? <KrsPage /> : <AdminKrsPage />;
+}
+
+/** Dashboard sesuai peran: dosen → DosenDashboardPage; lainnya → DashboardPage. */
+function DashboardRoute() {
+  const { user } = useAuth();
+  if (!user) return null;
+  return user.role === 'dosen' ? <DosenDashboardPage /> : <DashboardPage />;
 }
 
 /**
@@ -53,7 +61,7 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AppLayout>
-                <DashboardPage />
+                <DashboardRoute />
               </AppLayout>
             </ProtectedRoute>
           }
