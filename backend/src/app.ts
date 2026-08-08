@@ -27,6 +27,7 @@ import {
 } from './modules/waiting-room';
 import { createWaitingRoomRouter } from './modules/waiting-room/waiting-room.routes';
 import { createWaitingRoomMiddleware } from './modules/waiting-room/waiting-room.middleware';
+import { metricsMiddleware, metricsHandler } from './lib/metrics';
 
 /**
  * Options untuk createApp — injeksi dependensi (healthDeps untuk health check,
@@ -57,6 +58,10 @@ export function createApp(healthDeps: HealthDependencies = {}, options: AppOptio
   );
   app.use(express.json({ limit: '1mb' }));
   app.use(pinoHttp({ autoLogging: false }));
+
+  // Prometheus metrics
+  app.use(metricsMiddleware);
+  app.get('/metrics', metricsHandler);
 
   // Waiting room service: default nyata di luar test; test bypass kecuali diinjeksi.
   const waitingRoom: WaitingRoomService | null =

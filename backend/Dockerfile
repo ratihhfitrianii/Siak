@@ -9,6 +9,7 @@ COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 COPY migrations ./migrations
 COPY database.json ./
+COPY src/modules/waiting-room/waiting-room.lua ./src/modules/waiting-room/
 RUN npm run build
 
 # ---- Stage 2: migrate runner (includes devDependencies) ----
@@ -33,6 +34,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/src/modules/waiting-room/waiting-room.lua ./dist/modules/waiting-room/
 
 EXPOSE 3000
 USER node

@@ -1,0 +1,118 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"tooltip": false, "viz": false, "legend": false}, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "rate(siak_krs_submissions_total{status=\"success\"}[1m])", "legendFormat": "Success", "refId": "A" },
+        { "expr": "rate(siak_krs_submissions_total{status=\"failed\"}[1m])", "legendFormat": "Failed", "refId": "B" },
+        { "expr": "rate(siak_krs_submissions_total{status=\"class_full\"}[1m])", "legendFormat": "Class Full", "refId": "C" }
+      ],
+      "title": "KRS Submissions Rate (req/s)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 100}, {"color": "red", "value": 500}] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": { "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "sum(rate(siak_krs_submissions_total[5m])) by (status)", "legendFormat": "{{status}}", "refId": "A" }
+      ],
+      "title": "KRS Submissions Total (5m window)",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"tooltip": false, "viz": false, "legend": false}, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "options": { "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"} },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "sum(rate(siak_http_requests_total{route=\"/api/v1/krs/period\"}[1m])) by (status_code)", "legendFormat": "GET /period {{status_code}}", "refId": "A" },
+        { "expr": "sum(rate(siak_http_requests_total{route=\"/api/v1/krs/available-classes\"}[1m])) by (status_code)", "legendFormat": "GET /available-classes {{status_code}}", "refId": "B" },
+        { "expr": "sum(rate(siak_http_requests_total{route=\"/api/v1/krs/draft\"}[1m])) by (status_code)", "legendFormat": "POST /draft {{status_code}}", "refId": "C" },
+        { "expr": "sum(rate(siak_http_requests_total{route=\"/api/v1/krs/submit\"}[1m])) by (status_code)", "legendFormat": "POST /submit {{status_code}}", "refId": "D" }
+      ],
+      "title": "KRS Endpoint Status Codes Rate (req/s)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"tooltip": false, "viz": false, "legend": false}, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "options": { "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"} },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum(rate(siak_http_request_duration_seconds_bucket{route=~\"/api/v1/krs/.*\"}[5m])) by (le))", "legendFormat": "p99", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(siak_http_request_duration_seconds_bucket{route=~\"/api/v1/krs/.*\"}[5m])) by (le))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.50, sum(rate(siak_http_request_duration_seconds_bucket{route=~\"/api/v1/krs/.*\"}[5m])) by (le))", "legendFormat": "p50 (median)", "refId": "C" }
+      ],
+      "title": "KRS Endpoint Latency (p50/p95/p99)",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["siak", "krs"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Siak - KRS Dashboard",
+  "uid": "siak-krs",
+  "version": 1,
+  "weekStart": ""
+}

@@ -1,0 +1,116 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"tooltip": false, "viz": false, "legend": false}, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "options": { "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"} },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "sum(rate(siak_pddikti_sync_total{status=\"success\"}[1m])) by (entity)", "legendFormat": "Success {{entity}}", "refId": "A" },
+        { "expr": "sum(rate(siak_pddikti_sync_total{status=\"failed\"}[1m])) by (entity)", "legendFormat": "Failed {{entity}}", "refId": "B" },
+        { "expr": "sum(rate(siak_pddikti_sync_total{status=\"skipped\"}[1m])) by (entity)", "legendFormat": "Skipped {{entity}}", "refId": "C" }
+      ],
+      "title": "PDDikti Sync Rate (req/s)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"type": "value", "options": {"success": {"text": "Success", "color": "green"}}, "result": {"color": "green"}},
+            {"type": "value", "options": {"failed": {"text": "Failed", "color": "red"}}, "result": {"color": "red"}},
+            {"type": "value", "options": {"skipped": {"text": "Skipped", "color": "yellow"}}, "result": {"color": "yellow"}}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": { "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "sum(increase(siak_pddikti_sync_total[5m])) by (entity, status)", "legendFormat": "{{entity}} {{status}}", "refId": "A" }
+      ],
+      "title": "PDDikti Sync Total (5m window)",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"tooltip": false, "viz": false, "legend": false}, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "options": { "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"} },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "sum(rate(siak_http_requests_total{route=~\"/api/v1/pddikti/.*\"}[1m])) by (status_code)", "legendFormat": "PDDikti {{status_code}}", "refId": "A" }
+      ],
+      "title": "PDDikti Endpoint Status Codes Rate (req/s)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"tooltip": false, "viz": false, "legend": false}, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "options": { "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"} },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "histogram_quantile(0.99, sum(rate(siak_http_request_duration_seconds_bucket{route=~\"/api/v1/pddikti/.*\"}[5m])) by (le))", "legendFormat": "p99", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(siak_http_request_duration_seconds_bucket{route=~\"/api/v1/pddikti/.*\"}[5m])) by (le))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.50, sum(rate(siak_http_request_duration_seconds_bucket{route=~\"/api/v1/pddikti/.*\"}[5m])) by (le))", "legendFormat": "p50 (median)", "refId": "C" }
+      ],
+      "title": "PDDikti Endpoint Latency (p50/p95/p99)",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["siak", "pddikti", "sync"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Siak - PDDikti Sync Dashboard",
+  "uid": "siak-pddikti",
+  "version": 1,
+  "weekStart": ""
+}

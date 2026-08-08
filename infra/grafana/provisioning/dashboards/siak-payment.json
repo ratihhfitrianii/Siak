@@ -1,0 +1,114 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"tooltip": false, "viz": false, "legend": false}, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "options": { "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"} },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "sum(rate(siak_payment_transactions_total{status=\"success\"}[1m])) by (gateway)", "legendFormat": "Success {{gateway}}", "refId": "A" },
+        { "expr": "sum(rate(siak_payment_transactions_total{status=\"failed\"}[1m])) by (gateway)", "legendFormat": "Failed {{gateway}}", "refId": "B" },
+        { "expr": "sum(rate(siak_payment_transactions_total{status=\"pending\"}[1m])) by (gateway)", "legendFormat": "Pending {{gateway}}", "refId": "C" }
+      ],
+      "title": "Payment Transactions Rate (req/s)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"type": "value", "options": {"success": {"text": "Success", "color": "green"}}, "result": {"color": "green"}},
+            {"type": "value", "options": {"failed": {"text": "Failed", "color": "red"}}, "result": {"color": "red"}},
+            {"type": "value", "options": {"pending": {"text": "Pending", "color": "yellow"}}, "result": {"color": "yellow"}}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": { "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "sum(increase(siak_payment_transactions_total[5m])) by (gateway, status)", "legendFormat": "{{gateway}} {{status}}", "refId": "A" }
+      ],
+      "title": "Payment Transactions Total (5m window)",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"tooltip": false, "viz": false, "legend": false}, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "options": { "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "single"} },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "sum(rate(siak_http_requests_total{route=~\"/api/v1/finance/.*\"}[1m])) by (status_code)", "legendFormat": "Finance {{status_code}}", "refId": "A" }
+      ],
+      "title": "Finance Endpoint Status Codes Rate (req/s)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}, {"color": "red", "value": 200}] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "options": { "orientation": "auto", "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        { "expr": "siak_waiting_room_active_users", "legendFormat": "Active Users", "refId": "A" },
+        { "expr": "siak_waiting_room_queue_size", "legendFormat": "Queue Size", "refId": "B" }
+      ],
+      "title": "Waiting Room During Payment Peak",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["siak", "payment", "finance"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Siak - Payment Dashboard",
+  "uid": "siak-payment",
+  "version": 1,
+  "weekStart": ""
+}
