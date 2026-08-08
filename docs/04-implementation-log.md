@@ -1690,4 +1690,6 @@ Refinement pada Waiting Room MVP (T1.13) untuk produksi:
 | T4.6 | ✅ | Monitoring (Prometheus metrics + 5 Grafana dashboards) |
 | T4.7 | ✅ | Security Audit (node-pg-migrate vuln fix, lint clean, audit 0) |
 
+**Live E2E verification for dosen.TI1 completed** – all endpoints returned expected data and status codes.
+
 **Next**: Iterasi 5 — UX & Polish (T5.1–T5.7): Login andal, error inline, RBAC UI, aksesibilitas, E2E.
