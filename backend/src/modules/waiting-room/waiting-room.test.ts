@@ -111,14 +111,18 @@ class InMemoryRedis implements WaitingRoomRedis {
   ): Promise<unknown> {
     // Parse args: 3 keys + 7 args = userKey, expiry, threshold, now, token, tokenTtl
     const [activeKey, queueKey, tokenPrefix] = keysAndArgs.slice(0, 3) as string[];
-    const [userKey, expiry, threshold, now, token, _tokenTtl] = keysAndArgs.slice(3) as (string | number)[];
-    const tokenStr = String(token ?? '');
+    const [userKeyRaw, expiryRaw, thresholdRaw, nowRaw, tokenRaw, _tokenTtlRaw] = keysAndArgs.slice(3) as (string | number | undefined)[];
+    const userKey = String(userKeyRaw ?? '');
+    const expiry = Number(expiryRaw ?? 0);
+    const threshold = Number(thresholdRaw ?? 0);
+    const now = Number(nowRaw ?? 0);
+    const tokenStr = String(tokenRaw ?? '');
     
     // 1. Clean up expired sessions
     const z = this.zsets.get(activeKey);
-    if (z) {
-      for (const [m, s] of [...z.entries()]) {
-        if (s <= Number(now)) {
+    if (z !== undefined) {
+      for (const [m, s] of z) {
+        if (s <= now) {
           z.delete(m);
         }
       }
@@ -126,14 +130,14 @@ class InMemoryRedis implements WaitingRoomRedis {
 
     // 2. Add user to active set
     const z2 = this.zsets.get(activeKey) ?? new Map<string, number>();
-    z2.set(userKey, Number(expiry));
+    z2.set(userKey, expiry);
     this.zsets.set(activeKey, z2);
 
     // 3. Count active users
     const count = z2.size;
 
     // 4. Check threshold
-    if (count <= Number(threshold)) {
+    if (count <= threshold) {
       return [1];
     }
 
@@ -142,7 +146,7 @@ class InMemoryRedis implements WaitingRoomRedis {
     
     // Store token details
     const tokenKey = tokenPrefix + tokenStr;
-    this.store.set(tokenKey, JSON.stringify({ userKey, createdAt: Number(now) }));
+    this.store.set(tokenKey, JSON.stringify({ userKey, createdAt: now }));
     
     // Add to queue (FIFO)
     const l = this.lists.get(queueKey) ?? [];
