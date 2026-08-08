@@ -7,6 +7,7 @@ process.env.JWT_REFRESH_SECRET ??= 'test-refresh-secret-min-32-chars-long-for-hs
 process.env.BCRYPT_ROUNDS ??= '4';
 
 import request from 'supertest';
+import bcrypt from 'bcrypt';
 import { createApp } from '../../app';
 import { pgPool } from '../../lib/pg';
 
@@ -430,7 +431,7 @@ describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {
     dosenToken = loginRes.body.data.accessToken;
 
     // Dosen tanpa profil lecturer (ghost) — user role dosen TANPA row di lecturers
-    const ghostRes = await pgPool.query(
+    let ghostRes = await pgPool.query(
       `SELECT u.id, u.email FROM users u
        JOIN roles r ON r.id = u.role_id
        WHERE r.code = 'dosen' AND u.is_active
@@ -438,7 +439,17 @@ describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {
        ORDER BY u.id LIMIT 1`,
     );
     if (ghostRes.rows.length === 0) {
-      throw new Error('No ghost dosen available (user role dosen without lecturer profile)');
+      // Buat ghost dosen jika belum ada
+      const roleRes = await pgPool.query(`SELECT id FROM roles WHERE code = 'dosen'`);
+      const roleId = roleRes.rows[0].id;
+      const passHash = await bcrypt.hash('Dosen123!', 12);
+      const newU = await pgPool.query(
+        `INSERT INTO users (role_id, email, password_hash, full_name, is_active, must_change_password)
+         VALUES ($1, 'ghost.dosen@siak.local', $2, 'Ghost Dosen', true, false)
+         RETURNING id, email`,
+        [roleId, passHash],
+      );
+      ghostRes = { rows: [newU.rows[0]] };
     }
     const ghostLogin = await request(app)
       .post('/api/v1/auth/login')
