@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { controlFor } from '../test/controls';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenSchedule } from './DosenSchedule';
-import type { ScheduleItem } from '../lib/types';
+import type { ScheduleAvailability } from '../lib/types';
 
 function jsonResponse(payload: unknown, status = 200) {
   return {
@@ -13,34 +13,44 @@ function jsonResponse(payload: unknown, status = 200) {
   } as Response;
 }
 
-const SCHEDULES: ScheduleItem[] = [
-  {
-    id: 11,
-    classId: 1,
-    classCode: 'TI101-A',
-    courseCode: 'TI101',
-    courseName: 'Dasar-Dasar Pemrograman',
-    dayOfWeek: 1,
-    startTime: '07:30',
-    endTime: '09:00',
-    room: 'R.101',
-    lecturerId: 7,
-  },
-  {
-    id: 12,
-    classId: 1,
-    classCode: 'TI101-A',
-    courseCode: 'TI101',
-    courseName: 'Dasar-Dasar Pemrograman',
-    dayOfWeek: 3,
-    startTime: '10:00',
-    endTime: '11:30',
-    room: 'R.102',
-    lecturerId: 7,
-  },
-];
+const AVAILABILITY: ScheduleAvailability = {
+  date: '2026-08-10',
+  dayOfWeek: 1,
+  busySlots: [
+    {
+      id: 11,
+      meetingNumber: 1,
+      topic: 'Pengenalan',
+      isCompleted: false,
+      classCode: 'TI101-A',
+      courseCode: 'TI101',
+      courseName: 'Dasar-Dasar Pemrograman',
+    },
+    {
+      id: 12,
+      meetingNumber: 2,
+      topic: null,
+      isCompleted: true,
+      classCode: 'TI101-A',
+      courseCode: 'TI101',
+      courseName: 'Dasar-Dasar Pemrograman',
+    },
+  ],
+  availableSlots: [
+    {
+      classId: 1,
+      classCode: 'TI101-A',
+      startTime: '07:30',
+      endTime: '09:00',
+      courseCode: 'TI101',
+      courseName: 'Dasar-Dasar Pemrograman',
+      semesterNumber: 1,
+    },
+  ],
+  isAvailable: false,
+};
 
-describe('DosenSchedule (T3.8)', () => {
+describe('DosenSchedule (T3.8 — view availability)', () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
@@ -52,157 +62,78 @@ describe('DosenSchedule (T3.8)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('render awal — minta pilih kelas', () => {
-    render(<DosenSchedule />);
-    expect(screen.getByText('Input Jadwal Mengajar')).toBeInTheDocument();
-    expect(screen.getByText('Pilih kelas untuk melihat jadwal.')).toBeInTheDocument();
-  });
-
-  it('pilih kelas → load jadwal → render daftar dengan hari Indonesia', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: SCHEDULES } }));
+  it('render awal — header + input tanggal + request availability (default hari ini)', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ data: { ...AVAILABILITY, busySlots: [], availableSlots: [] } }),
+    );
     render(<DosenSchedule />);
 
-    await user.selectOptions(controlFor('Mata Kuliah / Kelas', 'select'), '1');
-    expect((await screen.findAllByText('TI101 - Dasar-Dasar Pemrograman')).length).toBe(2);
-    expect(screen.getByText(/Senin \|/)).toBeInTheDocument();
-    expect(screen.getByText(/Ruang: R\.101/)).toBeInTheDocument();
+    expect(screen.getByText('Jadwal Mengajar')).toBeInTheDocument();
+    expect(controlFor('Tanggal', 'input')).toHaveValue(new Date().toISOString().slice(0, 10));
+    expect(
+      await screen.findByText('Tidak ada jadwal pertemuan pada tanggal ini.'),
+    ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/schedule?classId=1'),
+      expect.stringContaining('/schedule/availability?date='),
       expect.any(Object),
     );
   });
 
-  it('load jadwal gagal → error', async () => {
-    const user = userEvent.setup();
+  it('load availability → render busy slots + available slots', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ data: AVAILABILITY }));
+    render(<DosenSchedule />);
+
+    // Busy slots (jadwal pertemuan)
+    expect(await screen.findByText('Pengenalan')).toBeInTheDocument();
+    expect(screen.getByText('Pertemuan', { selector: 'th' })).toBeInTheDocument();
+    // Status badge Selesai utk pertemuan 2
+    expect(screen.getAllByText('Terjadwal').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Selesai')).toBeInTheDocument();
+    // Available slots
+    expect(screen.getByText('Slot Kosong (belum terjadwal)')).toBeInTheDocument();
+    expect(screen.getAllByText('07:30 – 09:00').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('load availability gagal → error', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'x' } }, 500),
     );
     render(<DosenSchedule />);
-    await user.selectOptions(controlFor('Mata Kuliah / Kelas', 'select'), '1');
-    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat jadwal');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat ketersediaan jadwal');
   });
 
-  it('tombol Simpan Jadwal disabled sampai semua field lengkap', async () => {
+  it('ganti tanggal → request ulang dengan tanggal baru', async () => {
     const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: SCHEDULES } }));
+    fetchMock.mockResolvedValue(
+      jsonResponse({ data: { ...AVAILABILITY, date: '2026-08-11', busySlots: [] } }),
+    );
     render(<DosenSchedule />);
-    await user.selectOptions(controlFor('Mata Kuliah / Kelas', 'select'), '1');
-    await screen.findAllByText('TI101 - Dasar-Dasar Pemrograman');
 
-    const btn = screen.getByRole('button', { name: 'Simpan Jadwal' });
-    expect(btn).toBeDisabled();
+    const dateInput = controlFor('Tanggal', 'input');
+    await user.clear(dateInput);
+    await user.type(dateInput, '2026-08-11');
 
-    // Lengkapi semua field → enabled
-    await user.selectOptions(controlFor('Hari', 'select'), '1');
-    await user.type(controlFor('Ruang', 'input'), 'R.1');
-    await user.type(controlFor('Jam Mulai', 'input'), '08:00');
-    await user.type(controlFor('Jam Selesai', 'input'), '09:30');
-    expect(btn).toBeEnabled();
-  });
-
-  it('submit lengkap → POST /schedule + success + form reset', async () => {
-    const user = userEvent.setup();
-    let postBody: unknown = null;
-    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/schedule')) {
-        postBody = JSON.parse(String(init.body));
-        return Promise.resolve(
-          jsonResponse({
-            success: true,
-            data: {
-              id: 13,
-              classId: 1,
-              classCode: 'TI101-A',
-              courseCode: 'TI101',
-              courseName: 'Dasar-Dasar Pemrograman',
-              dayOfWeek: 5,
-              startTime: '13:00',
-              endTime: '14:30',
-              room: 'R.201',
-              lecturerId: 7,
-            },
-          }),
-        );
-      }
-      return Promise.resolve(jsonResponse({ data: { items: SCHEDULES } }));
-    });
-    render(<DosenSchedule />);
-    await user.selectOptions(controlFor('Mata Kuliah / Kelas', 'select'), '1');
-    await screen.findAllByText('TI101 - Dasar-Dasar Pemrograman');
-
-    await user.selectOptions(controlFor('Hari', 'select'), '5');
-    await user.type(controlFor('Ruang', 'input'), 'R.201');
-    await user.type(controlFor('Jam Mulai', 'input'), '13:00');
-    await user.type(controlFor('Jam Selesai', 'input'), '14:30');
-    await user.click(screen.getByRole('button', { name: 'Simpan Jadwal' }));
-
-    expect(await screen.findByRole('status')).toHaveTextContent('Jadwal berhasil disimpan');
-    expect(postBody).toEqual({
-      classId: 1,
-      dayOfWeek: 5,
-      startTime: '13:00',
-      endTime: '14:30',
-      room: 'R.201',
-    });
-  });
-
-  it('submit CONFLICT → pesan bentrok jadwal', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/schedule')) {
-        return Promise.resolve(
-          jsonResponse({ success: false, error: { code: 'CONFLICT', message: 'bentrok' } }, 409),
-        );
-      }
-      return Promise.resolve(jsonResponse({ data: { items: SCHEDULES } }));
-    });
-    render(<DosenSchedule />);
-    await user.selectOptions(controlFor('Mata Kuliah / Kelas', 'select'), '1');
-    await screen.findAllByText('TI101 - Dasar-Dasar Pemrograman');
-
-    await user.selectOptions(controlFor('Hari', 'select'), '1');
-    await user.type(controlFor('Ruang', 'input'), 'R.1');
-    await user.type(controlFor('Jam Mulai', 'input'), '08:00');
-    await user.type(controlFor('Jam Selesai', 'input'), '09:30');
-    await user.click(screen.getByRole('button', { name: 'Simpan Jadwal' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Jadwal bentrok dengan jadwal yang sudah ada',
+    expect(
+      await screen.findByText('Tidak ada jadwal pertemuan pada tanggal ini.'),
+    ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/schedule/availability?date=2026-08-11'),
+      expect.any(Object),
     );
   });
 
-  it('submit VALIDATION_ERROR → pesan API', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/schedule')) {
-        return Promise.resolve(
-          jsonResponse(
-            { success: false, error: { code: 'VALIDATION_ERROR', message: 'Jam tidak valid' } },
-            400,
-          ),
-        );
-      }
-      return Promise.resolve(jsonResponse({ data: { items: SCHEDULES } }));
-    });
+  it('semua slot terisi → pesan tidak ada slot kosong', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        data: { ...AVAILABILITY, availableSlots: [] },
+      }),
+    );
     render(<DosenSchedule />);
-    await user.selectOptions(controlFor('Mata Kuliah / Kelas', 'select'), '1');
-    await screen.findAllByText('TI101 - Dasar-Dasar Pemrograman');
 
-    await user.selectOptions(controlFor('Hari', 'select'), '2');
-    await user.type(controlFor('Ruang', 'input'), 'R.2');
-    await user.type(controlFor('Jam Mulai', 'input'), '08:00');
-    await user.type(controlFor('Jam Selesai', 'input'), '09:30');
-    await user.click(screen.getByRole('button', { name: 'Simpan Jadwal' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Jam tidak valid');
-  });
-
-  it('kelas tanpa jadwal → pesan kosong', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: [] } }));
-    render(<DosenSchedule />);
-    await user.selectOptions(controlFor('Mata Kuliah / Kelas', 'select'), '2');
-    expect(await screen.findByText('Belum ada jadwal untuk kelas ini.')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Tidak ada slot kosong — seluruh kelas sudah terjadwal pada tanggal ini.',
+      ),
+    ).toBeInTheDocument();
   });
 });

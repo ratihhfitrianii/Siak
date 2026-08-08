@@ -79,13 +79,6 @@ const GRADE_ITEMS: GradeItem[] = [
     inputAt: '2025-01-10T00:00:00Z',
     updatedBy: null,
     updatedAt: null,
-    // T3.6 remedial per komponen
-    remedialTugasScore: null,
-    remedialUtsScore: null,
-    remedialUasScore: null,
-    // Student info
-    nim: '2023110001',
-    studentName: 'Budi Santoso',
   },
   {
     id: 2,
@@ -107,13 +100,6 @@ const GRADE_ITEMS: GradeItem[] = [
     inputAt: '2025-01-10T00:00:00Z',
     updatedBy: null,
     updatedAt: null,
-    // T3.6 remedial per komponen
-    remedialTugasScore: null,
-    remedialUtsScore: null,
-    remedialUasScore: null,
-    // Student info
-    nim: '2023110002',
-    studentName: 'Ani Wijaya',
   },
   {
     id: 3,
@@ -135,13 +121,6 @@ const GRADE_ITEMS: GradeItem[] = [
     inputAt: '2024-07-01T00:00:00Z',
     updatedBy: null,
     updatedAt: null,
-    // T3.6 remedial per komponen
-    remedialTugasScore: null,
-    remedialUtsScore: null,
-    remedialUasScore: null,
-    // Student info
-    nim: '2023110003',
-    studentName: 'Citra Dewi',
   },
 ];
 

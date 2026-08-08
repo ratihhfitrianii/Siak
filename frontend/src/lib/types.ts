@@ -225,9 +225,9 @@ export interface NotificationsResponse {
   items: AppNotification[];
 }
 
-/* ==== T3.8 — Dosen API Types ==== */
+/* ==== T3.8 — Dosen API Types (diselaraskan dengan kontrak backend nyata) ==== */
 
-// Dosen Pilih MK
+// --- Dosen Pilih MK (GET/POST /dosen/courses/*) ---
 export interface LecturerCourseAvailable {
   curriculumId: number;
   courseCode: string;
@@ -285,114 +285,179 @@ export interface MyCourseSelectionsResponse {
   items: MyCourseSelection[];
 }
 
-// Jadwal (Schedule)
-export interface ScheduleItem {
-  id: number;
-  classId: number;
+// --- Jadwal & Ketersediaan (GET /schedule/availability?date=YYYY-MM-DD) ---
+export interface BusySlot {
+  id: number; // schedule id — dipakai create sesi absensi / substitute
+  meetingNumber: number;
+  topic: string | null;
+  isCompleted: boolean;
   classCode: string;
   courseCode: string;
   courseName: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  room: string | null;
-  lecturerId: number | null;
 }
 
-export interface ScheduleResponse {
-  items: ScheduleItem[];
-}
-
-export interface CreateScheduleInput {
+export interface AvailableSlot {
   classId: number;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  room: string;
+  classCode: string;
+  startTime: string | null;
+  endTime: string | null;
+  courseCode: string;
+  courseName: string;
+  semesterNumber: number;
 }
 
-// Absensi
+export interface ScheduleAvailability {
+  date: string;
+  dayOfWeek: number;
+  busySlots: BusySlot[];
+  availableSlots: AvailableSlot[];
+  isAvailable: boolean;
+}
+
+// --- Kelas diampu dosen (GET /dosen/my-classes) ---
+export interface ClassSchedule {
+  id: number;
+  meetingNumber: number;
+  scheduledDate: string;
+  topic: string | null;
+  isCompleted: boolean;
+}
+
+export interface MyClass {
+  id: number;
+  classCode: string;
+  dayOfWeek: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  room: string | null;
+  capacity: number;
+  currentEnrolled: number;
+  curriculumId: number;
+  semesterId: number;
+  semesterNumber: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  schedules: ClassSchedule[];
+}
+
+export interface MyClassesResponse {
+  items: MyClass[];
+}
+
+// --- Daftar dosen (GET /dosen/lecturers) — untuk substitute ---
+export interface LecturerBrief {
+  id: number; // lecturers.id
+  userId: number;
+  nidn: string;
+  fullName: string;
+  email: string;
+  prodiCode: string;
+}
+
+export interface LecturersResponse {
+  items: LecturerBrief[];
+}
+
+// --- Absensi (GET/POST /attendance/sessions, GET /attendance/sessions/:id/records, PUT /attendance/records/:id) ---
+export type AttendanceStatus = 'hadir' | 'tidak_hadir' | 'izin' | 'sakit' | 'belum_absen';
+
 export interface AttendanceSession {
   id: number;
-  classId: number;
+  scheduleId: number;
+  sessionDate: string;
+  topic: string | null;
+  isOpen: boolean;
   classCode: string;
   courseCode: string;
   courseName: string;
-  sessionDate: string;
-  topic: string;
-  material: string;
-  createdAt: string;
-}
-
-export interface AttendanceSessionResponse {
-  items: AttendanceSession[];
+  meetingNumber: number;
+  totalRecords: number;
+  hadirCount: number;
 }
 
 export interface CreateAttendanceInput {
-  classId: number;
-  sessionDate: string;
+  scheduleId: number;
   topic: string;
-  material: string;
 }
 
-export interface AttendanceRecord {
-  id: number;
-  sessionId: number;
+export interface AttendanceRecordItem {
   studentId: number;
   nim: string;
-  studentName: string;
-  status: 'hadir' | 'tidak_hadir';
-  createdAt: string;
+  fullName: string;
+  email: string;
+  recordId: number | null;
+  status: AttendanceStatus;
+  markedAt: string | null;
+  markedBy: number | null;
 }
 
 export interface AttendanceRecordsResponse {
-  items: AttendanceRecord[];
+  session: {
+    id: number;
+    sessionDate: string;
+    topic: string | null;
+    isOpen: boolean;
+    qrCode: string | null;
+  };
+  records: AttendanceRecordItem[];
 }
 
-export interface SubmitAttendanceInput {
-  sessionId: number;
-  records: Array<{ studentId: number; status: 'hadir' | 'tidak_hadir' }>;
+export interface UpdateAttendanceRecordInput {
+  status: 'hadir' | 'tidak_hadir' | 'izin' | 'sakit';
 }
 
-// Bimbingan
+// --- Bimbingan (GET /guidance/mentees, GET/POST /guidance/sessions) ---
+export interface Mentee {
+  studentId: number;
+  nim: string;
+  studentName: string;
+  email: string;
+  status: string;
+  prodiCode: string;
+}
+
 export interface GuidanceSession {
   id: number;
   studentId: number;
   nim: string;
   studentName: string;
   lecturerId: number;
-  type: string;
-  date: string;
-  description: string;
+  lecturerName: string;
+  sessionDate: string;
+  notes: string | null;
+  progress: 'berjalan' | 'selesai' | 'bermasalah';
+  isVisibleToStudent: boolean;
   createdAt: string;
-}
-
-export interface GuidanceSessionResponse {
-  items: GuidanceSession[];
+  updatedAt: string;
 }
 
 export interface CreateGuidanceInput {
   studentId: number;
-  type: string;
-  date: string;
-  description: string;
+  sessionDate: string; // YYYY-MM-DD
+  progress: 'berjalan' | 'selesai' | 'bermasalah';
+  notes?: string;
 }
 
-// Substitute
+// --- Substitute (GET/POST /substitute) ---
 export interface SubstituteRequest {
   id: number;
-  originalLecturerId: number;
+  originalLecturerId: number; // lecturers.id
   originalLecturerName: string;
   substituteLecturerId: number | null;
   substituteLecturerName: string | null;
   classId: number;
   classCode: string;
+  scheduleId: number;
+  meetingNumber: number;
+  scheduledDate: string;
+  topic: string | null;
   courseCode: string;
   courseName: string;
-  sessionDate: string;
-  type: string;
-  status: string;
-  notes: string | null;
+  reason: string | null;
+  status: 'active' | 'cancelled';
+  requestedByName: string;
+  approvedByName: string | null;
   createdAt: string;
 }
 
@@ -404,39 +469,33 @@ export interface CreateSubstituteInput {
   originalLecturerId: number;
   substituteLecturerId: number;
   classId: number;
-  sessionDate: string;
-  type: string;
-  notes?: string;
+  scheduleId: number;
+  reason?: string;
 }
 
-// Grades (sudah ada GradeItem di T1.11b, tambahkan remedial per komponen)
-export interface GradeItem {
+// --- Nilai per kelas (GET /grades/class/:classId, POST /grades) ---
+export interface GradeClassItem {
   id: number;
   krsItemId: number;
-  classId: number;
-  classCode: string;
-  course: { code: string; name: string; credits: number };
-  period: string;
-  semester: string;
   tugasScore: number | null;
   utsScore: number | null;
   uasScore: number | null;
   finalScore: number | null;
   gradeLetter: string | null;
   gradePoint: number | null;
-  isRemedial: boolean;
-  remedialScore: number | null;
+  remedialTugasScore: number | null;
+  remedialUtsScore: number | null;
+  remedialUasScore: number | null;
   inputBy: number;
   inputAt: string;
   updatedBy: number | null;
   updatedAt: string | null;
-  // T3.6 remedial per komponen
-  remedialTugasScore: number | null;
-  remedialUtsScore: number | null;
-  remedialUasScore: number | null;
-  // Student info (from joins in backend)
-  nim: string;
-  studentName: string;
+  student: { nim: string; name: string };
+}
+
+export interface GradesClassResponse {
+  class: { id: number; classCode: string; courseCode: string; courseName: string };
+  items: GradeClassItem[];
 }
 
 export interface GradeInput {
@@ -447,8 +506,4 @@ export interface GradeInput {
   remedialTugasScore: number | null;
   remedialUtsScore: number | null;
   remedialUasScore: number | null;
-}
-
-export interface GradesClassResponse {
-  items: GradeItem[];
 }

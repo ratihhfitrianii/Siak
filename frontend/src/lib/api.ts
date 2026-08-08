@@ -429,33 +429,32 @@ export async function markNotificationRead(id: number): Promise<void> {
   });
 }
 
-/* ==== T3.8 — Dosen API ==== */
+/* ==== T3.8 — Dosen API (diselaraskan dengan kontrak backend nyata) ==== */
 
 import type {
   LecturerCourseAvailableResponse,
   CourseSelectionInput,
   CourseSelectionResult,
   MyCourseSelectionsResponse,
-  ScheduleResponse,
-  CreateScheduleInput,
-  ScheduleItem,
-  AttendanceSessionResponse,
-  CreateAttendanceInput,
+  MyClassesResponse,
+  LecturersResponse,
+  ScheduleAvailability,
   AttendanceSession,
+  CreateAttendanceInput,
   AttendanceRecordsResponse,
-  SubmitAttendanceInput,
-  GuidanceSessionResponse,
-  CreateGuidanceInput,
+  UpdateAttendanceRecordInput,
+  Mentee,
   GuidanceSession,
+  CreateGuidanceInput,
   SubstituteRequestResponse,
   CreateSubstituteInput,
   SubstituteRequest,
   GradesClassResponse,
   GradeInput,
-  GradeItem,
+  KrsPeriod,
 } from './types';
 
-/** GET /dosen/courses/available?semesterId= — daftar MK tersedia untuk dosen (perm lecturer.select_course). */
+/** GET /dosen/courses/available?semesterId= — daftar MK tersedia untuk dosen. */
 export async function getAvailableCourses(
   semesterId: number,
 ): Promise<LecturerCourseAvailableResponse> {
@@ -464,7 +463,7 @@ export async function getAvailableCourses(
   );
 }
 
-/** POST /dosen/courses/select — ajukan/diperbarui pilihan MK (perm lecturer.select_course). */
+/** POST /dosen/courses/select — ajukan/diperbarui pilihan MK. */
 export async function submitCourseSelection(
   input: CourseSelectionInput,
 ): Promise<CourseSelectionResult> {
@@ -474,7 +473,7 @@ export async function submitCourseSelection(
   });
 }
 
-/** GET /dosen/courses/my?semesterId= — pilihan MK dosen sendiri (perm lecturer.select_course). */
+/** GET /dosen/courses/my?semesterId= — pilihan MK dosen sendiri. */
 export async function getMyCourseSelections(
   semesterId?: number,
 ): Promise<MyCourseSelectionsResponse> {
@@ -482,84 +481,288 @@ export async function getMyCourseSelections(
   return apiRequest<MyCourseSelectionsResponse>(`/dosen/courses/my${qs}`);
 }
 
-/** GET /schedule?classId= — jadwal mengajar dosen (perm schedule.manage). */
-export async function getSchedule(classId: number): Promise<ScheduleResponse> {
-  return apiRequest<ScheduleResponse>(`/schedule?classId=${classId}`);
+/** GET /krs/period — periode KRS aktif (dipakai Pilih MK untuk default semester). */
+export async function getKrsPeriod(): Promise<KrsPeriod> {
+  return apiRequest<KrsPeriod>('/krs/period');
 }
 
-/** POST /schedule — buat jadwal (perm schedule.manage). */
-export async function createSchedule(input: CreateScheduleInput): Promise<ScheduleItem> {
-  return apiRequest<ScheduleItem>('/schedule', { method: 'POST', body: input });
+/** GET /dosen/my-classes — kelas yang diampu dosen + jadwal pertemuan (T3.8). */
+export async function getMyClasses(): Promise<MyClassesResponse> {
+  return apiRequest<MyClassesResponse>('/dosen/my-classes');
 }
 
-/** PUT /schedule/:id — update jadwal (perm schedule.manage). */
-export async function updateSchedule(
-  id: number,
-  input: Partial<CreateScheduleInput>,
-): Promise<ScheduleItem> {
-  return apiRequest<ScheduleItem>(`/schedule/${id}`, { method: 'PUT', body: input });
+/** GET /dosen/lecturers — daftar dosen aktif untuk substitute teaching (T3.8). */
+export async function getLecturers(): Promise<LecturersResponse> {
+  return apiRequest<LecturersResponse>('/dosen/lecturers');
 }
 
-/** DELETE /schedule/:id — hapus jadwal (perm schedule.manage). */
-export async function deleteSchedule(id: number): Promise<void> {
-  await apiRequest(`/schedule/${id}`, { method: 'DELETE' });
+/** GET /schedule/availability?date=YYYY-MM-DD — jadwal mengajar + slot kosong dosen (T3.8). */
+export async function getScheduleAvailability(date: string): Promise<ScheduleAvailability> {
+  return apiRequest<ScheduleAvailability>(
+    `/schedule/availability?date=${encodeURIComponent(date)}`,
+  );
 }
 
-/** GET /attendance?classId= — sesi absensi untuk kelas (perm attendance.input). */
-export async function getAttendanceSessions(classId: number): Promise<AttendanceSessionResponse> {
-  return apiRequest<AttendanceSessionResponse>(`/attendance?classId=${classId}`);
+/* --- Absensi (semua path /attendance/sessions, snake_case → camelCase) --- */
+
+interface AttendanceSessionRow {
+  id: number;
+  schedule_id: number;
+  session_date: string;
+  topic: string | null;
+  is_open: boolean;
+  class_code: string;
+  course_code: string;
+  course_name: string;
+  meeting_number: number;
+  total_records: number;
+  hadir_count: number;
 }
 
-/** POST /attendance — buat sesi absensi (perm attendance.input). */
+function normalizeAttendanceSession(r: AttendanceSessionRow): AttendanceSession {
+  return {
+    id: Number(r.id),
+    scheduleId: Number(r.schedule_id),
+    sessionDate: r.session_date,
+    topic: r.topic,
+    isOpen: r.is_open,
+    classCode: r.class_code,
+    courseCode: r.course_code,
+    courseName: r.course_name,
+    meetingNumber: Number(r.meeting_number),
+    totalRecords: Number(r.total_records),
+    hadirCount: Number(r.hadir_count),
+  };
+}
+
+/** GET /attendance/sessions — sesi absensi dosen (ownership otomatis; ?schedule_id= opsional). */
+export async function getAttendanceSessions(scheduleId?: number): Promise<AttendanceSession[]> {
+  const qs = scheduleId ? `?schedule_id=${scheduleId}&limit=100` : '?limit=100';
+  const rows = await apiRequest<AttendanceSessionRow[]>(`/attendance/sessions${qs}`);
+  return rows.map(normalizeAttendanceSession);
+}
+
+/** POST /attendance/sessions — buat sesi absensi dari jadwal pertemuan. */
 export async function createAttendanceSession(
   input: CreateAttendanceInput,
-): Promise<AttendanceSession> {
-  return apiRequest<AttendanceSession>('/attendance', { method: 'POST', body: input });
+): Promise<{ id: number; scheduleId: number; topic: string | null }> {
+  return apiRequest('/attendance/sessions', { method: 'POST', body: input });
 }
 
-/** GET /attendance/records?sessionId= — record absensi sesi (perm attendance.view). */
+/** PUT /attendance/sessions/:id/open|close — buka/tutup sesi absensi (dosen, owner). */
+export async function setAttendanceSessionOpen(
+  sessionId: number,
+  open: boolean,
+): Promise<{ id: number }> {
+  return apiRequest(`/attendance/sessions/${sessionId}/${open ? 'open' : 'close'}`, {
+    method: 'PUT',
+  });
+}
+
+/** GET /attendance/sessions/:id/records — daftar mahasiswa + status absensi sesi. */
 export async function getAttendanceRecords(sessionId: number): Promise<AttendanceRecordsResponse> {
-  return apiRequest<AttendanceRecordsResponse>(`/attendance/records?sessionId=${sessionId}`);
+  const raw = await apiRequest<{
+    session: {
+      id: number;
+      session_date: string;
+      topic: string | null;
+      is_open: boolean;
+      qr_code: string | null;
+    };
+    records: Array<{
+      student_id: number;
+      nim: string;
+      full_name: string;
+      email: string;
+      record_id: number | null;
+      status: string;
+      marked_at: string | null;
+      marked_by: number | null;
+    }>;
+  }>(`/attendance/sessions/${sessionId}/records`);
+
+  return {
+    session: {
+      id: Number(raw.session.id),
+      sessionDate: raw.session.session_date,
+      topic: raw.session.topic,
+      isOpen: raw.session.is_open,
+      qrCode: raw.session.qr_code,
+    },
+    records: raw.records.map((r) => ({
+      studentId: Number(r.student_id),
+      nim: r.nim,
+      fullName: r.full_name,
+      email: r.email,
+      recordId: r.record_id !== null ? Number(r.record_id) : null,
+      status: (r.status ?? 'belum_absen') as AttendanceRecordsResponse['records'][number]['status'],
+      markedAt: r.marked_at,
+      markedBy: r.marked_by !== null ? Number(r.marked_by) : null,
+    })),
+  };
 }
 
-/** POST /attendance/submit — submit absensi massal (perm attendance.input). */
-export async function submitAttendance(input: SubmitAttendanceInput): Promise<{ message: string }> {
-  return apiRequest('/attendance/submit', { method: 'POST', body: input });
+/** PUT /attendance/records/:id — ubah status absensi mahasiswa. */
+export async function updateAttendanceRecord(
+  recordId: number,
+  input: UpdateAttendanceRecordInput,
+): Promise<{ id: number }> {
+  return apiRequest(`/attendance/records/${recordId}`, { method: 'PUT', body: input });
 }
 
-/** GET /guidance?classId= — sesi bimbingan untuk dosen Wali (perm guidance.manage). */
-export async function getGuidanceSessions(classId: number): Promise<GuidanceSessionResponse> {
-  return apiRequest<GuidanceSessionResponse>(`/guidance?classId=${classId}`);
+/* --- Bimbingan (GET /guidance/mentees, GET/POST /guidance/sessions) --- */
+
+interface GuidanceSessionRow {
+  id: number;
+  student_id: number;
+  nim: string;
+  student_name: string;
+  lecturer_id: number;
+  lecturer_name: string;
+  session_date: string;
+  notes: string | null;
+  progress: 'berjalan' | 'selesai' | 'bermasalah';
+  is_visible_to_student: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-/** POST /guidance — buat catatan bimbingan (perm guidance.manage). */
+function normalizeGuidanceSession(r: GuidanceSessionRow): GuidanceSession {
+  return {
+    id: Number(r.id),
+    studentId: Number(r.student_id),
+    nim: r.nim,
+    studentName: r.student_name,
+    lecturerId: Number(r.lecturer_id),
+    lecturerName: r.lecturer_name,
+    sessionDate: r.session_date,
+    notes: r.notes,
+    progress: r.progress,
+    isVisibleToStudent: r.is_visible_to_student,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+/** GET /guidance/mentees — mahasiswa binaan dosen wali (ownership otomatis). */
+export async function getMentees(): Promise<Mentee[]> {
+  const rows = await apiRequest<
+    Array<{
+      student_id: number;
+      nim: string;
+      student_name: string;
+      email: string;
+      status: string;
+      prodi_code: string;
+    }>
+  >('/guidance/mentees');
+  return rows.map((r) => ({
+    studentId: Number(r.student_id),
+    nim: r.nim,
+    studentName: r.student_name,
+    email: r.email,
+    status: r.status,
+    prodiCode: r.prodi_code,
+  }));
+}
+
+/** GET /guidance/sessions?student_id= — catatan bimbingan dosen (semua binaan). */
+export async function getGuidanceSessions(studentId?: number): Promise<GuidanceSession[]> {
+  const qs = studentId ? `?student_id=${studentId}` : '';
+  const rows = await apiRequest<GuidanceSessionRow[]>(`/guidance/sessions${qs}`);
+  return rows.map(normalizeGuidanceSession);
+}
+
+/** POST /guidance/sessions — buat catatan bimbingan baru. */
 export async function createGuidance(input: CreateGuidanceInput): Promise<GuidanceSession> {
-  return apiRequest<GuidanceSession>('/guidance', { method: 'POST', body: input });
+  const row = await apiRequest<GuidanceSessionRow>('/guidance/sessions', {
+    method: 'POST',
+    body: input,
+  });
+  return normalizeGuidanceSession(row);
 }
 
-/** GET /substitute?lecturerId= — daftar substitute (perm substitute.manage). */
-export async function getSubstituteRequests(
-  lecturerId: number,
-): Promise<SubstituteRequestResponse> {
-  return apiRequest<SubstituteRequestResponse>(`/substitute?lecturerId=${lecturerId}`);
+/* --- Substitute teaching (GET/POST /substitute, PUT /substitute/:id/cancel) --- */
+
+interface SubstituteRow {
+  id: number;
+  original_lecturer_id: number;
+  original_lecturer_name: string;
+  substitute_lecturer_id: number | null;
+  substitute_lecturer_name: string | null;
+  class_id: number;
+  class_name: string;
+  schedule_id: number;
+  meeting_number: number;
+  scheduled_date: string;
+  topic: string | null;
+  course_code: string;
+  course_name: string;
+  reason: string | null;
+  status: 'active' | 'cancelled';
+  requested_by_name: string;
+  approved_by_name: string | null;
+  created_at: string;
 }
 
-/** POST /substitute — ajukan substitute (perm substitute.manage). */
+function normalizeSubstitute(r: SubstituteRow): SubstituteRequest {
+  return {
+    id: Number(r.id),
+    originalLecturerId: Number(r.original_lecturer_id),
+    originalLecturerName: r.original_lecturer_name,
+    substituteLecturerId:
+      r.substitute_lecturer_id !== null ? Number(r.substitute_lecturer_id) : null,
+    substituteLecturerName: r.substitute_lecturer_name,
+    classId: Number(r.class_id),
+    classCode: r.class_name,
+    scheduleId: Number(r.schedule_id),
+    meetingNumber: Number(r.meeting_number),
+    scheduledDate: r.scheduled_date,
+    topic: r.topic,
+    courseCode: r.course_code,
+    courseName: r.course_name,
+    reason: r.reason,
+    status: r.status,
+    requestedByName: r.requested_by_name,
+    approvedByName: r.approved_by_name,
+    createdAt: r.created_at,
+  };
+}
+
+/** GET /substitute?limit=100 — daftar substitute (ownership otomatis: original ATAU pengganti). */
+export async function getSubstituteRequests(): Promise<SubstituteRequestResponse> {
+  const rows = await apiRequest<SubstituteRow[]>('/substitute?limit=100');
+  return { items: rows.map(normalizeSubstitute) };
+}
+
+/** POST /substitute — ajukan substitute teaching (langsung aktif). */
 export async function createSubstitute(input: CreateSubstituteInput): Promise<SubstituteRequest> {
-  return apiRequest<SubstituteRequest>('/substitute', { method: 'POST', body: input });
+  const row = await apiRequest<SubstituteRow>('/substitute', { method: 'POST', body: input });
+  return normalizeSubstitute(row);
 }
 
-/** GET /grades/class/:classId — daftar nilai kelas (perm grade.input). */
+/** PUT /substitute/:id/cancel — batalkan substitute (owner/admin). */
+export async function cancelSubstitute(id: number, reason?: string): Promise<SubstituteRequest> {
+  const row = await apiRequest<SubstituteRow>(`/substitute/${id}/cancel`, {
+    method: 'PUT',
+    body: reason ? { reason } : {},
+  });
+  return normalizeSubstitute(row);
+}
+
+/* --- Nilai per kelas (GET /grades/class/:classId, POST /grades, PUT /grades/:id) --- */
+
+/** GET /grades/class/:classId — daftar nilai mahasiswa di kelas (ownership otomatis). */
 export async function getGradesByClass(classId: number): Promise<GradesClassResponse> {
   return apiRequest<GradesClassResponse>(`/grades/class/${classId}`);
 }
 
-/** POST /grades — input nilai (perm grade.input). */
-export async function submitGrades(input: GradeInput): Promise<GradeItem> {
-  return apiRequest<GradeItem>('/grades', { method: 'POST', body: input });
+/** POST /grades — input nilai baru (krsItemId + skor komponen). */
+export async function submitGrades(input: GradeInput): Promise<{ id: number }> {
+  return apiRequest<{ id: number }>('/grades', { method: 'POST', body: input });
 }
 
-/** PUT /grades/:id — edit nilai (perm grade.edit). */
-export async function updateGrade(id: number, input: GradeInput): Promise<GradeItem> {
-  return apiRequest<GradeItem>(`/grades/${id}`, { method: 'PUT', body: input });
+/** PUT /grades/:id — edit nilai. */
+export async function updateGrade(id: number, input: GradeInput): Promise<{ id: number }> {
+  return apiRequest<{ id: number }>(`/grades/${id}`, { method: 'PUT', body: input });
 }

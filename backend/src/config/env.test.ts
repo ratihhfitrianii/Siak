@@ -20,6 +20,8 @@ describe('Validasi environment (env.ts)', () => {
     delete process.env.DATABASE_URL;
     delete process.env.REDIS_URL;
     delete process.env.JWT_SECRET;
+    // Pastikan file .env lokal (dev) tidak bocor ke test — env.ts memakai dotenv/config.
+    process.env.DOTENV_CONFIG_PATH = '/nonexistent/.env-for-test';
 
     jest.isolateModules(() => {
       expect(() => require('./env')).toThrow('Environment variables tidak valid');

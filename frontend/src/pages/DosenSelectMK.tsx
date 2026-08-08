@@ -1,19 +1,37 @@
 import { useState, useEffect } from 'react';
-import { getAvailableCourses, submitCourseSelection } from '../lib/api';
+import { getAvailableCourses, submitCourseSelection, getKrsPeriod } from '../lib/api';
 import type { LecturerCourseAvailable } from '../lib/types';
 
 /**
  * Pilih MK (T3.7 + T3.8, perm lecturer.select_course) — filter prodi + cari MK.
  * Terhubung ke endpoint /dosen/courses/available dan /dosen/courses/select.
+ * Semester aktif diambil dari GET /krs/period (periode KRS berjalan).
  */
 export function DosenSelectMK() {
   const [semesterId, setSemesterId] = useState<number | null>(null);
+  const [semesterLabel, setSemesterLabel] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [courses, setCourses] = useState<LecturerCourseAvailable[]>([]);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<number>>(new Set());
+
+  // Muat periode KRS aktif → set semester default
+  useEffect(() => {
+    getKrsPeriod()
+      .then((period) => {
+        if (period.status === 'open') {
+          setSemesterId(period.semesterId);
+          setSemesterLabel(`${period.semesterCode} (${period.name})`);
+        } else {
+          setError('Tidak ada periode KRS yang sedang buka');
+        }
+      })
+      .catch(() => {
+        setError('Gagal memuat periode aktif');
+      });
+  }, []);
 
   // Load available courses when semester changes
   useEffect(() => {
@@ -88,13 +106,10 @@ export function DosenSelectMK() {
     }
   };
 
-  // Semester options - in real app these would come from API
-  const semesterOptions = [
-    { id: 1, code: '2024/2025-1', name: 'Ganjil 2024/2025' },
-    { id: 2, code: '2024/2025-2', name: 'Genap 2024/2025' },
-    { id: 3, code: '2023/2024-1', name: 'Ganjil 2023/2024' },
-    { id: 4, code: '2023/2024-2', name: 'Genap 2023/2024' },
-  ];
+  // Semester aktif — dari GET /krs/period (periode KRS berjalan)
+  const semesterOptions = semesterId
+    ? [{ id: semesterId, name: semesterLabel || 'Semester Aktif' }]
+    : [];
 
   return (
     <div className="space-y-6">
@@ -121,7 +136,7 @@ export function DosenSelectMK() {
               <option value="">Pilih Semester</option>
               {semesterOptions.map((sem) => (
                 <option key={sem.id} value={sem.id}>
-                  {sem.name} ({sem.code})
+                  {sem.name}
                 </option>
               ))}
             </select>

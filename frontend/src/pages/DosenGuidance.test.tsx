@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { controlFor } from '../test/controls';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenGuidance } from './DosenGuidance';
-import type { GuidanceSession } from '../lib/types';
 
 function jsonResponse(payload: unknown, status = 200) {
   return {
@@ -13,17 +12,40 @@ function jsonResponse(payload: unknown, status = 200) {
   } as Response;
 }
 
-const SESSIONS: GuidanceSession[] = [
+/** Raw snake_case dari backend (normalisasi di lib/api). */
+const MENTEES_RAW = [
+  {
+    student_id: 1,
+    nim: '2023110001',
+    student_name: 'Budi Santoso',
+    email: 'budi@example.id',
+    status: 'aktif',
+    prodi_code: 'TI',
+  },
+  {
+    student_id: 2,
+    nim: '2023110002',
+    student_name: 'Ani Wijaya',
+    email: 'ani@example.id',
+    status: 'aktif',
+    prodi_code: 'TI',
+  },
+];
+
+const SESSIONS_RAW = [
   {
     id: 21,
-    studentId: 1,
+    student_id: 1,
     nim: '2023110001',
-    studentName: 'Budi Santoso',
-    lecturerId: 7,
-    type: 'konsultasi',
-    date: '2026-08-01',
-    description: 'Konsultasi KRS',
-    createdAt: '2026-08-01T08:00:00Z',
+    student_name: 'Budi Santoso',
+    lecturer_id: 4,
+    lecturer_name: 'Dosen Satu',
+    session_date: '2026-08-01',
+    notes: 'Konsultasi KRS',
+    progress: 'berjalan',
+    is_visible_to_student: true,
+    created_at: '2026-08-01T08:00:00Z',
+    updated_at: '2026-08-01T08:00:00Z',
   },
 ];
 
@@ -33,95 +55,91 @@ describe('DosenGuidance (T3.8)', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
+    fetchMock.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.includes('/guidance/mentees')) {
+        return Promise.resolve(jsonResponse({ data: MENTEES_RAW }));
+      }
+      if (u.includes('/guidance/sessions')) {
+        return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
+      }
+      return Promise.resolve(jsonResponse({ data: [] }));
+    });
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('render awal — form bimbingan tersembunyi sampai kelas dipilih', () => {
+  it('render — header + form bimbingan + daftar sesi dari API', async () => {
     render(<DosenGuidance />);
-    expect(screen.getByText('Input Bimbingan')).toBeInTheDocument();
-    expect(screen.getByText('Pilih kelas terlebih dahulu.')).toBeInTheDocument();
+    expect(screen.getByText('Bimbingan Mahasiswa Binaan')).toBeInTheDocument();
+    expect(await screen.findByText('Budi Santoso (2023110001)')).toBeInTheDocument();
+    expect(screen.getByText('Konsultasi KRS')).toBeInTheDocument();
+    // Badge progress di daftar sesi (bukan option select "Berjalan")
+    expect(screen.getByText('Berjalan', { selector: 'span' })).toBeInTheDocument();
   });
 
-  it('pilih kelas → load sesi bimbingan → render daftar', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: SESSIONS } }));
+  it('tanpa mahasiswa binaan → pesan khusus', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url).includes('/guidance/mentees')) {
+        return Promise.resolve(jsonResponse({ data: [] }));
+      }
+      return Promise.resolve(jsonResponse({ data: [] }));
+    });
     render(<DosenGuidance />);
-
-    await user.selectOptions(controlFor('Pilih Kelas Binaan', 'select'), '1');
-    expect(await screen.findByText('Budi Santoso (2023110001)')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/guidance?classId=1'),
-      expect.any(Object),
-    );
+    expect(
+      await screen.findByText('Anda belum memiliki mahasiswa binaan (atribut Wali).'),
+    ).toBeInTheDocument();
   });
 
   it('load gagal → error', async () => {
-    const user = userEvent.setup();
     fetchMock.mockResolvedValue(
       jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'x' } }, 500),
     );
     render(<DosenGuidance />);
-    await user.selectOptions(controlFor('Pilih Kelas Binaan', 'select'), '1');
-    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat catatan bimbingan');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat data bimbingan');
   });
 
-  it('tombol Simpan Bimbingan disabled sampai form lengkap', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: SESSIONS } }));
-    render(<DosenGuidance />);
-    await user.selectOptions(controlFor('Pilih Kelas Binaan', 'select'), '1');
-    await screen.findByText('Budi Santoso (2023110001)');
-
-    expect(screen.getByRole('button', { name: 'Simpan Bimbingan' })).toBeDisabled();
-
-    // Lengkapi form → enabled
-    await user.selectOptions(controlFor('Mahasiswa', 'select'), '1');
-    await user.selectOptions(controlFor('Jenis Bimbingan', 'select'), 'konsultasi');
-    await user.type(controlFor('Tanggal Bimbingan', 'input'), '2026-08-11');
-    await user.type(controlFor('Deskripsi', 'textarea'), 'test');
-    expect(screen.getByRole('button', { name: 'Simpan Bimbingan' })).toBeEnabled();
-  });
-
-  it('isi form → preview muncul → submit → POST /guidance + success', async () => {
+  it('submit lengkap → POST /guidance/sessions + success', async () => {
     const user = userEvent.setup();
     let postBody: unknown = null;
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/guidance')) {
+      const u = String(url);
+      if (init?.method === 'POST' && u.endsWith('/guidance/sessions')) {
         postBody = JSON.parse(String(init.body));
         return Promise.resolve(
           jsonResponse({
             success: true,
             data: {
               id: 22,
-              studentId: 1,
+              student_id: 1,
               nim: '2023110001',
-              studentName: 'Budi Santoso',
-              lecturerId: 7,
-              type: 'skripsi',
-              date: '2026-08-10',
-              description: 'Bimbingan Bab 3',
-              createdAt: '2026-08-10T09:00:00Z',
+              student_name: 'Budi Santoso',
+              lecturer_id: 4,
+              lecturer_name: 'Dosen Satu',
+              session_date: '2026-08-10',
+              notes: 'Bimbingan Bab 3',
+              progress: 'berjalan',
+              is_visible_to_student: true,
+              created_at: '2026-08-10T09:00:00Z',
+              updated_at: '2026-08-10T09:00:00Z',
             },
           }),
         );
       }
-      return Promise.resolve(jsonResponse({ data: { items: SESSIONS } }));
+      if (u.includes('/guidance/mentees')) {
+        return Promise.resolve(jsonResponse({ data: MENTEES_RAW }));
+      }
+      return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenGuidance />);
-    await user.selectOptions(controlFor('Pilih Kelas Binaan', 'select'), '1');
     await screen.findByText('Budi Santoso (2023110001)');
 
-    await user.selectOptions(controlFor('Mahasiswa', 'select'), '1');
-    await user.selectOptions(controlFor('Jenis Bimbingan', 'select'), 'skripsi');
+    await user.selectOptions(controlFor('Mahasiswa Binaan', 'select'), '1');
     await user.type(controlFor('Tanggal Bimbingan', 'input'), '2026-08-10');
-    await user.type(controlFor('Deskripsi', 'textarea'), 'Bimbingan Bab 3');
-
-    // Preview muncul saat semua field terisi (teks jenis muncul di option & preview)
-    expect(screen.getByText('Pratinjau Bimbingan:')).toBeInTheDocument();
-    expect(screen.getAllByText(/Pembimbing Skripsi/).length).toBeGreaterThanOrEqual(2);
+    await user.selectOptions(controlFor('Progress', 'select'), 'berjalan');
+    await user.type(controlFor('Catatan', 'textarea'), 'Bimbingan Bab 3');
 
     await user.click(screen.getByRole('button', { name: 'Simpan Bimbingan' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
@@ -129,16 +147,17 @@ describe('DosenGuidance (T3.8)', () => {
     );
     expect(postBody).toEqual({
       studentId: 1,
-      type: 'skripsi',
-      date: '2026-08-10',
-      description: 'Bimbingan Bab 3',
+      sessionDate: '2026-08-10',
+      progress: 'berjalan',
+      notes: 'Bimbingan Bab 3',
     });
   });
 
   it('submit FORBIDDEN → pesan hanya dosen Wali', async () => {
     const user = userEvent.setup();
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/guidance')) {
+      const u = String(url);
+      if (init?.method === 'POST' && u.endsWith('/guidance/sessions')) {
         return Promise.resolve(
           jsonResponse(
             { success: false, error: { code: 'FORBIDDEN', message: 'bukan wali' } },
@@ -146,16 +165,17 @@ describe('DosenGuidance (T3.8)', () => {
           ),
         );
       }
-      return Promise.resolve(jsonResponse({ data: { items: SESSIONS } }));
+      if (u.includes('/guidance/mentees')) {
+        return Promise.resolve(jsonResponse({ data: MENTEES_RAW }));
+      }
+      return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenGuidance />);
-    await user.selectOptions(controlFor('Pilih Kelas Binaan', 'select'), '1');
     await screen.findByText('Budi Santoso (2023110001)');
 
-    await user.selectOptions(controlFor('Mahasiswa', 'select'), '1');
-    await user.selectOptions(controlFor('Jenis Bimbingan', 'select'), 'konsultasi');
+    await user.selectOptions(controlFor('Mahasiswa Binaan', 'select'), '1');
     await user.type(controlFor('Tanggal Bimbingan', 'input'), '2026-08-11');
-    await user.type(controlFor('Deskripsi', 'textarea'), 'test');
+    await user.type(controlFor('Catatan', 'textarea'), 'test');
     await user.click(screen.getByRole('button', { name: 'Simpan Bimbingan' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -163,39 +183,16 @@ describe('DosenGuidance (T3.8)', () => {
     );
   });
 
-  it('submit VALIDATION_ERROR → pesan API', async () => {
+  it('filter sesi berdasarkan mahasiswa', async () => {
     const user = userEvent.setup();
-    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/guidance')) {
-        return Promise.resolve(
-          jsonResponse(
-            { success: false, error: { code: 'VALIDATION_ERROR', message: 'Tanggal invalid' } },
-            400,
-          ),
-        );
-      }
-      return Promise.resolve(jsonResponse({ data: { items: SESSIONS } }));
-    });
     render(<DosenGuidance />);
-    await user.selectOptions(controlFor('Pilih Kelas Binaan', 'select'), '1');
     await screen.findByText('Budi Santoso (2023110001)');
 
-    await user.selectOptions(controlFor('Mahasiswa', 'select'), '1');
-    await user.selectOptions(controlFor('Jenis Bimbingan', 'select'), 'konsultasi');
-    await user.type(controlFor('Tanggal Bimbingan', 'input'), '2026-08-11');
-    await user.type(controlFor('Deskripsi', 'textarea'), 'test');
-    await user.click(screen.getByRole('button', { name: 'Simpan Bimbingan' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Tanggal invalid');
-  });
-
-  it('kelas tanpa sesi → pesan kosong', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: [] } }));
-    render(<DosenGuidance />);
-    await user.selectOptions(controlFor('Pilih Kelas Binaan', 'select'), '2');
+    // Sesi Budi (student 1) tampil; pilih Ani (student 2) → daftar kosong
+    await user.selectOptions(controlFor('Mahasiswa Binaan', 'select'), '2');
     expect(
-      await screen.findByText('Belum ada catatan bimbingan untuk kelas ini.'),
+      await screen.findByText('Belum ada catatan bimbingan untuk mahasiswa ini.'),
     ).toBeInTheDocument();
+    expect(screen.queryByText('Konsultasi KRS')).not.toBeInTheDocument();
   });
 });

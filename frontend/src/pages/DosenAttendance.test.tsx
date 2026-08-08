@@ -1,9 +1,8 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { controlFor } from '../test/controls';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenAttendance } from './DosenAttendance';
-import type { AttendanceSession, AttendanceRecord } from '../lib/types';
 
 function jsonResponse(payload: unknown, status = 200) {
   return {
@@ -13,40 +12,91 @@ function jsonResponse(payload: unknown, status = 200) {
   } as Response;
 }
 
-const SESSIONS: AttendanceSession[] = [
+/** Raw snake_case dari backend (normalisasi dilakukan di lib/api). */
+const SESSIONS_RAW = [
   {
     id: 31,
-    classId: 1,
-    classCode: 'TI101-A',
-    courseCode: 'TI101',
-    courseName: 'Dasar-Dasar Pemrograman',
-    sessionDate: '2026-08-03',
+    schedule_id: 311,
+    session_date: '2026-08-03',
     topic: 'Pertemuan 1',
-    material: 'Pengenalan',
-    createdAt: '2026-08-03T07:00:00Z',
+    is_open: false,
+    class_code: 'TI101-A',
+    course_code: 'TI101',
+    course_name: 'Dasar-Dasar Pemrograman',
+    meeting_number: 1,
+    total_records: 2,
+    hadir_count: 1,
   },
 ];
 
-const RECORDS: AttendanceRecord[] = [
-  {
-    id: 311,
-    sessionId: 31,
-    studentId: 1,
-    nim: '2023110001',
-    studentName: 'Budi Santoso',
-    status: 'hadir',
-    createdAt: '2026-08-03T07:00:00Z',
+const MY_CLASSES = {
+  items: [
+    {
+      id: 1,
+      classCode: 'TI101-A',
+      dayOfWeek: 1,
+      startTime: '07:30',
+      endTime: '09:00',
+      room: 'R.101',
+      capacity: 40,
+      currentEnrolled: 2,
+      curriculumId: 10,
+      semesterId: 1,
+      semesterNumber: 1,
+      courseCode: 'TI101',
+      courseName: 'Dasar-Dasar Pemrograman',
+      credits: 3,
+      schedules: [
+        {
+          id: 311,
+          meetingNumber: 1,
+          scheduledDate: '2026-08-03',
+          topic: 'Pertemuan 1',
+          isCompleted: false,
+        },
+        {
+          id: 312,
+          meetingNumber: 2,
+          scheduledDate: '2026-08-10',
+          topic: 'Array',
+          isCompleted: false,
+        },
+      ],
+    },
+  ],
+};
+
+const RECORDS_RAW = {
+  session: {
+    id: 31,
+    session_date: '2026-08-03',
+    topic: 'Pertemuan 1',
+    is_open: false,
+    qr_code: null,
   },
-  {
-    id: 312,
-    sessionId: 31,
-    studentId: 2,
-    nim: '2023110002',
-    studentName: 'Ani Wijaya',
-    status: 'tidak_hadir',
-    createdAt: '2026-08-03T07:00:00Z',
-  },
-];
+  records: [
+    {
+      student_id: 1,
+      nim: '2023110001',
+      full_name: 'Budi Santoso',
+      email: 'budi@example.id',
+      record_id: 3111,
+      status: 'hadir',
+      marked_at: '2026-08-03T07:05:00Z',
+      marked_by: 4,
+    },
+    {
+      student_id: 2,
+      nim: '2023110002',
+      full_name: 'Ani Wijaya',
+      email: 'ani@example.id',
+      record_id: null,
+      status: 'belum_absen',
+      marked_at: null,
+      marked_by: null,
+    },
+  ],
+};
 
 describe('DosenAttendance (T3.8)', () => {
   const fetchMock = vi.fn();
@@ -54,175 +104,179 @@ describe('DosenAttendance (T3.8)', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
+    fetchMock.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.includes('/attendance/sessions?limit=100')) {
+        return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
+      }
+      if (u.includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: MY_CLASSES }));
+      }
+      if (u.includes('/attendance/sessions/31/records')) {
+        return Promise.resolve(jsonResponse({ data: RECORDS_RAW }));
+      }
+      return Promise.resolve(jsonResponse({ data: [] }));
+    });
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('render awal — minta pilih kelas', () => {
+  it('render — header + daftar sesi absensi dari API', async () => {
     render(<DosenAttendance />);
-    expect(screen.getByText('Input Absensi')).toBeInTheDocument();
-    expect(screen.getByText('Pilih kelas terlebih dahulu.')).toBeInTheDocument();
+    expect(screen.getByText('Absensi Mengajar')).toBeInTheDocument();
+    expect(await screen.findByText(/Pertemuan 1 · 2026-08-03/)).toBeInTheDocument();
+    expect(screen.getByText(/Hadir 1\/2/)).toBeInTheDocument();
   });
 
-  it('pilih kelas → load sesi absensi → render daftar sesi', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: SESSIONS } }));
+  it('tanpa sesi → pesan kosong', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url).includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: { items: [] } }));
+      }
+      return Promise.resolve(jsonResponse({ data: [] }));
+    });
     render(<DosenAttendance />);
-
-    await user.selectOptions(controlFor('Pilih Kelas', 'select'), '1');
-    expect(await screen.findByText(/Pertemuan 1/)).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/attendance?classId=1'),
-      expect.any(Object),
-    );
+    expect(
+      await screen.findByText('Belum ada sesi absensi. Buat dari jadwal pertemuan di atas.'),
+    ).toBeInTheDocument();
   });
 
   it('load sesi gagal → error', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(
-      jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'x' } }, 500),
-    );
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url).includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: { items: [] } }));
+      }
+      return Promise.resolve(
+        jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'x' } }, 500),
+      );
+    });
     render(<DosenAttendance />);
-    await user.selectOptions(controlFor('Pilih Kelas', 'select'), '1');
     expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat sesi absensi');
   });
 
-  it('buat sesi baru tanpa lengkap → error validasi lokal', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: SESSIONS } }));
-    render(<DosenAttendance />);
-    await user.selectOptions(controlFor('Pilih Kelas', 'select'), '1');
-    await screen.findByText(/Pertemuan 1/);
-
-    await user.click(screen.getByRole('button', { name: 'Buat Sesi Baru' }));
-    await user.click(screen.getByRole('button', { name: 'Buat Sesi' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Lengkapi semua field sesi absensi');
-  });
-
-  it('buat sesi baru lengkap → POST /attendance + success + otomatis pilih sesi baru', async () => {
+  it('buat sesi dari jadwal pertemuan → POST /attendance/sessions + success', async () => {
     const user = userEvent.setup();
     let postBody: unknown = null;
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/attendance')) {
+      const u = String(url);
+      if (init?.method === 'POST' && u.endsWith('/attendance/sessions')) {
         postBody = JSON.parse(String(init.body));
         return Promise.resolve(
           jsonResponse({
             success: true,
-            data: {
-              id: 99,
-              classId: 1,
-              classCode: 'TI101-A',
-              courseCode: 'TI101',
-              courseName: 'Dasar-Dasar Pemrograman',
-              sessionDate: '2026-08-10',
-              topic: 'Pertemuan 2',
-              material: 'Array',
-              createdAt: '2026-08-10T07:00:00Z',
-            },
+            data: { id: 32, scheduleId: 312, topic: 'Array' },
           }),
         );
       }
-      if (String(url).includes('/attendance/records?sessionId=')) {
-        return Promise.resolve(jsonResponse({ data: { items: [] } }));
+      if (u.includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: MY_CLASSES }));
       }
-      return Promise.resolve(jsonResponse({ data: { items: SESSIONS } }));
+      return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenAttendance />);
-    await user.selectOptions(controlFor('Pilih Kelas', 'select'), '1');
-    await screen.findByText(/Pertemuan 1/);
+    await screen.findByText(/Pertemuan 1 · 2026-08-03/);
 
-    await user.click(screen.getByRole('button', { name: 'Buat Sesi Baru' }));
-    await user.type(controlFor('Tanggal', 'input'), '2026-08-10');
-    await user.type(controlFor('Topik', 'input'), 'Pertemuan 2');
-    await user.type(controlFor('Materi', 'textarea'), 'Array');
-    await user.click(screen.getByRole('button', { name: 'Buat Sesi' }));
+    await user.selectOptions(controlFor('Jadwal Pertemuan', 'select'), '312');
+    await user.type(controlFor('Topik (opsional)', 'input'), 'Array');
 
+    await user.click(screen.getByRole('button', { name: 'Buat Sesi Absensi' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Sesi absensi berhasil dibuat');
-    expect(postBody).toEqual({
-      classId: 1,
-      sessionDate: '2026-08-10',
-      topic: 'Pertemuan 2',
-      material: 'Array',
-    });
-    // Form sesi baru tertutup setelah sukses
-    expect(screen.queryByText('Buat Sesi Absensi Baru')).not.toBeInTheDocument();
+    expect(postBody).toEqual({ scheduleId: 312, topic: 'Array' });
   });
 
-  it('buat sesi gagal VALIDATION_ERROR → pesan API', async () => {
+  it('buat sesi CONFLICT → pesan API', async () => {
     const user = userEvent.setup();
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/attendance')) {
+      const u = String(url);
+      if (init?.method === 'POST' && u.endsWith('/attendance/sessions')) {
         return Promise.resolve(
           jsonResponse(
-            { success: false, error: { code: 'VALIDATION_ERROR', message: 'Tanggal sudah lewat' } },
-            400,
+            { success: false, error: { code: 'CONFLICT', message: 'Sesi sudah ada' } },
+            409,
           ),
         );
       }
-      return Promise.resolve(jsonResponse({ data: { items: SESSIONS } }));
+      if (u.includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: MY_CLASSES }));
+      }
+      return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenAttendance />);
-    await user.selectOptions(controlFor('Pilih Kelas', 'select'), '1');
-    await screen.findByText(/Pertemuan 1/);
+    await screen.findByText(/Pertemuan 1 · 2026-08-03/);
 
-    await user.click(screen.getByRole('button', { name: 'Buat Sesi Baru' }));
-    await user.type(controlFor('Tanggal', 'input'), '2026-08-01');
-    await user.type(controlFor('Topik', 'input'), 'P');
-    await user.type(controlFor('Materi', 'textarea'), 'M');
-    await user.click(screen.getByRole('button', { name: 'Buat Sesi' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Tanggal sudah lewat');
+    await user.selectOptions(controlFor('Jadwal Pertemuan', 'select'), '312');
+    await user.click(screen.getByRole('button', { name: 'Buat Sesi Absensi' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sesi sudah ada');
   });
 
-  it('pilih sesi → load records → toggle kehadiran → submit absensi', async () => {
+  it('pilih sesi → load records → ubah status → PUT /attendance/records/:id', async () => {
     const user = userEvent.setup();
-    let submitBody: unknown = null;
+    let putBody: unknown = null;
+    let putUrl = '';
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/attendance/submit')) {
-        submitBody = JSON.parse(String(init.body));
-        return Promise.resolve(jsonResponse({ success: true, data: { message: 'ok' } }));
+      const u = String(url);
+      if (init?.method === 'PUT' && u.includes('/attendance/records/')) {
+        putUrl = u;
+        putBody = JSON.parse(String(init.body));
+        return Promise.resolve(jsonResponse({ success: true, data: { id: 3111 } }));
       }
-      if (String(url).includes('/attendance/records?sessionId=')) {
-        return Promise.resolve(jsonResponse({ data: { items: RECORDS } }));
+      if (u.includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: MY_CLASSES }));
       }
-      return Promise.resolve(jsonResponse({ data: { items: SESSIONS } }));
+      if (u.includes('/attendance/sessions/31/records')) {
+        return Promise.resolve(jsonResponse({ data: RECORDS_RAW }));
+      }
+      return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenAttendance />);
-    await user.selectOptions(controlFor('Pilih Kelas', 'select'), '1');
-    await screen.findByText(/Pertemuan 1/);
+    await screen.findByText(/Pertemuan 1 · 2026-08-03/);
 
-    // Pilih sesi → records muncul (dynamic import getAttendanceRecords)
-    await user.selectOptions(screen.getAllByRole('combobox')[1], '31');
-    expect(await screen.findByText('Budi Santoso (2023110001)')).toBeInTheDocument();
-    expect(screen.getByText('Ani Wijaya (2023110002)')).toBeInTheDocument();
-    // Statistik: 1 hadir dari 2
-    expect(screen.getByText(/Hadir: 1/)).toBeInTheDocument();
+    // Expand sesi 31
+    await user.click(screen.getByText(/Pertemuan 1 · 2026-08-03/));
+    expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
+    expect(screen.getByText('Ani Wijaya')).toBeInTheDocument();
 
-    // Toggle Ani → hadir
-    await user.click(screen.getByLabelText('Ani Wijaya (2023110002)'));
-    expect(screen.getByText(/Hadir: 2/)).toBeInTheDocument();
+    // Ani belum check-in → tampil badge, bukan select
+    expect(screen.getByText('Belum check-in')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Simpan Absensi' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('Absensi berhasil disimpan');
-    expect(submitBody).toEqual({
-      sessionId: 31,
-      records: [
-        { studentId: 1, status: 'hadir' },
-        { studentId: 2, status: 'hadir' },
-      ],
-    });
+    // Ubah status Budi (record_id 3111) → hadir → izin
+    const budiRow = screen.getByText('Budi Santoso').closest('tr');
+    expect(budiRow).not.toBeNull();
+    const budiSelect = within(budiRow as HTMLElement).getByRole('combobox');
+    await user.selectOptions(budiSelect, 'izin');
+    expect(await screen.findByRole('status')).toHaveTextContent('Status 2023110001 diperbarui');
+    expect(putUrl).toContain('/attendance/records/3111');
+    expect(putBody).toEqual({ status: 'izin' });
   });
 
-  it('submit absensi tanpa sesi → error', async () => {
+  it('buka sesi → PUT /attendance/sessions/:id/open', async () => {
     const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: SESSIONS } }));
+    let putUrl = '';
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      const u = String(url);
+      if (init?.method === 'PUT' && u.includes('/attendance/sessions/')) {
+        putUrl = u;
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: { id: 31, is_open: true },
+          }),
+        );
+      }
+      if (u.includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: MY_CLASSES }));
+      }
+      return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
+    });
     render(<DosenAttendance />);
-    await user.selectOptions(controlFor('Pilih Kelas', 'select'), '1');
-    await screen.findByText(/Pertemuan 1/);
+    await screen.findByText(/Pertemuan 1 · 2026-08-03/);
 
-    // Tanpa memilih sesi, tombol Simpan Absensi tidak ada — verifikasi state placeholder
-    expect(screen.getByText('Pilih atau buat sesi absensi terlebih dahulu.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Buka' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Sesi dibuka — mahasiswa dapat check-in',
+    );
+    expect(putUrl).toContain('/attendance/sessions/31/open');
   });
 });

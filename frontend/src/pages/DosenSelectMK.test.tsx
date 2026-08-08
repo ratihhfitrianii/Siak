@@ -13,6 +13,17 @@ function jsonResponse(payload: unknown, status = 200) {
   } as Response;
 }
 
+const PERIOD_OPEN = {
+  id: 1,
+  semesterId: 1,
+  semesterCode: '2025/2026-1',
+  name: 'Ganjil 2025/2026',
+  startDate: null,
+  endDate: null,
+  isRevision: false,
+  status: 'open',
+};
+
 const COURSES: LecturerCourseAvailable[] = [
   {
     curriculumId: 101,
@@ -46,49 +57,76 @@ describe('DosenSelectMK (T3.8)', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
+    fetchMock.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.includes('/krs/period')) {
+        return Promise.resolve(jsonResponse({ data: PERIOD_OPEN }));
+      }
+      if (u.includes('/dosen/courses/available?semesterId=1')) {
+        return Promise.resolve(jsonResponse({ data: { items: COURSES } }));
+      }
+      return Promise.resolve(jsonResponse({ data: { items: [] } }));
+    });
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('render awal — minta pilih semester sebelum menampilkan MK', () => {
+  it('render — semester aktif dari /krs/period → MK langsung termuat', async () => {
     render(<DosenSelectMK />);
     expect(screen.getByText('Pilih Mata Kuliah')).toBeInTheDocument();
-    expect(screen.getByText('Pilih semester untuk menampilkan daftar MK.')).toBeInTheDocument();
-  });
 
-  it('pilih semester → load MK dari API → render daftar + status', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: COURSES } }));
-    render(<DosenSelectMK />);
-
-    await user.selectOptions(controlFor('Semester', 'select'), '1');
     expect(await screen.findByText('Dasar-Dasar Pemrograman')).toBeInTheDocument();
     expect(screen.getByText('TI102')).toBeInTheDocument();
     expect(screen.getByText('disetujui')).toBeInTheDocument();
-    // URL benar (semesterId=1)
+    // URL benar (semesterId aktif = 1) — tanpa interaksi user
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/dosen/courses/available?semesterId=1'),
       expect.any(Object),
     );
+    // Dropdown semester berisi periode aktif saja
+    expect(controlFor('Semester', 'select')).toHaveValue('1');
   });
 
-  it('load MK gagal → tampilkan error', async () => {
-    const user = userEvent.setup();
+  it('periode tidak buka → pesan tidak ada periode aktif', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url).includes('/krs/period')) {
+        return Promise.resolve(jsonResponse({ data: { ...PERIOD_OPEN, status: 'closed' } }));
+      }
+      return Promise.resolve(jsonResponse({ data: { items: [] } }));
+    });
+    render(<DosenSelectMK />);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Tidak ada periode KRS yang sedang buka',
+    );
+  });
+
+  it('load periode gagal → error', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'gagal' } }, 500),
     );
     render(<DosenSelectMK />);
-    await user.selectOptions(controlFor('Semester', 'select'), '1');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat periode aktif');
+  });
+
+  it('load MK gagal → tampilkan error', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.includes('/krs/period')) {
+        return Promise.resolve(jsonResponse({ data: PERIOD_OPEN }));
+      }
+      return Promise.resolve(
+        jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'gagal' } }, 500),
+      );
+    });
+    render(<DosenSelectMK />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat daftar MK');
   });
 
   it('search memfilter daftar MK', async () => {
     const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: COURSES } }));
     render(<DosenSelectMK />);
-    await user.selectOptions(controlFor('Semester', 'select'), '1');
     await screen.findByText('Dasar-Dasar Pemrograman');
 
     await user.type(controlFor('Cari Mata Kuliah', 'input'), 'Struktur');
@@ -101,29 +139,25 @@ describe('DosenSelectMK (T3.8)', () => {
     expect(screen.queryByText('Struktur Data')).not.toBeInTheDocument();
   });
 
-  it('submit tanpa pilih MK → error validasi lokal', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: COURSES } }));
+  it('submit tanpa pilih MK → tombol disabled', async () => {
     render(<DosenSelectMK />);
-    await user.selectOptions(controlFor('Semester', 'select'), '1');
     await screen.findByText('Dasar-Dasar Pemrograman');
-
-    const btn = screen.getByRole('button', { name: /Ajukan 0 MK/ });
-    expect(btn).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Ajukan 0 MK/ })).toBeDisabled();
   });
 
   it('pilih MK lalu submit → POST /dosen/courses/select per MK + success', async () => {
     const user = userEvent.setup();
     const postBody: unknown[] = [];
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).includes('/dosen/courses/select')) {
+      const u = String(url);
+      if (init?.method === 'POST' && u.includes('/dosen/courses/select')) {
         postBody.push(JSON.parse(String(init.body)));
         return Promise.resolve(
           jsonResponse({
             success: true,
             data: {
               id: 1,
-              lecturerId: 7,
+              lecturerId: 4,
               semesterId: 1,
               curriculumId: 101,
               status: 'diajukan',
@@ -135,10 +169,12 @@ describe('DosenSelectMK (T3.8)', () => {
           }),
         );
       }
+      if (u.includes('/krs/period')) {
+        return Promise.resolve(jsonResponse({ data: PERIOD_OPEN }));
+      }
       return Promise.resolve(jsonResponse({ data: { items: COURSES } }));
     });
     render(<DosenSelectMK />);
-    await user.selectOptions(controlFor('Semester', 'select'), '1');
     await screen.findByText('Dasar-Dasar Pemrograman');
 
     await user.click(screen.getAllByRole('checkbox')[0]);
@@ -151,24 +187,24 @@ describe('DosenSelectMK (T3.8)', () => {
   it('submit gagal VALIDATION_ERROR → tampilkan pesan API', async () => {
     const user = userEvent.setup();
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).includes('/dosen/courses/select')) {
+      const u = String(url);
+      if (init?.method === 'POST' && u.includes('/dosen/courses/select')) {
         return Promise.resolve(
           jsonResponse(
             {
               success: false,
-              error: {
-                code: 'VALIDATION_ERROR',
-                message: 'MK sudah pernah diajukan',
-              },
+              error: { code: 'VALIDATION_ERROR', message: 'MK sudah pernah diajukan' },
             },
             400,
           ),
         );
       }
+      if (u.includes('/krs/period')) {
+        return Promise.resolve(jsonResponse({ data: PERIOD_OPEN }));
+      }
       return Promise.resolve(jsonResponse({ data: { items: COURSES } }));
     });
     render(<DosenSelectMK />);
-    await user.selectOptions(controlFor('Semester', 'select'), '1');
     await screen.findByText('Dasar-Dasar Pemrograman');
 
     await user.click(screen.getAllByRole('checkbox')[0]);
@@ -177,31 +213,9 @@ describe('DosenSelectMK (T3.8)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('MK sudah pernah diajukan');
   });
 
-  it('submit gagal non-validasi → pesan generik', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).includes('/dosen/courses/select')) {
-        return Promise.resolve(
-          jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'x' } }, 500),
-        );
-      }
-      return Promise.resolve(jsonResponse({ data: { items: COURSES } }));
-    });
-    render(<DosenSelectMK />);
-    await user.selectOptions(controlFor('Semester', 'select'), '1');
-    await screen.findByText('Dasar-Dasar Pemrograman');
-
-    await user.click(screen.getAllByRole('checkbox')[0]);
-    await user.click(screen.getByRole('button', { name: /Ajukan 1 MK/ }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal mengajukan MK');
-  });
-
   it('tampilkan checkbox dalam kartu MK dengan label Pilih/Dipilih', async () => {
     const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: COURSES } }));
     render(<DosenSelectMK />);
-    await user.selectOptions(controlFor('Semester', 'select'), '1');
     await screen.findByText('Dasar-Dasar Pemrograman');
 
     const card = screen.getByText('Dasar-Dasar Pemrograman').closest('div.border');

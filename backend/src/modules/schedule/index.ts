@@ -104,6 +104,7 @@ export function createScheduleRouter(): Router {
         // Calculate busy slots on the given date
         const dayOfWeek = new Date(date as string).getDay() || 7; // 1=Mon..7=Sun
         const busySlots = result.rows.map((r) => ({
+          id: Number(r.id), // schedule id (T3.8: dipakai create sesi/substitute)
           meetingNumber: r.meeting_number,
           topic: r.topic,
           isCompleted: r.is_completed,

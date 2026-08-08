@@ -343,5 +343,105 @@ export function createDosenRouter(): Router {
     },
   );
 
+  // --- DOSEN: Kelas yang diampu (jadwal + sesi terkait) — T3.8 fix ---
+  router.get(
+    '/my-classes',
+    authenticate,
+    authorize('class.view_students'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        // classes.lecturer_id references users.id
+        const classesRes = await pgPool.query(
+          `SELECT
+             cl.id, cl.class_code, cl.day_of_week, cl.start_time, cl.end_time,
+             cl.room, cl.capacity, cl.current_enrolled, cl.is_active,
+             cur.id as curriculum_id, cur.semester_id, cur.semester_number,
+             co.code as course_code, co.name as course_name, co.credits
+           FROM classes cl
+           JOIN curricula cur ON cur.id = cl.curriculum_id
+           JOIN courses co ON co.id = cur.course_id
+           WHERE cl.lecturer_id = $1 AND cl.is_active
+           ORDER BY co.code, cl.class_code`,
+          [req.user!.id],
+        );
+
+        const classIds = classesRes.rows.map((r) => r.id);
+        const schedulesByClass = new Map<number, unknown[]>();
+        if (classIds.length > 0) {
+          const schedRes = await pgPool.query(
+            `SELECT id, class_id, meeting_number, scheduled_date, topic, is_completed
+             FROM schedules
+             WHERE class_id = ANY($1)
+             ORDER BY meeting_number`,
+            [classIds],
+          );
+          for (const s of schedRes.rows) {
+            const list = schedulesByClass.get(s.class_id) ?? [];
+            list.push({
+              id: Number(s.id),
+              meetingNumber: Number(s.meeting_number),
+              scheduledDate: s.scheduled_date,
+              topic: s.topic,
+              isCompleted: s.is_completed,
+            });
+            schedulesByClass.set(s.class_id, list);
+          }
+        }
+
+        const items = classesRes.rows.map((r) => ({
+          id: Number(r.id),
+          classCode: r.class_code,
+          dayOfWeek: r.day_of_week,
+          startTime: r.start_time,
+          endTime: r.end_time,
+          room: r.room,
+          capacity: Number(r.capacity),
+          currentEnrolled: Number(r.current_enrolled),
+          curriculumId: Number(r.curriculum_id),
+          semesterId: Number(r.semester_id),
+          semesterNumber: Number(r.semester_number),
+          courseCode: r.course_code,
+          courseName: r.course_name,
+          credits: Number(r.credits),
+          schedules: schedulesByClass.get(r.id) ?? [],
+        }));
+
+        res.json({ success: true, data: { items } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // --- DOSEN/ADMIN: Daftar dosen aktif (untuk substitute teaching) — T3.8 fix ---
+  router.get(
+    '/lecturers',
+    authenticate,
+    authorize('substitute.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const result = await pgPool.query(
+          `SELECT l.id, l.user_id, l.nidn, u.full_name, u.email, p.code as prodi_code
+           FROM lecturers l
+           JOIN users u ON u.id = l.user_id
+           JOIN prodis p ON p.id = l.prodi_id
+           WHERE l.is_active AND u.is_active
+           ORDER BY p.code, u.full_name`,
+        );
+        const items = result.rows.map((r) => ({
+          id: Number(r.id), // lecturers.id (dipakai substitute_lecturer_id)
+          userId: Number(r.user_id),
+          nidn: r.nidn,
+          fullName: r.full_name,
+          email: r.email,
+          prodiCode: r.prodi_code,
+        }));
+        res.json({ success: true, data: { items } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   return router;
 }

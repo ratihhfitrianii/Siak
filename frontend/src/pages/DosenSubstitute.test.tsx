@@ -3,7 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { controlFor } from '../test/controls';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenSubstitute } from './DosenSubstitute';
-import type { SubstituteRequest } from '../lib/types';
+
+vi.mock('../auth/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 4, username: 'dosen.TI1' }, booting: false, logout: vi.fn() }),
+}));
 
 function jsonResponse(payload: unknown, status = 200) {
   return {
@@ -13,22 +16,77 @@ function jsonResponse(payload: unknown, status = 200) {
   } as Response;
 }
 
-const REQUESTS: SubstituteRequest[] = [
+const LECTURERS = {
+  items: [
+    {
+      id: 1,
+      userId: 4,
+      nidn: '001',
+      fullName: 'Dosen Satu',
+      email: 'd1@example.id',
+      prodiCode: 'TI',
+    },
+    {
+      id: 2,
+      userId: 5,
+      nidn: '002',
+      fullName: 'Dosen Dua',
+      email: 'd2@example.id',
+      prodiCode: 'TI',
+    },
+  ],
+};
+
+const MY_CLASSES = {
+  items: [
+    {
+      id: 1,
+      classCode: 'TI101-A',
+      dayOfWeek: 1,
+      startTime: '07:30',
+      endTime: '09:00',
+      room: 'R.101',
+      capacity: 40,
+      currentEnrolled: 2,
+      curriculumId: 10,
+      semesterId: 1,
+      semesterNumber: 1,
+      courseCode: 'TI101',
+      courseName: 'Dasar-Dasar Pemrograman',
+      credits: 3,
+      schedules: [
+        {
+          id: 311,
+          meetingNumber: 1,
+          scheduledDate: '2026-08-03',
+          topic: 'Pertemuan 1',
+          isCompleted: false,
+        },
+      ],
+    },
+  ],
+};
+
+const REQUESTS_RAW = [
   {
     id: 41,
-    originalLecturerId: 1,
-    originalLecturerName: 'Dr. Budi Santoso, M.Kom',
-    substituteLecturerId: 2,
-    substituteLecturerName: 'Prof. Ani Wijaya, Ph.D',
-    classId: 1,
-    classCode: 'TI101-A',
-    courseCode: 'TI101',
-    courseName: 'Dasar-Dasar Pemrograman',
-    sessionDate: '2026-08-15',
-    type: 'pencarian',
-    status: 'diajukan',
-    notes: 'Sakit',
-    createdAt: '2026-08-14T08:00:00Z',
+    original_lecturer_id: 1,
+    original_lecturer_name: 'Dosen Satu',
+    substitute_lecturer_id: 2,
+    substitute_lecturer_name: 'Dosen Dua',
+    class_id: 1,
+    class_name: 'TI101-A',
+    schedule_id: 311,
+    meeting_number: 1,
+    scheduled_date: '2026-08-03',
+    topic: 'Pertemuan 1',
+    course_code: 'TI101',
+    course_name: 'Dasar-Dasar Pemrograman',
+    reason: 'Sakit',
+    status: 'active',
+    requested_by_name: 'Dosen Satu',
+    approved_by_name: null,
+    created_at: '2026-08-02T08:00:00Z',
   },
 ];
 
@@ -38,193 +96,186 @@ describe('DosenSubstitute (T3.8)', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
+    fetchMock.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.includes('/substitute?limit=100')) {
+        return Promise.resolve(jsonResponse({ data: REQUESTS_RAW }));
+      }
+      if (u.includes('/dosen/lecturers')) {
+        return Promise.resolve(jsonResponse({ data: LECTURERS }));
+      }
+      if (u.includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: MY_CLASSES }));
+      }
+      return Promise.resolve(jsonResponse({ data: [] }));
+    });
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('render awal — minta pilih dosen asli', () => {
+  it('render — header + daftar requests + default dosen asli = diri sendiri', async () => {
     render(<DosenSubstitute />);
-    expect(screen.getByText('Input Substitute Dosen')).toBeInTheDocument();
-    expect(
-      screen.getByText('Pilih dosen asli untuk melihat permintaan substitute.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Substitute Teaching')).toBeInTheDocument();
+    expect(await screen.findByText(/TI101 — TI101-A · Pertemuan 1/)).toBeInTheDocument();
+    expect(screen.getByText('Aktif')).toBeInTheDocument();
+    // Dosen asli default = diri sendiri (userId 4 → lecturers.id 1)
+    expect(controlFor('Dosen Asli', 'select')).toHaveValue('1');
   });
 
-  it('pilih dosen asli → load requests → render daftar', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: REQUESTS } }));
-    render(<DosenSubstitute />);
-
-    await user.selectOptions(controlFor('Dosen Asli', 'select'), '1');
-    expect(
-      await screen.findByText(/TI101-A - TI101 - Dasar-Dasar Pemrograman/),
-    ).toBeInTheDocument();
-    expect(screen.getByText('diajukan')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/substitute?lecturerId=1'),
-      expect.any(Object),
-    );
-  });
-
-  it('load requests gagal → error', async () => {
-    const user = userEvent.setup();
+  it('load data gagal → error', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'x' } }, 500),
     );
     render(<DosenSubstitute />);
-    await user.selectOptions(controlFor('Dosen Asli', 'select'), '1');
-    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat daftar substitute');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat data substitute');
   });
 
-  it('tombol Ajukan disabled sampai semua field lengkap', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: REQUESTS } }));
+  it('dosen asli == pengganti → filter dropdown & form kosong (tidak bisa pilih diri sendiri)', async () => {
     render(<DosenSubstitute />);
-    await user.selectOptions(controlFor('Dosen Asli', 'select'), '1');
-    await screen.findByText(/TI101-A - TI101 - Dasar-Dasar Pemrograman/);
+    await screen.findByText(/TI101 — TI101-A · Pertemuan 1/);
 
-    const btn = screen.getByRole('button', { name: 'Ajukan Permintaan Substitute' });
-    expect(btn).toBeDisabled();
-
-    await user.selectOptions(controlFor('Jenis Substitute', 'select'), 'pencarian');
-    await user.type(controlFor('Tanggal Substitute', 'input'), '2026-08-21');
-    await user.selectOptions(controlFor('Dosen Pengganti', 'select'), '2');
-    await user.selectOptions(controlFor('Mata Kuliah / Kelas', 'select'), '1');
-    await user.type(controlFor('Catatan', 'textarea'), 'test');
-    expect(btn).toBeEnabled();
+    // Dropdown pengganti TIDAK memuat dosen asli (diri sendiri, id 1)
+    const subSelect = controlFor('Dosen Pengganti', 'select');
+    const options = Array.from(subSelect.querySelectorAll('option')).map((o) =>
+      o.getAttribute('value'),
+    );
+    expect(options).not.toContain('1');
+    expect(options).toContain('2');
+    // Tombol disabled karena pengganti belum dipilih
+    expect(screen.getByRole('button', { name: 'Ajukan Substitute' })).toBeDisabled();
   });
 
-  it('dosen asli == dosen pengganti → warning + tombol disabled', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: REQUESTS } }));
-    render(<DosenSubstitute />);
-    await user.selectOptions(controlFor('Dosen Asli', 'select'), '1');
-    await screen.findByText(/TI101-A - TI101 - Dasar-Dasar Pemrograman/);
-
-    await user.selectOptions(controlFor('Dosen Pengganti', 'select'), '1');
-    await user.type(controlFor('Tanggal Substitute', 'input'), '2026-08-20');
-    await user.type(controlFor('Catatan', 'textarea'), 'test');
-
-    expect(
-      screen.getByText('⚠️ Dosen pengganti tidak boleh sama dengan dosen asli'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ajukan Permintaan Substitute' })).toBeDisabled();
-  });
-
-  it('submit lengkap → POST /substitute + success + form reset', async () => {
+  it('submit lengkap → POST /substitute + success + reload', async () => {
     const user = userEvent.setup();
     let postBody: unknown = null;
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/substitute')) {
+      const u = String(url);
+      if (init?.method === 'POST' && u.endsWith('/substitute')) {
         postBody = JSON.parse(String(init.body));
         return Promise.resolve(
           jsonResponse({
             success: true,
             data: {
               id: 42,
-              originalLecturerId: 1,
-              originalLecturerName: 'Dr. Budi Santoso, M.Kom',
-              substituteLecturerId: 2,
-              substituteLecturerName: 'Prof. Ani Wijaya, Ph.D',
-              classId: 1,
-              classCode: 'TI101-A',
-              courseCode: 'TI101',
-              courseName: 'Dasar-Dasar Pemrograman',
-              sessionDate: '2026-08-20',
-              type: 'penjadwalan',
-              status: 'diajukan',
-              notes: 'Ada acara',
-              createdAt: '2026-08-20T08:00:00Z',
+              original_lecturer_id: 1,
+              original_lecturer_name: 'Dosen Satu',
+              substitute_lecturer_id: 2,
+              substitute_lecturer_name: 'Dosen Dua',
+              class_id: 1,
+              class_name: 'TI101-A',
+              schedule_id: 311,
+              meeting_number: 1,
+              scheduled_date: '2026-08-03',
+              topic: 'Pertemuan 1',
+              course_code: 'TI101',
+              course_name: 'Dasar-Dasar Pemrograman',
+              reason: 'Sakit',
+              status: 'active',
+              requested_by_name: 'Dosen Satu',
+              approved_by_name: null,
+              created_at: '2026-08-02T08:00:00Z',
             },
           }),
         );
       }
-      return Promise.resolve(jsonResponse({ data: { items: REQUESTS } }));
+      if (u.includes('/substitute?limit=100')) {
+        return Promise.resolve(jsonResponse({ data: REQUESTS_RAW }));
+      }
+      if (u.includes('/dosen/lecturers')) {
+        return Promise.resolve(jsonResponse({ data: LECTURERS }));
+      }
+      if (u.includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: MY_CLASSES }));
+      }
+      return Promise.resolve(jsonResponse({ data: [] }));
     });
     render(<DosenSubstitute />);
-    await user.selectOptions(controlFor('Dosen Asli', 'select'), '1');
-    await screen.findByText(/TI101-A - TI101 - Dasar-Dasar Pemrograman/);
+    await screen.findByText(/TI101 — TI101-A · Pertemuan 1/);
 
-    await user.selectOptions(controlFor('Jenis Substitute', 'select'), 'penjadwalan');
-    await user.type(controlFor('Tanggal Substitute', 'input'), '2026-08-20');
     await user.selectOptions(controlFor('Dosen Pengganti', 'select'), '2');
-    await user.selectOptions(controlFor('Mata Kuliah / Kelas', 'select'), '1');
-    await user.type(controlFor('Catatan', 'textarea'), 'Ada acara');
-    await user.click(screen.getByRole('button', { name: 'Ajukan Permintaan Substitute' }));
+    await user.selectOptions(controlFor('Kelas', 'select'), '1');
+    await user.selectOptions(controlFor('Jadwal Pertemuan', 'select'), '311');
+    await user.type(controlFor('Alasan (opsional)', 'textarea'), 'Sakit');
 
+    await user.click(screen.getByRole('button', { name: 'Ajukan Substitute' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Permintaan pengganti berhasil dikirim',
+      'Substitute teaching berhasil diajukan (langsung aktif)',
     );
     expect(postBody).toEqual({
       originalLecturerId: 1,
       substituteLecturerId: 2,
       classId: 1,
-      sessionDate: '2026-08-20',
-      type: 'penjadwalan',
-      notes: 'Ada acara',
+      scheduleId: 311,
+      reason: 'Sakit',
     });
   });
 
-  it('submit CONFLICT → pesan bentrok jadwal pengganti', async () => {
+  it('submit CONFLICT → pesan API', async () => {
     const user = userEvent.setup();
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/substitute')) {
-        return Promise.resolve(
-          jsonResponse({ success: false, error: { code: 'CONFLICT', message: 'bentrok' } }, 409),
-        );
-      }
-      return Promise.resolve(jsonResponse({ data: { items: REQUESTS } }));
-    });
-    render(<DosenSubstitute />);
-    await user.selectOptions(controlFor('Dosen Asli', 'select'), '1');
-    await screen.findByText(/TI101-A - TI101 - Dasar-Dasar Pemrograman/);
-
-    await user.selectOptions(controlFor('Jenis Substitute', 'select'), 'pencarian');
-    await user.type(controlFor('Tanggal Substitute', 'input'), '2026-08-21');
-    await user.selectOptions(controlFor('Dosen Pengganti', 'select'), '2');
-    await user.selectOptions(controlFor('Mata Kuliah / Kelas', 'select'), '1');
-    await user.type(controlFor('Catatan', 'textarea'), 'test');
-    await user.click(screen.getByRole('button', { name: 'Ajukan Permintaan Substitute' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Jadwal bentrok dengan jadwal dosen pengganti',
-    );
-  });
-
-  it('submit VALIDATION_ERROR → pesan API', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'POST' && String(url).endsWith('/substitute')) {
+      const u = String(url);
+      if (init?.method === 'POST' && u.endsWith('/substitute')) {
         return Promise.resolve(
           jsonResponse(
-            { success: false, error: { code: 'VALIDATION_ERROR', message: 'Data tidak valid' } },
-            400,
+            { success: false, error: { code: 'CONFLICT', message: 'Sudah ada substitute aktif' } },
+            409,
           ),
         );
       }
-      return Promise.resolve(jsonResponse({ data: { items: REQUESTS } }));
+      if (u.includes('/substitute?limit=100')) {
+        return Promise.resolve(jsonResponse({ data: [] }));
+      }
+      if (u.includes('/dosen/lecturers')) {
+        return Promise.resolve(jsonResponse({ data: LECTURERS }));
+      }
+      if (u.includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: MY_CLASSES }));
+      }
+      return Promise.resolve(jsonResponse({ data: [] }));
     });
     render(<DosenSubstitute />);
-    await user.selectOptions(controlFor('Dosen Asli', 'select'), '1');
-    await screen.findByText(/TI101-A - TI101 - Dasar-Dasar Pemrograman/);
+    await screen.findByRole('button', { name: 'Ajukan Substitute' });
 
-    await user.selectOptions(controlFor('Jenis Substitute', 'select'), 'pencarian');
-    await user.type(controlFor('Tanggal Substitute', 'input'), '2026-08-21');
     await user.selectOptions(controlFor('Dosen Pengganti', 'select'), '2');
-    await user.selectOptions(controlFor('Mata Kuliah / Kelas', 'select'), '1');
-    await user.type(controlFor('Catatan', 'textarea'), 'test');
-    await user.click(screen.getByRole('button', { name: 'Ajukan Permintaan Substitute' }));
+    await user.selectOptions(controlFor('Kelas', 'select'), '1');
+    await user.selectOptions(controlFor('Jadwal Pertemuan', 'select'), '311');
+    await user.click(screen.getByRole('button', { name: 'Ajukan Substitute' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Data tidak valid');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sudah ada substitute aktif');
   });
 
-  it('dosen asli tanpa requests → pesan kosong', async () => {
+  it('batalkan request → PUT /substitute/:id/cancel', async () => {
     const user = userEvent.setup();
-    fetchMock.mockResolvedValue(jsonResponse({ data: { items: [] } }));
+    let putUrl = '';
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      const u = String(url);
+      if (init?.method === 'PUT' && u.includes('/cancel')) {
+        putUrl = u;
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: { ...REQUESTS_RAW[0], status: 'cancelled' },
+          }),
+        );
+      }
+      if (u.includes('/substitute?limit=100')) {
+        return Promise.resolve(jsonResponse({ data: REQUESTS_RAW }));
+      }
+      if (u.includes('/dosen/lecturers')) {
+        return Promise.resolve(jsonResponse({ data: LECTURERS }));
+      }
+      if (u.includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: MY_CLASSES }));
+      }
+      return Promise.resolve(jsonResponse({ data: [] }));
+    });
     render(<DosenSubstitute />);
-    await user.selectOptions(controlFor('Dosen Asli', 'select'), '3');
-    expect(await screen.findByText('Belum ada permintaan substitute.')).toBeInTheDocument();
+    await screen.findByText(/TI101 — TI101-A · Pertemuan 1/);
+
+    await user.click(screen.getByRole('button', { name: 'Batalkan' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Substitute dibatalkan');
+    expect(putUrl).toContain('/substitute/41/cancel');
   });
 });

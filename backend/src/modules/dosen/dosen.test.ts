@@ -408,3 +408,137 @@ describe('T3.1 Dosen Pilih MK', () => {
     expect(res.body.error).toContain('Selection not found');
   });
 });
+
+describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {
+  let dosenToken: string;
+  let dosenUserId: number;
+  let mhsToken: string;
+  let ghostDosenToken: string;
+
+  beforeAll(async () => {
+    const dosenRes = await pgPool.query(
+      `SELECT u.id, u.email FROM users u
+       JOIN lecturers l ON l.user_id = u.id
+       JOIN roles r ON r.id = u.role_id
+       WHERE r.code = 'dosen' AND u.is_active AND l.is_active
+       ORDER BY u.id LIMIT 1`,
+    );
+    dosenUserId = Number(dosenRes.rows[0].id);
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: dosenRes.rows[0].email, password: 'Dosen123!' });
+    dosenToken = loginRes.body.data.accessToken;
+
+    // Dosen tanpa profil lecturer (ghost) — user role dosen TANPA row di lecturers
+    const ghostRes = await pgPool.query(
+      `SELECT u.id, u.email FROM users u
+       JOIN roles r ON r.id = u.role_id
+       WHERE r.code = 'dosen' AND u.is_active
+         AND NOT EXISTS (SELECT 1 FROM lecturers l WHERE l.user_id = u.id)
+       ORDER BY u.id LIMIT 1`,
+    );
+    if (ghostRes.rows.length === 0) {
+      throw new Error('No ghost dosen available (user role dosen without lecturer profile)');
+    }
+    const ghostLogin = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: ghostRes.rows[0].email, password: 'Dosen123!' });
+    ghostDosenToken = ghostLogin.body.data.accessToken;
+
+    const mhsRes = await pgPool.query(
+      `SELECT u.email FROM users u
+       JOIN roles r ON r.id = u.role_id
+       WHERE r.code = 'mahasiswa' AND u.is_active
+       ORDER BY u.id LIMIT 1`,
+    );
+    const mhsLogin = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: mhsRes.rows[0].email, password: 'Mhs123!' });
+    mhsToken = mhsLogin.body.data.accessToken;
+  });
+
+  it('GET /dosen/my-classes — dosen seed pertama → 200 + items (kelas diampu)', async () => {
+    const res = await request(app)
+      .get('/api/v1/dosen/my-classes')
+      .set('Authorization', `Bearer ${dosenToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+    // Dosen pertama global harus mengampu minimal 1 kelas (seed 006/008)
+    expect(res.body.data.items.length).toBeGreaterThan(0);
+    for (const cls of res.body.data.items) {
+      expect(cls.id).toEqual(expect.any(Number));
+      expect(cls.classCode).toEqual(expect.any(String));
+      expect(cls.courseCode).toEqual(expect.any(String));
+      expect(Array.isArray(cls.schedules)).toBe(true);
+    }
+    // Semua kelas yang dikembalikan benar milik dosen ini (lecturer_id = users.id)
+    const ownedIds = await pgPool.query(
+      `SELECT id FROM classes WHERE lecturer_id = $1 AND is_active`,
+      [dosenUserId],
+    );
+    const ownedSet = new Set(ownedIds.rows.map((r) => Number(r.id)));
+    for (const cls of res.body.data.items) {
+      expect(ownedSet.has(cls.id)).toBe(true);
+    }
+  });
+
+  it('GET /dosen/my-classes — kelas diampu sesuai users.id (bukan lecturers.id)', async () => {
+    const check = await pgPool.query(
+      `SELECT COUNT(*)::int as n FROM classes WHERE lecturer_id = $1 AND is_active`,
+      [dosenUserId],
+    );
+    const res = await request(app)
+      .get('/api/v1/dosen/my-classes')
+      .set('Authorization', `Bearer ${dosenToken}`);
+    expect(res.body.data.items.length).toBe(check.rows[0].n);
+  });
+
+  it('GET /dosen/my-classes — tanpa token → 401', async () => {
+    const res = await request(app).get('/api/v1/dosen/my-classes');
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /dosen/lecturers — dosen → 200 + daftar dosen aktif', async () => {
+    const res = await request(app)
+      .get('/api/v1/dosen/lecturers')
+      .set('Authorization', `Bearer ${dosenToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.items.length).toBeGreaterThan(0);
+    for (const l of res.body.data.items) {
+      expect(l.id).toEqual(expect.any(Number)); // lecturers.id
+      expect(l.userId).toEqual(expect.any(Number));
+      expect(l.fullName).toEqual(expect.any(String));
+      expect(l.prodiCode).toEqual(expect.any(String));
+    }
+  });
+
+  it('GET /dosen/lecturers — mahasiswa → 403 (bukan substitute.manage)', async () => {
+    const res = await request(app)
+      .get('/api/v1/dosen/lecturers')
+      .set('Authorization', `Bearer ${mhsToken}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('GET /dosen/my-classes — dosen tanpa profil lecturer (ghost) → 200 + items kosong', async () => {
+    const res = await request(app)
+      .get('/api/v1/dosen/my-classes')
+      .set('Authorization', `Bearer ${ghostDosenToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+    expect(res.body.data.items.length).toBe(0);
+  });
+
+  it('GET /dosen/lecturers — dosen tanpa profil lecturer (ghost) → 200 + daftar dosen aktif', async () => {
+    const res = await request(app)
+      .get('/api/v1/dosen/lecturers')
+      .set('Authorization', `Bearer ${ghostDosenToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+  });
+});

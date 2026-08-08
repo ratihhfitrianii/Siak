@@ -1,16 +1,17 @@
-import { useState } from 'react';
-import { getGradesByClass, submitGrades } from '../lib/api';
-import type { GradeItem, GradeInput } from '../lib/types';
+import { useState, useEffect, useCallback } from 'react';
+import { getGradesByClass, submitGrades, getMyClasses } from '../lib/api';
+import type { GradeClassItem, GradeInput, MyClass } from '../lib/types';
 
 /**
  * Input nilai dosen (T3.7 + T3.8, perm grade.input) — daftar mahasiswa per kelas,
  * input skor tugas/UTS/UAS + remedial per komponen. Final = max(asli, remedial)
  * per komponen (bobot 20/30/50) — sinkron dengan backend grades (T3.6).
- * Terhubung ke endpoint /grades/class/:classId dan /grades.
+ * Kelas diampu dari GET /dosen/my-classes; nilai dari GET /grades/class/:classId.
  */
 export function DosenGrades() {
   const [classId, setClassId] = useState<number | null>(null);
-  const [grades, setGrades] = useState<GradeItem[]>([]);
+  const [classes, setClasses] = useState<MyClass[]>([]);
+  const [grades, setGrades] = useState<GradeClassItem[]>([]);
   const [scores, setScores] = useState<Record<number, { tugas: string; uts: string; uas: string }>>(
     {},
   );
@@ -18,8 +19,17 @@ export function DosenGrades() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Load kelas yang diampu
+  useEffect(() => {
+    getMyClasses()
+      .then((res) => setClasses(res.items))
+      .catch(() => {
+        /* dropdown tetap kosong */
+      });
+  }, []);
+
   // Load grades when classId changes
-  const loadGrades = async (clsId: number) => {
+  const loadGrades = useCallback(async (clsId: number) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -37,12 +47,12 @@ export function DosenGrades() {
           ]),
         ),
       );
-    } catch {
+    } catch (_err) {
       setError('Gagal memuat data nilai');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const handleSelectClass = (clsId: string) => {
     const id = clsId ? Number(clsId) : null;
@@ -63,7 +73,7 @@ export function DosenGrades() {
 
   /** Final = max(asli, remedial) per komponen, bobot tugas 20% / UTS 30% / UAS 50%. */
   function computeFinal(
-    grade: GradeItem,
+    grade: GradeClassItem,
     edit: { tugas: string; uts: string; uas: string },
   ): number | null {
     const toNum = (v: string): number | null => (v === '' ? null : Number(v));
@@ -101,6 +111,9 @@ export function DosenGrades() {
         await submitGrades(input);
       }
       setSuccess('Nilai berhasil disimpan');
+      if (classId) {
+        await loadGrades(classId);
+      }
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
       if (apiError.code === 'VALIDATION_ERROR') {
@@ -113,14 +126,12 @@ export function DosenGrades() {
     }
   };
 
-  // Class options - in real app these would come from API
-  const classOptions = [
-    { id: 1, code: 'TI101-A', name: 'Dasar-Dasar Pemrograman (Kelas A)' },
-    { id: 2, code: 'SI202-C', name: 'Basis Data (Kelas C)' },
-    { id: 3, code: 'MNJ301-B', name: 'Manajemen Strategis (Kelas B)' },
-    { id: 4, code: 'HKM401-A', name: 'Hukum Bisnis (Kelas A)' },
-    { id: 5, code: 'KN102-D', name: 'Anatomi Tubuh Manusia (Kelas D)' },
-  ];
+  // Kelas diampu — dari API nyata (getMyClasses)
+  const classOptions = classes.map((cls) => ({
+    id: cls.id,
+    code: cls.classCode,
+    name: `${cls.courseName} (${cls.courseCode})`,
+  }));
 
   return (
     <div className="space-y-6">
@@ -197,9 +208,11 @@ export function DosenGrades() {
                   const finalScore = computeFinal(grade, edit);
                   return (
                     <tr key={grade.id}>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-600">{grade.nim}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-600">
+                        {grade.student.nim}
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap text-gray-900">
-                        {grade.studentName}
+                        {grade.student.name}
                       </td>
                       {(['tugas', 'uts', 'uas'] as const).map((field) => (
                         <td key={field} className="px-4 py-3 text-center">

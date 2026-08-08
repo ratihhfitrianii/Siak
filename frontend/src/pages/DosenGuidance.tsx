@@ -1,45 +1,57 @@
-import { useState, useEffect } from 'react';
-import { getGuidanceSessions, createGuidance } from '../lib/api';
-import type { GuidanceSession } from '../lib/types';
+import { useState, useEffect, useCallback } from 'react';
+import { getMentees, getGuidanceSessions, createGuidance } from '../lib/api';
+import type { Mentee, GuidanceSession } from '../lib/types';
 
 /**
  * Bimbingan akademik (T3.7 + T3.8, perm guidance.manage untuk dosen Wali).
- * Terhubung ke endpoint /guidance.
+ * Terhubung API nyata: GET /guidance/mentees, GET/POST /guidance/sessions.
+ * Hanya dosen Wali yang memiliki mahasiswa binaan.
  */
 export function DosenGuidance() {
-  const [classId, setClassId] = useState<number | null>(null);
+  const [mentees, setMentees] = useState<Mentee[]>([]);
+  const [sessions, setSessions] = useState<GuidanceSession[]>([]);
   const [studentId, setStudentId] = useState<number | null>(null);
-  const [type, setType] = useState('');
-  const [date, setDate] = useState('');
-  const [description, setDescription] = useState('');
+
+  // Create form
+  const [sessionDate, setSessionDate] = useState('');
+  const [progress, setProgress] = useState<'berjalan' | 'selesai' | 'bermasalah'>('berjalan');
+  const [notes, setNotes] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [sessions, setSessions] = useState<GuidanceSession[]>([]);
 
-  // Load sessions when classId changes
-  useEffect(() => {
-    if (!classId) {
-      setSessions([]);
-      return;
-    }
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    getGuidanceSessions(classId)
-      .then((res) => {
-        setSessions(res.items);
-      })
-      .catch(() => {
-        setError('Gagal memuat catatan bimbingan');
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [classId]);
+    try {
+      const [menteeList, sessionList] = await Promise.all([getMentees(), getGuidanceSessions()]);
+      setMentees(menteeList);
+      setSessions(sessionList);
+    } catch (_err) {
+      setError('Gagal memuat data bimbingan');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const filteredSessions = studentId ? sessions.filter((s) => s.studentId === studentId) : sessions;
 
   const handleSubmit = async () => {
-    if (!classId || !studentId || !type || !date || !description.trim()) {
-      setError('Lengkapi semua field bimbingan');
+    if (!studentId) {
+      setError('Pilih mahasiswa binaan terlebih dahulu');
+      return;
+    }
+    if (!sessionDate) {
+      setError('Tanggal bimbingan wajib diisi');
+      return;
+    }
+    if (!notes.trim()) {
+      setError('Catatan bimbingan wajib diisi');
       return;
     }
 
@@ -49,15 +61,15 @@ export function DosenGuidance() {
     try {
       await createGuidance({
         studentId,
-        type,
-        date,
-        description,
+        sessionDate,
+        progress,
+        notes: notes.trim(),
       });
       setSuccess('Catatan bimbingan berhasil disimpan');
-      setStudentId(null);
-      setType('');
-      setDate('');
-      setDescription('');
+      setSessionDate('');
+      setNotes('');
+      setProgress('berjalan');
+      await loadData();
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
       if (apiError.code === 'VALIDATION_ERROR') {
@@ -72,45 +84,32 @@ export function DosenGuidance() {
     }
   };
 
-  // Class options - in real app these would come from API
-  const classOptions = [
-    { id: 1, code: 'TI101-A', name: 'Dasar-Dasar Pemrograman (Kelas A)' },
-    { id: 2, code: 'SI202-C', name: 'Basis Data (Kelas C)' },
-    { id: 3, code: 'MNJ301-B', name: 'Manajemen Strategis (Kelas B)' },
-    { id: 4, code: 'HKM401-A', name: 'Hukum Bisnis (Kelas A)' },
-    { id: 5, code: 'KN102-D', name: 'Anatomi Tubuh Manusia (Kelas D)' },
-  ];
+  const progressLabels: Record<string, string> = {
+    berjalan: 'Berjalan',
+    selesai: 'Selesai',
+    bermasalah: 'Bermasalah',
+  };
 
-  // Student options - in real app these would come from API (mahasiswa di kelas yg dipilih)
-  const studentOptions = [
-    { id: 1, nim: '2023110001', name: 'Budi Santoso' },
-    { id: 2, nim: '2023110002', name: 'Ani Wijaya' },
-    { id: 3, nim: '2023110003', name: 'Citra Dewi' },
-    { id: 4, nim: '2023110004', name: 'Eko Prasetyo' },
-    { id: 5, nim: '2023110005', name: 'Fitriani' },
-  ];
-
-  const typeOptions = [
-    { id: 'konsultasi', name: 'Konsultasi Akademik' },
-    { id: 'tugas', name: 'Bimbingan Tugas Akhir' },
-    { id: 'skripsi', name: 'Pembimbing Skripsi' },
-    { id: 'proposal', name: 'Bimbingan Proposal' },
-  ];
+  const progressColors: Record<string, string> = {
+    berjalan: 'bg-blue-100 text-blue-800',
+    selesai: 'bg-green-100 text-green-800',
+    bermasalah: 'bg-red-100 text-red-800',
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Input Bimbingan</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Bimbingan Mahasiswa Binaan</h2>
         <p className="text-gray-600">
-          Input catatan bimbingan akademik untuk mahasiswa binaan. Catat tanggal, jenis bimbingan,
-          dan deskripsi. Hanya dosen Wali yang dapat mengakses.
+          Catat bimbingan akademik untuk mahasiswa binaan Anda. Hanya dosen Wali yang dapat
+          mengakses modul ini.
         </p>
       </div>
 
-      {/* Class Selection */}
+      {/* Form Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Pilih Kelas Binaan</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Form Bimbingan</h3>
         {error && (
           <p
             role="alert"
@@ -127,136 +126,95 @@ export function DosenGuidance() {
             {success}
           </p>
         )}
-        <select
-          value={classId ?? ''}
-          onChange={(e) => setClassId(e.target.value ? Number(e.target.value) : null)}
-          className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Pilih Kelas</option>
-          {classOptions.map((cls) => (
-            <option key={cls.id} value={cls.id}>
-              {cls.code} - {cls.name}
-            </option>
-          ))}
-        </select>
-      </div>
 
-      {/* Form Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Form Bimbingan</h3>
-        {!classId ? (
-          <p className="text-gray-500">Pilih kelas terlebih dahulu.</p>
-        ) : (
-          <>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Mahasiswa</label>
-                  <select
-                    value={studentId ?? ''}
-                    onChange={(e) => setStudentId(e.target.value ? Number(e.target.value) : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Pilih Mahasiswa</option>
-                    {studentOptions.map((student) => (
-                      <option key={student.id} value={student.id}>
-                        {student.nim} - {student.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tanggal Bimbingan
-                  </label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Jenis Bimbingan
-                </label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Pilih Jenis Bimbingan</option>
-                  {typeOptions.map((typeOpt) => (
-                    <option key={typeOpt.id} value={typeOpt.id}>
-                      {typeOpt.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Masukkan detail bimbingan..."
-                />
-              </div>
-            </div>
-
-            {/* Preview */}
-            {studentId && date && type && description.trim() && (
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Pratinjau Bimbingan:</h4>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>
-                    <strong>Mahasiswa:</strong>{' '}
-                    {studentOptions.find((s) => s.id === studentId)?.name}
-                  </p>
-                  <p>
-                    <strong>Tanggal:</strong> {date}
-                  </p>
-                  <p>
-                    <strong>Jenis:</strong> {typeOptions.find((t) => t.id === type)?.name}
-                  </p>
-                  <p>
-                    <strong>Deskripsi:</strong> {description}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={handleSubmit}
-                disabled={isLoading || !studentId || !date || !type || !description.trim()}
-                className="px-6 py-2 bg-purple-500 text-white font-medium rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Mahasiswa Binaan
+              </label>
+              <select
+                value={studentId ?? ''}
+                onChange={(e) => setStudentId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {isLoading ? 'Memproses...' : 'Simpan Bimbingan'}
-              </button>
+                <option value="">Pilih Mahasiswa</option>
+                {mentees.map((m) => (
+                  <option key={m.studentId} value={m.studentId}>
+                    {m.nim} — {m.studentName}
+                  </option>
+                ))}
+              </select>
+              {mentees.length === 0 && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Anda belum memiliki mahasiswa binaan (atribut Wali).
+                </p>
+              )}
             </div>
-          </>
-        )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tanggal Bimbingan
+              </label>
+              <input
+                type="date"
+                value={sessionDate}
+                onChange={(e) => setSessionDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Progress</label>
+            <select
+              value={progress}
+              onChange={(e) => setProgress(e.target.value as 'berjalan' | 'selesai' | 'bermasalah')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="berjalan">Berjalan</option>
+              <option value="selesai">Selesai</option>
+              <option value="bermasalah">Bermasalah</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Masukkan detail bimbingan..."
+            />
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading || !studentId || !sessionDate || !notes.trim()}
+            className="px-6 py-2 bg-purple-500 text-white font-medium rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          >
+            {isLoading ? 'Memproses...' : 'Simpan Bimbingan'}
+          </button>
+        </div>
       </div>
 
       {/* Existing Guidance Sessions */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Catatan Bimbingan yang Sudah Ada</h3>
-        {!classId ? (
-          <p className="text-gray-500">Pilih kelas untuk melihat catatan bimbingan.</p>
-        ) : isLoading ? (
+        {isLoading && sessions.length === 0 ? (
           <p className="text-gray-500">Memuat catatan bimbingan...</p>
-        ) : sessions.length === 0 ? (
-          <p className="text-gray-500">Belum ada catatan bimbingan untuk kelas ini.</p>
+        ) : filteredSessions.length === 0 ? (
+          <p className="text-gray-500">
+            {studentId
+              ? 'Belum ada catatan bimbingan untuk mahasiswa ini.'
+              : 'Belum ada catatan bimbingan.'}
+          </p>
         ) : (
           <div className="space-y-4">
-            {sessions.map((session) => (
+            {filteredSessions.map((session) => (
               <div
                 key={session.id}
                 className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
@@ -267,11 +225,16 @@ export function DosenGuidance() {
                       {session.studentName} ({session.nim})
                     </h4>
                     <p className="text-sm text-gray-600">
-                      {session.date} | {session.type} | {session.description}
+                      {session.sessionDate} | {session.lecturerName}
                     </p>
+                    {session.notes && <p className="text-sm text-gray-700 mt-1">{session.notes}</p>}
                   </div>
-                  <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-                    Tersimpan
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      progressColors[session.progress] ?? 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {progressLabels[session.progress] ?? session.progress}
                   </span>
                 </div>
               </div>
