@@ -432,10 +432,6 @@ export async function markNotificationRead(id: number): Promise<void> {
 /* ==== T3.8 — Dosen API (diselaraskan dengan kontrak backend nyata) ==== */
 
 import type {
-  LecturerCourseAvailableResponse,
-  CourseSelectionInput,
-  CourseSelectionResult,
-  MyCourseSelectionsResponse,
   MyClassesResponse,
   LecturersResponse,
   ScheduleAvailability,
@@ -451,16 +447,41 @@ import type {
   SubstituteRequest,
   GradesClassResponse,
   GradeInput,
+} from './types';
+
+import type {
+  LecturerCourseAvailable,
+  LecturerCourseAvailableResponse,
+  CourseSelectionInput,
+  CourseSelectionResult,
+  MyCourseSelection,
+  MyCourseSelectionsResponse,
   KrsPeriod,
 } from './types';
 
 /** GET /dosen/courses/available?semesterId= — daftar MK tersedia untuk dosen. */
+function normalizeCourseAvailable(r: Record<string, unknown>): LecturerCourseAvailable {
+  return {
+    curriculumId: Number(r.curriculum_id),
+    courseCode: String(r.course_code),
+    courseName: String(r.course_name),
+    credits: Number(r.credits),
+    semesterNumber: Number(r.semester_number),
+    isMandatory: Boolean(r.is_mandatory),
+    availableClasses: Number(r.available_classes),
+    selectionStatus: String(r.selection_status) as LecturerCourseAvailable['selectionStatus'],
+    priority: r.priority !== null ? Number(r.priority) : null,
+    notes: r.notes ? String(r.notes) : null,
+  };
+}
+
 export async function getAvailableCourses(
   semesterId: number,
 ): Promise<LecturerCourseAvailableResponse> {
-  return apiRequest<LecturerCourseAvailableResponse>(
+  const rows = await apiRequest<Record<string, unknown>[]>(
     `/dosen/courses/available?semesterId=${semesterId}`,
   );
+  return { items: rows.map(normalizeCourseAvailable) };
 }
 
 /** POST /dosen/courses/select — ajukan/diperbarui pilihan MK. */
@@ -474,11 +495,32 @@ export async function submitCourseSelection(
 }
 
 /** GET /dosen/courses/my?semesterId= — pilihan MK dosen sendiri. */
+function normalizeMyCourseSelection(r: Record<string, unknown>): MyCourseSelection {
+  return {
+    id: Number(r.id),
+    curriculumId: Number(r.curriculum_id),
+    courseCode: String(r.course_code),
+    courseName: String(r.course_name),
+    credits: Number(r.credits),
+    semesterNumber: Number(r.semester_number),
+    isMandatory: Boolean(r.is_mandatory),
+    semesterCode: String(r.semester_code),
+    semesterName: String(r.semester_name),
+    prodiName: String(r.prodi_name),
+    status: String(r.status),
+    priority: Number(r.priority),
+    notes: r.notes ? String(r.notes) : null,
+    createdAt: String(r.created_at),
+    updatedAt: String(r.updated_at),
+  };
+}
+
 export async function getMyCourseSelections(
   semesterId?: number,
 ): Promise<MyCourseSelectionsResponse> {
   const qs = semesterId ? `?semesterId=${semesterId}` : '';
-  return apiRequest<MyCourseSelectionsResponse>(`/dosen/courses/my${qs}`);
+  const rows = await apiRequest<Record<string, unknown>[]>(`/dosen/courses/my${qs}`);
+  return { items: rows.map(normalizeMyCourseSelection) };
 }
 
 /** GET /krs/period — periode KRS aktif (dipakai Pilih MK untuk default semester). */

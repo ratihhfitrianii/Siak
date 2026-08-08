@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { controlFor } from '../test/controls';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenSelectMK } from './DosenSelectMK';
-import type { LecturerCourseAvailable } from '../lib/types';
 
 function jsonResponse(payload: unknown, status = 200) {
   return {
@@ -24,28 +23,28 @@ const PERIOD_OPEN = {
   status: 'open',
 };
 
-const COURSES: LecturerCourseAvailable[] = [
+const COURSES = [
   {
-    curriculumId: 101,
-    courseCode: 'TI101',
-    courseName: 'Dasar-Dasar Pemrograman',
+    curriculum_id: 101,
+    course_code: 'TI101',
+    course_name: 'Dasar-Dasar Pemrograman',
     credits: 3,
-    semesterNumber: 1,
-    isMandatory: true,
-    availableClasses: 2,
-    selectionStatus: 'belum_diajukan',
+    semester_number: 1,
+    is_mandatory: true,
+    available_classes: 2,
+    selection_status: 'belum_diajukan',
     priority: null,
     notes: null,
   },
   {
-    curriculumId: 102,
-    courseCode: 'TI102',
-    courseName: 'Struktur Data',
+    curriculum_id: 102,
+    course_code: 'TI102',
+    course_name: 'Struktur Data',
     credits: 3,
-    semesterNumber: 2,
-    isMandatory: true,
-    availableClasses: 1,
-    selectionStatus: 'disetujui',
+    semester_number: 2,
+    is_mandatory: true,
+    available_classes: 1,
+    selection_status: 'disetujui',
     priority: 2,
     notes: null,
   },
@@ -63,9 +62,9 @@ describe('DosenSelectMK (T3.8)', () => {
         return Promise.resolve(jsonResponse({ data: PERIOD_OPEN }));
       }
       if (u.includes('/dosen/courses/available?semesterId=1')) {
-        return Promise.resolve(jsonResponse({ data: { items: COURSES } }));
+        return Promise.resolve(jsonResponse({ data: COURSES }));
       }
-      return Promise.resolve(jsonResponse({ data: { items: [] } }));
+      return Promise.resolve(jsonResponse({ data: [] }));
     });
   });
 
@@ -172,7 +171,7 @@ describe('DosenSelectMK (T3.8)', () => {
       if (u.includes('/krs/period')) {
         return Promise.resolve(jsonResponse({ data: PERIOD_OPEN }));
       }
-      return Promise.resolve(jsonResponse({ data: { items: COURSES } }));
+      return Promise.resolve(jsonResponse({ data: COURSES }));
     });
     render(<DosenSelectMK />);
     await screen.findByText('Dasar-Dasar Pemrograman');
@@ -202,7 +201,7 @@ describe('DosenSelectMK (T3.8)', () => {
       if (u.includes('/krs/period')) {
         return Promise.resolve(jsonResponse({ data: PERIOD_OPEN }));
       }
-      return Promise.resolve(jsonResponse({ data: { items: COURSES } }));
+      return Promise.resolve(jsonResponse({ data: COURSES }));
     });
     render(<DosenSelectMK />);
     await screen.findByText('Dasar-Dasar Pemrograman');
