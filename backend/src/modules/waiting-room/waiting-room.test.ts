@@ -102,6 +102,56 @@ class InMemoryRedis implements WaitingRoomRedis {
   expireKey(key: string): void {
     this.store.delete(key);
   }
+
+  /** Eval Lua script — T4.1 atomic enter. */
+  async eval(
+    script: string,
+    numKeys: number,
+    ...keysAndArgs: (string | number)[]
+  ): Promise<unknown> {
+    // Parse args: 3 keys + 7 args = userKey, expiry, threshold, now, token, tokenTtl
+    const [activeKey, queueKey, tokenPrefix] = keysAndArgs.slice(0, 3) as string[];
+    const [userKey, expiry, threshold, now, token, _tokenTtl] = keysAndArgs.slice(3) as (string | number)[];
+    const tokenStr = String(token ?? '');
+    
+    // 1. Clean up expired sessions
+    const z = this.zsets.get(activeKey);
+    if (z) {
+      for (const [m, s] of [...z.entries()]) {
+        if (s <= Number(now)) {
+          z.delete(m);
+        }
+      }
+    }
+
+    // 2. Add user to active set
+    const z2 = this.zsets.get(activeKey) ?? new Map<string, number>();
+    z2.set(userKey, Number(expiry));
+    this.zsets.set(activeKey, z2);
+
+    // 3. Count active users
+    const count = z2.size;
+
+    // 4. Check threshold
+    if (count <= Number(threshold)) {
+      return [1];
+    }
+
+    // 5. Over threshold: remove user from active, add to queue
+    z2.delete(userKey);
+    
+    // Store token details
+    const tokenKey = tokenPrefix + tokenStr;
+    this.store.set(tokenKey, JSON.stringify({ userKey, createdAt: Number(now) }));
+    
+    // Add to queue (FIFO)
+    const l = this.lists.get(queueKey) ?? [];
+    l.push(tokenStr);
+    this.lists.set(queueKey, l);
+    const position = l.length;
+
+    return [0, tokenStr, position];
+  }
 }
 
 const OPTS = { threshold: 2, sessionTtlMs: 15 * 60 * 1000 };

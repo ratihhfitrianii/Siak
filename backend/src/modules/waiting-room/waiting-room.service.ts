@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto';
 import { EventEmitter } from 'events';
 import { logger } from '../../lib/logger';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Virtual Waiting Room service — T1.13 (F-17, NF-05, K-09).
@@ -13,9 +15,14 @@ import { logger } from '../../lib/logger';
  * - `siak:wr:token:<t>` STRING — detail token { userKey, createdAt } TTL 30 menit.
  *
  * Graceful degradation: Redis down / tidak dikonfigurasi → selalu allow (docs/02 §7.1,
- * "Redis down → waiting room off (allow semua)"). Soft limit: dua request berbarengan
- * bisa tembus sedikit di atas ambang (race ZADD+ZCARD) — hardening Lua di T4.1.
+ * "Redis down → waiting room off (allow semua)"). T4.1: atomic Lua script untuk race condition.
  */
+
+/** Lua script untuk atomic threshold check (T4.1). */
+const WAITING_ROOM_LUA_SCRIPT = fs.readFileSync(
+  path.join(__dirname, 'waiting-room.lua'),
+  'utf-8'
+);
 
 /** Koneksi Redis minimal yang dipakai service (memudahkan injeksi fake di test). */
 export interface WaitingRoomRedis {
@@ -30,6 +37,7 @@ export interface WaitingRoomRedis {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, mode?: string, ttlSeconds?: number): Promise<unknown>;
   del(...keys: string[]): Promise<number>;
+  eval(script: string, numKeys: number, ...keysAndArgs: (string | number)[]): Promise<unknown>;
 }
 
 export const WR_ACTIVE_KEY = 'siak:wr:active';
@@ -69,19 +77,32 @@ export class WaitingRoomService {
   /**
    * Cek + daftar user sebagai aktif (refresh TTL sesi 15 menit per request).
    * Kembalian: allowed=true (di bawah ambang) | allowed=false + token + posisi antrean.
+   * T4.1: pakai Lua script atomic untuk mencegah race condition ZADD+ZCARD.
    */
   async enter(userKey: string): Promise<WaitingRoomEntry> {
     if (!this.redis) return { allowed: true }; // Redis down → allow semua
     const expiry = this.now + this.opts.sessionTtlMs;
+    const token = randomUUID();
     try {
-      // Bersihkan sesi kadaluarsa (self-maintaining TTL 15 menit)
-      await this.redis.zremrangebyscore(WR_ACTIVE_KEY, '-inf', this.now);
-      await this.redis.zadd(WR_ACTIVE_KEY, expiry, userKey);
-      const count = await this.redis.zcard(WR_ACTIVE_KEY);
-      if (count <= this.opts.threshold) return { allowed: true };
-      // Di atas ambang → batalkan pendaftaran sendiri, masukkan antrean
-      await this.redis.zrem(WR_ACTIVE_KEY, userKey);
-      return this.enqueue(userKey);
+      // Lua script atomic: cleanup + ZADD + ZCARD + threshold check + enqueue
+      const result = await this.redis.eval(
+        WAITING_ROOM_LUA_SCRIPT,
+        3,
+        WR_ACTIVE_KEY,
+        WR_QUEUE_KEY,
+        'siak:wr:token:',
+        userKey,
+        expiry,
+        this.opts.threshold,
+        this.now,
+        token,
+        WR_TOKEN_TTL_SECONDS,
+      );
+      const allowed = (result as unknown[])[0] as number;
+      if (allowed === 1) return { allowed: true };
+      const returnedToken = (result as unknown[])[1] as string;
+      const position = (result as unknown[])[2] as number;
+      return { allowed: false, token: returnedToken, position };
     } catch (err) {
       logger.warn({ err }, 'waiting room: enter error — allow (bypass)');
       return { allowed: true };
