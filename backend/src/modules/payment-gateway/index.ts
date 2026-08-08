@@ -5,6 +5,8 @@
  * Implementasi mock dulu; real provider bisa di-swap nanti tanpa ubah core logic.
  */
 
+import crypto from 'crypto';
+
 export interface PaymentGatewayConfig {
   /** Environment: 'sandbox' | 'production' */
   environment: 'sandbox' | 'production';
@@ -116,12 +118,12 @@ export interface PaymentGatewayAdapter {
 }
 
 /**
- * Factory untuk membuat adapter berdasarkan provider name.
+ * Factory — provider switch.
  * Memudahkan swap provider tanpa ubah kode pemanggil.
  */
 export function createPaymentGatewayAdapter(
   provider: 'midtrans' | 'xendit' | 'mock',
-  config: PaymentGatewayConfig
+  _config: PaymentGatewayConfig
 ): PaymentGatewayAdapter {
   switch (provider) {
     case 'mock':
@@ -228,7 +230,6 @@ export class MockPaymentGateway implements PaymentGatewayAdapter {
   
   private generateMockSignature(payload: WebhookPayload): string {
     // Simple mock signature: SHA256(orderId + grossAmount + secret)
-    const crypto = require('crypto');
     const data = `${payload.orderId}${payload.grossAmount}${this.webhookSecret}`;
     return crypto.createHash('sha256').update(data).digest('hex');
   }
