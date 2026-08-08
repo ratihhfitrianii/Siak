@@ -6,6 +6,7 @@
  */
 
 import { pgPool } from '../../lib/pg';
+import { logger } from '../../lib/logger';
 import { AppError } from '../../middleware/error-handler';
 
 export interface PayrollConfig {
@@ -359,7 +360,7 @@ export async function batchGeneratePayroll(
       const payroll = await generatePayroll(lecturer.id, periodStart, periodEnd, inputBy, config);
       results.push(payroll);
     } catch (err) {
-      console.error(`Failed to generate payroll for lecturer ${lecturer.id}:`, err);
+      logger.warn({ err, lecturerId: lecturer.id }, 'Failed to generate payroll');
     }
   }
   return results;
@@ -477,25 +478,33 @@ async function getPayrollBreakdown(
 }
 
 /** Format DB row to PayrollItem */
-function formatPayrollItem(row: any, breakdown: PayrollBreakdown): PayrollItem {
+function formatPayrollItem(row: Record<string, unknown>, breakdown: PayrollBreakdown): PayrollItem {
+  const r = row as { 
+    id: number; lecturer_id: number; period_start: string; period_end: string;
+    base_salary: string | number; honor_per_meeting: string | number;
+    total_meetings: number; total_honor: string | number; deductions: string | number;
+    net_amount: string | number; status: string; input_by: number;
+    approved_by: number | null; approved_at: string | null; paid_at: string | null;
+    created_at: string; updated_at: string;
+  };
   return {
-    id: row.id,
-    lecturerId: row.lecturer_id,
-    periodStart: row.period_start,
-    periodEnd: row.period_end,
-    baseSalary: Number(row.base_salary),
-    honorPerMeeting: Number(row.honor_per_meeting),
-    totalMeetings: row.total_meetings,
-    totalHonor: Number(row.total_honor),
-    deductions: Number(row.deductions),
-    netAmount: Number(row.net_amount),
-    status: row.status,
-    inputBy: row.input_by,
-    approvedBy: row.approved_by,
-    approvedAt: row.approved_at,
-    paidAt: row.paid_at,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    id: r.id,
+    lecturerId: r.lecturer_id,
+    periodStart: r.period_start,
+    periodEnd: r.period_end,
+    baseSalary: Number(r.base_salary),
+    honorPerMeeting: Number(r.honor_per_meeting),
+    totalMeetings: r.total_meetings,
+    totalHonor: Number(r.total_honor),
+    deductions: Number(r.deductions),
+    netAmount: Number(r.net_amount),
+    status: r.status as 'draft' | 'approved' | 'paid',
+    inputBy: r.input_by,
+    approvedBy: r.approved_by ?? undefined,
+    approvedAt: r.approved_at ?? undefined,
+    paidAt: r.paid_at ?? undefined,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
     breakdown,
   };
 }
