@@ -9,5 +9,6 @@
   "migrationsTable": "pgmigrations",
   "migrationsDirectory": "./migrations",
   "driver": "pg",
-  "verbose": true
+  "verbose": true,
+  "ignorePattern": "\\.down\\.sql$"
 }
