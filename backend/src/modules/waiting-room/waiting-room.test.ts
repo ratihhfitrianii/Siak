@@ -111,15 +111,20 @@ class InMemoryRedis implements WaitingRoomRedis {
   ): Promise<unknown> {
     // Parse args: 3 keys + 7 args = userKey, expiry, threshold, now, token, tokenTtl
     const [activeKey, queueKey, tokenPrefix] = keysAndArgs.slice(0, 3) as string[];
-    const [userKeyRaw, expiryRaw, thresholdRaw, nowRaw, tokenRaw, _tokenTtlRaw] = keysAndArgs.slice(3) as (string | number | undefined)[];
-    const userKey = String(userKeyRaw ?? '');
+    const [userKeyRaw, expiryRaw, thresholdRaw, nowRaw, tokenRaw, _tokenTtlRaw] = keysAndArgs.slice(
+      3,
+    ) as (string | number | undefined)[];
+    const userKey = String(userKeyRaw ?? '') as string;
     const expiry = Number(expiryRaw ?? 0);
     const threshold = Number(thresholdRaw ?? 0);
     const now = Number(nowRaw ?? 0);
-    const tokenStr = String(tokenRaw ?? '');
-    
+    const tokenStr = String(tokenRaw ?? '') as string;
+    const activeKeyStr = String(activeKey ?? '') as string;
+    const queueKeyStr = String(queueKey ?? '') as string;
+    const tokenPrefixStr = String(tokenPrefix ?? '') as string;
+
     // 1. Clean up expired sessions
-    const z = this.zsets.get(activeKey);
+    const z = this.zsets.get(activeKeyStr);
     if (z !== undefined) {
       for (const [m, s] of z) {
         if (s <= now) {
@@ -129,9 +134,9 @@ class InMemoryRedis implements WaitingRoomRedis {
     }
 
     // 2. Add user to active set
-    const z2 = this.zsets.get(activeKey) ?? new Map<string, number>();
+    const z2 = this.zsets.get(activeKeyStr) ?? new Map<string, number>();
     z2.set(userKey, expiry);
-    this.zsets.set(activeKey, z2);
+    this.zsets.set(activeKeyStr, z2);
 
     // 3. Count active users
     const count = z2.size;
@@ -143,15 +148,15 @@ class InMemoryRedis implements WaitingRoomRedis {
 
     // 5. Over threshold: remove user from active, add to queue
     z2.delete(userKey);
-    
+
     // Store token details
-    const tokenKey = tokenPrefix + tokenStr;
+    const tokenKey = tokenPrefixStr + tokenStr;
     this.store.set(tokenKey, JSON.stringify({ userKey, createdAt: now }));
-    
+
     // Add to queue (FIFO)
-    const l = this.lists.get(queueKey) ?? [];
+    const l = this.lists.get(queueKeyStr) ?? [];
     l.push(tokenStr);
-    this.lists.set(queueKey, l);
+    this.lists.set(queueKeyStr, l);
     const position = l.length;
 
     return [0, tokenStr, position];

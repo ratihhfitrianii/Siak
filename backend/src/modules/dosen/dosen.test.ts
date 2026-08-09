@@ -449,7 +449,13 @@ describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {
          RETURNING id, email`,
         [roleId, passHash],
       );
-      ghostRes = { rows: [newU.rows[0]] };
+      ghostRes = {
+        command: 'SELECT' as const,
+        rowCount: newU.rowCount,
+        oid: 0,
+        fields: [],
+        rows: newU.rows,
+      };
     }
     const ghostLogin = await request(app)
       .post('/api/v1/auth/login')

@@ -19,10 +19,7 @@ import * as path from 'path';
  */
 
 /** Lua script untuk atomic threshold check (T4.1). */
-const WAITING_ROOM_LUA_SCRIPT = fs.readFileSync(
-  path.join(__dirname, 'waiting-room.lua'),
-  'utf-8'
-);
+const WAITING_ROOM_LUA_SCRIPT = fs.readFileSync(path.join(__dirname, 'waiting-room.lua'), 'utf-8');
 
 /** Koneksi Redis minimal yang dipakai service (memudahkan injeksi fake di test). */
 export interface WaitingRoomRedis {

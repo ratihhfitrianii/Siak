@@ -100,7 +100,10 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
     const statusCode = res.statusCode;
 
     httpRequestsTotal.inc({ method, route, status_code: String(statusCode) });
-    httpRequestDuration.observe({ method, route, status_code: String(statusCode) }, durationMs / 1000);
+    httpRequestDuration.observe(
+      { method, route, status_code: String(statusCode) },
+      durationMs / 1000,
+    );
 
     return originalEnd.call(this, chunk, encoding as BufferEncoding);
   };
