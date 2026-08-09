@@ -44,8 +44,8 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      - name: Run DB migrations (V001–V010)
-        run: npx node-pg-migrate up
+      - name: Run DB migrations (V001–V018)
+        run: npx node-pg-migrate up -f database.json --config-value db --use-glob --migrations-dir ./migrations --ignore-pattern "\.down\.sql$" --check-order=false
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
@@ -120,7 +120,7 @@ jobs:
         run: npm ci
       - name: Run DB migrations
         working-directory: backend
-        run: npx node-pg-migrate up
+        run: npx node-pg-migrate up -f database.json --config-value db --use-glob --migrations-dir ./migrations --ignore-pattern "\.down\.sql$" --check-order=false
       - name: Seed E2E users
         working-directory: backend
         run: npx tsx scripts/seed-e2e.ts

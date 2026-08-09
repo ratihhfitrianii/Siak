@@ -1,1 +1,0 @@
-ALTER TABLE lecturers DROP COLUMN nik;
