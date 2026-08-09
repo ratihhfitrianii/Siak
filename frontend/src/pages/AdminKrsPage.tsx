@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, approveKrs, getAdminPendingKrs, rejectKrs } from '../lib/api';
 import type { AdminKrsItem } from '../lib/types';
+import { FormAlert } from '../components/ErrorInline';
 
 /**
  * Halaman admin KRS (T1.11c) — daftar pengajuan menunggu persetujuan (perm krs.approve).
@@ -113,14 +114,7 @@ export function AdminKrsPage() {
         </button>
       </div>
 
-      {actionError && (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          {actionError}
-        </div>
-      )}
+      {actionError && <FormAlert>{actionError}</FormAlert>}
 
       {pending.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">

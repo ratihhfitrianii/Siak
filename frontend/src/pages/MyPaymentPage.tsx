@@ -66,7 +66,7 @@ export function MyPaymentPage() {
       partial: { label: 'Cicil', class: 'bg-yellow-100 text-yellow-800' },
       belum_lunas: { label: 'Belum Lunas', class: 'bg-red-100 text-red-800' },
     };
-    const m = map[status] || { label: status, class: 'bg-gray-100 text-gray-800' };
+    const m = map[status] || { label: status, class: 'bg-slate-100 text-slate-800' };
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${m.class}`}>{m.label}</span>
     );
@@ -94,16 +94,17 @@ export function MyPaymentPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tagihan Saya</h1>
-        <p className="text-gray-600 mt-1">Lihat detail pembayaran per semester</p>
+        <h1 className="text-2xl font-bold text-slate-900">Tagihan Saya</h1>
+        <p className="text-slate-600 mt-1">Lihat detail pembayaran per semester</p>
       </div>
 
       {/* Semester Tabs */}
       {payments.length > 0 && (
-        <div className="border-b border-gray-200">
+        <div className="border-b border-slate-200">
           <nav className="-mb-px flex space-x-8" aria-label="Semester tabs">
             {payments.map((p) => (
               <button
+                type="button"
                 key={p.id}
                 onClick={() => {
                   setActiveSemesterId(p.semesterId);
@@ -112,7 +113,7 @@ export function MyPaymentPage() {
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeSemesterId === p.semesterId
                     ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 }`}
               >
                 {p.semesterName} ({p.semesterCode})
@@ -126,22 +127,22 @@ export function MyPaymentPage() {
       {payment && (
         <div className="space-y-6">
           {/* Summary Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="md:col-span-2">
-                <h2 className="text-lg font-semibold text-gray-900">{payment.semesterName}</h2>
-                <p className="text-gray-500 text-sm mt-1">
+                <h2 className="text-lg font-semibold text-slate-900">{payment.semesterName}</h2>
+                <p className="text-slate-500 text-sm mt-1">
                   {payment.prodiName} · Jatuh tempo: {formatDate(payment.dueDate)}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-500">Total Tagihan</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-slate-500">Total Tagihan</p>
+                <p className="text-2xl font-bold text-slate-900">
                   {formatRupiah(payment.totalAmount)}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-500">Status</p>
+                <p className="text-sm text-slate-500">Status</p>
                 <div className="mt-1">{getStatusBadge(payment.status)}</div>
               </div>
             </div>
@@ -150,14 +151,14 @@ export function MyPaymentPage() {
             {payment.status === 'partial' && payment.paidAmount > 0 && (
               <div className="mt-4">
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-500">
+                  <span className="text-slate-500">
                     Terbayar: {formatRupiah(payment.paidAmount)}
                   </span>
-                  <span className="text-gray-500">
+                  <span className="text-slate-500">
                     Sisa: {formatRupiah(payment.totalAmount - payment.paidAmount)}
                   </span>
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-yellow-500 transition-all duration-300"
                     style={{ width: `${(payment.paidAmount / payment.totalAmount) * 100}%` }}
@@ -175,7 +176,7 @@ export function MyPaymentPage() {
                   <span className={krsAccess.canAccess ? 'text-green-600' : 'text-red-600'}>
                     {krsAccess.canAccess ? '✓' : '✕'}
                   </span>
-                  <span className="font-medium text-gray-800">
+                  <span className="font-medium text-slate-800">
                     {krsAccess.canAccess
                       ? 'Anda dapat mengisi KRS (pembayaran lunas)'
                       : 'KRS DIBLOKIR — Silakan lunasi tagihan terlebih dahulu'}
@@ -186,47 +187,47 @@ export function MyPaymentPage() {
           </div>
 
           {/* Items Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900">Rincian Tagihan</h3>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200">
+              <h3 className="font-semibold text-slate-900">Rincian Tagihan</h3>
             </div>
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Jenis
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Keterangan
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Jumlah
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Wajib
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-slate-200">
                 {payment.items.map((item, idx) => (
-                  <tr key={item.id ?? idx} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={item.id ?? idx} className="hover:bg-slate-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                       {item.type}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{item.description}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm text-slate-600">{item.description}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-900">
                       {formatRupiah(item.amount)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500">
                       {item.isMandatory ? '✓' : '—'}
                     </td>
                   </tr>
                 ))}
-                <tr className="bg-gray-50 font-semibold">
-                  <td colSpan={2} className="px-6 py-4 text-right text-sm text-gray-900">
+                <tr className="bg-slate-50 font-semibold">
+                  <td colSpan={2} className="px-6 py-4 text-right text-sm text-slate-900">
                     TOTAL
                   </td>
-                  <td className="px-6 py-4 text-right text-sm text-gray-900">
+                  <td className="px-6 py-4 text-right text-sm text-slate-900">
                     {formatRupiah(payment.totalAmount)}
                   </td>
                   <td className="px-6 py-4 text-center"></td>
@@ -236,9 +237,9 @@ export function MyPaymentPage() {
           </div>
 
           {/* Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-medium text-blue-800 mb-2">Informasi Pembayaran</h4>
-            <ul className="text-sm text-blue-700 space-y-1">
+          <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+            <h4 className="font-medium text-primary-800 mb-2">Informasi Pembayaran</h4>
+            <ul className="text-sm text-primary-700 space-y-1">
               <li>• Pembayaran dilakukan manual di bagian keuangan kampus</li>
               <li>• Simpan bukti pembayaran untuk verifikasi admin keuangan</li>
               <li>• Status akan diperbarui maksimal 1×24 jam setelah verifikasi</li>
@@ -253,7 +254,7 @@ export function MyPaymentPage() {
       {payments.length === 0 && (
         <div className="text-center py-12">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-slate-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -265,8 +266,8 @@ export function MyPaymentPage() {
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <h3 className="mt-2 text-lg font-medium text-gray-900">Belum ada tagihan</h3>
-          <p className="mt-1 text-gray-500">
+          <h3 className="mt-2 text-lg font-medium text-slate-900">Belum ada tagihan</h3>
+          <p className="mt-1 text-slate-500">
             Tagihan akan muncul setelah admin generate untuk semester aktif.
           </p>
         </div>

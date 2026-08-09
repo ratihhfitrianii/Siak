@@ -28,7 +28,7 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   const createdSubstituteIds: number[] = [];
 
   async function login(email: string, password: string): Promise<string> {
-    const res = await request(app).post('/api/v1/auth/login').send({ email, password });
+    const res = await request(app).post('/api/v1/auth/login').send({ identifier: email, password: password });
     return res.body.data.accessToken;
   }
 
@@ -443,7 +443,7 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     ]);
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: ghostEmail, password: 'Dosen123!' });
+      .send({ identifier: ghostEmail, password: 'Dosen123!' });
     if (loginRes.body.data?.accessToken) {
       const res = await request(app)
         .get('/api/v1/substitute')
@@ -496,7 +496,7 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     ]);
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: ghostEmail, password: 'Dosen123!' });
+      .send({ identifier: ghostEmail, password: 'Dosen123!' });
     if (loginRes.body.data?.accessToken) {
       const noLecturerToken = loginRes.body.data.accessToken;
       const substituteId = createdSubstituteIds[0];
@@ -593,7 +593,7 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     ]);
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: ghostEmail, password: 'Dosen123!' });
+      .send({ identifier: ghostEmail, password: 'Dosen123!' });
     if (loginRes.body.data?.accessToken) {
       const noLecturerToken = loginRes.body.data.accessToken;
       const substituteId = createdSubstituteIds[0];

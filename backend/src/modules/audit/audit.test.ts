@@ -36,7 +36,7 @@ describe('Audit module (T1.9) — F-13, S-06, S-07, AC-05', () => {
       .email;
     const res = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email, password: useAdmin ? adminPassword : password });
+      .send({ identifier: email, password: useAdmin ? adminPassword : password });
     expect(res.status).toBe(200);
     tokenByRole.set(label, res.body.data.accessToken);
   }

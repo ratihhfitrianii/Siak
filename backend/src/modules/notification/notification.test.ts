@@ -31,7 +31,7 @@ beforeAll(async () => {
   for (const [role, email] of Object.entries(emails)) {
     const res = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email, password: role === 'admin_akademik' ? 'Admin123!' : 'Mhs123!' });
+      .send({ identifier: email, password: role === 'admin_akademik' ? 'Admin123!' : 'Mhs123!' });
     tokens[role] = res.body.data.accessToken;
     userIdByRole[role] = res.body.data.user.id;
   }
@@ -154,6 +154,48 @@ describe('Notification module (T1.6)', () => {
           .set('Authorization', `Bearer ${tokens.mahasiswa}`)
           .expect(404);
       }
+    });
+  });
+
+  describe('PUT /notifications/read-all', () => {
+    it('returns 401 without token', async () => {
+      await request(app).put('/api/v1/notifications/read-all').expect(401);
+    });
+
+    it('marks all own notifications as read', async () => {
+      // Seed 2 notifikasi belum dibaca untuk user mahasiswa
+      const uid = userIdByRole.mahasiswa;
+      await pgPool.query(
+        `INSERT INTO notifications (user_id, title, message, type, is_read)
+         VALUES ($1, 'ReadAll A', 'msg', 'info', false),
+                ($1, 'ReadAll B', 'msg', 'info', false)`,
+        [uid],
+      );
+
+      const res = await request(app)
+        .put('/api/v1/notifications/read-all')
+        .set('Authorization', `Bearer ${tokens.mahasiswa}`)
+        .expect(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.marked).toBeGreaterThanOrEqual(2);
+
+      const verify = await request(app)
+        .get('/api/v1/notifications/my')
+        .set('Authorization', `Bearer ${tokens.mahasiswa}`)
+        .expect(200);
+      const mine = verify.body.data.items.filter((n: { title: string }) =>
+        n.title.startsWith('ReadAll'),
+      );
+      expect(mine.length).toBe(2);
+      for (const n of mine) expect(n.isRead).toBe(true);
+    });
+
+    it('returns marked=0 when nothing unread', async () => {
+      const res = await request(app)
+        .put('/api/v1/notifications/read-all')
+        .set('Authorization', `Bearer ${tokens.mahasiswa}`)
+        .expect(200);
+      expect(res.body.data.marked).toBe(0);
     });
   });
 

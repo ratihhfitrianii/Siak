@@ -48,9 +48,9 @@ describe('LoginPage (T1.11a)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('menampilkan form email + password', () => {
+  it('menampilkan form NIM/NIK/email + password', () => {
     renderLogin();
-    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    expect(screen.getByLabelText('NIM / NIK / Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Masuk' })).toBeInTheDocument();
   });
@@ -78,7 +78,7 @@ describe('LoginPage (T1.11a)', () => {
     );
 
     renderLogin();
-    await user.type(screen.getByLabelText('Email'), 'budi@kampus.ac.id');
+    await user.type(screen.getByLabelText('NIM / NIK / Email'), 'budi@kampus.ac.id');
     await user.type(screen.getByLabelText('Password'), 'Rahasia123!');
     await user.click(screen.getByRole('button', { name: 'Masuk' }));
 
@@ -93,7 +93,7 @@ describe('LoginPage (T1.11a)', () => {
         jsonResponse(
           {
             success: false,
-            error: { code: 'UNAUTHORIZED', message: 'Email atau password salah' },
+            error: { code: 'UNAUTHORIZED', message: 'NIM/NIK atau password salah' },
           },
           401,
         ),
@@ -101,11 +101,42 @@ describe('LoginPage (T1.11a)', () => {
     );
 
     renderLogin();
-    await user.type(screen.getByLabelText('Email'), 'budi@kampus.ac.id');
+    await user.type(screen.getByLabelText('NIM / NIK / Email'), 'budi@kampus.ac.id');
     await user.type(screen.getByLabelText('Password'), 'Salah123!');
     await user.click(screen.getByRole('button', { name: 'Masuk' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Email atau password salah');
+    expect(await screen.findByRole('alert')).toHaveTextContent('NIM/NIK atau password salah');
+  });
+
+  it('field error terhubung ke input via aria-describedby (a11y T5.5)', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(
+          {
+            success: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'NIM/NIK atau email minimal 3 karakter',
+              details: { fields: { identifier: ['NIM/NIK atau email minimal 3 karakter'] } },
+            },
+          },
+          400,
+        ),
+      ),
+    );
+
+    renderLogin();
+    await user.type(screen.getByLabelText('NIM / NIK / Email'), 'ab');
+    await user.type(screen.getByLabelText('Password'), 'x');
+    await user.click(screen.getByRole('button', { name: 'Masuk' }));
+
+    const error = await screen.findByText('NIM/NIK atau email minimal 3 karakter');
+    const input = screen.getByLabelText('NIM / NIK / Email');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute('aria-describedby', 'identifier-error');
+    expect(error).toHaveAttribute('id', 'identifier-error');
   });
 
   it('error validasi field dari backend tampil di bawah input', async () => {
@@ -118,8 +149,8 @@ describe('LoginPage (T1.11a)', () => {
             success: false,
             error: {
               code: 'VALIDATION_ERROR',
-              message: 'Email tidak valid',
-              details: { fields: { email: ['Email tidak valid'] } },
+              message: 'NIM/NIK atau email minimal 3 karakter',
+              details: { fields: { identifier: ['NIM/NIK atau email minimal 3 karakter'] } },
             },
           },
           400,
@@ -128,11 +159,23 @@ describe('LoginPage (T1.11a)', () => {
     );
 
     renderLogin();
-    await user.type(screen.getByLabelText('Email'), 'bukan-email');
+    await user.type(screen.getByLabelText('NIM / NIK / Email'), 'ab');
     await user.type(screen.getByLabelText('Password'), 'x');
     await user.click(screen.getByRole('button', { name: 'Masuk' }));
 
-    expect(await screen.findByText('Email tidak valid')).toBeInTheDocument();
+    expect(await screen.findByText('NIM/NIK atau email minimal 3 karakter')).toBeInTheDocument();
+  });
+
+  it('jaringan mati → pesan koneksi jelas (T5.1)', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+    renderLogin();
+    await user.type(screen.getByLabelText('NIM / NIK / Email'), 'budi@kampus.ac.id');
+    await user.type(screen.getByLabelText('Password'), 'Rahasia123!');
+    await user.click(screen.getByRole('button', { name: 'Masuk' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Tidak dapat terhubung ke server');
   });
 
   it('sudah login (dengan sesi) → langsung redirect', async () => {
@@ -141,6 +184,8 @@ describe('LoginPage (T1.11a)', () => {
 
     renderLogin();
     expect(await screen.findByText('HALAMAN_DASHBOARD')).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByLabelText('Email')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByLabelText('NIM / NIK / Email')).not.toBeInTheDocument(),
+    );
   });
 });

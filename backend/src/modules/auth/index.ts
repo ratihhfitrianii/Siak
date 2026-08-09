@@ -16,7 +16,9 @@ const REFRESH_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 const BCRYPT_ROUNDS = 12;
 
 const loginSchema = z.object({
-  email: z.string().email('Email tidak valid'),
+  // Keluhan lama (list perbaikan.txt): login default pakai NIM (mahasiswa) / NIK (dosen).
+  // Email tetap diterima sebagai identifier (admin & backward-compat).
+  identifier: z.string().min(3, 'NIM/NIK atau email minimal 3 karakter'),
   password: z.string().min(1, 'Password wajib diisi'),
 });
 
@@ -129,19 +131,33 @@ export function createAuthRouter(waitingRoom?: WaitingRoomService | null): Route
         );
       }
 
-      const { email, password } = parsed.data;
+      const { identifier, password } = parsed.data;
 
+      // Resolve user via email / NIM (mahasiswa) / NIK/NIDN (dosen).
+      // Each UNION leg filters by role to avoid cross-role collisions when identifiers overlap.
       const result = await pgPool.query(
         `SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.must_change_password, u.failed_login_attempts, u.locked_until, r.code as role_code
          FROM users u
          JOIN roles r ON u.role_id = r.id
-         WHERE u.email = $1`,
-        [email],
+         WHERE u.email = $1
+         UNION
+         SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.must_change_password, u.failed_login_attempts, u.locked_until, r.code as role_code
+         FROM users u
+         JOIN roles r ON u.role_id = r.id
+         JOIN students s ON s.user_id = u.id
+         WHERE s.nim = $1 AND r.code = 'mahasiswa'
+         UNION
+         SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.must_change_password, u.failed_login_attempts, u.locked_until, r.code as role_code
+         FROM users u
+         JOIN roles r ON u.role_id = r.id
+         JOIN lecturers l ON l.user_id = u.id
+         WHERE (l.nik = $1 OR l.nidn = $1) AND r.code = 'dosen'`,
+        [identifier],
       );
 
       if (result.rows.length === 0) {
-        logger.warn({ email, ip: req.ip }, 'Login attempt: user not found');
-        throw new AppError('UNAUTHORIZED', 'Email atau password salah', 401);
+        logger.warn({ identifier, ip: req.ip }, 'Login attempt: user not found');
+        throw new AppError('UNAUTHORIZED', 'NIM/NIK atau password salah', 401);
       }
 
       const user = result.rows[0];
@@ -165,7 +181,7 @@ export function createAuthRouter(waitingRoom?: WaitingRoomService | null): Route
         );
 
         logger.warn({ userId: user.id, attempts: newAttempts }, 'Login attempt: invalid password');
-        throw new AppError('UNAUTHORIZED', 'Email atau password salah', 401);
+        throw new AppError('UNAUTHORIZED', 'NIM/NIK atau password salah', 401);
       }
 
       // Reset failed attempts on success
@@ -192,7 +208,7 @@ export function createAuthRouter(waitingRoom?: WaitingRoomService | null): Route
         tableName: 'users',
         recordId: Number(user.id),
         action: 'LOGIN',
-        newValues: { email: user.email },
+        newValues: { identifier },
         changedBy: Number(user.id),
         changedByLabel: buildChangedByLabel({
           fullName: user.full_name,

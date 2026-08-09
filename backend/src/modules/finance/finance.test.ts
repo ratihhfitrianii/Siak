@@ -30,7 +30,7 @@ describe('T2.6 Finance — Payments & KRS Gate', () => {
   const createdPaymentIds: number[] = [];
 
   async function login(email: string, password: string): Promise<string> {
-    const res = await request(app).post('/api/v1/auth/login').send({ email, password });
+    const res = await request(app).post('/api/v1/auth/login').send({ identifier: email, password: password });
     return res.body.data.accessToken;
   }
 
@@ -184,8 +184,9 @@ describe('T2.6 Finance — Payments & KRS Gate', () => {
   });
 
   it('GET /payments — filter tidak cocok → 200 kosong', async () => {
+    // student_id 999999 dipastikan tidak ada → filter kombinasi selalu kosong
     const res = await request(app)
-      .get(`/api/v1/finance/payments?status=lunas`)
+      .get(`/api/v1/finance/payments?status=lunas&student_id=999999`)
       .set('Authorization', `Bearer ${keuanganToken}`);
 
     expect(res.status).toBe(200);

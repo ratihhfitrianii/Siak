@@ -88,6 +88,52 @@ jobs:
         working-directory: frontend
         run: npm audit --audit-level=high --omit=dev
 
+  e2e:
+    name: E2E (Playwright — critical path login)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: siak
+          POSTGRES_PASSWORD: siak_dev_password
+          POSTGRES_DB: siak
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U siak"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgres://siak:siak_dev_password@localhost:5432/siak
+      JWT_SECRET: ci-e2e-secret-min-16-chars
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci
+      - name: Run DB migrations
+        working-directory: backend
+        run: npx node-pg-migrate up
+      - name: Seed E2E users
+        working-directory: backend
+        run: npx tsx scripts/seed-e2e.ts
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E tests
+        working-directory: frontend
+        run: npm run test:e2e
+
   build-docker:
     name: Build Docker images
     needs: [backend-quality, frontend-quality]

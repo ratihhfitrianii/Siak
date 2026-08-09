@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
-import { ApiError } from '../lib/api';
+import { ApiError, NetworkError } from '../lib/api';
+import { FieldError, FormAlert } from '../components/ErrorInline';
 
 interface FieldErrors {
-  email?: string[];
+  identifier?: string[];
   password?: string[];
   [key: string]: string[] | undefined;
 }
@@ -15,7 +16,7 @@ export function LoginPage() {
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/';
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -32,12 +33,13 @@ export function LoginPage() {
     setFormError(null);
     setLoading(true);
     try {
-      await login(email, password);
+      await login(identifier, password);
       navigate(from, { replace: true });
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (err instanceof NetworkError) {
+        setFormError(err.message);
+      } else if (err instanceof ApiError) {
         setFieldErrors(err.fields ?? {});
-        // Fields ada → error per field cukup (hindari duplikat teks di alert umum)
         setFormError(err.fields && Object.keys(err.fields).length > 0 ? null : err.message);
       } else {
         setFormError('Terjadi kesalahan. Coba lagi.');
@@ -55,7 +57,7 @@ export function LoginPage() {
             S
           </span>
           <h1 className="mt-3 text-2xl font-bold text-slate-900">Masuk ke Siak</h1>
-          <p className="mt-1 text-sm text-slate-500">Sistem Informasi Akademik</p>
+          <p className="mt-1 text-sm text-slate-600">Sistem Informasi Akademik</p>
         </div>
 
         <form
@@ -63,35 +65,29 @@ export function LoginPage() {
           noValidate
           className="rounded-2xl bg-white p-6 shadow-lg"
         >
-          {formError && (
-            <div
-              role="alert"
-              className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-            >
-              {formError}
-            </div>
-          )}
+          {formError && <FormAlert>{formError}</FormAlert>}
 
           <div className="mb-4">
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
-              Email
+            <label htmlFor="identifier" className="mb-1 block text-sm font-medium text-slate-700">
+              NIM / NIK / Email
             </label>
             <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              aria-invalid={Boolean(fieldErrors.email)}
+              id="identifier"
+              type="text"
+              autoComplete="username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              aria-invalid={Boolean(fieldErrors.identifier)}
+              aria-describedby={fieldErrors.identifier ? 'identifier-error' : undefined}
               className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-primary-500/40 ${
-                fieldErrors.email ? 'border-red-400' : 'border-slate-300 focus:border-primary-500'
+                fieldErrors.identifier
+                  ? 'border-red-400'
+                  : 'border-slate-300 focus:border-primary-500'
               }`}
-              placeholder="nama@kampus.ac.id"
+              placeholder="NIM (mahasiswa), NIK (dosen), atau email"
             />
-            {fieldErrors.email && (
-              <p className="mt-1 text-xs text-red-600" role="alert">
-                {fieldErrors.email[0]}
-              </p>
+            {fieldErrors.identifier && (
+              <FieldError id="identifier-error">{fieldErrors.identifier[0]}</FieldError>
             )}
           </div>
 
@@ -107,6 +103,7 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 aria-invalid={Boolean(fieldErrors.password)}
+                aria-describedby={fieldErrors.password ? 'password-error' : undefined}
                 className={`w-full rounded-lg border px-3 py-2 pr-10 text-sm outline-none transition focus:ring-2 focus:ring-primary-500/40 ${
                   fieldErrors.password
                     ? 'border-red-400'
@@ -124,9 +121,7 @@ export function LoginPage() {
               </button>
             </div>
             {fieldErrors.password && (
-              <p className="mt-1 text-xs text-red-600" role="alert">
-                {fieldErrors.password[0]}
-              </p>
+              <FieldError id="password-error">{fieldErrors.password[0]}</FieldError>
             )}
           </div>
 
@@ -138,7 +133,7 @@ export function LoginPage() {
             {loading ? 'Memproses…' : 'Masuk'}
           </button>
 
-          <p className="mt-4 text-center text-xs text-slate-400">
+          <p className="mt-4 text-center text-xs text-slate-600">
             Akun mahasiswa/dosen menggunakan email institusi. Hubungi Admin Sistem bila lupa
             password.
           </p>

@@ -30,6 +30,38 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * T5.1 — Error jaringan (fetch gagal / timeout).
+ * Pesan jelas untuk user, bukan "Failed to fetch" dari browser.
+ */
+export class NetworkError extends Error {
+  constructor(message = 'Tidak dapat terhubung ke server. Periksa koneksi Anda, lalu coba lagi.') {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
+/** Batas waktu tiap request (ms) — cegah "loading terus" saat server lambat/hang (AC-08). */
+const DEFAULT_TIMEOUT_MS = 15_000;
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new NetworkError('Koneksi ke server terlalu lambat. Coba lagi.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const API_BASE = '/api/v1';
 
 const ACCESS_KEY = 'siak.access_token';
@@ -99,12 +131,13 @@ export async function tryRefresh(): Promise<boolean> {
         return false;
       }
       try {
-        const res = await fetch(`${API_BASE}/auth/refresh`, {
+        const res = await fetchWithTimeout(`${API_BASE}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken: rt }),
         });
         if (!res.ok) {
+          // refresh ditolak server → sesi benar-benar tidak valid → bersihkan
           setTokens(null, null);
           return false;
         }
@@ -120,7 +153,7 @@ export async function tryRefresh(): Promise<boolean> {
         setTokens(access, refresh);
         return true;
       } catch {
-        setTokens(null, null);
+        // Error jaringan/timeout → JANGAN buang sesi (transien; refresh lain kali bisa sukses)
         return false;
       }
     })().finally(() => {
@@ -151,14 +184,31 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
         headers['Authorization'] = `Bearer ${token}`;
       }
     }
-    return fetch(`${API_BASE}${path}`, {
+    return fetchWithTimeout(`${API_BASE}${path}`, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   };
 
-  let res = await doFetch();
+  /**
+   * T5.1 — retry 1× untuk kegagalan jaringan transien (fetch throw = koneksi/timeout,
+   * bukan HTTP error). Mencegah gagal login/request hanya karena koneksi kedip (AC-08).
+   */
+  const doFetchWithRetry = async (): Promise<Response> => {
+    try {
+      return await doFetch();
+    } catch (err) {
+      await new Promise((r) => setTimeout(r, 400));
+      try {
+        return await doFetch();
+      } catch {
+        throw err instanceof NetworkError ? err : new NetworkError();
+      }
+    }
+  };
+
+  let res = await doFetchWithRetry();
 
   // Silent refresh sekali lalu retry (hanya untuk endpoint ber-auth, bukan login/refresh itu sendiri)
   if (
@@ -376,9 +426,41 @@ export async function generateFinancePayments(semester_id: number): Promise<{ me
 }
 
 /** GET /finance/my-payment — mahasiswa lihat tagihan sendiri. */
+function normalizePayment(r: Record<string, unknown>): MyPayment {
+  return {
+    id: Number(r.id),
+    studentId: Number(r.student_id),
+    nim: r.nim ? String(r.nim) : '',
+    fullName: r.full_name ? String(r.full_name) : '',
+    prodiId: r.prodi_id ? Number(r.prodi_id) : 0,
+    prodiName: r.prodi_name ? String(r.prodi_name) : '',
+    semesterId: Number(r.semester_id),
+    semesterCode: String(r.semester_code ?? ''),
+    semesterName: String(r.semester_name ?? ''),
+    totalAmount: Number(r.total_amount),
+    paidAmount: Number(r.paid_amount),
+    status: String(r.status) as MyPayment['status'],
+    dueDate: String(r.due_date),
+    isWaived: Boolean(r.is_waived),
+    waivedReason: r.waived_reason ? String(r.waived_reason) : null,
+    createdAt: String(r.created_at),
+    updatedAt: String(r.updated_at),
+    items: Array.isArray(r.items)
+      ? (r.items as Record<string, unknown>[]).map((it) => ({
+          id: it.id ? Number(it.id) : undefined,
+          type: String(it.type),
+          description: String(it.description),
+          amount: Number(it.amount),
+          isMandatory: Boolean(it.is_mandatory),
+        }))
+      : [],
+  };
+}
+
 export async function getMyPayments(semester_id?: number): Promise<MyPayment[]> {
   const qs = semester_id ? `?semester_id=${semester_id}` : '';
-  return apiRequest<MyPayment[]>(`/finance/my-payment${qs}`);
+  const rows = await apiRequest<Record<string, unknown>[]>(`/finance/my-payment${qs}`);
+  return rows.map(normalizePayment);
 }
 
 /** GET /finance/krs-access — cek apakah mahasiswa bisa akses KRS (sudah lunas). */
@@ -414,6 +496,34 @@ export async function downloadTranscriptPdf(): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+/* ==== T1.5 + keluhan lama — KRS PDF ==== */
+
+/** GET /krs/my/download — unduh PDF KRS (blob + trigger download; status submitted/approved). */
+export async function downloadKrsPdf(): Promise<void> {
+  const token = getAccessToken();
+  if (!token) return;
+  let res = await fetch(`${API_BASE}/krs/my/download`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) {
+    const refreshed = await tryRefresh();
+    if (!refreshed) return;
+    res = await fetch(`${API_BASE}/krs/my/download`, {
+      headers: { Authorization: `Bearer ${getAccessToken()}` },
+    });
+  }
+  if (!res.ok) return;
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `krs-${new Date().toISOString().slice(0, 10)}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 /* ==== T2.5 — Notifikasi ==== */
 
 /** GET /notifications/my — daftar notifikasi user sendiri. */
@@ -427,6 +537,14 @@ export async function markNotificationRead(id: number): Promise<void> {
   await apiRequest<{ id: number; isRead: boolean }>(`/notifications/${id}/read`, {
     method: 'PUT',
   });
+}
+
+/** PUT /notifications/read-all — tandai SEMUA notifikasi sendiri sebagai dibaca. */
+export async function markAllNotificationsRead(): Promise<number> {
+  const data = await apiRequest<{ marked: number }>('/notifications/read-all', {
+    method: 'PUT',
+  });
+  return data.marked;
 }
 
 /* ==== T3.8 — Dosen API (diselaraskan dengan kontrak backend nyata) ==== */

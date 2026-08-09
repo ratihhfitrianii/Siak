@@ -106,6 +106,39 @@ const KRS_OK: KrsAccessResult = {
   },
 };
 
+/** Konversi fixture camelCase → snake_case: mock fetch harus mencerminkan kontrak backend nyata
+ *  (normalisasi snake→camel dilakukan getMyPayments di api.ts). */
+function toSnake(p: MyPayment): Record<string, unknown> {
+  return {
+    id: p.id,
+    student_id: p.studentId,
+    nim: p.nim,
+    full_name: p.fullName,
+    prodi_id: p.prodiId,
+    prodi_name: p.prodiName,
+    semester_id: p.semesterId,
+    semester_code: p.semesterCode,
+    semester_name: p.semesterName,
+    total_amount: p.totalAmount,
+    paid_amount: p.paidAmount,
+    status: p.status,
+    due_date: p.dueDate,
+    is_waived: p.isWaived,
+    waived_reason: p.waivedReason,
+    created_at: p.createdAt,
+    updated_at: p.updatedAt,
+    items: p.items.map((it) => ({
+      id: it.id,
+      type: it.type,
+      description: it.description,
+      amount: it.amount,
+      is_mandatory: it.isMandatory,
+    })),
+  };
+}
+
+const PAYMENTS_SNAKE = PAYMENTS.map(toSnake);
+
 describe('MyPaymentPage (T2.6)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -117,7 +150,7 @@ describe('MyPaymentPage (T2.6)', () => {
       vi.fn().mockImplementation((url: string) => {
         if (url.includes('/krs-access'))
           return Promise.resolve(jsonResponse({ success: true, data: KRS_OK }));
-        return Promise.resolve(jsonResponse({ success: true, data: PAYMENTS }));
+        return Promise.resolve(jsonResponse({ success: true, data: PAYMENTS_SNAKE }));
       }),
     );
     render(<MyPaymentPage />);
@@ -148,7 +181,7 @@ describe('MyPaymentPage (T2.6)', () => {
               },
             }),
           );
-        return Promise.resolve(jsonResponse({ success: true, data: PAYMENTS }));
+        return Promise.resolve(jsonResponse({ success: true, data: PAYMENTS_SNAKE }));
       }),
     );
     render(<MyPaymentPage />);
@@ -167,7 +200,7 @@ describe('MyPaymentPage (T2.6)', () => {
       vi.fn().mockImplementation((url: string) => {
         if (url.includes('/krs-access'))
           return Promise.resolve(jsonResponse({ success: true, data: KRS_OK }));
-        return Promise.resolve(jsonResponse({ success: true, data: partial }));
+        return Promise.resolve(jsonResponse({ success: true, data: partial.map(toSnake) }));
       }),
     );
     render(<MyPaymentPage />);

@@ -8,6 +8,7 @@ import {
   getMyClasses,
 } from '../lib/api';
 import type { AttendanceSession, AttendanceRecordItem, MyClass } from '../lib/types';
+import { FormAlert } from '../components/ErrorInline';
 
 /**
  * Absensi dosen (T3.7 + T3.8, perm attendance.input) — terhubung API nyata:
@@ -168,15 +169,15 @@ export function DosenAttendance() {
     tidak_hadir: 'bg-red-100 text-red-800',
     izin: 'bg-yellow-100 text-yellow-800',
     sakit: 'bg-orange-100 text-orange-800',
-    belum_absen: 'bg-gray-100 text-gray-600',
+    belum_absen: 'bg-slate-100 text-slate-600',
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Absensi Mengajar</h2>
-        <p className="text-gray-600">
+        <h2 className="text-xl font-semibold text-slate-900 mb-4">Absensi Mengajar</h2>
+        <p className="text-slate-600">
           Buat sesi absensi dari jadwal pertemuan, buka sesi agar mahasiswa dapat check-in, lalu
           perbarui rekap kehadiran.
         </p>
@@ -184,14 +185,16 @@ export function DosenAttendance() {
 
       {/* Create session */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Buat Sesi Absensi</h3>
+        <h3 className="text-lg font-medium text-slate-900 mb-4">Buat Sesi Absensi</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Jadwal Pertemuan</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Jadwal Pertemuan
+            </label>
             <select
               value={scheduleId ?? ''}
               onChange={(e) => setScheduleId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Pilih Jadwal Pertemuan</option>
               {allSchedules.map((s) => (
@@ -201,27 +204,30 @@ export function DosenAttendance() {
               ))}
             </select>
             {allSchedules.length === 0 && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-slate-500">
                 Belum ada jadwal pertemuan — admin akademik perlu mengisi jadwal kelas Anda.
               </p>
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Topik (opsional)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Topik (opsional)
+            </label>
             <input
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="Mis. Materi pertemuan 5"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
         </div>
         <div className="mt-4 flex justify-end">
           <button
+            type="button"
             onClick={handleCreate}
             disabled={isLoading || !scheduleId}
-            className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? 'Memproses...' : 'Buat Sesi Absensi'}
           </button>
@@ -230,15 +236,8 @@ export function DosenAttendance() {
 
       {/* Sessions list */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Sesi Absensi</h3>
-        {error && (
-          <p
-            role="alert"
-            className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800"
-          >
-            {error}
-          </p>
-        )}
+        <h3 className="text-lg font-medium text-slate-900 mb-4">Sesi Absensi</h3>
+        {error && <FormAlert>{error}</FormAlert>}
         {success && (
           <p
             role="status"
@@ -248,9 +247,9 @@ export function DosenAttendance() {
           </p>
         )}
         {isLoading && sessions.length === 0 ? (
-          <p className="text-gray-500">Memuat sesi absensi...</p>
+          <p className="text-slate-500">Memuat sesi absensi...</p>
         ) : sessions.length === 0 ? (
-          <p className="text-gray-500">
+          <p className="text-slate-500">
             Belum ada sesi absensi. Buat dari jadwal pertemuan di atas.
           </p>
         ) : (
@@ -258,35 +257,37 @@ export function DosenAttendance() {
             {sessions.map((s) => (
               <div
                 key={s.id}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors"
               >
                 <div className="flex justify-between items-start gap-4">
                   <button
+                    type="button"
                     onClick={() => handleSelectSession(String(s.id))}
                     className="text-left flex-1"
                   >
-                    <h4 className="font-semibold text-gray-900">
+                    <h4 className="font-semibold text-slate-900">
                       {s.courseCode} — {s.classCode}
-                      <span className="ml-2 text-sm font-normal text-gray-500">
+                      <span className="ml-2 text-sm font-normal text-slate-500">
                         Pertemuan {s.meetingNumber} · {s.sessionDate}
                       </span>
                     </h4>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-slate-600 mt-1">
                       {s.topic ?? 'Tanpa topik'} · Hadir {s.hadirCount}/{s.totalRecords}
                     </p>
                   </button>
                   <div className="flex items-center gap-2 shrink-0">
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${
-                        s.isOpen ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                        s.isOpen ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'
                       }`}
                     >
                       {s.isOpen ? 'Terbuka' : 'Tertutup'}
                     </span>
                     <button
+                      type="button"
                       onClick={() => handleToggleOpen(s)}
                       disabled={isLoading}
-                      className="text-xs px-3 py-1 rounded-md border border-gray-300 hover:bg-gray-100 disabled:opacity-50"
+                      className="text-xs px-3 py-1 rounded-md border border-slate-300 hover:bg-slate-100 disabled:opacity-50"
                     >
                       {s.isOpen ? 'Tutup' : 'Buka'}
                     </button>
@@ -294,9 +295,9 @@ export function DosenAttendance() {
                 </div>
 
                 {selectedSessionId === s.id && (
-                  <div className="mt-4 border-t border-gray-200 pt-4">
+                  <div className="mt-4 border-t border-slate-200 pt-4">
                     {sessionInfo && (
-                      <p className="text-sm text-gray-600 mb-2">
+                      <p className="text-sm text-slate-600 mb-2">
                         Tanggal: {sessionInfo.sessionDate} · Topik: {sessionInfo.topic ?? '-'} ·{' '}
                         {sessionInfo.isOpen
                           ? 'Mahasiswa dapat check-in'
@@ -304,28 +305,30 @@ export function DosenAttendance() {
                       </p>
                     )}
                     {records.length === 0 ? (
-                      <p className="text-gray-500">Belum ada mahasiswa terdaftar di kelas ini.</p>
+                      <p className="text-slate-500">Belum ada mahasiswa terdaftar di kelas ini.</p>
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 text-sm">
-                          <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                          <thead className="bg-slate-50">
                             <tr>
-                              <th className="px-4 py-3 text-left font-medium text-gray-700">NIM</th>
-                              <th className="px-4 py-3 text-left font-medium text-gray-700">
+                              <th className="px-4 py-3 text-left font-medium text-slate-700">
+                                NIM
+                              </th>
+                              <th className="px-4 py-3 text-left font-medium text-slate-700">
                                 Nama
                               </th>
-                              <th className="px-4 py-3 text-center font-medium text-gray-700">
+                              <th className="px-4 py-3 text-center font-medium text-slate-700">
                                 Status
                               </th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
+                          <tbody className="bg-white divide-y divide-slate-200">
                             {records.map((r) => (
                               <tr key={r.studentId}>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-600">
+                                <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                                   {r.nim}
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-900">
+                                <td className="px-4 py-3 whitespace-nowrap text-slate-900">
                                   {r.fullName}
                                 </td>
                                 <td className="px-4 py-3 text-center">
@@ -334,7 +337,7 @@ export function DosenAttendance() {
                                       value={r.status}
                                       onChange={(e) => handleUpdateRecord(r, e.target.value)}
                                       disabled={isLoading}
-                                      className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                                      className="px-2 py-1 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
                                     >
                                       <option value="hadir">Hadir</option>
                                       <option value="tidak_hadir">Tidak Hadir</option>
@@ -344,7 +347,7 @@ export function DosenAttendance() {
                                   ) : (
                                     <span
                                       className={`text-xs px-2 py-1 rounded-full ${
-                                        statusColors[r.status] ?? 'bg-gray-100 text-gray-600'
+                                        statusColors[r.status] ?? 'bg-slate-100 text-slate-600'
                                       }`}
                                     >
                                       Belum check-in

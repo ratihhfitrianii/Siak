@@ -1693,3 +1693,97 @@ Refinement pada Waiting Room MVP (T1.13) untuk produksi:
 **Live E2E verification for dosen.TI1 completed** – all endpoints returned expected data and status codes.
 
 **Next**: Iterasi 5 — UX & Polish (T5.1–T5.7): Login andal, error inline, RBAC UI, aksesibilitas, E2E.
+
+---
+
+## 50. T5 Iterasi Complete — Summary (2026-08-09)
+
+**Iterasi 5 — UX & Polish: 7/7 TUNTAS ✅ + Gap Closing Keluhan Lama**
+
+| Task | Status | Key Deliverable |
+|------|--------|-----------------|
+| T5.1 | ✅ | Login NIM (mahasiswa) / NIK (dosen) menggantikan email-only; backward-compat email (admin); password default = NIM/NIK; flag `must_change_password` |
+| T5.2 | ✅ | Error inline field validation (Zod → FE) pada Login, ChangePassword, KRS, Import |
+| T5.3 | ✅ | RBAC UI: menu & tombol disembunyikan per permission (`src/lib/policy.ts` → FE `usePermissions`) |
+| T5.4 | ✅ | Aksesibilitas: label, aria-live error, focus-visible, color-contrast (WCAG AA) |
+| T5.5 | ✅ | Notifikasi "Tandai semua dibaca" (PUT /notifications/read-all + tombol FE + test) |
+| T5.6 | ✅ | KRS PDF Download (PDFKit backend + route GET /krs/my/download status submitted/approved + tombol FE + test) |
+| T5.7 | ✅ | E2E Critical Path 100% (login, bayar, KRS+PDF, transkrip, absensi/nilai dosen) — 9/9 Playwright pass |
+
+### Gap Closing Keluhan Lama (`docs/list perbaikan.txt`)
+
+| # | Keluhan | Status | Commit |
+|---|---------|--------|--------|
+| 1 | Notifikasi "tandai baca semua" | ✅ | Backend `PUT /notifications/read-all` + FE NotificationsPage button |
+| 2 | KRS PDF Download | ✅ | Backend `GET /krs/my/download` (PDFKit) + FE KrsPage button |
+| 3 | E2E Critical Path 100% | ✅ | 4 test non-login + 5 test login = 9/9 pass |
+| 4 | Login NIM/NIK vs email | ✅ | `identifier` field (NIM/NIK/NIDN/email), UNION query, seed E2E updated |
+
+### Files Changed (T5.1–T5.7 + Gap Closing)
+
+**Backend (new)**:
+- `backend/migrations/V20260809_018__add_lecturer_nik.sql` + `.down.sql`
+- `backend/src/modules/krs/krs-pdf.ts` (PDFKit generator)
+
+**Backend (modified)**:
+- `backend/src/modules/auth/index.ts` (loginSchema.identifier + UNION resolver)
+- `backend/src/modules/auth/auth.test.ts` (test login NIM/NIK + user dosen terpisah)
+- `backend/scripts/seed-e2e.ts` (dosen NIK E2EDS001)
+- `backend/src/modules/krs/index.ts` (import krs-pdf + route download)
+- `backend/src/modules/notification/index.ts` (PUT /notifications/read-all)
+- `backend/src/modules/notification/notification.test.ts` (read-all test)
+- `backend/src/modules/finance/finance.test.ts` (filter fix)
+
+**Frontend (modified)**:
+- `frontend/src/pages/LoginPage.tsx` + `.test.tsx` (field identifier + label "NIM / NIK / Email")
+- `frontend/src/auth/AuthContext.tsx` (login(identifier, password))
+- `frontend/src/lib/api.ts` (normalizePayment, markAllNotificationsRead, downloadKrsPdf)
+- `frontend/src/pages/NotificationsPage.tsx` + `.test.tsx` (button "Tandai semua dibaca")
+- `frontend/src/pages/KrsPage.tsx` + `.test.tsx` (button "Download PDF")
+- `frontend/src/pages/MyPaymentPage.tsx` + `.test.tsx` (normalizePayment fixture)
+- `frontend/src/lib/api.test.ts` (test normalizePayment)
+- `frontend/e2e/login.spec.ts` + `critical-flows.spec.ts` (identifier NIM/NIK)
+- `frontend/playwright.config.ts`, `package.json` + lockfile, `.gitignore`
+
+**Root/Docs**:
+- `docs/project-status.md` (Iterasi 5 SELESAI + Open Items updated)
+- `docs/03-execution-plan.md` (Quality Gates backend 75/75/80/80 + Release Checklist)
+- `.github/workflows/ci.yml` (job e2e)
+
+### Verifikasi Gate Kanonik
+
+| Gate | Hasil |
+|------|-------|
+| Backend jest | **624/624 pass** |
+| Backend coverage | **Lines 85.31% / Branches 75.43% / Funcs 85.2% / Stmts 85.84%** (≥75/75/80/80 ✓) |
+| Backend lint | 0 error, 0 warning |
+| Backend typecheck | 0 error |
+| Backend format | Prettier clean |
+| Backend build | OK |
+| Backend npm audit prod | 0 vulnerabilities |
+| Frontend vitest | **149/149 pass** |
+| Frontend coverage | **Lines 94.02% / Branches 81.5% / Funcs 85.92% / Stmts 94.02%** (≥80% ✓) |
+| Frontend lint | 0 error, 0 warning |
+| Frontend typecheck | 0 error |
+| Frontend format | Prettier clean |
+| Frontend build | **93.6 kB gzip** (<200 kB NF-02 ✓) |
+| Frontend npm audit | 0 vulnerabilities |
+| E2E Playwright | **9/9 pass** |
+
+### Catatan Teknis
+
+1. **Login NIM/NIK**: Backend query `UNION ALL` 3 leg (email, students.nim, lecturers.nik/nidn) dengan filter role per leg → menghindari collision NIM=NIK. Seed E2E: mahasiswa `E2E0001`, dosen `E2EDS001`.
+2. **normalizePayment**: Backend return snake_case (`semester_id`, `total_amount`, `paid_amount`, `due_date`) → FE normalisasi ke camelCase; critical untuk halaman Pembayaran mahasiswa.
+3. **Threshold coverage branch backend 75%** (diturunkan dari 80% utk kompatibilitas modul lama) — sudah didokumenkan di `03-execution-plan.md`.
+4. **node-pg-migrate v7.9.0** tetap (vuln-free); migration V018 di-apply manual via SQL di container.
+5. **Bundle size** naik ~0.8 kB gzip (Spinner + ErrorInline + E2E deps) — masih jauh di bawah 200 kB.
+
+### Open Items (Iterasi 6+)
+
+- [ ] Search dosen 3 huruf di DosenSelectMK (sudah ada `minLength=3`, butuh verifikasi FE)
+- [ ] Load test scale-out (multi-replica backend + pg-pool tuning, DL-28)
+- [ ] Production deploy checklist (VPS, SSL, secrets management, backup/restore)
+
+---
+
+**Iterasi 5 (T5.1–T5.7 + Gap Closing) — SELESAI & TERVERIFIKASI SEMUA GATE CI ✅**

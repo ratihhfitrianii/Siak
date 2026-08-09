@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { apiRequest, getAccessToken, setTokens } from '../lib/api';
+import { apiRequest, ApiError, getAccessToken, setTokens } from '../lib/api';
 
 /** Shape /users/me (rbac) + mustChangePassword (T1.11a). */
 export interface MeUser {
@@ -30,7 +30,7 @@ interface AuthContextValue {
   user: MeUser | null;
   /** true saat restore sesi dari localStorage masih berjalan */
   booting: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -52,9 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const me = await apiRequest<MeUser>('/users/me');
         if (!cancelled) setUser(me);
-      } catch {
-        // token tidak valid / expired & refresh gagal → sesi bersih
-        setTokens(null, null);
+      } catch (err) {
+        // T5.1 session recovery: hanya buang sesi saat token benar-benar ditolak (401/403).
+        // Error jaringan/5xx → pertahankan token; restore berikutnya (mis. sudah online) bisa sukses.
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+          setTokens(null, null);
+        }
         if (!cancelled) setUser(null);
       } finally {
         if (!cancelled) setBooting(false);
@@ -66,12 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (identifier: string, password: string) => {
     const data = await apiRequest<{
       accessToken: string;
       refreshToken: string;
       user: { mustChangePassword: boolean };
-    }>('/auth/login', { method: 'POST', body: { email, password }, auth: false });
+    }>('/auth/login', { method: 'POST', body: { identifier, password }, auth: false });
 
     setTokens(data.accessToken, data.refreshToken);
     const me = await apiRequest<MeUser>('/users/me');

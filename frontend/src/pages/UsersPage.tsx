@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, createUser, listUsers, updateUserRole } from '../lib/api';
 import type { CreateUserInput, UserListItem, UpdateRoleInput } from '../lib/types';
+import { FormAlert } from '../components/ErrorInline';
 
 const ROLE_OPTIONS: Array<{ code: string; label: string }> = [
   { code: 'mahasiswa', label: 'Mahasiswa' },
@@ -186,14 +187,7 @@ export function UsersPage() {
           {success}
         </div>
       )}
-      {actionError && (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-        >
-          {actionError}
-        </div>
-      )}
+      {actionError && <FormAlert>{actionError}</FormAlert>}
 
       {/* Filter */}
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">

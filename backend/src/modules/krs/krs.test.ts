@@ -110,7 +110,7 @@ describe('KRS Core (T1.5)', () => {
     // Login
     const login = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: testEmail, password: testPassword })
+      .send({ identifier: testEmail, password: testPassword  })
       .expect(200);
     accessToken = login.body.data.accessToken;
 
@@ -248,6 +248,20 @@ describe('KRS Core (T1.5)', () => {
     expect(res.body.data.submittedAt).toBeTruthy();
   });
 
+  it('GET /krs/my/download → PDF (keluhan lama: KRS approved bisa di-download PDF)', async () => {
+    const res = await request(app)
+      .get('/api/v1/krs/my/download')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(res.headers['content-type']).toContain('application/pdf');
+    expect(res.headers['content-disposition']).toContain('attachment');
+    expect(res.headers['content-disposition']).toContain('filename="krs-');
+    // Buffer PDF: header %PDF
+    const body = res.body as Buffer;
+    expect(body.length).toBeGreaterThan(1000);
+    expect(body.subarray(0, 4).toString()).toBe('%PDF');
+  });
+
   it('tanpa token → 401', async () => {
     await request(app).get('/api/v1/krs/period').expect(401);
     await request(app).get('/api/v1/krs/available-classes').expect(401);
@@ -307,14 +321,14 @@ describe('KRS Core edge cases (coverage branches)', () => {
 
     const login = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: edgeEmail, password: edgePassword })
+      .send({ identifier: edgeEmail, password: edgePassword  })
       .expect(200);
     edgeToken = login.body.data.accessToken;
 
     // Admin sistem (tidak punya studentId)
     const adminLogin = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'admin@siak.local', password: 'Admin123!' })
+      .send({ identifier: 'admin@siak.local', password: 'Admin123!'  })
       .expect(200);
     adminToken = adminLogin.body.data.accessToken;
   });
@@ -532,7 +546,7 @@ describe('KRS Validasi Admin (T1.6)', () => {
 
       const login = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email, password })
+        .send({ identifier: email, password: password })
         .expect(200);
       tokens[email] = login.body.data.accessToken;
     }
@@ -540,12 +554,12 @@ describe('KRS Validasi Admin (T1.6)', () => {
     // Admin seed (hash sudah benar via V009)
     const akadLogin = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'akademik@siak.local', password: 'Admin123!' })
+      .send({ identifier: 'akademik@siak.local', password: 'Admin123!'  })
       .expect(200);
     adminAkademikToken = akadLogin.body.data.accessToken;
     const keuLogin = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'keuangan@siak.local', password: 'Admin123!' })
+      .send({ identifier: 'keuangan@siak.local', password: 'Admin123!'  })
       .expect(200);
     adminKeuanganToken = keuLogin.body.data.accessToken;
 

@@ -246,5 +246,27 @@ export function createNotificationRouter(): Router {
     },
   );
 
+  // PUT /notifications/read-all — tandai semua dibaca (keluhan lama: list perbaikan.txt)
+  router.put(
+    '/notifications/read-all',
+    authenticate,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const result = await pgPool.query(
+          `UPDATE notifications SET is_read = true, read_at = now()
+           WHERE user_id = $1 AND is_read = false
+           RETURNING id`,
+          [req.user!.id],
+        );
+        res.json({
+          success: true,
+          data: { marked: result.rows.length },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   return router;
 }

@@ -47,7 +47,7 @@ describe('Auth Middleware — edge cases (coverage branches)', () => {
 
     const login = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: testEmail, password: testPassword })
+      .send({ identifier: testEmail, password: testPassword })
       .expect(200);
     validToken = login.body.data.accessToken;
     expect(validToken).toBeTruthy(); // gunakan variabel agar tidak "unused"

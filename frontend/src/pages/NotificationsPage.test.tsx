@@ -82,6 +82,36 @@ describe('NotificationsPage (T2.5)', () => {
     expect(screen.queryByText(/belum dibaca/)).not.toBeInTheDocument();
   });
 
+  it('tandai semua dibaca → PUT read-all + semua item isRead + badge hilang', async () => {
+    const fetchCalls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        fetchCalls.push(url);
+        if (url.includes('/read-all')) {
+          return Promise.resolve(jsonResponse({ success: true, data: { marked: 1 } }));
+        }
+        return Promise.resolve(jsonResponse({ success: true, data: { items: NOTIFS } }));
+      }),
+    );
+    render(<NotificationsPage />);
+
+    const markAllBtn = await screen.findByRole('button', { name: /Tandai semua dibaca/i });
+    markAllBtn.click();
+
+    await waitFor(() => {
+      expect(fetchCalls.some((u) => u.includes('/notifications/read-all'))).toBe(true);
+    });
+    // Semua item jadi isRead → tombol per-item & badge unread hilang
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('button', { name: /Tandai semua dibaca/i }),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: /Tandai dibaca/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/belum dibaca/)).not.toBeInTheDocument();
+  });
+
   it('tidak ada notifikasi → empty state', async () => {
     vi.stubGlobal(
       'fetch',

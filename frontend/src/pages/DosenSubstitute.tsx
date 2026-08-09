@@ -8,6 +8,7 @@ import {
 } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
 import type { SubstituteRequest, LecturerBrief, MyClass } from '../lib/types';
+import { FormAlert } from '../components/ErrorInline';
 
 /**
  * Substitute teaching (T3.7 + T3.8, perm substitute.manage) — ajukan dosen pengganti.
@@ -120,15 +121,15 @@ export function DosenSubstitute() {
 
   const statusColors: Record<string, string> = {
     active: 'bg-green-100 text-green-800',
-    cancelled: 'bg-gray-100 text-gray-600',
+    cancelled: 'bg-slate-100 text-slate-600',
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Substitute Teaching</h2>
-        <p className="text-gray-600">
+        <h2 className="text-xl font-semibold text-slate-900 mb-4">Substitute Teaching</h2>
+        <p className="text-slate-600">
           Ajukan dosen pengganti untuk jadwal pertemuan kelas yang Anda ampu. Pengajuan langsung
           aktif; hanya dosen yang terlibat (asli/pengganti) atau admin yang dapat membatalkan.
         </p>
@@ -136,15 +137,8 @@ export function DosenSubstitute() {
 
       {/* Form Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Form Substitute</h3>
-        {error && (
-          <p
-            role="alert"
-            className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800"
-          >
-            {error}
-          </p>
-        )}
+        <h3 className="text-lg font-medium text-slate-900 mb-4">Form Substitute</h3>
+        {error && <FormAlert>{error}</FormAlert>}
         {success && (
           <p
             role="status"
@@ -157,13 +151,13 @@ export function DosenSubstitute() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Dosen Asli</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Dosen Asli</label>
               <select
                 value={originalLecturerId ?? ''}
                 onChange={(e) =>
                   setOriginalLecturerId(e.target.value ? Number(e.target.value) : null)
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Pilih Dosen Asli</option>
                 {lecturers.map((lec) => (
@@ -175,7 +169,7 @@ export function DosenSubstitute() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Dosen Pengganti
               </label>
               <select
@@ -183,7 +177,7 @@ export function DosenSubstitute() {
                 onChange={(e) =>
                   setSubstituteLecturerId(e.target.value ? Number(e.target.value) : null)
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Pilih Dosen Pengganti</option>
                 {lecturers
@@ -199,7 +193,7 @@ export function DosenSubstitute() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Kelas</label>
               <select
                 value={classId ?? ''}
                 onChange={(e) => {
@@ -207,7 +201,7 @@ export function DosenSubstitute() {
                   setClassId(id);
                   setScheduleId(null);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Pilih Kelas</option>
                 {classes.map((cls) => (
@@ -217,21 +211,21 @@ export function DosenSubstitute() {
                 ))}
               </select>
               {classes.length === 0 && (
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-slate-500">
                   Anda belum memiliki kelas dengan jadwal pertemuan.
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Jadwal Pertemuan
               </label>
               <select
                 value={scheduleId ?? ''}
                 onChange={(e) => setScheduleId(e.target.value ? Number(e.target.value) : null)}
                 disabled={!selectedClass || selectedClass.schedules.length === 0}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-slate-100 disabled:text-slate-400"
               >
                 <option value="">Pilih Jadwal</option>
                 {selectedClass?.schedules.map((s) => (
@@ -245,14 +239,14 @@ export function DosenSubstitute() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Alasan (opsional)
             </label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Mis. Dosen berhalangan hadir karena sakit"
             />
           </div>
@@ -270,6 +264,7 @@ export function DosenSubstitute() {
         {/* Submit Button */}
         <div className="mt-6 flex justify-end">
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={
               isLoading ||
@@ -279,7 +274,7 @@ export function DosenSubstitute() {
               !scheduleId ||
               originalLecturerId === substituteLecturerId
             }
-            className="px-6 py-2 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? 'Memproses...' : 'Ajukan Substitute'}
           </button>
@@ -288,41 +283,42 @@ export function DosenSubstitute() {
 
       {/* Existing Substitute Requests */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
+        <h3 className="text-lg font-medium text-slate-900 mb-4">
           Permintaan Substitute yang Sudah Ada
         </h3>
         {isLoading && requests.length === 0 ? (
-          <p className="text-gray-500">Memuat permintaan substitute...</p>
+          <p className="text-slate-500">Memuat permintaan substitute...</p>
         ) : requests.length === 0 ? (
-          <p className="text-gray-500">Belum ada permintaan substitute.</p>
+          <p className="text-slate-500">Belum ada permintaan substitute.</p>
         ) : (
           <div className="space-y-4">
             {requests.map((req) => (
               <div
                 key={req.id}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors"
               >
                 <div className="flex justify-between items-start gap-4">
                   <div>
-                    <h4 className="font-semibold text-gray-900">
+                    <h4 className="font-semibold text-slate-900">
                       {req.courseCode} — {req.classCode} · Pertemuan {req.meetingNumber}
                     </h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-slate-600">
                       {req.scheduledDate} | {req.originalLecturerName} →{' '}
                       {req.substituteLecturerName ?? 'Belum ditentukan'}
                     </p>
-                    {req.reason && <p className="text-sm text-gray-600 mt-1">{req.reason}</p>}
+                    {req.reason && <p className="text-sm text-slate-600 mt-1">{req.reason}</p>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${
-                        statusColors[req.status] ?? 'bg-gray-100 text-gray-800'
+                        statusColors[req.status] ?? 'bg-slate-100 text-slate-800'
                       }`}
                     >
                       {req.status === 'active' ? 'Aktif' : 'Dibatalkan'}
                     </span>
                     {req.status === 'active' && (
                       <button
+                        type="button"
                         onClick={() => handleCancel(req)}
                         disabled={isLoading}
                         className="text-xs px-3 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"

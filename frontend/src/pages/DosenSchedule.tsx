@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getScheduleAvailability } from '../lib/api';
 import type { ScheduleAvailability } from '../lib/types';
+import { FormAlert } from '../components/ErrorInline';
 
 /**
  * Jadwal mengajar dosen (T3.7 + T3.8, perm schedule.manage — view only).
@@ -38,8 +39,8 @@ export function DosenSchedule() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Jadwal Mengajar</h2>
-        <p className="text-gray-600">
+        <h2 className="text-xl font-semibold text-slate-900 mb-4">Jadwal Mengajar</h2>
+        <p className="text-slate-600">
           Lihat jadwal pertemuan dan ketersediaan slot mengajar. Sesuai desain (DL-08), jadwal
           dikelola admin akademik — dosen memeriksa kesediaan slot per tanggal.
         </p>
@@ -47,70 +48,65 @@ export function DosenSchedule() {
 
       {/* Date picker */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Ketersediaan per Tanggal</h3>
+        <h3 className="text-lg font-medium text-slate-900 mb-4">Ketersediaan per Tanggal</h3>
         <div className="max-w-xs">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+          <label className="block text-sm font-medium text-slate-700 mb-2">Tanggal</label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
 
-        {error && (
-          <p
-            role="alert"
-            className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800"
-          >
-            {error}
-          </p>
-        )}
+        {error && <FormAlert>{error}</FormAlert>}
 
         {isLoading ? (
-          <p className="mt-4 text-gray-500">Memuat jadwal...</p>
+          <p className="mt-4 text-slate-500">Memuat jadwal...</p>
         ) : availability ? (
           <div className="mt-6 space-y-8">
             {/* Busy slots */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">
+              <h4 className="font-medium text-slate-900 mb-2">
                 Jadwal Pertemuan ({dayNames[availability.dayOfWeek] ?? '-'}, {availability.date})
               </h4>
               {availability.busySlots.length === 0 ? (
-                <p className="text-gray-500">Tidak ada jadwal pertemuan pada tanggal ini.</p>
+                <p className="text-slate-500">Tidak ada jadwal pertemuan pada tanggal ini.</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Pertemuan</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Kelas</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">
+                        <th className="px-4 py-3 text-left font-medium text-slate-700">
+                          Pertemuan
+                        </th>
+                        <th className="px-4 py-3 text-left font-medium text-slate-700">Kelas</th>
+                        <th className="px-4 py-3 text-left font-medium text-slate-700">
                           Mata Kuliah
                         </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Topik</th>
-                        <th className="px-4 py-3 text-center font-medium text-gray-700">Status</th>
+                        <th className="px-4 py-3 text-left font-medium text-slate-700">Topik</th>
+                        <th className="px-4 py-3 text-center font-medium text-slate-700">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-slate-200">
                       {availability.busySlots.map((slot) => (
                         <tr key={slot.id}>
-                          <td className="px-4 py-3 whitespace-nowrap text-gray-600">
+                          <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                             {slot.meetingNumber}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-gray-900">
+                          <td className="px-4 py-3 whitespace-nowrap text-slate-900">
                             {slot.classCode}
                           </td>
-                          <td className="px-4 py-3 text-gray-900">
+                          <td className="px-4 py-3 text-slate-900">
                             {slot.courseCode} — {slot.courseName}
                           </td>
-                          <td className="px-4 py-3 text-gray-600">{slot.topic ?? '-'}</td>
+                          <td className="px-4 py-3 text-slate-600">{slot.topic ?? '-'}</td>
                           <td className="px-4 py-3 text-center">
                             <span
                               className={`text-xs px-2 py-1 rounded-full ${
                                 slot.isCompleted
                                   ? 'bg-green-100 text-green-800'
-                                  : 'bg-blue-100 text-blue-800'
+                                  : 'bg-primary-100 text-primary-800'
                               }`}
                             >
                               {slot.isCompleted ? 'Selesai' : 'Terjadwal'}
@@ -126,39 +122,39 @@ export function DosenSchedule() {
 
             {/* Available slots */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">Slot Kosong (belum terjadwal)</h4>
+              <h4 className="font-medium text-slate-900 mb-2">Slot Kosong (belum terjadwal)</h4>
               {availability.availableSlots.length === 0 ? (
-                <p className="text-gray-500">
+                <p className="text-slate-500">
                   Tidak ada slot kosong — seluruh kelas sudah terjadwal pada tanggal ini.
                 </p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Kelas</th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">
+                        <th className="px-4 py-3 text-left font-medium text-slate-700">Kelas</th>
+                        <th className="px-4 py-3 text-left font-medium text-slate-700">
                           Mata Kuliah
                         </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-700">Jam</th>
-                        <th className="px-4 py-3 text-center font-medium text-gray-700">
+                        <th className="px-4 py-3 text-left font-medium text-slate-700">Jam</th>
+                        <th className="px-4 py-3 text-center font-medium text-slate-700">
                           Semester
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-slate-200">
                       {availability.availableSlots.map((slot) => (
                         <tr key={slot.classId}>
-                          <td className="px-4 py-3 whitespace-nowrap text-gray-900">
+                          <td className="px-4 py-3 whitespace-nowrap text-slate-900">
                             {slot.classCode}
                           </td>
-                          <td className="px-4 py-3 text-gray-900">
+                          <td className="px-4 py-3 text-slate-900">
                             {slot.courseCode} — {slot.courseName}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-gray-600">
+                          <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                             {slot.startTime ?? '-'} – {slot.endTime ?? '-'}
                           </td>
-                          <td className="px-4 py-3 text-center text-gray-600">
+                          <td className="px-4 py-3 text-center text-slate-600">
                             {slot.semesterNumber}
                           </td>
                         </tr>

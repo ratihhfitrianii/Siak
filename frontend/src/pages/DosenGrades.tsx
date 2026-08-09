@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getGradesByClass, submitGrades, getMyClasses } from '../lib/api';
 import type { GradeClassItem, GradeInput, MyClass } from '../lib/types';
+import { FormAlert } from '../components/ErrorInline';
 
 /**
  * Input nilai dosen (T3.7 + T3.8, perm grade.input) — daftar mahasiswa per kelas,
@@ -137,8 +138,8 @@ export function DosenGrades() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Input Nilai</h2>
-        <p className="text-gray-600">
+        <h2 className="text-xl font-semibold text-slate-900 mb-4">Input Nilai</h2>
+        <p className="text-slate-600">
           Input nilai tugas, UTS, dan UAS untuk mahasiswa di kelas yang Anda ampu. Nilai akhir
           dihitung otomatis dengan bobot tugas 20%, UTS 30%, UAS 50%; remedial per komponen
           mengambil nilai tertinggi.
@@ -147,15 +148,8 @@ export function DosenGrades() {
 
       {/* Form Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Form Nilai</h3>
-        {error && (
-          <p
-            role="alert"
-            className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800"
-          >
-            {error}
-          </p>
-        )}
+        <h3 className="text-lg font-medium text-slate-900 mb-4">Form Nilai</h3>
+        {error && <FormAlert>{error}</FormAlert>}
         {success && (
           <p
             role="status"
@@ -166,13 +160,13 @@ export function DosenGrades() {
         )}
 
         <div className="max-w-md">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             Mata Kuliah / Kelas
           </label>
           <select
             value={classId ?? ''}
             onChange={(e) => handleSelectClass(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="">Pilih Mata Kuliah</option>
             {classOptions.map((cls) => (
@@ -186,32 +180,32 @@ export function DosenGrades() {
         {/* Grades Table */}
         {classId && grades.length > 0 && (
           <div className="mt-6 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">NIM</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Nama</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-700">Tugas (20%)</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-700">UTS (30%)</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-700">UAS (50%)</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-700">
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">NIM</th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">Nama</th>
+                  <th className="px-4 py-3 text-center font-medium text-slate-700">Tugas (20%)</th>
+                  <th className="px-4 py-3 text-center font-medium text-slate-700">UTS (30%)</th>
+                  <th className="px-4 py-3 text-center font-medium text-slate-700">UAS (50%)</th>
+                  <th className="px-4 py-3 text-center font-medium text-slate-700">
                     Remedial Tugas
                   </th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-700">Remedial UTS</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-700">Remedial UAS</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-700">Nilai Akhir</th>
+                  <th className="px-4 py-3 text-center font-medium text-slate-700">Remedial UTS</th>
+                  <th className="px-4 py-3 text-center font-medium text-slate-700">Remedial UAS</th>
+                  <th className="px-4 py-3 text-center font-medium text-slate-700">Nilai Akhir</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-slate-200">
                 {grades.map((grade) => {
                   const edit = scores[grade.id] ?? { tugas: '', uts: '', uas: '' };
                   const finalScore = computeFinal(grade, edit);
                   return (
                     <tr key={grade.id}>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-600">
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                         {grade.student.nim}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-900">
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-900">
                         {grade.student.name}
                       </td>
                       {(['tugas', 'uts', 'uas'] as const).map((field) => (
@@ -222,18 +216,18 @@ export function DosenGrades() {
                             max={100}
                             value={edit[field]}
                             onChange={(e) => handleScoreChange(grade.id, field, e.target.value)}
-                            className="w-20 px-2 py-1 text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-20 px-2 py-1 text-center border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                           />
                         </td>
                       ))}
                       {(
                         ['remedialTugasScore', 'remedialUtsScore', 'remedialUasScore'] as const
                       ).map((field) => (
-                        <td key={field} className="px-4 py-3 text-center text-sm text-gray-600">
+                        <td key={field} className="px-4 py-3 text-center text-sm text-slate-600">
                           {grade[field] !== null ? grade[field] : '-'}
                         </td>
                       ))}
-                      <td className="px-4 py-3 text-center font-semibold text-gray-900">
+                      <td className="px-4 py-3 text-center font-semibold text-slate-900">
                         {finalScore !== null ? finalScore : '-'}
                       </td>
                     </tr>
@@ -245,16 +239,17 @@ export function DosenGrades() {
         )}
 
         {classId && grades.length === 0 && !isLoading && (
-          <p className="mt-6 text-gray-500">Belum ada mahasiswa terdaftar di kelas ini.</p>
+          <p className="mt-6 text-slate-500">Belum ada mahasiswa terdaftar di kelas ini.</p>
         )}
 
         {/* Submit Button */}
         {classId && grades.length > 0 && (
           <div className="mt-6 flex justify-end">
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isLoading}
-              className="px-6 py-2 bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? 'Memproses...' : 'Simpan Nilai'}
             </button>

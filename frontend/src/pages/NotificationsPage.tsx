@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ApiError, getMyNotifications, markNotificationRead } from '../lib/api';
+import {
+  ApiError,
+  getMyNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '../lib/api';
 import type { AppNotification } from '../lib/types';
 
 /**
@@ -56,17 +61,38 @@ export function NotificationsPage() {
     }
   }
 
+  async function handleMarkAllRead() {
+    try {
+      await markAllNotificationsRead();
+      setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setReadIds(new Set());
+    } catch {
+      setError('Gagal menandai semua notifikasi sebagai dibaca');
+    }
+  }
+
   const unread = items.filter((n) => !n.isRead && !readIds.has(n.id)).length;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-slate-900">Notifikasi</h1>
-        {unread > 0 && (
-          <span className="rounded-full bg-primary-100 px-3 py-1 text-xs font-bold text-primary-700">
-            {unread} belum dibaca
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {unread > 0 && (
+            <button
+              type="button"
+              onClick={() => void handleMarkAllRead()}
+              className="rounded-md border border-primary-300 px-3 py-1 text-xs font-medium text-primary-700 transition hover:bg-primary-50"
+            >
+              Tandai semua dibaca
+            </button>
+          )}
+          {unread > 0 && (
+            <span className="rounded-full bg-primary-100 px-3 py-1 text-xs font-bold text-primary-700">
+              {unread} belum dibaca
+            </span>
+          )}
+        </div>
       </div>
 
       {loading ? (

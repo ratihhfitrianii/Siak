@@ -52,6 +52,20 @@ const ADMIN_SISTEM = {
   menu: ['user.manage', 'audit.view'],
 };
 
+const ADMIN_KEUANGAN = {
+  id: 2,
+  email: 'keuangan@kampus.ac.id',
+  fullName: 'Kasir',
+  role: 'admin_keuangan',
+  roleName: 'Admin Keuangan',
+  isWali: false,
+  isActive: true,
+  mustChangePassword: false,
+  studentId: null,
+  createdAt: '2026-01-01T00:00:00Z',
+  menu: ['payment.update'],
+};
+
 function renderLayout() {
   return render(
     <MemoryRouter initialEntries={['/']}>
@@ -74,7 +88,7 @@ describe('AppLayout (T1.11d — polish)', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('menu disaring dari permission user (mahasiswa → KRS & Transkrip)', () => {
+  it('menu disaring dari permission user (mahasiswa → KRS, Transkrip & Pembayaran)', () => {
     mockUser = MAHASISWA;
     renderLayout();
 
@@ -83,23 +97,36 @@ describe('AppLayout (T1.11d — polish)', () => {
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'KRS' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Transkrip' })).toBeInTheDocument();
+    // T5.3: mahasiswa punya krs.fill → menu Pembayaran (tagihan sendiri) muncul
+    expect(screen.getByRole('link', { name: 'Pembayaran' })).toBeInTheDocument();
     // tanpa permission → menu tak muncul
     expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'User' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Audit' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Pembayaran' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Tagihan' })).not.toBeInTheDocument();
     // konten anak dirender
     expect(screen.getByText('KONTEN_UTAMA')).toBeInTheDocument();
   });
 
-  it('admin_sistem → menu User & Audit muncul', () => {
+  it('admin_sistem → hanya menu User (Nilai/Audit masih ComingSoon → disembunyikan)', () => {
     mockUser = ADMIN_SISTEM;
     renderLayout();
 
     expect(screen.getByRole('link', { name: 'User' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Audit' })).toBeInTheDocument();
+    // T5.3: Audit/Nilai adalah dead-end (ComingSoon) → tidak diiklankan di menu
+    expect(screen.queryByRole('link', { name: 'Audit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'KRS' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Transkrip' })).not.toBeInTheDocument();
+  });
+
+  it('admin keuangan → menu Tagihan, bukan Pembayaran (T5.3)', () => {
+    mockUser = ADMIN_KEUANGAN;
+    renderLayout();
+
+    expect(screen.getByRole('link', { name: 'Tagihan' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pembayaran' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'User' })).not.toBeInTheDocument();
   });
 
   it('Keluar → logout dipanggil lalu pindah ke /login', async () => {

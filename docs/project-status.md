@@ -1,6 +1,6 @@
 # Project Status — Siak (Sistem Informasi Akademik)
 
-> **Diperbarui:** 2026-08-08 (Tugas #3 — T3.8 selesai)
+> **Diperbarui:** 2026-08-09 (Iterasi 5 tuntas — T5.1 s.d. T5.7 + penutupan keluhan lama)
 > **Sumber:** Tugas #1 Coordinator + Analyst + Developer + Reviewer → **Tugas #2 Coordinator (CLI)**
 
 ---
@@ -42,7 +42,7 @@ Detail lengkap: `docs/03-execution-plan.md`.
 || **Iterasi 2 — Keuangan & Transkrip** | T2.1–T2.7 | Tagihan otomatis, SPP, gate lunas, transkrip PDF/Excel, notifikasi KRS, E2E | ~16 hari | 🟢 **T2.1 SELESAI** (payment service + generate 2004 tagihan; `e354550`); 🟢 **T2.2 SELESAI** (update status admin keuangan); 🟢 **T2.3 SELESAI** (KRS gate `can_access_krs`); 🟢 **T2.6 SELESAI** (MyPaymentPage + FinancePaymentsPage; `4e2db04`); 🟢 **T2.4 SELESAI** (transkrip PDF pdfkit + Download PDF frontend; `dd68337`); 🟢 **T2.5 SELESAI** (notifikasi KRS: email nodemailer + in-app, retry 3×, halaman `/notifikasi` + badge unread); 🟢 **T2.7 SELESAI** (E2E bayar→KRS→nilai→transkrip; 12 test --runInBand PASS) |
 ||| **Iterasi 3 — Dosen Mengajar** | T3.1–T3.8 | Pilih MK, jadwal, absensi, bimbingan, substitute, nilai detail | ~20 hari | 🟢 **T3.1 SELESAI** (Dosen Pilih MK + migration + 8 test); 🟢 **T3.2 SELESAI** (Jadwal Kelas + Ketersediaan + 7 test); 🟢 **T3.3 SELESAI** (Absensi + QR check-in + 38 test, coverage modul ≥80% branch); 🟢 **T3.4 SELESAI** (Bimbingan Wali + 41 test, coverage modul 89.36% branch); 🟢 **T3.5 SELESAI** (Substitute Teaching + 21 test, global branch 80.12%); 🟢 **T3.6 SELESAI** (Nilai Detail: remedial per komponen max(asli,remedial), 37 test, global branch 80.18%); 🟢 **T3.7 SELESAI** (Dashboard Dosen frontend: 6 tab Pilih MK/Jadwal/Absensi/Bimbingan/Substitute/Nilai, 83 frontend test, bundle 95.59 kB gzip); 🟢 **T3.8 SELESAI** (Integrasi 6 tab ke API nyata — backend mikro + frontend full redesign, 129 frontend test, 585 backend test, semua gate hijau, commit `37c5d9d`) |
 || **Iterasi 4 — Skala & Integrasi** | T4.1–T4.7 | Waiting room production, payment gateway, PDDikti, payroll detail, security audit | ~23 hari | 🟢 **T4.1–T4.7 SELESAI** (2026-08-08 s.d. 2026-08-09): T4.1 Waiting Room Hardening (Lua atomic threshold) ✅; T4.2 Payment Gateway Adapter (Midtrans/Xendit mock + webhook idempotent) ✅; T4.3 PDDikti Sync (scheduled job, upsert, idempotent) ✅; T4.4 Payroll Detail (Honor Tetap + Sesi + Substitute + Bimbingan) ✅; T4.5 Load Test Production (5.5k users, 1.8k kelas, queue mode verified) ✅; T4.6 Monitoring Dashboards (Prometheus metrics + 5 Grafana dashboards) ✅; T4.7 Security Audit (node-pg-migrate 7.9.0 vuln fix, lint clean, npm audit prod 0) ✅ |
-| **Iterasi 5 — UX & Polish** | T5.1–T5.7 | Login andal, error inline, RBAC UI, aksesibilitas, E2E | ~16 hari | ⬜ Belum dimulai |
+|| **Iterasi 5 — UX & Polish** | T5.1–T5.7 | Login andal, error inline, RBAC UI, aksesibilitas, E2E | ~16 hari | 🟢 **T5.1–T5.7 SELESAI** (2026-08-09): T5.1 Login Reliability (NetworkError, timeout, retry transien, session recovery) ✅; T5.2 Error Inline Standardization (FormAlert/FieldError di 10 halaman) ✅; T5.3 RBAC UI Consistency (menu disaring dari permission — fix 403 admin keuangan, sembunyikan dead-end, hapus route duplikat) ✅; T5.4 UI/UX Polish (normalisasi palet gray→slate/blue→primary, komponen Spinner bersama) ✅; T5.5 Accessibility Audit (**Lighthouse accessibility 100/100**, 14 button type, aria-describedby) ✅; T5.6 Performance Polish (code splitting 13 chunk, bundle 92.8 kB gzip <200 kB) ✅; T5.7 E2E Playwright (**9 test: login + bayar + KRS+PDF + transkrip + absensi/nilai dosen, CI gate**) ✅. Plus penutupan keluhan lama: notifikasi "tandai baca semua" + KRS PDF download. |
 
 **Total:** ~24 minggu (buffer 30%), asumsi 1 developer full-time.
 
@@ -70,13 +70,14 @@ Detail lengkap: `docs/03-execution-plan.md`.
 ## Open Items (untuk dikonfirmasi pemilik)
 
 1. **APPROVE SPECIFICATION** untuk docs/02 + docs/03 — ✅ **DIBERIKAN 2026-08-01 (Tugas #2)**. Syarat #1 reviewer untuk lanjut T1.2: **TERPENUHI**.
-2. **Repo git + remote GitHub belum diinisialisasi** (temuan 2026-08-01) — perlu inisialisasi sebelum Developer mulai T1.2 (F-31: commit manual pemilik). **Syarat #2 reviewer untuk lanjut T1.2: BELUM TERPENUHI**.
+2. ~~Repo git + remote GitHub belum diinisialisasi~~ — ✅ **SELESAI** (CI GitHub Actions aktif & hijau).
 3. Siapa admin teknis (user sendiri vs tim IT kampus)?
 4. Format file impor data lama (Excel/CSV) — struktur kolom belum dipastikan.
-5. Payroll: skema perhitungan honor, aturan dosen kontrak, pengaruh absensi (TBD — dijadwalkan Iterasi 4, T4.4).
+5. ~~Payroll: skema perhitungan honor~~ — ✅ diimplementasikan T4.4 (Honor Tetap + Sesi + Substitute + Bimbingan).
 6. Denda keterlambatan pembayaran (saat ini tanpa denda, akan di-update user).
 7. **Visibilitas Dosen Wali terhadap transkrip/IPK binaan** — asumsi Analyst (docs/02 §15 #4); perlu konfirmasi sebelum implementasi Iterasi 1.
 8. Kanal notifikasi KRS otomatis (email/WA/Telegram).
+9. **Login NIM/NIK vs email** — F-01 menyebut "NIM/kredensial unik"; implementasi saat ini email-only (email institusi = kredensial unik). Keluhan lama (`list perbaikan.txt`) meminta login default NIM/NIK. Perlu keputusan pemilik.
 
 ---
 

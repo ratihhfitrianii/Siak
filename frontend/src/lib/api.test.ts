@@ -4,9 +4,11 @@ import {
   apiRequest,
   enterWaitingRoom,
   getAccessToken,
+  getMyPayments,
   getRefreshToken,
   getWaitingRoomStatus,
   getWaitingToken,
+  NetworkError,
   setTokens,
   tryRefresh,
   WAITING_TOKEN_KEY,
@@ -133,6 +135,50 @@ describe('api wrapper (T1.11a)', () => {
   });
 });
 
+describe('api wrapper — jaringan & timeout (T5.1)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('fetch gagal (jaringan) → NetworkError dengan pesan jelas', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+    const err = await apiRequest('/users/me').catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(NetworkError);
+    expect((err as Error).message).toContain('Tidak dapat terhubung ke server');
+  });
+
+  it('kegagalan jaringan transien → retry 1× lalu sukses', async () => {
+    let calls = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        calls += 1;
+        if (calls === 1) return Promise.reject(new TypeError('Failed to fetch'));
+        return Promise.resolve(jsonResponse({ success: true, data: { id: 7 } }));
+      }),
+    );
+
+    const data = await apiRequest<{ id: number }>('/users/me');
+    expect(data).toEqual({ id: 7 });
+    expect(calls).toBe(2);
+  });
+
+  it('tryRefresh gagal jaringan → token TIDAK dibersihkan (session recovery)', async () => {
+    setTokens('access-lama', 'refresh-ada');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+    const ok = await tryRefresh();
+    expect(ok).toBe(false);
+    expect(getAccessToken()).toBe('access-lama');
+    expect(getRefreshToken()).toBe('refresh-ada');
+  });
+});
+
 describe('waiting room di api wrapper (T1.13)', () => {
   const originalLocation = window.location;
 
@@ -224,5 +270,51 @@ describe('waiting room di api wrapper (T1.13)', () => {
     enterWaitingRoom('wr-x');
     expect(sessionStorage.getItem(WAITING_TOKEN_KEY)).toBe('wr-x');
     expect(assign).not.toHaveBeenCalled();
+  });
+});
+
+describe('getMyPayments — normalisasi snake→camel (T2.6 + fix E2E)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('mengubah response snake_case backend menjadi MyPayment camelCase', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          success: true,
+          data: [
+            {
+              id: '7',
+              student_id: '3',
+              semester_id: 3,
+              semester_code: '2024/2025-1',
+              semester_name: 'Ganjil 2024/2025',
+              total_amount: '970000',
+              paid_amount: '970000',
+              status: 'lunas',
+              due_date: '2026-08-08T00:00:00.000Z',
+              is_waived: false,
+              waived_reason: null,
+              created_at: '2026-08-09T02:36:59.415Z',
+              updated_at: '2026-08-09T02:36:59.415Z',
+              items: [
+                { id: '1', type: 'SPP', description: 'SPP', amount: '970000', is_mandatory: true },
+              ],
+            },
+          ],
+        }),
+      ),
+    );
+
+    const result = await getMyPayments();
+    expect(result).toHaveLength(1);
+    const p = result[0]!;
+    expect(p.semesterId).toBe(3);
+    expect(p.semesterCode).toBe('2024/2025-1');
+    expect(p.totalAmount).toBe(970000);
+    expect(p.status).toBe('lunas');
+    expect(p.items[0]!.isMandatory).toBe(true);
   });
 });

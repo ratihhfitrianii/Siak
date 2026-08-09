@@ -54,7 +54,7 @@ describe('Academic module (T1.7)', () => {
         const login = await request(app)
           .post('/api/v1/auth/login')
           .send({
-            email: (await pgPool.query('SELECT email FROM users WHERE id = $1', [uid])).rows[0]
+            identifier: (await pgPool.query('SELECT email FROM users WHERE id = $1', [uid])).rows[0]
               .email,
             password,
           });

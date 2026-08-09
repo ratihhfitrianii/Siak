@@ -305,7 +305,7 @@ describe('User Service (RBAC endpoints)', () => {
       );
       const loginRes = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: u.email, password: u.password })
+        .send({ identifier: u.email, password: u.password })
         .expect(200);
       tokenByRole.set(u.roleCode, loginRes.body.data.accessToken);
     }
@@ -481,7 +481,7 @@ describe('User Service (RBAC endpoints)', () => {
       await request(app)
         .post('/api/v1/users')
         .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
-        .send({ email: 'bukan-email', password: 'x', fullName: '' })
+        .send({ identifier: 'bukan-email', password: 'x', fullName: '' })
         .expect(400);
     });
 

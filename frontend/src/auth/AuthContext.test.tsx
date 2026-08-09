@@ -82,6 +82,28 @@ describe('AuthContext (T1.11a)', () => {
     expect(localStorage.getItem('siak.access_token')).toBeNull();
   });
 
+  it('restore gagal 5xx (server error) → token DIPERTAHANKAN (session recovery T5.1)', async () => {
+    localStorage.setItem('siak.access_token', 'access-ada');
+    localStorage.setItem('siak.refresh_token', 'refresh-ada');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ success: false }, 503)));
+
+    renderProbe();
+    expect(await screen.findByTestId('user')).toHaveTextContent('none');
+    expect(localStorage.getItem('siak.access_token')).toBe('access-ada');
+    expect(localStorage.getItem('siak.refresh_token')).toBe('refresh-ada');
+  });
+
+  it('restore gagal jaringan → token DIPERTAHANKAN (session recovery T5.1)', async () => {
+    localStorage.setItem('siak.access_token', 'access-ada');
+    localStorage.setItem('siak.refresh_token', 'refresh-ada');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+    renderProbe();
+    expect(await screen.findByTestId('user')).toHaveTextContent('none');
+    expect(localStorage.getItem('siak.access_token')).toBe('access-ada');
+    expect(localStorage.getItem('siak.refresh_token')).toBe('refresh-ada');
+  });
+
   it('logout → user hilang dan token dibersihkan', async () => {
     localStorage.setItem('siak.access_token', 'access-ada');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ success: true, data: ME })));

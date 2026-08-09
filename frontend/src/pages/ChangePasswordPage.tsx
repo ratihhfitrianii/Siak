@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../lib/api';
+import { FieldError, FormAlert } from '../components/ErrorInline';
 
 interface FieldErrors {
   currentPassword?: string[];
@@ -81,14 +82,7 @@ export function ChangePasswordPage() {
           noValidate
           className="rounded-2xl bg-white p-6 shadow-lg"
         >
-          {formError && (
-            <div
-              role="alert"
-              className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-            >
-              {formError}
-            </div>
-          )}
+          {formError && <FormAlert>{formError}</FormAlert>}
           {success && (
             <div
               role="status"
@@ -112,12 +106,11 @@ export function ChangePasswordPage() {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               aria-invalid={Boolean(fieldErrors.currentPassword)}
+              aria-describedby={fieldErrors.currentPassword ? 'currentPassword-error' : undefined}
               className={inputClass(Boolean(fieldErrors.currentPassword))}
             />
             {fieldErrors.currentPassword && (
-              <p className="mt-1 text-xs text-red-600" role="alert">
-                {fieldErrors.currentPassword[0]}
-              </p>
+              <FieldError id="currentPassword-error">{fieldErrors.currentPassword[0]}</FieldError>
             )}
           </div>
 
@@ -132,13 +125,12 @@ export function ChangePasswordPage() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               aria-invalid={Boolean(fieldErrors.newPassword)}
+              aria-describedby={fieldErrors.newPassword ? 'newPassword-error' : undefined}
               className={inputClass(Boolean(fieldErrors.newPassword))}
               placeholder="Minimal 8 karakter"
             />
             {fieldErrors.newPassword && (
-              <p className="mt-1 text-xs text-red-600" role="alert">
-                {fieldErrors.newPassword[0]}
-              </p>
+              <FieldError id="newPassword-error">{fieldErrors.newPassword[0]}</FieldError>
             )}
           </div>
 
@@ -156,12 +148,11 @@ export function ChangePasswordPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               aria-invalid={Boolean(fieldErrors.confirmPassword)}
+              aria-describedby={fieldErrors.confirmPassword ? 'confirmPassword-error' : undefined}
               className={inputClass(Boolean(fieldErrors.confirmPassword))}
             />
             {fieldErrors.confirmPassword && (
-              <p className="mt-1 text-xs text-red-600" role="alert">
-                {fieldErrors.confirmPassword[0]}
-              </p>
+              <FieldError id="confirmPassword-error">{fieldErrors.confirmPassword[0]}</FieldError>
             )}
           </div>
 

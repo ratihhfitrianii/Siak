@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getMentees, getGuidanceSessions, createGuidance } from '../lib/api';
 import type { Mentee, GuidanceSession } from '../lib/types';
+import { FormAlert } from '../components/ErrorInline';
 
 /**
  * Bimbingan akademik (T3.7 + T3.8, perm guidance.manage untuk dosen Wali).
@@ -91,7 +92,7 @@ export function DosenGuidance() {
   };
 
   const progressColors: Record<string, string> = {
-    berjalan: 'bg-blue-100 text-blue-800',
+    berjalan: 'bg-primary-100 text-primary-800',
     selesai: 'bg-green-100 text-green-800',
     bermasalah: 'bg-red-100 text-red-800',
   };
@@ -100,8 +101,8 @@ export function DosenGuidance() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Bimbingan Mahasiswa Binaan</h2>
-        <p className="text-gray-600">
+        <h2 className="text-xl font-semibold text-slate-900 mb-4">Bimbingan Mahasiswa Binaan</h2>
+        <p className="text-slate-600">
           Catat bimbingan akademik untuk mahasiswa binaan Anda. Hanya dosen Wali yang dapat
           mengakses modul ini.
         </p>
@@ -109,15 +110,8 @@ export function DosenGuidance() {
 
       {/* Form Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Form Bimbingan</h3>
-        {error && (
-          <p
-            role="alert"
-            className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800"
-          >
-            {error}
-          </p>
-        )}
+        <h3 className="text-lg font-medium text-slate-900 mb-4">Form Bimbingan</h3>
+        {error && <FormAlert>{error}</FormAlert>}
         {success && (
           <p
             role="status"
@@ -130,13 +124,13 @@ export function DosenGuidance() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Mahasiswa Binaan
               </label>
               <select
                 value={studentId ?? ''}
                 onChange={(e) => setStudentId(e.target.value ? Number(e.target.value) : null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Pilih Mahasiswa</option>
                 {mentees.map((m) => (
@@ -146,30 +140,30 @@ export function DosenGuidance() {
                 ))}
               </select>
               {mentees.length === 0 && (
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-slate-500">
                   Anda belum memiliki mahasiswa binaan (atribut Wali).
                 </p>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Tanggal Bimbingan
               </label>
               <input
                 type="date"
                 value={sessionDate}
                 onChange={(e) => setSessionDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Progress</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Progress</label>
             <select
               value={progress}
               onChange={(e) => setProgress(e.target.value as 'berjalan' | 'selesai' | 'bermasalah')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="berjalan">Berjalan</option>
               <option value="selesai">Selesai</option>
@@ -178,12 +172,12 @@ export function DosenGuidance() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Catatan</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Masukkan detail bimbingan..."
             />
           </div>
@@ -192,9 +186,10 @@ export function DosenGuidance() {
         {/* Submit Button */}
         <div className="mt-6 flex justify-end">
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={isLoading || !studentId || !sessionDate || !notes.trim()}
-            className="px-6 py-2 bg-purple-500 text-white font-medium rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 bg-purple-500 text-white font-medium rounded-lg hover:bg-purple-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? 'Memproses...' : 'Simpan Bimbingan'}
           </button>
@@ -203,11 +198,13 @@ export function DosenGuidance() {
 
       {/* Existing Guidance Sessions */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Catatan Bimbingan yang Sudah Ada</h3>
+        <h3 className="text-lg font-medium text-slate-900 mb-4">
+          Catatan Bimbingan yang Sudah Ada
+        </h3>
         {isLoading && sessions.length === 0 ? (
-          <p className="text-gray-500">Memuat catatan bimbingan...</p>
+          <p className="text-slate-500">Memuat catatan bimbingan...</p>
         ) : filteredSessions.length === 0 ? (
-          <p className="text-gray-500">
+          <p className="text-slate-500">
             {studentId
               ? 'Belum ada catatan bimbingan untuk mahasiswa ini.'
               : 'Belum ada catatan bimbingan.'}
@@ -217,21 +214,23 @@ export function DosenGuidance() {
             {filteredSessions.map((session) => (
               <div
                 key={session.id}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors"
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-semibold text-gray-900">
+                    <h4 className="font-semibold text-slate-900">
                       {session.studentName} ({session.nim})
                     </h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-slate-600">
                       {session.sessionDate} | {session.lecturerName}
                     </p>
-                    {session.notes && <p className="text-sm text-gray-700 mt-1">{session.notes}</p>}
+                    {session.notes && (
+                      <p className="text-sm text-slate-700 mt-1">{session.notes}</p>
+                    )}
                   </div>
                   <span
                     className={`text-xs px-2 py-1 rounded-full ${
-                      progressColors[session.progress] ?? 'bg-gray-100 text-gray-800'
+                      progressColors[session.progress] ?? 'bg-slate-100 text-slate-800'
                     }`}
                   >
                     {progressLabels[session.progress] ?? session.progress}

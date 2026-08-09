@@ -47,7 +47,7 @@ describe('Modul Impor (T1.10)', () => {
   const login = async (email: string, pw: string) => {
     const res = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email, password: pw })
+      .send({ identifier: email, password: pw })
       .expect(200);
     return res.body.data.accessToken as string;
   };
@@ -56,7 +56,7 @@ describe('Modul Impor (T1.10)', () => {
     // Token admin sistem (seed)
     const adminLogin = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: adminEmail, password: adminPassword })
+      .send({ identifier: adminEmail, password: adminPassword  })
       .expect(200);
     adminToken = adminLogin.body.data.accessToken;
     adminId = Number(adminLogin.body.data.user.id);
@@ -243,7 +243,7 @@ describe('Modul Impor (T1.10)', () => {
       // Akun baru: login dengan password default → flag wajib ganti password
       const loginRes = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: `${nimNew}@student.siak.local`, password: 'Siak123!' })
+        .send({ identifier: `${nimNew}@student.siak.local`, password: 'Siak123!'  })
         .expect(200);
       expect(loginRes.body.data.user.mustChangePassword).toBe(true);
       expect(loginRes.body.data.user.role).toBe('mahasiswa');
@@ -342,7 +342,7 @@ describe('Modul Impor (T1.10)', () => {
 
       const loginRes = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: `${nidnNew}@siak.local`, password: 'Siak123!' })
+        .send({ identifier: `${nidnNew}@siak.local`, password: 'Siak123!'  })
         .expect(200);
       expect(loginRes.body.data.user.role).toBe('dosen');
       expect(loginRes.body.data.user.mustChangePassword).toBe(true);

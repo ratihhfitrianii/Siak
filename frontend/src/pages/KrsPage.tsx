@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ApiError, apiRequest } from '../lib/api';
+import { ApiError, apiRequest, downloadKrsPdf } from '../lib/api';
 import type { AvailableClass, KrsPeriod, MyKrs, MyKrsItem } from '../lib/types';
 
 const DAY_LABELS: Record<number, string> = {
@@ -181,6 +181,15 @@ export function KrsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {(status === 'submitted' || status === 'approved') && (
+            <button
+              type="button"
+              onClick={() => void downloadKrsPdf()}
+              className="rounded-md border border-primary-300 px-3 py-1 text-xs font-medium text-primary-700 transition hover:bg-primary-50"
+            >
+              Download PDF
+            </button>
+          )}
           <span
             className={`rounded-full px-3 py-1 text-xs font-semibold ${
               period?.status === 'open'

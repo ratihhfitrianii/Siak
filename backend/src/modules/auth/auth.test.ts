@@ -16,23 +16,57 @@ const app = createApp();
 
 describe('Auth Module', () => {
   const testEmail = 'test-auth@siak.local';
+  const testEmailDosen = 'test-auth-dosen@siak.local';
   const testPassword = 'TestPass123!';
   let testUserId: number;
+  let testDosenUserId: number;
 
   beforeAll(async () => {
-    // Create test user
+    // Create test user (mahasiswa)
     const passwordHash = await bcrypt.hash(testPassword, 12);
-    const roleResult = await pgPool.query("SELECT id FROM roles WHERE code = 'mahasiswa'");
-    const roleId = roleResult.rows[0].id;
+    const mhsRoleResult = await pgPool.query("SELECT id FROM roles WHERE code = 'mahasiswa'");
+    const mhsRoleId = mhsRoleResult.rows[0].id;
 
     const result = await pgPool.query(
       `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
        VALUES ($1, $2, $3, $4, true)
        ON CONFLICT (email) DO UPDATE SET password_hash = $2, is_active = true
        RETURNING id`,
-      [testEmail, passwordHash, 'Test Auth User', roleId],
+      [testEmail, passwordHash, 'Test Auth User', mhsRoleId],
     );
     testUserId = result.rows[0].id;
+
+    // Create test user (dosen)
+    const dosenRoleResult = await pgPool.query("SELECT id FROM roles WHERE code = 'dosen'");
+    const dosenRoleId = dosenRoleResult.rows[0].id;
+
+    const dosenResult = await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+       VALUES ($1, $2, $3, $4, true)
+       ON CONFLICT (email) DO UPDATE SET password_hash = $2, is_active = true
+       RETURNING id`,
+      [testEmailDosen, passwordHash, 'Test Auth Dosen', dosenRoleId],
+    );
+    testDosenUserId = dosenResult.rows[0].id;
+
+    // Profile student (NIM) — untuk test login via NIM
+    const prodiRes = await pgPool.query(`SELECT id FROM prodis WHERE code = 'TI' LIMIT 1`);
+    const prodiId = prodiRes.rows[0].id;
+    const ayRes = await pgPool.query(`SELECT id FROM academic_years LIMIT 1`);
+    const ayId = ayRes.rows[0].id;
+    await pgPool.query(
+      `INSERT INTO students (user_id, nim, prodi_id, academic_year_id, entry_type, is_active, status)
+       VALUES ($1, 'AUTH0001', $2, $3, 'Mandiri', true, 'aktif')
+       ON CONFLICT (user_id) DO NOTHING`,
+      [testUserId, prodiId, ayId],
+    );
+    // Profile lecturer (NIK) — untuk test login via NIK
+    await pgPool.query(
+      `INSERT INTO lecturers (user_id, nidn, nik, prodi_id, employment_type, is_active)
+       VALUES ($1, 'AUTH0002', 'AUTH0002', $2, 'tetap', true)
+       ON CONFLICT (user_id) DO NOTHING`,
+      [testDosenUserId, prodiId],
+    );
   });
 
   afterAll(async () => {
@@ -41,14 +75,20 @@ describe('Auth Module', () => {
       `DELETE FROM audit_logs WHERE record_id = $1 AND action IN ('LOGIN', 'LOGOUT', 'PASSWORD_CHANGED')`,
       [testUserId],
     );
-    await pgPool.query('DELETE FROM users WHERE email = $1', [testEmail]);
+    await pgPool.query(
+      `DELETE FROM audit_logs WHERE record_id = $1 AND action IN ('LOGIN', 'LOGOUT', 'PASSWORD_CHANGED')`,
+      [testDosenUserId],
+    );
+    await pgPool.query('DELETE FROM students WHERE user_id = $1', [testUserId]);
+    await pgPool.query('DELETE FROM lecturers WHERE user_id = $1', [testDosenUserId]);
+    await pgPool.query('DELETE FROM users WHERE email IN ($1, $2)', [testEmail, testEmailDosen]);
     // T1.9: pgPool.end() dihapus — pool dibagikan antar suite (race; jest forceExit: true).
   });
 
   async function loginAndGetTokens() {
     const res = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: testEmail, password: testPassword })
+      .send({ identifier: testEmail, password: testPassword })
       .expect(200);
     return {
       accessToken: res.body.data.accessToken,
@@ -57,7 +97,7 @@ describe('Auth Module', () => {
   }
 
   describe('POST /api/v1/auth/login', () => {
-    it('should return 400 for missing email', async () => {
+    it('should return 400 for missing identifier', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({ password: testPassword })
@@ -70,28 +110,28 @@ describe('Auth Module', () => {
     it('should return 400 for missing password', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: testEmail })
+        .send({ identifier: testEmail })
         .expect(400);
 
       expect(res.body.success).toBe(false);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should return specific field message for invalid email (UX: bukan pesan generik)', async () => {
+    it('should return specific field message for identifier < 3 chars (UX: bukan pesan generik)', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: 'bukan-email', password: testPassword })
+        .send({ identifier: 'ab', password: testPassword })
         .expect(400);
 
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
-      expect(res.body.error.message).toBe('Email tidak valid');
-      expect(res.body.error.details.fields.email).toBeDefined();
+      expect(res.body.error.message).toBe('NIM/NIK atau email minimal 3 karakter');
+      expect(res.body.error.details.fields.identifier).toBeDefined();
     });
 
-    it('should return 401 for invalid email', async () => {
+    it('should return 401 for invalid identifier', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: 'nonexistent@siak.local', password: testPassword })
+        .send({ identifier: 'nonexistent@siak.local', password: testPassword })
         .expect(401);
 
       expect(res.body.success).toBe(false);
@@ -101,7 +141,7 @@ describe('Auth Module', () => {
     it('should return 401 for invalid password', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: testEmail, password: 'WrongPassword123!' })
+        .send({ identifier: testEmail, password: 'WrongPassword123!' })
         .expect(401);
 
       expect(res.body.success).toBe(false);
@@ -111,7 +151,7 @@ describe('Auth Module', () => {
     it('should return 200 with tokens for valid credentials', async () => {
       const res = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: testEmail, password: testPassword })
+        .send({ identifier: testEmail, password: testPassword })
         .expect(200);
 
       expect(res.body.success).toBe(true);
@@ -120,6 +160,26 @@ describe('Auth Module', () => {
       expect(res.body.data.user).toBeDefined();
       expect(res.body.data.user.email).toBe(testEmail);
       expect(res.body.data.expiresIn).toBe(900); // 15 minutes
+    });
+
+    it('should return 200 when logging in with NIM (mahasiswa)', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ identifier: 'AUTH0001', password: testPassword })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user.email).toBe(testEmail);
+    });
+
+    it('should return 200 when logging in with NIK (dosen)', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ identifier: 'AUTH0002', password: testPassword })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user.email).toBe(testEmailDosen);
     });
   });
 
@@ -275,7 +335,7 @@ describe('Auth Module', () => {
     async function cpLogin() {
       const res = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: cpEmail, password: cpPassword })
+        .send({ identifier: cpEmail, password: cpPassword })
         .expect(200);
       return {
         accessToken: res.body.data.accessToken,
@@ -306,11 +366,11 @@ describe('Auth Module', () => {
       // Password lama tidak valid lagi, password baru valid
       await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: cpEmail, password: cpPassword })
+        .send({ identifier: cpEmail, password: cpPassword })
         .expect(401);
       await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: cpEmail, password: newPassword })
+        .send({ identifier: cpEmail, password: newPassword })
         .expect(200);
 
       // Refresh token lama dicabut (ganti password → semua sesi logout)

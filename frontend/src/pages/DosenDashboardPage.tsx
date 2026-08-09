@@ -28,24 +28,25 @@ export function DosenDashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard Dosen</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900">Dashboard Dosen</h1>
+        <p className="text-slate-600 mt-1">
           Kelola MK yang diajar, absensi, bimbingan, substitute, dan nilai
         </p>
       </div>
 
       {/* Navigation Tabs */}
       <div className="bg-white rounded-lg shadow-sm">
-        <div className="border-b border-gray-200">
+        <div className="border-b border-slate-200">
           <nav className="flex space-x-8 px-6" aria-label="Tabs">
             {tabs.map((tab) => (
               <button
+                type="button"
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 }`}
               >
                 {tab.label}

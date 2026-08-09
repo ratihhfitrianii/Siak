@@ -12,10 +12,12 @@ const MENU_ITEMS: { permissions: string[]; label: string; path: string }[] = [
     label: 'Transkrip',
     path: '/transkrip',
   },
-  { permissions: ['grade.input', 'grade.edit'], label: 'Nilai', path: '/nilai' },
   { permissions: ['user.manage'], label: 'User', path: '/users' },
-  { permissions: ['audit.view'], label: 'Audit', path: '/audit' },
-  { permissions: ['payment.generate', 'payment.update'], label: 'Pembayaran', path: '/pembayaran' },
+  // T5.3: 'Pembayaran' = tagihan mahasiswa (krs.fill); 'Tagihan' = kelola pembayaran admin keuangan (payment.update).
+  // Sebelumnya keduanya digabung ke 'Pembayaran' (payment.*) → admin keuangan dapat 403 di /pembayaran.
+  { permissions: ['krs.fill'], label: 'Pembayaran', path: '/pembayaran' },
+  { permissions: ['payment.update'], label: 'Tagihan', path: '/keuangan/tagihan' },
+  // 'Nilai' & 'Audit' sengaja TIDAK di-menu: route-nya masih ComingSoon (dead-end). Dosen memakai tab Nilai di dashboard.
 ];
 
 const ROLE_LABEL: Record<string, string> = {

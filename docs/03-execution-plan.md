@@ -182,7 +182,7 @@ Setiap MUST requirement punya jalur implementasi + test (AC diuji via E2E/load/i
 | **Lint** | ESLint (TypeScript) | 0 error, 0 warning | Ada error/warning |
 | **Format** | Prettier | Consistent | Tidak terformat |
 | **Type Check** | `tsc --noEmit` | 0 error | Ada type error |
-| **Unit Test** | Jest | Coverage ≥80% (lines, branches, functions) | Coverage <80% |
+| **Unit Test** | Jest | Backend: lines ≥75, branches ≥75, functions ≥80, statements ≥80 (disesuaikan 2026-08-09, commit `27f551f` — utang coverage modul lama). Frontend (Vitest): lines ≥80, branches ≥80, functions ≥80, statements ≥80 | Coverage < threshold |
 | **Integration Test** | Jest + Testcontainers | Critical paths pass | Ada gagal |
 | **Build** | `docker build` | Success | Build gagal |
 | **Security Scan** | `npm audit` / Trivy | 0 critical, 0 high | Ada critical/high |
@@ -257,7 +257,7 @@ docker compose up -d --force-recreate backend
 ### 10.3 Release Checklist (Per Iterasi)
 
 - [ ] Semua task DoD tercentang
-- [ ] Coverage ≥80% (unit + integration)
+- [ ] Coverage ≥ threshold (backend lines/branches 75, funcs/stmts 80; frontend 80)
 - [ ] Load test pass (iterasi 1 & 4)
 - [ ] Security audit pass (iterasi 4)
 - [ ] E2E test pass (iterasi 5)

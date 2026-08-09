@@ -125,7 +125,7 @@ beforeAll(async () => {
   const login = async (email: string, pw: string) => {
     const res = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email, password: pw })
+      .send({ identifier: email, password: pw })
       .expect(200);
     return res.body.data.accessToken as string;
   };
@@ -263,7 +263,7 @@ describe('T2.4 Transcript', () => {
     const ghostUserId = Number(ghostUser.rows[0].id);
     const ghostToken = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: ghostEmail, password: 'TestPass123!' })
+      .send({ identifier: ghostEmail, password: 'TestPass123!' })
       .then((r) => r.body.data.accessToken);
 
     const res = await request(app)
@@ -325,7 +325,7 @@ describe('T2.4 Transcript', () => {
     ]);
     const otherWaliToken = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: otherWaliEmail, password: 'TestPass123!' })
+      .send({ identifier: otherWaliEmail, password: 'TestPass123!' })
       .then((r) => r.body.data.accessToken);
 
     const res = await request(app)
@@ -351,7 +351,7 @@ describe('T2.4 Transcript', () => {
     const ghostUserId = Number(ghostUser.rows[0].id);
     const ghostToken = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: ghostEmail, password: 'TestPass123!' })
+      .send({ identifier: ghostEmail, password: 'TestPass123!' })
       .then((r) => r.body.data.accessToken);
 
     const res = await request(app)

@@ -6,6 +6,7 @@ import { authenticate, authorize } from '../../lib/auth-middleware';
 import { auditFromRequest } from '../../lib/audit-service';
 import { remindUnfilledStudents } from '../notification';
 import { cacheGet, cacheSet, cacheDelPattern, cacheKeys, CACHE_TTL } from '../../lib/cache';
+import { fetchKrsPdfData, generateKrsPdf } from './krs-pdf';
 
 /**
  * Modul KRS Core — T1.5 + Validasi Admin T1.6 (F-07, F-07a, F-07d, F-11, F-14, F-15,
@@ -234,6 +235,30 @@ export function createKrsRouter(): Router {
             })),
           },
         });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // GET /krs/my/download — PDF KRS sendiri (mahasiswa; status submitted/approved).
+  // Keluhan lama: "KRS yang sudah disetujui bisa di download PDF".
+  router.get(
+    '/my/download',
+    authenticate,
+    authorize('krs.fill'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const studentId = requireStudent(req);
+        const period = await findActivePeriod();
+        if (!period) {
+          throw new AppError('KRS_PERIOD_CLOSED', 'Periode KRS tidak sedang buka', 403);
+        }
+        const data = await fetchKrsPdfData(studentId, period.id);
+        const pdf = await generateKrsPdf(data);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="krs-${data.student.nim}.pdf"`);
+        res.send(pdf);
       } catch (err) {
         next(err);
       }

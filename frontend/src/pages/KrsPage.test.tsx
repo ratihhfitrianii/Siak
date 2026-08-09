@@ -230,6 +230,29 @@ describe('KrsPage (T1.11b)', () => {
     expect(screen.getByRole('button', { name: 'Hapus' })).toBeDisabled();
   });
 
+  it('status submitted → tombol Download PDF KRS muncul (keluhan lama)', async () => {
+    mockKrsRoutes({
+      my: {
+        ...MY_DRAFT,
+        status: 'submitted',
+        isLocked: true,
+        submittedAt: '2024-08-10T08:00:00Z',
+        items: MY_DRAFT.items,
+      },
+    });
+    render(<KrsPage />);
+
+    expect(await screen.findByRole('button', { name: 'Download PDF' })).toBeInTheDocument();
+  });
+
+  it('status draft → tombol Download PDF tidak muncul', async () => {
+    mockKrsRoutes({ my: MY_DRAFT });
+    render(<KrsPage />);
+
+    expect(await screen.findByText('Simpan Draft')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Download PDF' })).not.toBeInTheDocument();
+  });
+
   it('periode tutup → banner informasi dan tidak ada kelas tersedia', async () => {
     mockKrsRoutes({ period: { ...PERIOD, status: 'closed' }, available: [] });
     render(<KrsPage />);

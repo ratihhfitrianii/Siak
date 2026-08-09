@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { useAuth } from './AuthContext';
+import { Spinner } from '../components/Spinner';
 
 /**
  * Guard rute T1.11a:
@@ -22,12 +23,8 @@ export function ProtectedRoute({
 
   if (booting) {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center bg-slate-100"
-        role="status"
-        aria-label="Memuat"
-      >
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-slate-100">
+        <Spinner label="Memuat" />
       </div>
     );
   }

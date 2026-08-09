@@ -175,7 +175,7 @@ async function seedTestData() {
 async function login(email: string, pw: string): Promise<string> {
   const res = await request(app)
     .post('/api/v1/auth/login')
-    .send({ email, password: pw })
+    .send({ identifier: email, password: pw })
     .expect(200);
   return res.body.data.accessToken as string;
 }
