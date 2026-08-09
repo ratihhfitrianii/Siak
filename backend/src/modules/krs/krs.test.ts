@@ -110,7 +110,7 @@ describe('KRS Core (T1.5)', () => {
     // Login
     const login = await request(app)
       .post('/api/v1/auth/login')
-      .send({ identifier: testEmail, password: testPassword  })
+      .send({ identifier: testEmail, password: testPassword })
       .expect(200);
     accessToken = login.body.data.accessToken;
 
@@ -321,14 +321,14 @@ describe('KRS Core edge cases (coverage branches)', () => {
 
     const login = await request(app)
       .post('/api/v1/auth/login')
-      .send({ identifier: edgeEmail, password: edgePassword  })
+      .send({ identifier: edgeEmail, password: edgePassword })
       .expect(200);
     edgeToken = login.body.data.accessToken;
 
     // Admin sistem (tidak punya studentId)
     const adminLogin = await request(app)
       .post('/api/v1/auth/login')
-      .send({ identifier: 'admin@siak.local', password: 'Admin123!'  })
+      .send({ identifier: 'admin@siak.local', password: 'Admin123!' })
       .expect(200);
     adminToken = adminLogin.body.data.accessToken;
   });
@@ -554,12 +554,12 @@ describe('KRS Validasi Admin (T1.6)', () => {
     // Admin seed (hash sudah benar via V009)
     const akadLogin = await request(app)
       .post('/api/v1/auth/login')
-      .send({ identifier: 'akademik@siak.local', password: 'Admin123!'  })
+      .send({ identifier: 'akademik@siak.local', password: 'Admin123!' })
       .expect(200);
     adminAkademikToken = akadLogin.body.data.accessToken;
     const keuLogin = await request(app)
       .post('/api/v1/auth/login')
-      .send({ identifier: 'keuangan@siak.local', password: 'Admin123!'  })
+      .send({ identifier: 'keuangan@siak.local', password: 'Admin123!' })
       .expect(200);
     adminKeuanganToken = keuLogin.body.data.accessToken;
 

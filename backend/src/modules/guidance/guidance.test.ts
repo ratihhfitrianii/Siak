@@ -25,7 +25,9 @@ describe('T3.4 Bimbingan — Guidance Sessions (F-24)', () => {
   const createdSessionIds: number[] = [];
 
   async function login(email: string, password: string): Promise<string> {
-    const res = await request(app).post('/api/v1/auth/login').send({ identifier: email, password: password });
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ identifier: email, password: password });
     return res.body.data.accessToken;
   }
 

@@ -28,7 +28,9 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
   const createdSubstituteIds: number[] = [];
 
   async function login(email: string, password: string): Promise<string> {
-    const res = await request(app).post('/api/v1/auth/login').send({ identifier: email, password: password });
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ identifier: email, password: password });
     return res.body.data.accessToken;
   }
 

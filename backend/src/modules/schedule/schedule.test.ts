@@ -25,7 +25,9 @@ describe('T3.2 Schedule — Jadwal Kelas + Ketersediaan', () => {
   let ghostDosenToken: string;
 
   async function login(email: string, password: string): Promise<string> {
-    const res = await request(app).post('/api/v1/auth/login').send({ identifier: email, password: password });
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ identifier: email, password: password });
     return res.body.data.accessToken;
   }
 

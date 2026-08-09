@@ -27,7 +27,9 @@ describe('T3.1 Dosen Pilih MK', () => {
   let otherProdiCurriculumCreated = false;
 
   async function login(email: string, password: string): Promise<string> {
-    const res = await request(app).post('/api/v1/auth/login').send({ identifier: email, password: password });
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ identifier: email, password: password });
     return res.body.data.accessToken;
   }
 
@@ -427,7 +429,7 @@ describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {
     dosenUserId = Number(dosenRes.rows[0].id);
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
-      .send({ identifier: dosenRes.rows[0].email, password: 'Dosen123!'  });
+      .send({ identifier: dosenRes.rows[0].email, password: 'Dosen123!' });
     dosenToken = loginRes.body.data.accessToken;
 
     // Dosen tanpa profil lecturer (ghost) — user role dosen TANPA row di lecturers
@@ -459,7 +461,7 @@ describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {
     }
     const ghostLogin = await request(app)
       .post('/api/v1/auth/login')
-      .send({ identifier: ghostRes.rows[0].email, password: 'Dosen123!'  });
+      .send({ identifier: ghostRes.rows[0].email, password: 'Dosen123!' });
     ghostDosenToken = ghostLogin.body.data.accessToken;
 
     const mhsRes = await pgPool.query(
@@ -470,7 +472,7 @@ describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {
     );
     const mhsLogin = await request(app)
       .post('/api/v1/auth/login')
-      .send({ identifier: mhsRes.rows[0].email, password: 'Mhs123!'  });
+      .send({ identifier: mhsRes.rows[0].email, password: 'Mhs123!' });
     mhsToken = mhsLogin.body.data.accessToken;
   });
 

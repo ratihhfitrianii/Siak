@@ -29,7 +29,9 @@ describe('Grades module (T1.8)', () => {
         : 'Mhs123!';
     const email = (await pgPool.query('SELECT email FROM users WHERE id = $1', [uid])).rows[0]
       .email;
-    const login = await request(app).post('/api/v1/auth/login').send({ identifier: email, password: password });
+    const login = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ identifier: email, password: password });
     return login.body.data.accessToken;
   }
 
