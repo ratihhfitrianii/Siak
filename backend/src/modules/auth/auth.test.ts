@@ -181,6 +181,28 @@ describe('Auth Module', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data.user.email).toBe(testEmailDosen);
     });
+
+    it('deterministic: identifier bentrok (NIM mahasiswa = NIDN dosen) selalu resolve ke mahasiswa', async () => {
+      // Regresi CI E2E: dulu UNION tanpa order → rows[0] tak menentu saat NIM bentrok
+      // dengan NIDN, login bisa masuk ke akun dosen (dashboard salah, test logout gagal).
+      // Prioritas resolver: email > NIM > NIK > NIDN → NIM (mahasiswa) harus menang.
+      await pgPool.query(`UPDATE lecturers SET nidn = 'AUTH0001' WHERE user_id = $1`, [
+        testDosenUserId,
+      ]);
+      try {
+        const res = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ identifier: 'AUTH0001', password: testPassword })
+          .expect(200);
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.user.email).toBe(testEmail); // mahasiswa, bukan dosen
+      } finally {
+        await pgPool.query(`UPDATE lecturers SET nidn = 'AUTH0002' WHERE user_id = $1`, [
+          testDosenUserId,
+        ]);
+      }
+    });
   });
 
   describe('POST /api/v1/auth/refresh', () => {

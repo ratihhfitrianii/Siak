@@ -133,25 +133,36 @@ export function createAuthRouter(waitingRoom?: WaitingRoomService | null): Route
 
       const { identifier, password } = parsed.data;
 
-      // Resolve user via email / NIM (mahasiswa) / NIK/NIDN (dosen).
-      // Each UNION leg filters by role to avoid cross-role collisions when identifiers overlap.
+      // Resolve user via email / NIM (mahasiswa) / NIK & NIDN (dosen).
+      // Deterministik: UNION ALL berurutan dengan prioritas (email > NIM > NIK > NIDN) + LIMIT 1.
+      // Mencegah resolusi ambigu saat identifier bentrok (mis. NIM mahasiswa = NIDN dosen
+      // di seed E2E 'E2E0001') — dulu UNION tanpa order membuat rows[0] tak menentu
+      // sehingga login bisa masuk ke akun yang salah (regresi CI: test logout).
       const result = await pgPool.query(
-        `SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.must_change_password, u.failed_login_attempts, u.locked_until, r.code as role_code
+        `SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.must_change_password, u.failed_login_attempts, u.locked_until, r.code as role_code, 1 AS match_priority
          FROM users u
          JOIN roles r ON u.role_id = r.id
          WHERE u.email = $1
-         UNION
-         SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.must_change_password, u.failed_login_attempts, u.locked_until, r.code as role_code
+         UNION ALL
+         SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.must_change_password, u.failed_login_attempts, u.locked_until, r.code as role_code, 2 AS match_priority
          FROM users u
          JOIN roles r ON u.role_id = r.id
          JOIN students s ON s.user_id = u.id
          WHERE s.nim = $1 AND r.code = 'mahasiswa'
-         UNION
-         SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.must_change_password, u.failed_login_attempts, u.locked_until, r.code as role_code
+         UNION ALL
+         SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.must_change_password, u.failed_login_attempts, u.locked_until, r.code as role_code, 3 AS match_priority
          FROM users u
          JOIN roles r ON u.role_id = r.id
          JOIN lecturers l ON l.user_id = u.id
-         WHERE (l.nik = $1 OR l.nidn = $1) AND r.code = 'dosen'`,
+         WHERE l.nik = $1 AND r.code = 'dosen'
+         UNION ALL
+         SELECT u.id, u.email, u.password_hash, u.full_name, u.role_id, u.is_wali, u.is_active, u.must_change_password, u.failed_login_attempts, u.locked_until, r.code as role_code, 4 AS match_priority
+         FROM users u
+         JOIN roles r ON u.role_id = r.id
+         JOIN lecturers l ON l.user_id = u.id
+         WHERE l.nidn = $1 AND r.code = 'dosen'
+         ORDER BY match_priority
+         LIMIT 1`,
         [identifier],
       );
 

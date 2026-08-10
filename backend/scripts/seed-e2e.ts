@@ -109,7 +109,7 @@ async function main() {
 
   await pgPool.query(
     `INSERT INTO lecturers (user_id, nidn, nik, prodi_id, employment_type, is_active)
-     VALUES ($1, 'E2E0001', 'E2EDS001', $2, 'tetap', true)`,
+     VALUES ($1, 'E2E9001', 'E2EDS001', $2, 'tetap', true)`,
     [dosenUserId, prodiId],
   );
 
