@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getMentees, getGuidanceSessions, createGuidance } from '../lib/api';
 import type { Mentee, GuidanceSession } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
@@ -7,11 +7,15 @@ import { FormAlert } from '../components/ErrorInline';
  * Bimbingan akademik (T3.7 + T3.8, perm guidance.manage untuk dosen Wali).
  * Terhubung API nyata: GET /guidance/mentees, GET/POST /guidance/sessions.
  * Hanya dosen Wali yang memiliki mahasiswa binaan.
+ * Search: NIM, nama, email (debounced 300ms) — keluhan lama #27.
  */
 export function DosenGuidance() {
   const [mentees, setMentees] = useState<Mentee[]>([]);
   const [sessions, setSessions] = useState<GuidanceSession[]>([]);
   const [studentId, setStudentId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Create form
   const [sessionDate, setSessionDate] = useState('');
@@ -22,11 +26,25 @@ export function DosenGuidance() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [searchTerm]);
+
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [menteeList, sessionList] = await Promise.all([getMentees(), getGuidanceSessions()]);
+      const [menteeList, sessionList] = await Promise.all([
+        getMentees(debouncedSearch),
+        getGuidanceSessions(),
+      ]);
       setMentees(menteeList);
       setSessions(sessionList);
     } catch (_err) {
@@ -34,7 +52,7 @@ export function DosenGuidance() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     loadData();
@@ -125,7 +143,19 @@ export function DosenGuidance() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Mahasiswa Binaan
+                Cari Mahasiswa Binaan (NIM / Nama / Email)
+              </label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Ketik min 1 karakter..."
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Pilih Mahasiswa Binaan
               </label>
               <select
                 value={studentId ?? ''}
@@ -141,21 +171,24 @@ export function DosenGuidance() {
               </select>
               {mentees.length === 0 && (
                 <p className="mt-1 text-xs text-slate-500">
-                  Anda belum memiliki mahasiswa binaan (atribut Wali).
+                  {debouncedSearch
+                    ? 'Tidak ada mahasiswa cocok dengan pencarian.'
+                    : 'Anda belum memiliki mahasiswa binaan (atribut Wali).'}
                 </p>
               )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Tanggal Bimbingan
-              </label>
-              <input
-                type="date"
-                value={sessionDate}
-                onChange={(e) => setSessionDate(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Tanggal Bimbingan
+            </label>
+            <input
+              type="date"
+              value={sessionDate}
+              onChange={(e) => setSessionDate(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
           </div>
 
           <div>

@@ -476,16 +476,17 @@ export async function getKrsAccess(semester_id: number): Promise<KrsAccessResult
 /* ==== T2.4 — Transkrip PDF ==== */
 
 /** GET /transcript/my/download — unduh PDF transkrip (blob + trigger download). */
-export async function downloadTranscriptPdf(): Promise<void> {
+export async function downloadTranscriptPdf(academicYearId?: number): Promise<void> {
   const token = getAccessToken();
   if (!token) return;
-  let res = await fetch(`${API_BASE}/transcript/my/download`, {
+  const qs = academicYearId ? `?academicYearId=${academicYearId}` : '';
+  let res = await fetch(`${API_BASE}/transcript/my/download${qs}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (res.status === 401) {
     const refreshed = await tryRefresh();
     if (!refreshed) return;
-    res = await fetch(`${API_BASE}/transcript/my/download`, {
+    res = await fetch(`${API_BASE}/transcript/my/download${qs}`, {
       headers: { Authorization: `Bearer ${getAccessToken()}` },
     });
   }
@@ -497,7 +498,7 @@ export async function downloadTranscriptPdf(): Promise<void> {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `transkrip-${new Date().toISOString().slice(0, 10)}.pdf`;
+  a.download = `transkrip-${new Date().toISOString().slice(0, 10)}${academicYearId ? `-${academicYearId}` : ''}.pdf`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -829,8 +830,9 @@ function normalizeGuidanceSession(r: GuidanceSessionRow): GuidanceSession {
   };
 }
 
-/** GET /guidance/mentees — mahasiswa binaan dosen wali (ownership otomatis). */
-export async function getMentees(): Promise<Mentee[]> {
+/** GET /guidance/mentees — mahasiswa binaan dosen wali (ownership otomatis). Search via ?search= (NIM/nama/email). */
+export async function getMentees(search?: string): Promise<Mentee[]> {
+  const qs = search ? `?search=${encodeURIComponent(search)}` : '';
   const rows = await apiRequest<
     Array<{
       student_id: number;
@@ -840,7 +842,7 @@ export async function getMentees(): Promise<Mentee[]> {
       status: string;
       prodi_code: string;
     }>
-  >('/guidance/mentees');
+  >(`/guidance/mentees${qs}`);
   return rows.map((r) => ({
     studentId: Number(r.student_id),
     nim: r.nim,

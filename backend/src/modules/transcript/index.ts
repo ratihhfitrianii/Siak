@@ -78,8 +78,12 @@ interface TranscriptData {
  * Ambil data transkrip lengkap untuk mahasiswa.
  * Matkul diulang: hanya grade terbaik per course_code masuk IPS/IPK,
  * attempt lama ditandai isRepeated=true (tidak dihitung).
+ * Optional: filter by academicYearId (tahun akademik).
  */
-async function fetchTranscriptData(studentId: number): Promise<TranscriptData> {
+async function fetchTranscriptData(
+  studentId: number,
+  academicYearId?: number,
+): Promise<TranscriptData> {
   const studentRes = await pgPool.query(
     `SELECT s.nim, u.full_name, s.prodi_id, s.academic_year_id, s.entry_type,
             p.code as prodi_code, p.name as prodi_name, ay.code as academic_year_code
@@ -102,6 +106,10 @@ async function fetchTranscriptData(studentId: number): Promise<TranscriptData> {
     academic_year_code: string;
   };
 
+  // Build academic year filter
+  const ayFilter = academicYearId ? `AND s.academic_year_id = $2` : '';
+  const params = academicYearId ? [studentId, academicYearId] : [studentId];
+
   const gradesRes = await pgPool.query(
     `SELECT g.id, g.grade_letter, g.grade_point, g.final_score, g.is_remedial,
             ki.class_id,
@@ -116,9 +124,9 @@ async function fetchTranscriptData(studentId: number): Promise<TranscriptData> {
      JOIN classes c ON c.id = ki.class_id
      JOIN curricula cur ON cur.id = c.curriculum_id
      JOIN courses cl ON cl.id = cur.course_id
-     WHERE ks.student_id = $1
+     WHERE ks.student_id = $1 ${ayFilter}
      ORDER BY kp.start_date DESC, cl.code`,
-    [studentId],
+    params,
   );
   const rows = gradesRes.rows as unknown as GradeRow[];
 
@@ -464,11 +472,16 @@ export function createTranscriptRouter(): Router {
             403,
           );
         }
-        const pdf = await generateTranscriptPDF(await fetchTranscriptData(req.user.studentId));
+        const academicYearId = req.query.academicYearId
+          ? Number(req.query.academicYearId as string)
+          : undefined;
+        const pdf = await generateTranscriptPDF(
+          await fetchTranscriptData(req.user.studentId, academicYearId),
+        );
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
           'Content-Disposition',
-          `attachment; filename="transkrip-${req.user.studentId}.pdf"`,
+          `attachment; filename="transkrip-${req.user.studentId}${academicYearId ? `-${academicYearId}` : ''}.pdf"`,
         );
         res.send(pdf);
       } catch (err) {
@@ -490,12 +503,15 @@ export function createTranscriptRouter(): Router {
         if (req.user!.roleCode === 'dosen' && req.user!.isWali) {
           await assertWaliMentee(req.user!.id, studentId);
         }
-        const data = await fetchTranscriptData(studentId);
+        const academicYearId = req.query.academicYearId
+          ? Number(req.query.academicYearId as string)
+          : undefined;
+        const data = await fetchTranscriptData(studentId, academicYearId);
         const pdf = await generateTranscriptPDF(data);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
           'Content-Disposition',
-          `attachment; filename="transkrip-${data.student.nim}.pdf"`,
+          `attachment; filename="transkrip-${data.student.nim}${academicYearId ? `-${academicYearId}` : ''}.pdf"`,
         );
         res.send(pdf);
       } catch (err) {

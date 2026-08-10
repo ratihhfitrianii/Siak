@@ -374,6 +374,7 @@ export function createGuidanceRouter(): Router {
   );
 
   // GET /guidance/mentees — wali: daftar binaan (prodi sama); admin: semua mahasiswa
+  // Query: ?search= (NIM/nama/email/prodi), ?prodi_code=
   router.get(
     '/mentees',
     authorizeWali('guidance.manage'),
@@ -381,6 +382,8 @@ export function createGuidanceRouter(): Router {
       try {
         requireWaliOrAdmin(req);
         const isAdmin = isAdminRole(req.user?.roleCode);
+        const { search, prodi_code } = req.query;
+
         let query = `
           SELECT s.id AS student_id, s.nim, u.full_name AS student_name,
                  u.email, s.status, p.code AS prodi_code
@@ -389,10 +392,23 @@ export function createGuidanceRouter(): Router {
           JOIN prodis p ON p.id = s.prodi_id
           WHERE s.is_active AND u.is_active`;
         const params: unknown[] = [];
+
         if (!isAdmin) {
           params.push(req.user!.id);
           query += ` AND s.prodi_id IN (SELECT prodi_id FROM lecturers WHERE user_id = $${params.length})`;
         }
+
+        if (search) {
+          params.push(`%${search}%`);
+          query += ` AND (s.nim ILIKE $${params.length} OR u.full_name ILIKE $${params.length} OR u.email ILIKE $${params.length})`;
+        }
+
+        if (prodi_code && isAdmin) {
+          // admin can filter by prodi
+          params.push(prodi_code);
+          query += ` AND p.code = $${params.length}`;
+        }
+
         query += ' ORDER BY s.nim';
         const res2 = await pgPool.query(query, params);
         res.json({ success: true, data: res2.rows });

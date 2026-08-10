@@ -58,6 +58,7 @@ describe('DosenGuidance (T3.8)', () => {
     fetchMock.mockImplementation((url: string) => {
       const u = String(url);
       if (u.includes('/guidance/mentees')) {
+        // Handle search query param if present
         return Promise.resolve(jsonResponse({ data: MENTEES_RAW }));
       }
       if (u.includes('/guidance/sessions')) {
@@ -136,7 +137,7 @@ describe('DosenGuidance (T3.8)', () => {
     render(<DosenGuidance />);
     await screen.findByText('Budi Santoso (2023110001)');
 
-    await user.selectOptions(controlFor('Mahasiswa Binaan', 'select'), '1');
+    await user.selectOptions(controlFor('Pilih Mahasiswa Binaan', 'select'), '1');
     await user.type(controlFor('Tanggal Bimbingan', 'input'), '2026-08-10');
     await user.selectOptions(controlFor('Progress', 'select'), 'berjalan');
     await user.type(controlFor('Catatan', 'textarea'), 'Bimbingan Bab 3');
@@ -173,7 +174,7 @@ describe('DosenGuidance (T3.8)', () => {
     render(<DosenGuidance />);
     await screen.findByText('Budi Santoso (2023110001)');
 
-    await user.selectOptions(controlFor('Mahasiswa Binaan', 'select'), '1');
+    await user.selectOptions(controlFor('Pilih Mahasiswa Binaan', 'select'), '1');
     await user.type(controlFor('Tanggal Bimbingan', 'input'), '2026-08-11');
     await user.type(controlFor('Catatan', 'textarea'), 'test');
     await user.click(screen.getByRole('button', { name: 'Simpan Bimbingan' }));
@@ -189,7 +190,7 @@ describe('DosenGuidance (T3.8)', () => {
     await screen.findByText('Budi Santoso (2023110001)');
 
     // Sesi Budi (student 1) tampil; pilih Ani (student 2) → daftar kosong
-    await user.selectOptions(controlFor('Mahasiswa Binaan', 'select'), '2');
+    await user.selectOptions(controlFor('Pilih Mahasiswa Binaan', 'select'), '2');
     expect(
       await screen.findByText('Belum ada catatan bimbingan untuk mahasiswa ini.'),
     ).toBeInTheDocument();

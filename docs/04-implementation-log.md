@@ -1766,9 +1766,9 @@ Refinement pada Waiting Room MVP (T1.13) untuk produksi:
 | Frontend lint | 0 error, 0 warning |
 | Frontend typecheck | 0 error |
 | Frontend format | Prettier clean |
-| Frontend build | **93.6 kB gzip** (<200 kB NF-02 ✓) |
-| Frontend npm audit | 0 vulnerabilities |
-| E2E Playwright | **9/9 pass** |
+- Resolver login deterministik: prioritas **email > NIM > NIK > NIDN**; NIM mahasiswa menang atas NIDN dosen saat bentrok (keamanan: cegah salah-akun).
+- Produksi: `NODE_ENV=production` mewajibkan `DATABASE_URL` + `REDIS_URL` + `JWT_SECRET` (fail-fast di `config/env.ts`); migrasi cukup sekali via `DATABASE_URL=... npx node-pg-migrate up`; admin seed `admin@siak.local`/`Admin123!` **wajib ganti password** setelah deploy.
+- WebSocket waiting-room tidak diteruskan proxy Vercel → fallback polling sudah di-handle aplikasi.
 
 ### Iterasi 6b (2026-08-10) — Fix Blocker Deploy Native (Render)
 
@@ -1780,11 +1780,49 @@ Refinement pada Waiting Room MVP (T1.13) untuk produksi:
 
 ---
 
-## Iterasi 7 (2026-08-10) — Gelombang 1: 8 Bug Fix Cepat (Legacy Keluhan)
+## Iterasi 10 (2026-08-10) — Gelombang 2: #27 Bimbingan Form Searchable NIM/Kelas
 
 ### Ringkasan
 
-Mengimplementasikan **8 item bug fix cepat** dari audit 31 keluhan legacy (`docs/list perbaikan.txt`), yang dipilih oleh pemilih via `clarify`:
+Mengimplementasikan **item #27: Bimbingan form searchable NIM/kelas** dari `docs/list perbaikan.txt`.
+
+| # | Keluhan (Legacy) | File Terkait | Status |
+|---|------------------|--------------|--------|
+| 27 | Bimbingan: form searchable NIM/kelas | `backend/src/modules/guidance/index.ts`, `frontend/src/lib/api.ts`, `frontend/src/pages/DosenGuidance.tsx` | ✅ |
+
+### File Modified
+
+| File | Ringkasan Perubahan |
+|------|---------------------|
+| `backend/src/modules/guidance/index.ts` | `GET /guidance/mentees`: tambah query param `search` (ILIKE pada `nim`, `full_name`, `email`) + `prodi_code` (admin only) |
+| `frontend/src/lib/api.ts` | `getMentees(search?)`: forward param `search` ke API |
+| `frontend/src/pages/DosenGuidance.tsx` | Search input debounced 300ms → trigger API call; UI split: text input search + dropdown pilih mahasiswa; empty state dinamis |
+
+### Test Added / Updated
+
+| File | Test Baru |
+|------|-----------|
+| `frontend/src/pages/DosenGuidance.test.tsx` | Updated label selector dari 'Mahasiswa Binaan' → 'Pilih Mahasiswa Binaan'; semua 6 tests pass |
+
+### Quality Gates (Lokal)
+
+| Gate | Hasil |
+|------|-------|
+| Backend lint/typecheck/format | ✅ |
+| Frontend lint/typecheck/format | ✅ |
+| Frontend build | ✅ (bundle 80.74 kB gzip) |
+| Frontend test:coverage | ✅ (26 files, 153 tests pass) |
+| Backend test:coverage | ⏳ (butuh PostgreSQL lokal / Docker) |
+
+> **Catatan:** Backend test memerlukan PostgreSQL + Redis lokal. CI penuh (backend test) akan jalan di **GitHub Actions** (sudah punya workflow dengan Neon + service containers).
+
+---
+
+### Open Items (Iterasi 10+)
+
+- [ ] Jalankan full CI backend test (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
+- [ ] Gelombang 2 lanjutan: #4 Waiting room threshold 2000, #5 Fix download transkrip (detail), #16 Admin master data + CSV import, #48 Notifikasi pagination + mark all read
+- [ ] Gelombang 3: 7 item redesign UI besar (dari audit 31 item)
 
 | # | Keluhan (Legacy) | File Terkait | Status |
 |---|------------------|--------------|--------|
@@ -1891,10 +1929,49 @@ Mengimplementasikan **item #24: Dosen search matkul 3 huruf (typeahead) filter b
 
 ---
 
-### Open Items (Iterasi 8+)
+## Iterasi 9 (2026-08-10) — Gelombang 2: #45 Filter Tahun Akademik + #46 Fix Download PDF Transkrip
+
+### Ringkasan
+
+Mengimplementasikan **item #45: Filter tahun akademik saat download transkrip PDF** dan memperbaiki **#46: Download PDF transkrip belum berhasil** dari `docs/list perbaikan.txt`.
+
+| # | Keluhan (Legacy) | File Terkait | Status |
+|---|------------------|--------------|--------|
+| 45 | Transkrip PDF: filter pilihan tahun ajaran | `backend/src/modules/transcript/index.ts`, `backend/src/modules/academic/index.ts`, `frontend/src/lib/api.ts`, `frontend/src/pages/TranscriptPage.tsx` | ✅ |
+| 46 | Fix download PDF transkrip (masih gagal) | `backend/src/modules/transcript/index.ts`, `frontend/src/lib/api.ts` | ✅ |
+
+### File Modified
+
+| File | Ringkasan Perubahan |
+|------|---------------------|
+| `backend/src/modules/transcript/index.ts` | `fetchTranscriptData(studentId, academicYearId?)`: optional filter tahun akademik via query param `academicYearId`; endpoint `/my/download` & `/student/:id/download` forward param + filename include tahun akademik |
+| `backend/src/modules/academic/index.ts` | Tambah `GET /academic-years` (active only) untuk dropdown FE |
+| `frontend/src/lib/api.ts` | `downloadTranscriptPdf(academicYearId?)`: forward query param ke API + filename include tahun akademik |
+| `frontend/src/pages/TranscriptPage.tsx` | Dropdown filter tahun akademik (load via `/academic-years`); pass selection ke `downloadTranscriptPdf` |
+
+### Test Added / Updated
+
+| File | Test Baru |
+|------|-----------|
+| `frontend/src/pages/TranscriptPage.test.tsx` | Updated test untuk academic-years fetch; download test masih pass |
+
+### Quality Gates (Lokal)
+
+| Gate | Hasil |
+|------|-------|
+| Backend lint/typecheck/format | ✅ |
+| Frontend lint/typecheck/format | ✅ |
+| Frontend build | ✅ (bundle 80.73 kB gzip) |
+| Frontend test:coverage | ✅ (5/5 TranscriptPage tests pass, 152/153 total) |
+
+> **Catatan:** 1 test fail pre-existing di `DosenGuidance.test.tsx` (timeout) — tidak terkait perubahan ini.
+
+---
+
+### Open Items (Iterasi 9+)
 
 - [ ] Jalankan full CI backend test (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
-- [ ] Gelombang 2 lanjutan: #4 Waiting room threshold 2000, #5 Fix download transkrip, #16 Admin master data + CSV import, #27 Bimbingan form searchable NIM/kelas, #48 Notifikasi pagination + mark all read
+- [ ] Gelombang 2 lanjutan: #4 Waiting room threshold 2000, #5 Fix download transkrip (detail), #16 Admin master data + CSV import, #27 Bimbingan form searchable NIM/kelas, #48 Notifikasi pagination + mark all read
 - [ ] Gelombang 3: 7 item redesign UI besar (dari audit 31 item)
 
 ---

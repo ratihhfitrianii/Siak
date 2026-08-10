@@ -21,6 +21,7 @@ function computeStats(items: GradeItem[]) {
  * Transkrip nilai mahasiswa (T1.11b):
  * - GET /grades/student/:studentId (diri sendiri; studentId dari /users/me)
  * - dikelompokkan per semester (urut periode terbaru), IP per semester + IPK total
+ * - Download PDF dengan filter tahun akademik (keluhan lama #45)
  */
 export function TranscriptPage() {
   const { user } = useAuth();
@@ -31,12 +32,26 @@ export function TranscriptPage() {
   const [items, setItems] = useState<GradeItem[]>([]);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState<number | null>(null);
+  const [academicYears, setAcademicYears] = useState<Array<{ id: number; code: string }>>([]);
+
+  // Fetch academic years for dropdown
+  useEffect(() => {
+    apiRequest<Array<{ id: number; code: string }>>('/academic-years')
+      .then((data) => {
+        setAcademicYears(data);
+        if (data.length > 0) setSelectedAcademicYearId(data[0].id);
+      })
+      .catch(() => {
+        // Silently ignore - dropdown will just be empty
+      });
+  }, []);
 
   async function handleDownload() {
     setDownloading(true);
     setDownloadError(null);
     try {
-      await downloadTranscriptPdf();
+      await downloadTranscriptPdf(selectedAcademicYearId ?? undefined);
     } catch {
       setDownloadError('Gagal mengunduh PDF. Coba lagi.');
     } finally {
@@ -117,6 +132,22 @@ export function TranscriptPage() {
               {overall.ipk === null ? '—' : overall.ipk.toFixed(2)}
             </span>
           </p>
+          {academicYears.length > 0 && (
+            <select
+              value={selectedAcademicYearId ?? ''}
+              onChange={(e) =>
+                setSelectedAcademicYearId(e.target.value ? Number(e.target.value) : null)
+              }
+              className="px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">Semua Tahun Akademik</option>
+              {academicYears.map((ay) => (
+                <option key={ay.id} value={ay.id}>
+                  {ay.code}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             type="button"
             onClick={handleDownload}

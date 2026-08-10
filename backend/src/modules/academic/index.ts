@@ -7,6 +7,7 @@ import { auditFromRequest } from '../../lib/audit-service';
 /**
  * Modul Akademik — T1.7 (F-07b, F-07c, F-22).
  * Struktur Organisasi (Fakultas, Prodi, Departemen) + Kurikulum + MK.
+ * Tahun Akademik (Academic Years) — GET /academic-years untuk dropdown transkrip (keluhan lama #45).
  */
 
 const facultySchema = z.object({
@@ -227,6 +228,22 @@ export function createAcademicRouter(): Router {
         query += ' ORDER BY cur.semester_number, c.code';
 
         const result = await pgPool.query(query, params);
+        res.json({ success: true, data: { items: result.rows } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // --- TAHUN AKADEMIK (ACADEMIC YEARS) ---
+  router.get(
+    '/academic-years',
+    authenticate,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const result = await pgPool.query(
+          'SELECT id, code FROM academic_years WHERE is_active ORDER BY id',
+        );
         res.json({ success: true, data: { items: result.rows } });
       } catch (err) {
         next(err);

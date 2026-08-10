@@ -155,7 +155,10 @@ describe('TranscriptPage (T1.11b)', () => {
 
   it('akun tanpa studentId → info transkrip tidak tersedia', async () => {
     mockUser = DOSEN;
-    vi.stubGlobal('fetch', vi.fn());
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ success: true, data: { items: [] } })),
+    );
     render(<TranscriptPage />);
 
     expect(
@@ -163,7 +166,8 @@ describe('TranscriptPage (T1.11b)', () => {
         'Transkrip nilai tersedia untuk akun mahasiswa. Akun ini tidak terhubung ke data mahasiswa.',
       ),
     ).toBeInTheDocument();
-    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+    // fetch called for academic-years (new feature)
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
   });
 
   it('error → pesan error ditampilkan', async () => {
