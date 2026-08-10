@@ -52,6 +52,7 @@ DATABASE_URL="<neon-url>" npx node-pg-migrate up
 ```
 
 - Tanpa config file → node-pg-migrate membaca env `DATABASE_URL`; direktori default `./migrations` (18 file UP).
+- ⚠️ Pakai URL Neon dengan `sslmode=verify-full` (bukan `require`) — `pg` 8.13+ meng-alias `require` ke `verify-full` dan mengeluarkan `SECURITY WARNING: ... aliases for verify-full`; ganti param query URL supaya bersih (perilaku koneksi identik).
 - Verifikasi di Neon console: tabel `pgmigrations` berisi **18 baris**, tabel `prodis` ada.
 - ⚠️ Migrasi ikut men-seed (dari V004/V005): admin `admin@siak.local` (password default `Admin123!`) + data dev ~2000 mahasiswa / ~100 dosen. Setelah deploy pertama **langsung ganti password admin** (lihat Keamanan).
 
@@ -73,13 +74,14 @@ DATABASE_URL="<neon-url>" npx node-pg-migrate up
    | Variable | Nilai |
    |---|---|
    | `NODE_ENV` | `production` |
-   | `DATABASE_URL` | dari Neon (Step 1) |
+   | `DATABASE_URL` | dari Neon (Step 1) — **ubah `sslmode=require` → `sslmode=verify-full`** di param query URL agar tidak muncul warning `SECURITY WARNING: ... aliases for verify-full` dari `pg` 8.13+ (perilaku koneksi identik; `require` sudah diperlakukan sebagai `verify-full`) |
    | `REDIS_URL` | dari Upstash (Step 2) |
    | `JWT_SECRET` | hasil `openssl rand -base64 48` |
    | `CORS_ORIGIN` | `https://<app>.vercel.app` (isi setelah Step 5) |
    | `DATABASE_POOL_MAX` | `5` (pool kecil untuk Neon free) |
    | `PORT` | Render mengisi otomatis |
 4. Deploy → cek log: `listening on http://localhost:<PORT> (production)`.
+   > ⚠️ **Pitfall `PostgreSQL pool connection failed` / `Connection terminated unexpectedly`** (saat cold start): Render free men-suspend instance setelah ~15 menit idle; saat bangun, Neon free mungkin masih auto-suspend → test `SELECT 1` startup gagal (log level 50) → **self-healing** (app tetap jalan, Neon resume 2-5 dtk, query berikutnya sukses). Sejak commit fix `src/lib/pg.ts`: test startup retry 3× (log warn saja), idle client error tidak lagi `process.exit(-1)` (dulu berisiko crash saat Neon menutup koneksi idle), `connectionTimeoutMillis` 10 dtk. Tidak ada tindakan yang diperlukan — kalau muncul di log, itu sinyal cold start, bukan crash.
 5. ⚠️ `backend/src/config/env.ts` (superRefine): di `production`, `DATABASE_URL`, `REDIS_URL`, dan `JWT_SECRET` **wajib** — kalau kurang satu saja, backend langsung crash saat start (by design, K-01).
 
 ## Step 5 — Vercel (Frontend)
