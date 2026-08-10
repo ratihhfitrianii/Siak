@@ -11,10 +11,7 @@ export interface KrsPdfItem {
   courseCode: string;
   courseName: string;
   credits: number;
-  dayOfWeek: string | null;
-  startTime: string | null;
-  endTime: string | null;
-  room: string | null;
+  lecturerName: string | null;
 }
 
 export interface KrsPdfData {
@@ -67,10 +64,11 @@ export async function fetchKrsPdfData(studentId: number, periodId: number): Prom
     );
   }
   const submission = submissionRes.rows[0];
-  if (!['submitted', 'approved'].includes(submission.status)) {
+  // Keluhan lama: "KRS yang sudah disetujui bisa di download PDF" — PDF hanya untuk status approved.
+  if (submission.status !== 'approved') {
     throw new AppError(
       'VALIDATION_ERROR',
-      'KRS belum disetujui — PDF tersedia setelah submit/approved',
+      'KRS belum disetujui — PDF tersedia setelah KRS disetujui',
       400,
     );
   }
@@ -86,11 +84,12 @@ export async function fetchKrsPdfData(studentId: number, periodId: number): Prom
 
   const itemsRes = await pgPool.query(
     `SELECT c.code AS course_code, c.name AS course_name, c.credits,
-            cl.day_of_week, cl.start_time, cl.end_time, cl.room
+            u.full_name AS lecturer_name
      FROM krs_items ki
      JOIN classes cl ON cl.id = ki.class_id
      JOIN curricula cur ON cur.id = cl.curriculum_id
      JOIN courses c ON c.id = cur.course_id
+     LEFT JOIN users u ON u.id = cl.lecturer_id
      WHERE ki.krs_submission_id = $1
      ORDER BY c.code`,
     [submission.id],
@@ -100,10 +99,7 @@ export async function fetchKrsPdfData(studentId: number, periodId: number): Prom
     courseCode: r.course_code,
     courseName: r.course_name,
     credits: Number(r.credits),
-    dayOfWeek: r.day_of_week,
-    startTime: r.start_time,
-    endTime: r.end_time,
-    room: r.room,
+    lecturerName: r.lecturer_name,
   }));
 
   return {
@@ -124,22 +120,6 @@ export async function fetchKrsPdfData(studentId: number, periodId: number): Prom
     totalCredits: items.reduce((sum, it) => sum + it.credits, 0),
     items,
   };
-}
-
-const DAY_LABEL: Record<string, string> = {
-  senin: 'Senin',
-  selasa: 'Selasa',
-  rabu: 'Rabu',
-  kamis: 'Kamis',
-  jumat: 'Jumat',
-  sabtu: 'Sabtu',
-  minggu: 'Minggu',
-};
-
-function formatTime(t: string | null): string {
-  if (!t) return '-';
-  const [h, m] = t.split(':');
-  return `${h}:${m}`;
 }
 
 /** Generate PDF KRS menggunakan pdfkit (pola sama dengan transkrip T2.4). */
@@ -210,10 +190,10 @@ export function generateKrsPdf(data: KrsPdfData): Promise<Buffer> {
     line(y);
     y += 10;
 
-    // TABEL MATA KULIAH
-    const colWidths = [30, 60, 170, 30, 50, 70, 40];
-    const headers = ['No', 'Kode', 'Mata Kuliah', 'SKS', 'Jadwal', 'Ruangan', ''];
-    const colX = [50, 80, 140, 310, 340, 390, 460];
+    // TABEL MATA KULIAH — keluhan lama: PDF KRS hanya menampilkan kode, nama, SKS, Dosen.
+    const colWidths = [30, 60, 170, 30, 200];
+    const headers = ['No', 'Kode', 'Mata Kuliah', 'SKS', 'Dosen'];
+    const colX = [50, 80, 140, 310, 340];
 
     // header row
     doc.font('Helvetica-Bold').fontSize(9);
@@ -229,17 +209,12 @@ export function generateKrsPdf(data: KrsPdfData): Promise<Buffer> {
         doc.addPage();
         y = 50;
       }
-      const jadwal = item.dayOfWeek
-        ? `${DAY_LABEL[item.dayOfWeek] ?? item.dayOfWeek} ${formatTime(item.startTime)}-${formatTime(item.endTime)}`
-        : '-';
       const cells = [
         String(idx + 1),
         item.courseCode,
         item.courseName,
         String(item.credits),
-        jadwal,
-        item.room ?? '-',
-        '',
+        item.lecturerName ?? '-',
       ];
       cells.forEach((c, i) => {
         doc.text(c, colX[i], y, {

@@ -7,6 +7,7 @@ process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-min-32-chars-long-for-hs25
 process.env.BCRYPT_ROUNDS = '4';
 
 import request from 'supertest';
+import bcrypt from 'bcrypt';
 import { createApp } from '../../app';
 import { pgPool } from '../../lib/pg';
 
@@ -238,10 +239,36 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     expect(res.body.error).toContain('Dosen pengganti tidak boleh sama');
   });
 
-  it('POST /substitute — dosen bukan pengajar kelas → 400', async () => {
+  it('POST /substitute — dosen asli AUTO-derive dari login (keluhan lama: tanpa pilih dosen asli)', async () => {
+    // Dosen mengirim originalLecturerId milik dosen LAIN — backend wajib override ke diri
+    // sendiri (dosenLecturerId). Pakai scheduleId3 (belum ada substitute aktif).
+    const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [
+      scheduleId3,
+    ]);
+    const testClassId = Number(testClassRes.rows[0].class_id);
+
+    const res = await request(app)
+      .post('/api/v1/substitute')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({
+        originalLecturerId: dosen2LecturerId, // dicoba dipilih manual → diabaikan
+        substituteLecturerId: dosen2LecturerId,
+        classId: testClassId,
+        scheduleId: scheduleId3,
+        reason: 'Test auto-derive',
+      });
+
+    expect(res.status).toBe(201);
+    expect(Number(res.body.data.original_lecturer_id)).toBe(dosenLecturerId); // auto-derive
+    expect(Number(res.body.data.substitute_lecturer_id)).toBe(dosen2LecturerId);
+    createdSubstituteIds.push(Number(res.body.data.id));
+  });
+
+  it('POST /substitute — admin: dosen asli bukan pengajar kelas → 400', async () => {
     // Buat dosen ghost (user + lecturer) yang TIDAK mengajar classId —
     // self-sufficient: seed kini mengisi 1 dosen per kelas, jadi tak ada
-    // dosen lain yang mengajar kelas yang sama
+    // dosen lain yang mengajar kelas yang sama. Admin boleh pilih dosen asli
+    // manual, jadi validasi ini tetap berlaku untuk jalur admin.
     const ghostEmail = `ghost-dosen-${Date.now()}@siak.test`;
     const ghostUserRes = await pgPool.query(
       `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
@@ -260,7 +287,7 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
 
     const res = await request(app)
       .post('/api/v1/substitute')
-      .set('Authorization', `Bearer ${dosenToken}`)
+      .set('Authorization', `Bearer ${adminToken}`)
       .send({
         originalLecturerId: ghostLecturerId,
         substituteLecturerId: dosen2LecturerId,
@@ -275,6 +302,35 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
     // Cleanup
     await pgPool.query(`DELETE FROM lecturers WHERE id = $1`, [ghostLecturerId]);
     await pgPool.query(`DELETE FROM users WHERE id = $1`, [ghostUserId]);
+  });
+
+  it('POST /substitute — user dosen tanpa profil lecturer → 403 (keluhan lama)', async () => {
+    // User ber-role dosen tanpa baris lecturers → tidak bisa auto-derive dosen asli.
+    const email = `no-lecturer-${Date.now()}@siak.test`;
+    const hash = await bcrypt.hash('TestPass123!', 4);
+    const userRes = await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+       VALUES ($1, $2, 'Dosen Tanpa Profil', (SELECT id FROM roles WHERE code = 'dosen'), true)
+       RETURNING id`,
+      [email, hash],
+    );
+    const noLecturerUserId = Number(userRes.rows[0].id);
+    const noLecturerToken = await login(email, 'TestPass123!');
+
+    const res = await request(app)
+      .post('/api/v1/substitute')
+      .set('Authorization', `Bearer ${noLecturerToken}`)
+      .send({
+        substituteLecturerId: dosen2LecturerId,
+        classId,
+        scheduleId,
+        reason: 'Test',
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.message).toContain('Akun bukan dosen aktif');
+
+    await pgPool.query(`DELETE FROM users WHERE id = $1`, [noLecturerUserId]);
   });
 
   it('POST /substitute — schedule bukan milik kelas → 400', async () => {
@@ -645,10 +701,18 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
 
   it('PUT /substitute/:id/cancel — sudah cancelled → 400', async () => {
     // Create a substitute and cancel it first, then try to cancel again —
-    // pakai schedule ketiga (kelas dosen ini, belum punya substitute aktif)
-    const testScheduleId = scheduleId3;
+    // pakai schedule BARU (scheduleId3 dipakai test auto-derive, buat schedule 4).
+    // meeting_number harus < 32768 (smallint max).
+    const meetingNum4 = 32000 + Math.floor(Math.random() * 700); // 32000-32767
+    const schedRes4 = await pgPool.query(
+      `INSERT INTO schedules (class_id, meeting_number, scheduled_date, topic)
+         VALUES ($1, $2, CURRENT_DATE + interval '30 days', 'Test Schedule for Substitute 4')
+         RETURNING id`,
+      [classId, meetingNum4],
+    );
+    const scheduleId4 = Number(schedRes4.rows[0].id);
     const testClassRes = await pgPool.query(`SELECT class_id FROM schedules WHERE id = $1`, [
-      testScheduleId,
+      scheduleId4,
     ]);
     const testClassId = Number(testClassRes.rows[0].class_id);
 
@@ -659,7 +723,7 @@ describe('T3.5 Substitute Teaching (F-25)', () => {
         originalLecturerId: dosenLecturerId,
         substituteLecturerId: dosen2LecturerId,
         classId: testClassId,
-        scheduleId: testScheduleId,
+        scheduleId: scheduleId4,
         reason: 'Test double cancel',
       });
 

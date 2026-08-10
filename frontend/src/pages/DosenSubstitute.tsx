@@ -63,6 +63,11 @@ export function DosenSubstitute() {
 
   const selectedClass = classes.find((c) => c.id === classId) ?? null;
 
+  // Keluhan lama: "dosen asli tidak perlu dipilih karena langsung generate berdasarkan dosen
+  // yang login, kecuali user yang login adalah admin akademik" — dropdown dikunci untuk non-admin.
+  const isAdmin = user?.role === 'admin_akademik' || user?.role === 'admin_sistem';
+  const originalLecturer = lecturers.find((l) => l.id === originalLecturerId) ?? null;
+
   const handleSubmit = async () => {
     if (!originalLecturerId || !substituteLecturerId || !classId || !scheduleId) {
       setError('Lengkapi dosen asli, dosen pengganti, kelas, dan jadwal pertemuan');
@@ -152,20 +157,28 @@ export function DosenSubstitute() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Dosen Asli</label>
-              <select
-                value={originalLecturerId ?? ''}
-                onChange={(e) =>
-                  setOriginalLecturerId(e.target.value ? Number(e.target.value) : null)
-                }
-                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">Pilih Dosen Asli</option>
-                {lecturers.map((lec) => (
-                  <option key={lec.id} value={lec.id}>
-                    {lec.fullName} ({lec.prodiCode})
-                  </option>
-                ))}
-              </select>
+              {isAdmin ? (
+                <select
+                  value={originalLecturerId ?? ''}
+                  onChange={(e) =>
+                    setOriginalLecturerId(e.target.value ? Number(e.target.value) : null)
+                  }
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Pilih Dosen Asli</option>
+                  {lecturers.map((lec) => (
+                    <option key={lec.id} value={lec.id}>
+                      {lec.fullName} ({lec.prodiCode})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="w-full px-3 py-2 border border-slate-200 rounded-md bg-slate-50 text-sm text-slate-700">
+                  {originalLecturer
+                    ? `${originalLecturer.fullName} (${originalLecturer.prodiCode})`
+                    : 'Memuat…'}
+                </div>
+              )}
             </div>
 
             <div>

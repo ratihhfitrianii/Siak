@@ -28,6 +28,20 @@ const ROLE_LABEL: Record<string, string> = {
   admin_sistem: 'Admin Sistem',
 };
 
+/**
+ * Menu yang disembunyikan per role — keluhan lama: "jika menu tidak tersedia untuk user
+ * admin/dosen tidak perlu ditampilkan (mis. menu transkip dan KRS)". Backend tetap otoritas
+ * final (policy.ts); ini hanya penyaringan tampilan.
+ * - admin_sistem: superuser punya semua permission (can()=true), tapi menu KRS/Transkrip/
+ *   Pembayaran/Tagihan bukan domainnya → disembunyikan.
+ * - dosen: Transkrip tidak termasuk menu dosen (meski permission transcript.view_own ada
+ *   dari matriks §6.1 — UI tidak menampilkannya).
+ */
+const HIDDEN_MENU_BY_ROLE: Record<string, string[]> = {
+  admin_sistem: ['/krs', '/transkrip', '/pembayaran', '/keuangan/tagihan'],
+  dosen: ['/transkrip'],
+};
+
 /** Layout shell: navbar sticky + konten (T1.11a). */
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -35,6 +49,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [unread, setUnread] = useState(0);
 
   // T2.5: badge notifikasi unread — fetch ringan saat mount (polling 60s; tidak menggagalkan layout).
+  // Keluhan lama: "ketika notifikasi dibaca, ikon lonceng tidak berubah" — AppLayout juga
+  // me-refresh badge saat NotificationsPage men-dispatch event 'siak:notif-changed'.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -49,9 +65,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
     };
     load();
     const t = setInterval(load, 60_000);
+    const onNotifChanged = () => load();
+    window.addEventListener('siak:notif-changed', onNotifChanged);
     return () => {
       cancelled = true;
       clearInterval(t);
+      window.removeEventListener('siak:notif-changed', onNotifChanged);
     };
   }, [user]);
 
@@ -59,7 +78,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
     return null;
   }
 
-  const menu = MENU_ITEMS.filter((item) => item.permissions.some((p) => user.menu.includes(p)));
+  const hidden = HIDDEN_MENU_BY_ROLE[user.role] ?? [];
+  const menu = MENU_ITEMS.filter(
+    (item) => !hidden.includes(item.path) && item.permissions.some((p) => user.menu.includes(p)),
+  );
 
   async function handleLogout() {
     await logout();

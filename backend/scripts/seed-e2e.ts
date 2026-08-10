@@ -139,12 +139,12 @@ async function main() {
 
   await pgPool.query(`UPDATE classes SET lecturer_id = $1 WHERE id = $2`, [dosenUserId, classAId]);
 
-  // ---- KRS submitted + items + grades ----
+  // ---- KRS approved + items + grades (keluhan lama: PDF hanya untuk approved) ----
   const submission = await pgPool.query(
-    `INSERT INTO krs_submissions (student_id, krs_period_id, status, is_locked, submitted_at)
-     VALUES ($1, $2, 'submitted', true, now())
+    `INSERT INTO krs_submissions (student_id, krs_period_id, status, is_locked, submitted_at, approved_at, approved_by)
+     VALUES ($1, $2, 'approved', true, now(), now(), $3)
      RETURNING id`,
-    [studentId, periodId],
+    [studentId, periodId, mhsUserId],
   );
   const submissionId = Number(submission.rows[0].id);
 

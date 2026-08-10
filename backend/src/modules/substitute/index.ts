@@ -15,7 +15,10 @@ import { AppError } from '../../middleware/error-handler';
  */
 
 const createSchema = z.object({
-  originalLecturerId: z.number().int().positive(), // dosen yang diganti
+  // Keluhan lama: "dosen asli tidak perlu dipilih karena langsung generate berdasarkan dosen
+  // yang login, kecuali user yang login adalah admin akademik" — originalLecturerId OPSIONAL;
+  // untuk role dosen di-override dari token di handler (auto-derive).
+  originalLecturerId: z.number().int().positive().optional(),
   substituteLecturerId: z.number().int().positive(), // dosen pengganti
   classId: z.number().int().positive(),
   scheduleId: z.number().int().positive(),
@@ -108,7 +111,22 @@ export function createSubstituteRouter(): Router {
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const data = createSchema.parse(req.body);
-        const { originalLecturerId, substituteLecturerId, classId, scheduleId, reason } = data;
+        let { originalLecturerId } = data;
+        const { substituteLecturerId, classId, scheduleId, reason } = data;
+
+        // Keluhan lama: dosen asli otomatis = dosen yang login (kecuali admin akademik/sistem
+        // yang boleh mengajukan atas nama dosen lain).
+        const isAdmin =
+          req.user!.roleCode === 'admin_akademik' || req.user!.roleCode === 'admin_sistem';
+        if (!isAdmin) {
+          if (!req.user!.lecturerId) {
+            throw new AppError('FORBIDDEN', 'Akun bukan dosen aktif', 403);
+          }
+          originalLecturerId = req.user!.lecturerId;
+        }
+        if (!originalLecturerId) {
+          throw new AppError('VALIDATION_ERROR', 'originalLecturerId wajib diisi untuk admin', 400);
+        }
 
         // Validasi: original != substitute
         if (originalLecturerId === substituteLecturerId) {

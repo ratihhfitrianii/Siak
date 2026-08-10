@@ -351,6 +351,67 @@ export function createRbacRouter(): Router {
     },
   );
 
+  // DELETE /users/:id — nonaktifkan user (admin_sistem; keluhan lama: "hanya admin sistem
+  // yang dapat menghapus ... user"). Soft-delete (is_active=false): akun tidak bisa login,
+  // data historis (students/lecturers/audit) tetap utuh karena FK.
+  router.delete(
+    '/:id',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const targetId = Number(req.params.id);
+        if (!Number.isInteger(targetId) || targetId <= 0) {
+          throw new AppError('VALIDATION_ERROR', 'ID user tidak valid', 400);
+        }
+        const actor = req.user!;
+        if (targetId === actor.id) {
+          throw new AppError('VALIDATION_ERROR', 'Tidak dapat menghapus akun sendiri', 400);
+        }
+
+        const target = await pgPool.query(
+          `SELECT u.id, u.email, u.full_name, r.code AS role_code, u.is_active
+           FROM users u
+           JOIN roles r ON u.role_id = r.id
+           WHERE u.id = $1`,
+          [targetId],
+        );
+        if (target.rows.length === 0) {
+          throw new AppError('NOT_FOUND', 'User tidak ditemukan', 404);
+        }
+        if (!target.rows[0].is_active) {
+          throw new AppError('VALIDATION_ERROR', 'User sudah nonaktif', 409);
+        }
+
+        const result = await pgPool.query(
+          `UPDATE users SET is_active = false, updated_at = now()
+           WHERE id = $1
+           RETURNING id, email, full_name`,
+          [targetId],
+        );
+
+        await auditFromRequest(actor, req, {
+          tableName: 'users',
+          recordId: targetId,
+          action: 'UPDATE',
+          oldValues: { isActive: true, roleCode: target.rows[0].role_code },
+          newValues: { isActive: false },
+        });
+
+        res.json({
+          success: true,
+          data: {
+            ...result.rows[0],
+            id: Number(result.rows[0].id),
+            message: 'User dinonaktifkan',
+          },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   return router;
 }
 

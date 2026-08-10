@@ -26,13 +26,14 @@ test.describe('Critical path: bayar (T5.7)', () => {
 });
 
 test.describe('Critical path: KRS + PDF (T5.7)', () => {
-  test('mahasiswa lihat KRS submitted + download PDF', async ({ page }) => {
+  test('mahasiswa lihat KRS approved + download PDF', async ({ page }) => {
     await login(page, MHS.identifier, MHS.pass);
     await expect(page.getByText(/Selamat datang, E2E Mahasiswa/)).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole('link', { name: 'KRS', exact: true }).click();
     await expect(page).toHaveURL(/\/krs/);
-    await expect(page.getByText('Menunggu persetujuan')).toBeVisible({ timeout: 10_000 });
+    // Status badge "Disetujui" dari STATUS_LABEL['approved']
+    await expect(page.getByText('Disetujui')).toBeVisible({ timeout: 10_000 });
 
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Download PDF' }).click();

@@ -230,7 +230,22 @@ describe('KrsPage (T1.11b)', () => {
     expect(screen.getByRole('button', { name: 'Hapus' })).toBeDisabled();
   });
 
-  it('status submitted → tombol Download PDF KRS muncul (keluhan lama)', async () => {
+  it('status approved → tombol Download PDF KRS muncul (keluhan lama)', async () => {
+    mockKrsRoutes({
+      my: {
+        ...MY_DRAFT,
+        status: 'approved',
+        isLocked: true,
+        submittedAt: '2024-08-10T08:00:00Z',
+        items: MY_DRAFT.items,
+      },
+    });
+    render(<KrsPage />);
+
+    expect(await screen.findByRole('button', { name: 'Download PDF' })).toBeInTheDocument();
+  });
+
+  it('status submitted → tombol Download PDF TIDAK muncul (PDF hanya utk approved, keluhan lama)', async () => {
     mockKrsRoutes({
       my: {
         ...MY_DRAFT,
@@ -242,7 +257,8 @@ describe('KrsPage (T1.11b)', () => {
     });
     render(<KrsPage />);
 
-    expect(await screen.findByRole('button', { name: 'Download PDF' })).toBeInTheDocument();
+    expect(await screen.findByText('Simpan Draft')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Download PDF' })).not.toBeInTheDocument();
   });
 
   it('status draft → tombol Download PDF tidak muncul', async () => {

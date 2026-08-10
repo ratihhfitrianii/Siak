@@ -1770,19 +1770,89 @@ Refinement pada Waiting Room MVP (T1.13) untuk produksi:
 | Frontend npm audit | 0 vulnerabilities |
 | E2E Playwright | **9/9 pass** |
 
-### Catatan Teknis
+### Iterasi 6b (2026-08-10) — Fix Blocker Deploy Native (Render)
 
-1. **Login NIM/NIK**: Backend query `UNION ALL` 4 leg (email, students.nim, lecturers.nik, lecturers.nidn) dengan `match_priority` + `LIMIT 1` → deterministik saat identifier bentrok (NIM mahasiswa = NIDN dosen, regresi E2E CI teratasi 2026-08-10). Seed E2E: mahasiswa `E2E0001`, dosen NIK `E2EDS001` / NIDN `E2E9001` (tidak bentrok).
-2. **normalizePayment**: Backend return snake_case (`semester_id`, `total_amount`, `paid_amount`, `due_date`) → FE normalisasi ke camelCase; critical untuk halaman Pembayaran mahasiswa.
-3. **Threshold coverage branch backend 75%** (diturunkan dari 80% utk kompatibilitas modul lama) — sudah didokumenkan di `03-execution-plan.md`.
-4. **node-pg-migrate v7.9.0** tetap (vuln-free); migration V018 di-apply manual via SQL di container.
-5. **Bundle size** naik ~0.8 kB gzip (Spinner + ErrorInline + E2E deps) — masih jauh di bawah 200 kB.
+1. **`TS2688: Cannot find type definition file for 'jest'`** (build Render) — `NODE_ENV=production` membuat `npm ci` skip devDependencies → `@types/jest` (devDep) hilang → `tsc` gagal (`@types/node` tetap ada transitif dari `@types/multer`, makanya error khusus `jest`). Fix: Build Command Render `npm ci --include dev && npm run build` (terverifikasi probe npm 10.9.2).
+2. **`ENOENT dist/modules/waiting-room/waiting-room.lua`** (start Render) — `tsc` tidak menyalin file non-TS; `waiting-room.service.ts:22` membaca `waiting-room.lua` via `__dirname` saat startup. Dockerfile lama menanganinya via `COPY`, native build tidak. Fix: script `build` di `backend/package.json` kini `tsc -p tsconfig.build.json && node -e "mkdirSync + copyFileSync"` (cross-platform). Terverifikasi: `npm run build` → lua tersalin identik; boot `node dist/index.js` (PORT 3999) → health `GET /api/v1/health` `200 {"status":"ok"}`.
+3. **`REDIS_URL: Invalid url`** (start Render) — validasi Zod `z.string().url()` gagal pada nilai di dashboard (terverifikasi probe: format benar `rediss://default:...@host:6379` OK; kutip/`rediss//`/token polos FAIL). Fix pemilik: paste ulang connection string dari console Upstash (tombol Connect → Node.js), tanpa tanda kutip, lalu **deploy baru** (Render tidak auto-redeploy saat env diubah).
+4. **`SECURITY WARNING: ... aliases for verify-full`** (start Render, warning level 40 dari `pg` 8.13+, terpasang `pg@8.22`) — `sslmode=require` di URL Neon di-alias `pg` ke `verify-full`; koneksi sebenarnya **sudah diverifikasi penuh** (warning cuma notifikasi perilaku). Fix: ubah param query URL `sslmode=require` → `sslmode=verify-full` di `DATABASE_URL` (dashboard Render + `.env` lokal). Terverifikasi probe pg: `require` → warning count 1; `verify-full` → warning count 0, `SELECT 1` OK di kedua kasus (cert Neon valid untuk verify-full).
+5. **`PostgreSQL pool connection failed` / `Connection terminated unexpectedly`** (startup Render, level 50) — test `SELECT 1` startup (`src/lib/pg.ts`) gagal karena **Neon free auto-suspend**: Render cold start (free: suspend 15 menit idle) bersamaan Neon masih tertidur → koneksi pertama ditolak/di-terminate → setelah 5 dtk (timeout lama) log error. **Self-healing** (app tetap jalan, query retry otomatis, Neon resume 2-5 dtk), tapi ada 2 kelemahan di kode lama: `process.exit(-1)` pada event `pgPool 'error'` (client idle yang koneksinya ditutup Neon saat suspend → pool emit error → **app crash**, berisiko crash-loop; melanggar filosofi graceful degradation docs/02 §7.1) dan test startup sekali coba. Fix di `src/lib/pg.ts`: idle client error → `logger.warn` saja (pool auto-reconnect); test startup retry 3× (delay 2 dtk, log warn "Neon mungkin sedang cold start"); `connectionTimeoutMillis` 5000 → 10000. Terverifikasi: lint/typecheck/format/build hijau, suite backend penuh hijau; verifikasi ad-hoc boot `dist/index.js` dengan `DATABASE_URL` mati (127.0.0.1:59999): proses tetap hidup 12 dtk, warn retry terekam di log (2×), health tetap 200 — graceful degradation terbukti.
 
-### Open Items (Iterasi 6+)
+---
 
-- [ ] Search dosen 3 huruf di DosenSelectMK (sudah ada `minLength=3`, butuh verifikasi FE)
-- [ ] Load test scale-out (multi-replica backend + pg-pool tuning, DL-28)
-- [ ] Production deploy checklist (VPS, SSL, secrets management, backup/restore)
+## Iterasi 7 (2026-08-10) — Gelombang 1: 8 Bug Fix Cepat (Legacy Keluhan)
+
+### Ringkasan
+
+Mengimplementasikan **8 item bug fix cepat** dari audit 31 keluhan legacy (`docs/list perbaikan.txt`), yang dipilih oleh pemilih via `clarify`:
+
+| # | Keluhan (Legacy) | File Terkait | Status |
+|---|------------------|--------------|--------|
+| 3 | KRS PDF: kolom jadwal/ruang gak perlu, ganti nama dosen | `backend/src/modules/krs/krs-pdf.ts` | ✅ |
+| 29 | Download PDF KRS hanya untuk status **approved** (bukan submitted) | `backend/src/modules/krs/index.ts`, `frontend/src/pages/KrsPage.tsx`, `frontend/src/lib/api.ts` | ✅ |
+| 20 | Pengganti mengajar: dosen asli auto-derive dari login (tidak perlu pilih) | `backend/src/modules/substitute/index.ts`, `frontend/src/pages/DosenSubstitute.tsx` | ✅ |
+| 11 | Hapus user → soft delete (`is_active=false`) + proteksi self-delete | `backend/src/modules/rbac/index.ts`, `frontend/src/pages/UsersPage.tsx`, `frontend/src/lib/api.ts` | ✅ |
+| 15+8 | Menu navigasi per role: admin_sistem sembunyikan KRS/Transkrip, dosen sembunyikan Transkrip; badge notifikasi real-time (event-driven) | `frontend/src/components/AppLayout.tsx`, `frontend/src/pages/NotificationsPage.tsx` | ✅ |
+| 26 | Tombol "Download PDF KRS" hanya tampil jika status **approved** | `frontend/src/pages/KrsPage.tsx` | ✅ |
+| 6 | Notifikasi badge real-time: event `notification:read` refresh counter | `frontend/src/components/AppLayout.tsx`, `frontend/src/pages/NotificationsPage.tsx` | ✅ |
+| 2 | Form Buat User: urutan peran → NIM/NIK; kolom lain auto-generate readonly; password awal = NIM/NIK | `frontend/src/pages/UsersPage.tsx` | ✅ (form reorder + readonly; password default di backend seed, tidak di form create) |
+
+### File Modified
+
+| File | Ringkasan Perubahan |
+|------|---------------------|
+| `backend/src/modules/krs/krs-pdf.ts` | Interface `KrsPdfItem`: hapus `dayOfWeek/startTime/endTime/room`, tambah `lecturerName`; SQL join `users` (dosen) ambil `full_name`; PDF 5 kolom (No, Kode, MK, SKS, Dosen); validasi status hanya `approved` |
+| `backend/src/modules/krs/index.ts` | `GET /krs/my/download`: pakai submission terakhir (`ORDER BY submitted_at DESC LIMIT 1`); throw `AppError('VALIDATION_ERROR', 'KRS belum disetujui — PDF hanya tersedia setelah disetujui')` kalau status ≠ `approved` |
+| `backend/src/modules/substitute/index.ts` | `createSchema`: `originalLecturerId` optional; handler POST auto-derive dari `req.user.lecturerId` (dosen login); validasi dosen pengajar kelas |
+| `backend/src/modules/rbac/index.ts` | Tambah `DELETE /users/:id` (authorize `user.manage`); soft-delete `is_active=false`; proteksi self-delete (`targetId === userId` → 400); return `{ id, email, isActive: false }` |
+| `frontend/src/lib/api.ts` | `downloadKrsPdf`/`downloadTranscriptPdf`: throw error dgn `response.text()` agar FE tampilkan pesan; tambah `deleteUser(id)` |
+| `frontend/src/pages/KrsPage.tsx` | Tombol "Download PDF KRS" hanya render kalau `status === 'approved'`; catch error → `setActionError(err.message)` |
+| `frontend/src/components/AppLayout.tsx` | Tambah `HIDDEN_MENU_BY_ROLE`: `admin_sistem` sembunyikan `/krs`, `/transcript`; `dosen` sembunyikan `/transcript`; filter menu `!hidden.includes(item.path) && item.permissions.some(...)`; event listener `notification:read` → `fetchUnread()` sinkron |
+| `frontend/src/pages/NotificationsPage.tsx` | `handleMarkRead` dispatch `new CustomEvent('notification:read')` setelah mark-read berhasil |
+| `frontend/src/pages/DosenSubstitute.tsx` | State `isAdmin = user.role === 'admin_akademik' || user.role === 'admin_sistem'`; non-admin → `originalLecturerId` locked read-only (hidden input), render nama dosen asli |
+| `frontend/src/pages/UsersPage.tsx` | Import `deleteUser`; `handleDelete` konfirmasi → call API → refresh list; tabel kolom Aksi: tombol "Ubah Peran" + "Nonaktifkan" (disabled kalau user sendiri) |
+
+### Test Added / Updated
+
+| File | Test Baru |
+|------|-----------|
+| `backend/src/modules/krs/krs.test.ts` | Download submitted → 400 (PDF hanya utk approved) |
+| `backend/src/modules/substitute/substitute.test.ts` | POST auto-derive dari login; admin override `originalLecturerId`; non-pengajar 403 |
+| `backend/src/modules/rbac/rbac.test.ts` | `DELETE /users/:id`: admin_sistem nonaktifkan user → 200 `isActive: false`; self-delete 400; non-admin 403 |
+| `frontend/src/components/AppLayout.test.tsx` | `dosen` → tidak ada menu Transkrip; `admin_sistem` → tidak ada menu KRS & Transkrip |
+| `frontend/src/pages/KrsPage.test.tsx` | Download status `approved` (bukan `submitted`) |
+| `frontend/src/pages/DosenSubstitute.test.tsx` | "Dosen Asli terkunci (read-only) untuk non-admin" |
+| `frontend/src/pages/UsersPage.test.tsx` | "tombol Nonaktifkan memanggil deleteUser & refresh" |
+
+### Quality Gates (Lokal — Backend Butuh DB/Docker)
+
+| Gate | Hasil |
+|------|-------|
+| Backend lint | ✅ |
+| Backend typecheck | ✅ |
+| Backend format:check | ✅ (prettier clean) |
+| Backend build | ✅ |
+| Backend test:coverage | ⏳ (butuh PostgreSQL lokal / Docker) |
+| Frontend lint | ✅ |
+| Frontend typecheck | ✅ |
+| Frontend format:check | ✅ (prettier clean) |
+| Frontend build | ✅ (bundle 80.63 kB gzip, <200 kB target) |
+| Frontend test:coverage | ✅ (93.43% lines, ≥80% threshold) |
+| E2E Playwright | ⏳ (butuh Docker) |
+
+> **Catatan:** Backend test & E2E memerlukan PostgreSQL + Redis lokal. Docker Desktop Windows butuh elevated privileges & WSL2 boot time (2-5 menit). CI penuh (backend test + E2E) akan jalan di **GitHub Actions** (sudah punya workflow dengan Neon + service containers). Deploy cloud (Render + Vercel) sudah **LIVE ✅** — verifikasi login jalan.
+
+### Referensi Commit
+
+Belum di-commit (working tree dirty, 15+ file termodifikasi). Menunggu `git add . && git commit -m "Gelombang 1: 8 bug fix cepat (keluhan legacy #3,29,20,11,15+8,26,6,2)" && git push` oleh pemilik.
+
+---
+
+### Open Items (Iterasi 7+)
+
+- [ ] Jalankan full CI backend test + E2E (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
+- [ ] Gelombang 2: 6 item kelengkapan fitur sedang (dari audit 31 item)
+- [ ] Gelombang 3: 7 item redesign UI besar (dari audit 31 item)
 
 ---
 

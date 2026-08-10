@@ -120,8 +120,9 @@ describe('DosenSubstitute (T3.8)', () => {
     expect(screen.getByText('Substitute Teaching')).toBeInTheDocument();
     expect(await screen.findByText(/TI101 — TI101-A · Pertemuan 1/)).toBeInTheDocument();
     expect(screen.getByText('Aktif')).toBeInTheDocument();
-    // Dosen asli default = diri sendiri (userId 4 → lecturers.id 1)
-    expect(controlFor('Dosen Asli', 'select')).toHaveValue('1');
+    // Keluhan lama: dosen asli TIDAK dipilih manual — dikunci otomatis (diri sendiri, userId 4 → id 1)
+    expect(screen.getByText('Dosen Satu (TI)')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Dosen Asli' })).not.toBeInTheDocument();
   });
 
   it('load data gagal → error', async () => {

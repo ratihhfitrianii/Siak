@@ -581,6 +581,82 @@ describe('User Service (RBAC endpoints)', () => {
     });
   });
 
+  describe('DELETE /users/:id (nonaktifkan user — keluhan lama)', () => {
+    let targetId: number;
+
+    beforeAll(async () => {
+      const r = await pgPool.query(
+        `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+         VALUES ('rbac-test-delete@siak.local', 'x', 'Delete Target', (SELECT id FROM roles WHERE code='mahasiswa'), true)
+         RETURNING id`,
+      );
+      targetId = r.rows[0].id;
+    });
+
+    afterAll(async () => {
+      await pgPool.query('DELETE FROM users WHERE email = $1', ['rbac-test-delete@siak.local']);
+    });
+
+    it('admin_sistem boleh nonaktifkan user → 200 + is_active=false', async () => {
+      const res = await request(app)
+        .delete(`/api/v1/users/${targetId}`)
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .expect(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.message).toContain('dinonaktifkan');
+
+      const db = await pgPool.query('SELECT is_active FROM users WHERE id = $1', [targetId]);
+      expect(db.rows[0].is_active).toBe(false);
+    });
+
+    it('user yang sudah nonaktif → 409', async () => {
+      await request(app)
+        .delete(`/api/v1/users/${targetId}`)
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .expect(409);
+    });
+
+    it('tidak bisa hapus akun sendiri → 400 (anti lockout)', async () => {
+      const meRes = await request(app)
+        .get('/api/v1/users/me')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .expect(200);
+      await request(app)
+        .delete(`/api/v1/users/${meRes.body.data.id}`)
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .expect(400);
+    });
+
+    it('user tidak ditemukan → 404', async () => {
+      const res = await request(app)
+        .delete('/api/v1/users/99999999')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .expect(404);
+      expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+
+    it('id invalid → 400', async () => {
+      await request(app)
+        .delete('/api/v1/users/abc')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .expect(400);
+    });
+
+    it('dosen TIDAK boleh nonaktifkan user → 403', async () => {
+      await request(app)
+        .delete(`/api/v1/users/${targetId}`)
+        .set('Authorization', `Bearer ${tokenByRole.get('dosen')}`)
+        .expect(403);
+    });
+
+    it('mahasiswa TIDAK boleh nonaktifkan user → 403', async () => {
+      await request(app)
+        .delete(`/api/v1/users/${targetId}`)
+        .set('Authorization', `Bearer ${tokenByRole.get('mahasiswa')}`)
+        .expect(403);
+    });
+  });
+
   it('createRbacRouter export valid', () => {
     expect(typeof createRbacRouter).toBe('function');
     const router = createRbacRouter();

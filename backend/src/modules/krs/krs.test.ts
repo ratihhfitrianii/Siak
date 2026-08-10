@@ -248,7 +248,31 @@ describe('KRS Core (T1.5)', () => {
     expect(res.body.data.submittedAt).toBeTruthy();
   });
 
-  it('GET /krs/my/download → PDF (keluhan lama: KRS approved bisa di-download PDF)', async () => {
+  it('GET /krs/my/download — saat submitted → 400 (PDF hanya utk approved, keluhan lama)', async () => {
+    const res = await request(app)
+      .get('/api/v1/krs/my/download')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(400);
+    expect(res.body.error.message).toContain('belum disetujui');
+  });
+
+  it('GET /krs/my/download → PDF 200 setelah KRS disetujui (keluhan lama)', async () => {
+    // Approve submission sebagai admin seed (admin_sistem punya krs.approve via superuser)
+    const sub = await pgPool.query(
+      `SELECT id FROM krs_submissions WHERE student_id = $1 ORDER BY id DESC LIMIT 1`,
+      [studentId],
+    );
+    const submissionId = Number(sub.rows[0].id);
+    const adminLogin = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ identifier: 'admin@siak.local', password: 'Admin123!' })
+      .expect(200);
+    const adminToken = adminLogin.body.data.accessToken;
+    await request(app)
+      .post(`/api/v1/krs/admin/${submissionId}/approve`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
     const res = await request(app)
       .get('/api/v1/krs/my/download')
       .set('Authorization', `Bearer ${accessToken}`)

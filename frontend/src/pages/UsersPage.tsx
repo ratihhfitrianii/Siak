@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ApiError, createUser, listUsers, updateUserRole } from '../lib/api';
+import { ApiError, createUser, deleteUser, listUsers, updateUserRole } from '../lib/api';
 import type { CreateUserInput, UserListItem, UpdateRoleInput } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
@@ -157,6 +157,29 @@ export function UsersPage() {
     }
   }, [editTarget, editRole, editWali, page, roleFilter, debouncedSearch, load]);
 
+  // Keluhan lama: "hanya admin sistem yang dapat menghapus ... user" — soft-delete (nonaktifkan).
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const handleDelete = useCallback(
+    async (u: UserListItem) => {
+      const ok = window.confirm(
+        `Nonaktifkan user ${u.fullName} (${u.email})? Akun tidak bisa login lagi.`,
+      );
+      if (!ok) return;
+      setDeletingId(u.id);
+      setActionError(null);
+      try {
+        const res = await deleteUser(u.id);
+        setSuccess(res.message ?? `User ${u.email} dinonaktifkan.`);
+        await load(page, roleFilter, debouncedSearch);
+      } catch (err) {
+        setActionError(err instanceof ApiError ? err.message : 'Gagal menonaktifkan user');
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [page, roleFilter, debouncedSearch, load],
+  );
+
   const inputCls =
     'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500';
   const labelCls = 'block text-sm font-medium text-slate-700';
@@ -292,13 +315,25 @@ export function UsersPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(u)}
-                        className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                      >
-                        Ubah Peran
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(u)}
+                          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Ubah Peran
+                        </button>
+                        {u.isActive && (
+                          <button
+                            type="button"
+                            onClick={() => void handleDelete(u)}
+                            disabled={deletingId === u.id}
+                            className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                          >
+                            {deletingId === u.id ? 'Menghapus…' : 'Hapus'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

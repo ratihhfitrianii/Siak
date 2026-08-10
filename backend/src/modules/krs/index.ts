@@ -241,8 +241,10 @@ export function createKrsRouter(): Router {
     },
   );
 
-  // GET /krs/my/download — PDF KRS sendiri (mahasiswa; status submitted/approved).
-  // Keluhan lama: "KRS yang sudah disetujui bisa di download PDF".
+  // GET /krs/my/download — PDF KRS sendiri (mahasiswa; status approved).
+  // Keluhan lama: "KRS yang sudah disetujui bisa di download PDF" & "download PDF belum berhasil".
+  // Fix: download memakai submission TERAKHIR mahasiswa (semua periode), bukan hanya periode
+  // yang sedang buka — sehingga KRS yang sudah disetujui tetap bisa diunduh setelah periode tutup.
   router.get(
     '/my/download',
     authenticate,
@@ -250,11 +252,23 @@ export function createKrsRouter(): Router {
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const studentId = requireStudent(req);
-        const period = await findActivePeriod();
-        if (!period) {
-          throw new AppError('KRS_PERIOD_CLOSED', 'Periode KRS tidak sedang buka', 403);
+        const latest = await pgPool.query(
+          `SELECT krs_period_id FROM krs_submissions
+           WHERE student_id = $1 AND status = 'approved'
+           ORDER BY updated_at DESC LIMIT 1`,
+          [studentId],
+        );
+        let periodId: number | null = null;
+        if (latest.rows.length > 0) {
+          periodId = Number(latest.rows[0].krs_period_id);
+        } else {
+          const period = await findActivePeriod();
+          periodId = period?.id ?? null;
         }
-        const data = await fetchKrsPdfData(studentId, period.id);
+        if (!periodId) {
+          throw new AppError('KRS_PERIOD_CLOSED', 'Belum ada KRS disetujui untuk diunduh', 403);
+        }
+        const data = await fetchKrsPdfData(studentId, periodId);
         const pdf = await generateKrsPdf(data);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="krs-${data.student.nim}.pdf"`);

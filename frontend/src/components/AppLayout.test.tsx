@@ -66,6 +66,22 @@ const ADMIN_KEUANGAN = {
   menu: ['payment.update'],
 };
 
+// Dosen punya transcript.view_own (matriks §6.1) tapi menu Transkrip sengaja disembunyikan
+// (keluhan lama: "menu yang tidak tersedia tidak perlu ditampilkan").
+const DOSEN = {
+  id: 4,
+  email: 'dosen@kampus.ac.id',
+  fullName: 'Pak Guru',
+  role: 'dosen',
+  roleName: 'Dosen',
+  isWali: false,
+  isActive: true,
+  mustChangePassword: false,
+  studentId: null,
+  createdAt: '2026-01-01T00:00:00Z',
+  menu: ['transcript.view_own', 'schedule.view'],
+};
+
 function renderLayout() {
   return render(
     <MemoryRouter initialEntries={['/']}>
@@ -127,6 +143,20 @@ describe('AppLayout (T1.11d — polish)', () => {
     expect(screen.getByRole('link', { name: 'Tagihan' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Pembayaran' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'User' })).not.toBeInTheDocument();
+  });
+
+  it('dosen → Transkrip disembunyikan meski punya transcript.view_own (keluhan lama)', () => {
+    mockUser = DOSEN;
+    renderLayout();
+
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
+    // role dosen → menu Transkrip di-sembunyikan per role (HIDDEN_MENU_BY_ROLE)
+    expect(screen.queryByRole('link', { name: 'Transkrip' })).not.toBeInTheDocument();
+    // tanpa permission krs.* → KRS tidak muncul
+    expect(screen.queryByRole('link', { name: 'KRS' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'User' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pembayaran' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Tagihan' })).not.toBeInTheDocument();
   });
 
   it('Keluar → logout dipanggil lalu pindah ke /login', async () => {

@@ -52,6 +52,7 @@ export function NotificationsPage() {
     try {
       await markNotificationRead(id);
       setItems((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+      window.dispatchEvent(new Event('siak:notif-changed')); // sinkronkan badge header
     } catch {
       setReadIds((prev) => {
         const next = new Set(prev);
@@ -66,6 +67,7 @@ export function NotificationsPage() {
       await markAllNotificationsRead();
       setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setReadIds(new Set());
+      window.dispatchEvent(new Event('siak:notif-changed')); // sinkronkan badge header
     } catch {
       setError('Gagal menandai semua notifikasi sebagai dibaca');
     }

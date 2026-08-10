@@ -32,6 +32,7 @@ interface UsersMocks {
   total?: number;
   onCreate?: (body: unknown) => void;
   onRole?: (body: unknown) => void;
+  onDelete?: (id: number) => void;
   failCreate?: boolean;
 }
 
@@ -43,11 +44,19 @@ function mockUsersRoutes({
   total = 2,
   onCreate,
   onRole,
+  onDelete,
   failCreate = false,
 }: UsersMocks = {}) {
   const fetchMock = vi.fn((url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
     const u = String(url);
+    if (method === 'DELETE' && u.includes('/users/')) {
+      const id = Number(u.split('/users/')[1]);
+      onDelete?.(id);
+      return Promise.resolve(
+        jsonResponse({ success: true, data: { message: 'User dinonaktifkan' } }),
+      );
+    }
     if (method === 'POST' && u.includes('/users') && !u.includes('/role')) {
       onCreate?.(JSON.parse(String(init?.body)));
       if (failCreate) {
@@ -196,6 +205,36 @@ describe('UsersPage (T1.11c)', () => {
     expect(
       await screen.findByText('Role rina@kampus.ac.id diperbarui menjadi Admin Akademik.'),
     ).toBeInTheDocument();
+  });
+
+  it('hapus user → confirm → DELETE /users/:id → sukses + reload (keluhan lama)', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    mockUsersRoutes({ onDelete });
+    render(<UsersPage />);
+
+    await screen.findByText('Andi');
+    await user.click(screen.getAllByRole('button', { name: 'Hapus' })[0]); // Andi (mahasiswa)
+
+    await vi.waitFor(() => expect(onDelete).toHaveBeenCalledTimes(1));
+    expect(onDelete).toHaveBeenCalledWith(1);
+    expect(await screen.findByText('User dinonaktifkan')).toBeInTheDocument();
+    confirmSpy.mockRestore();
+  });
+
+  it('hapus user dibatalkan (confirm false) → tidak ada DELETE', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    mockUsersRoutes({ onDelete });
+    render(<UsersPage />);
+
+    await screen.findByText('Andi');
+    await user.click(screen.getAllByRole('button', { name: 'Hapus' })[0]);
+
+    expect(onDelete).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 
   it('filter peran → GET /users dengan query role', async () => {

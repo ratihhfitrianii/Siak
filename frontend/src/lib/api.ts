@@ -371,6 +371,11 @@ export async function updateUserRole(
   };
 }
 
+/** DELETE /users/:id — nonaktifkan user (perm user.manage, admin_sistem; keluhan lama). */
+export async function deleteUser(id: number): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/users/${id}`, { method: 'DELETE' });
+}
+
 /* ==== T2.6 — Finance API ==== */
 
 import type {
@@ -484,7 +489,10 @@ export async function downloadTranscriptPdf(): Promise<void> {
       headers: { Authorization: `Bearer ${getAccessToken()}` },
     });
   }
-  if (!res.ok) return;
+  if (!res.ok) {
+    // Keluhan lama: "download PDF belum berhasil" — FE dulu menelan error diam-diam (return).
+    throw await downloadError(res, 'Gagal mengunduh transkrip');
+  }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -496,9 +504,22 @@ export async function downloadTranscriptPdf(): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+/** Baca pesan error dari respons download (body JSON {success:false, error:{message}}). */
+async function downloadError(res: Response, fallback: string): Promise<ApiError> {
+  try {
+    const body = (await res.json()) as { error?: { message?: string; code?: string } };
+    if (body?.error?.message) {
+      return new ApiError(res.status, body.error.code ?? 'DOWNLOAD_FAILED', body.error.message);
+    }
+  } catch {
+    /* body bukan JSON — pakai fallback */
+  }
+  return new ApiError(res.status, 'DOWNLOAD_FAILED', fallback);
+}
+
 /* ==== T1.5 + keluhan lama — KRS PDF ==== */
 
-/** GET /krs/my/download — unduh PDF KRS (blob + trigger download; status submitted/approved). */
+/** GET /krs/my/download — unduh PDF KRS (blob + trigger download; status approved). */
 export async function downloadKrsPdf(): Promise<void> {
   const token = getAccessToken();
   if (!token) return;
@@ -512,7 +533,9 @@ export async function downloadKrsPdf(): Promise<void> {
       headers: { Authorization: `Bearer ${getAccessToken()}` },
     });
   }
-  if (!res.ok) return;
+  if (!res.ok) {
+    throw await downloadError(res, 'Gagal mengunduh PDF KRS');
+  }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

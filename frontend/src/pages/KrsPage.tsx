@@ -139,6 +139,17 @@ export function KrsPage() {
     [picked, load],
   );
 
+  // Keluhan lama: "download PDF belum berhasil" — tampilkan pesan error bila unduhan gagal
+  // (sebelumnya downloadKrsPdf menelan error diam-diam).
+  const handleDownload = useCallback(async () => {
+    setActionError(null);
+    try {
+      await downloadKrsPdf();
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : 'Gagal mengunduh PDF KRS');
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="flex justify-center py-20" role="status" aria-label="Memuat">
@@ -181,10 +192,11 @@ export function KrsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {(status === 'submitted' || status === 'approved') && (
+          {/* Keluhan lama: "KRS yang sudah disetujui bisa di download PDF" — tombol hanya utk approved */}
+          {status === 'approved' && (
             <button
               type="button"
-              onClick={() => void downloadKrsPdf()}
+              onClick={() => void handleDownload()}
               className="rounded-md border border-primary-300 px-3 py-1 text-xs font-medium text-primary-700 transition hover:bg-primary-50"
             >
               Download PDF
