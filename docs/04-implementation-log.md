@@ -1813,3 +1813,9 @@ Refinement pada Waiting Room MVP (T1.13) untuk produksi:
 - Resolver login deterministik: prioritas **email > NIM > NIK > NIDN**; NIM mahasiswa menang atas NIDN dosen saat bentrok (keamanan: cegah salah-akun).
 - Produksi: `NODE_ENV=production` mewajibkan `DATABASE_URL` + `REDIS_URL` + `JWT_SECRET` (fail-fast di `config/env.ts`); migrasi cukup sekali via `DATABASE_URL=... npx node-pg-migrate up`; admin seed `admin@siak.local`/`Admin123!` **wajib ganti password** setelah deploy.
 - WebSocket waiting-room tidak diteruskan proxy Vercel → fallback polling sudah di-handle aplikasi.
+
+### Iterasi 6b (2026-08-10) — Fix Blocker Deploy Native (Render)
+
+1. **`TS2688: Cannot find type definition file for 'jest'`** (build Render) — `NODE_ENV=production` membuat `npm ci` skip devDependencies → `@types/jest` (devDep) hilang → `tsc` gagal (`@types/node` tetap ada transitif dari `@types/multer`, makanya error khusus `jest`). Fix: Build Command Render `npm ci --include dev && npm run build` (terverifikasi probe npm 10.9.2).
+2. **`ENOENT dist/modules/waiting-room/waiting-room.lua`** (start Render) — `tsc` tidak menyalin file non-TS; `waiting-room.service.ts:22` membaca `waiting-room.lua` via `__dirname` saat startup. Dockerfile lama menanganinya via `COPY`, native build tidak. Fix: script `build` di `backend/package.json` kini `tsc -p tsconfig.build.json && node -e "...mkdirSync + copyFileSync..."` (cross-platform). Terverifikasi: `npm run build` → lua tersalin identik; boot `node dist/index.js` (PORT 3999) → health `GET /api/v1/health` `200 {"status":"ok"}`.
+3. **`REDIS_URL: Invalid url`** (start Render) — validasi Zod `z.string().url()` gagal pada nilai di dashboard (terverifikasi probe: format benar `rediss://default:...@host:6379` OK; kutip/`rediss//`/token polos FAIL). Fix pemilik: paste ulang connection string dari console Upstash (tombol Connect → Node.js), tanpa tanda kutip, lalu **deploy baru** (Render tidak auto-redeploy saat env diubah).

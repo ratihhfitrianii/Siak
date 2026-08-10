@@ -62,10 +62,13 @@ DATABASE_URL="<neon-url>" npx node-pg-migrate up
    | Field | Nilai |
    |---|---|
    | Root Directory | `backend` |
-   | Build Command | `npm ci && npm run build` |
+   | Build Command | `npm ci --include dev && npm run build` |
    | Start Command | `npm start` |
    | NODE_VERSION | `22` |
    | Health Check Path | `/api/v1/health` |
+
+   > ⚠️ **Pitfall `TS2688: Cannot find type definition file for 'jest'`**: env var `NODE_ENV=production` membuat `npm ci` **me-skip devDependencies** → `@types/jest` (devDep) tidak ter-install → `tsc` gagal. (Type `node` tetap ada karena transitif dari prod-dep `@types/multer`, jadi error muncul khusus `jest`.) Solusi: tambahkan `--include dev` di Build Command seperti di atas — memaksa devDeps ter-install untuk build, tanpa memengaruhi runtime (Start Command `npm start` tetap pakai prod-dep saja). Terverifikasi lokal (npm 10.9.2, probe install + `npm run build` exit 0).
+   > ⚠️ **Pitfall `ENOENT dist/modules/waiting-room/waiting-room.lua`**: `tsc` tidak menyalin file non-TS. `waiting-room.service.ts` membaca `waiting-room.lua` via `__dirname` saat startup, jadi file wajib ada di `dist/`. Sejak commit fix, script `npm run build` sudah otomatis menyalinnya (`tsc ... && node -e "...copyFileSync..."`), jadi **tidak perlu ubah apa pun di Render** — cukup redeploy setelah commit ter-push.
 3. Environment variables (isi di dashboard — **bukan** di repo):
    | Variable | Nilai |
    |---|---|
