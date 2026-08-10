@@ -1772,7 +1772,7 @@ Refinement pada Waiting Room MVP (T1.13) untuk produksi:
 
 ### Catatan Teknis
 
-1. **Login NIM/NIK**: Backend query `UNION ALL` 3 leg (email, students.nim, lecturers.nik/nidn) dengan filter role per leg → menghindari collision NIM=NIK. Seed E2E: mahasiswa `E2E0001`, dosen `E2EDS001`.
+1. **Login NIM/NIK**: Backend query `UNION ALL` 4 leg (email, students.nim, lecturers.nik, lecturers.nidn) dengan `match_priority` + `LIMIT 1` → deterministik saat identifier bentrok (NIM mahasiswa = NIDN dosen, regresi E2E CI teratasi 2026-08-10). Seed E2E: mahasiswa `E2E0001`, dosen NIK `E2EDS001` / NIDN `E2E9001` (tidak bentrok).
 2. **normalizePayment**: Backend return snake_case (`semester_id`, `total_amount`, `paid_amount`, `due_date`) → FE normalisasi ke camelCase; critical untuk halaman Pembayaran mahasiswa.
 3. **Threshold coverage branch backend 75%** (diturunkan dari 80% utk kompatibilitas modul lama) — sudah didokumenkan di `03-execution-plan.md`.
 4. **node-pg-migrate v7.9.0** tetap (vuln-free); migration V018 di-apply manual via SQL di container.
@@ -1787,3 +1787,29 @@ Refinement pada Waiting Room MVP (T1.13) untuk produksi:
 ---
 
 **Iterasi 5 (T5.1–T5.7 + Gap Closing) — SELESAI & TERVERIFIKASI SEMUA GATE CI ✅**
+
+---
+
+## Iterasi 6 (2026-08-10) — Fix CI Regresi + Deploy Prep Free Tier PaaS
+
+### Ringkasan
+
+1. **Fix regresi CI (E2E logout)** — root cause: NIM mahasiswa `E2E0001` bentrok dengan NIDN dosen `E2E0001` di seed → resolver login `UNION` lama mengembalikan 2 baris dan `rows[0]` tidak deterministik → login kadang masuk akun dosen (dashboard dosen tanpa teks "Selamat datang") → test 8 logout timeout. Fix: resolver jadi `UNION ALL` 4 leg + kolom `match_priority` (email 1 > NIM 2 > NIK 3 > NIDN 4) + `ORDER BY match_priority LIMIT 1`; NIDN dosen seed diubah ke `E2E9001`; regression test ditambahkan di `auth.test.ts`. Juga memperbaiki `database.json` (missing newline → prettier `format:check` hijau lagi).
+2. **Deploy prep — free tier PaaS** — `frontend/vercel.json` (rewrite `/api/*` → backend + SPA fallback) + runbook `docs/deployment-paas-free.md`: Vercel (FE statis) + Render (BE Node persisten) + Neon (Postgres) + Upstash (Redis), semua free tier. Backend **tidak** di Vercel karena butuh proses persisten (Socket.io + 3 scheduler `setInterval` + pg pool + PDFKit). Eksekusi deploy manual oleh pemilik (akun + env vars), mengikuti runbook.
+
+### Quality Gates
+
+| Gate | Hasil |
+|---|---|
+| Backend test | **625/625 pass** (bertambah 1: regression bentrok NIM=NIDN) |
+| Backend coverage | **85.34 / 75.34 / 85.53 / 85.88** (threshold 75/75/80/80 ✓) |
+| Backend lint / typecheck / format | hijau (0 error; prettier clean incl. `database.json`) |
+| Frontend test | **149/149 pass** |
+| E2E Playwright | **9/9 pass** (test 8 logout hijau kembali) |
+| CI GitHub Actions | **hijau** (konfirmasi pemilik) |
+
+### Catatan Teknis
+
+- Resolver login deterministik: prioritas **email > NIM > NIK > NIDN**; NIM mahasiswa menang atas NIDN dosen saat bentrok (keamanan: cegah salah-akun).
+- Produksi: `NODE_ENV=production` mewajibkan `DATABASE_URL` + `REDIS_URL` + `JWT_SECRET` (fail-fast di `config/env.ts`); migrasi cukup sekali via `DATABASE_URL=... npx node-pg-migrate up`; admin seed `admin@siak.local`/`Admin123!` **wajib ganti password** setelah deploy.
+- WebSocket waiting-room tidak diteruskan proxy Vercel → fallback polling sudah di-handle aplikasi.
