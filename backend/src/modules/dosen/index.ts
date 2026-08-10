@@ -34,11 +34,22 @@ export function createDosenRouter(): Router {
     authorize('lecturer.select_course'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { semesterId } = req.query;
+        const { semesterId, search } = req.query;
         if (!semesterId) {
           return res.status(400).json({ success: false, error: 'semesterId required' });
         }
         const semId = Number(semesterId as string);
+
+        // Validate search param: min 3 chars if provided
+        if (
+          search &&
+          typeof search === 'string' &&
+          search.trim().length > 0 &&
+          search.trim().length < 3
+        ) {
+          return res.status(400).json({ success: false, error: 'search minimal 3 karakter' });
+        }
+        const searchTerm = search && typeof search === 'string' ? search.trim() : '';
 
         // Get lecturer profile from user
         const lecturerRes = await pgPool.query(
@@ -49,6 +60,22 @@ export function createDosenRouter(): Router {
           return res.status(404).json({ success: false, error: 'Lecturer profile not found' });
         }
         const lecturer = lecturerRes.rows[0];
+
+        // Build WHERE conditions
+        const whereConditions = [
+          'cur.prodi_id = $1',
+          'cur.semester_id = $2',
+          'c.is_active',
+          'l.id = $3',
+        ];
+        const params: (number | string)[] = [lecturer.prodi_id, semId, lecturer.id];
+        let paramIndex = 3;
+
+        if (searchTerm) {
+          paramIndex++;
+          whereConditions.push(`(c.name ILIKE $${paramIndex} OR c.code ILIKE $${paramIndex})`);
+          params.push(`%${searchTerm}%`);
+        }
 
         // Get curricula for this lecturer's prodi + semester (only active, with available capacity)
         const result = await pgPool.query(
@@ -70,13 +97,10 @@ export function createDosenRouter(): Router {
            LEFT JOIN classes cl ON cl.curriculum_id = cur.id
            LEFT JOIN lecturer_course_selections lcs 
              ON lcs.curriculum_id = cur.id AND lcs.lecturer_id = l.id
-           WHERE cur.prodi_id = $1 
-             AND cur.semester_id = $2
-             AND c.is_active
-             AND l.id = $3
+           WHERE ${whereConditions.join(' AND ')}
            GROUP BY cur.id, c.code, c.name, c.credits, cur.semester_number, cur.is_mandatory, lcs.id, lcs.status, lcs.priority, lcs.notes
            ORDER BY cur.semester_number, c.code`,
-          [lecturer.prodi_id, semId, lecturer.id],
+          params,
         );
 
         res.json({ success: true, data: { items: result.rows } });

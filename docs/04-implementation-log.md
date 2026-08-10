@@ -1848,15 +1848,58 @@ Belum di-commit (working tree dirty, 15+ file termodifikasi). Menunggu `git add 
 
 ---
 
-### Open Items (Iterasi 7+)
+## Iterasi 8 (2026-08-10) — Gelombang 2: 6 Item Fitur Sedang (Legacy Keluhan)
 
-- [ ] Jalankan full CI backend test + E2E (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
-- [ ] Gelombang 2: 6 item kelengkapan fitur sedang (dari audit 31 item)
+### Ringkasan
+
+Mengimplementasikan **item #24: Dosen search matkul 3 huruf (typeahead) filter by prodi** dari `docs/list perbaikan.txt`.
+
+| # | Keluhan (Legacy) | File Terkait | Status |
+|---|------------------|--------------|--------|
+| 24 | Dosen: search matkul 3 huruf (typeahead) filter by prodi | `backend/src/modules/dosen/index.ts`, `frontend/src/pages/DosenSelectMK.tsx`, `frontend/src/lib/api.ts` | ✅ |
+
+### File Modified
+
+| File | Ringkasan Perubahan |
+|------|---------------------|
+| `backend/src/modules/dosen/index.ts` | `GET /dosen/courses/available`: tambah query param `search` (min 3 karakter); validasi 400 jika < 3; SQL `ILIKE` pada `c.name` OR `c.code` |
+| `frontend/src/lib/api.ts` | `getAvailableCourses(semesterId, search?)`: forward param `search` ke API |
+| `frontend/src/pages/DosenSelectMK.tsx` | Debounced search (300ms) → trigger API call; state `debouncedSearch`; hapus filter client-side `filteredCourses`; UI pakai `courses` langsung dari API |
+
+### Test Added / Updated
+
+| File | Test Baru |
+|------|-----------|
+| `backend/src/modules/dosen/dosen.test.ts` | `search=xxx (3 chars) → 200 filtered`; `search=ab (2 chars) → 400 min 3 chars`; `search= (empty) → 200 all items` |
+| `frontend/src/pages/DosenSelectMK.test.tsx` | `search memfilter daftar MK (debounced API call)` |
+
+### Quality Gates (Lokal)
+
+| Gate | Hasil |
+|------|-------|
+| Backend lint | ✅ |
+| Backend typecheck | ✅ |
+| Backend format:check | ✅ |
+| Frontend lint | ✅ |
+| Frontend typecheck | ✅ |
+| Frontend format:check | ✅ |
+| Frontend build | ✅ (bundle 80.64 kB gzip, <200 kB target) |
+| Frontend test:coverage | ✅ (26 files passed, coverage ≥80%) |
+| Backend test:coverage | ⏳ (butuh PostgreSQL lokal / Docker) |
+
+> **Catatan:** Backend test memerlukan PostgreSQL + Redis lokal. CI penuh (backend test) akan jalan di **GitHub Actions** (sudah punya workflow dengan Neon + service containers).
+
+---
+
+### Open Items (Iterasi 8+)
+
+- [ ] Jalankan full CI backend test (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
+- [ ] Gelombang 2 lanjutan: #4 Waiting room threshold 2000, #5 Fix download transkrip, #16 Admin master data + CSV import, #27 Bimbingan form searchable NIM/kelas, #48 Notifikasi pagination + mark all read
 - [ ] Gelombang 3: 7 item redesign UI besar (dari audit 31 item)
 
 ---
 
-**Iterasi 5 (T5.1–T5.7 + Gap Closing) — SELESAI & TERVERIFIKASI SEMUA GATE CI ✅**
+### Iterasi 5 (T5.1–T5.7 + Gap Closing) — SELESAI & TERVERIFIKASI SEMUA GATE CI ✅
 
 ---
 

@@ -410,6 +410,51 @@ describe('T3.1 Dosen Pilih MK', () => {
     expect(res.status).toBe(404);
     expect(res.body.error).toContain('Selection not found');
   });
+
+  // ============================================================
+  // Search feature: typeahead 3 huruf minimal
+  // ============================================================
+
+  it('GET /courses/available?search=xxx (3 chars) → 200 filtered by name/code', async () => {
+    const res = await request(app)
+      .get('/api/v1/dosen/courses/available')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .query({ semesterId, search: 'Pem' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+    // All returned items should match 'Pem' in name or code
+    for (const item of res.body.data.items) {
+      const matches =
+        item.course_name.toLowerCase().includes('pem') ||
+        item.course_code.toLowerCase().includes('pem');
+      expect(matches).toBe(true);
+    }
+  });
+
+  it('GET /courses/available?search=ab (2 chars) → 400 min 3 chars', async () => {
+    const res = await request(app)
+      .get('/api/v1/dosen/courses/available')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .query({ semesterId, search: 'ab' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toContain('search minimal 3 karakter');
+  });
+
+  it('GET /courses/available?search= (empty) → 200 all items', async () => {
+    const res = await request(app)
+      .get('/api/v1/dosen/courses/available')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .query({ semesterId, search: '' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+    expect(res.body.data.items.length).toBeGreaterThan(0);
+  });
 });
 
 describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {

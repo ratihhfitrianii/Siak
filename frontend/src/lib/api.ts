@@ -618,9 +618,11 @@ function normalizeCourseAvailable(r: Record<string, unknown>): LecturerCourseAva
 
 export async function getAvailableCourses(
   semesterId: number,
+  search?: string,
 ): Promise<LecturerCourseAvailableResponse> {
+  const qs = search ? `&search=${encodeURIComponent(search)}` : '';
   const rows = await apiRequest<Record<string, unknown>[]>(
-    `/dosen/courses/available?semesterId=${semesterId}`,
+    `/dosen/courses/available?semesterId=${semesterId}${qs}`,
   );
   return { items: rows.map(normalizeCourseAvailable) };
 }

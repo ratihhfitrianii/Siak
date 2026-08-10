@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getAvailableCourses, submitCourseSelection, getKrsPeriod } from '../lib/api';
 import type { LecturerCourseAvailable } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
 /**
- * Pilih MK (T3.7 + T3.8, perm lecturer.select_course) — filter prodi + cari MK.
+ * Pilih MK (T3.7 + T3.8, perm lecturer.select_course) — filter prodi + cari MK (typeahead 3 huruf).
  * Terhubung ke endpoint /dosen/courses/available dan /dosen/courses/select.
  * Semester aktif diambil dari GET /krs/period (periode KRS berjalan).
  */
@@ -12,11 +12,13 @@ export function DosenSelectMK() {
   const [semesterId, setSemesterId] = useState<number | null>(null);
   const [semesterLabel, setSemesterLabel] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [courses, setCourses] = useState<LecturerCourseAvailable[]>([]);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<number>>(new Set());
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Muat periode KRS aktif → set semester default
   useEffect(() => {
@@ -34,7 +36,22 @@ export function DosenSelectMK() {
       });
   }, []);
 
-  // Load available courses when semester changes
+  // Debounced search - trigger API call after 300ms
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchTerm]);
+
+  // Load available courses when semester OR debounced search changes
   useEffect(() => {
     if (!semesterId) {
       setCourses([]);
@@ -42,7 +59,7 @@ export function DosenSelectMK() {
     }
     setIsLoading(true);
     setError(null);
-    getAvailableCourses(semesterId)
+    getAvailableCourses(semesterId, debouncedSearch || undefined)
       .then((res) => {
         setCourses(res.items);
       })
@@ -52,13 +69,7 @@ export function DosenSelectMK() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [semesterId]);
-
-  const filteredCourses = courses.filter(
-    (course) =>
-      course.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.courseCode.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  }, [semesterId, debouncedSearch]);
 
   const toggleSelect = (curriculumId: number) => {
     setSelectedCourseIds((prev) => {
@@ -173,11 +184,15 @@ export function DosenSelectMK() {
           <p className="text-slate-500">Pilih semester untuk menampilkan daftar MK.</p>
         ) : isLoading ? (
           <p className="text-slate-500">Memuat daftar MK...</p>
-        ) : filteredCourses.length === 0 ? (
-          <p className="text-slate-500">Tidak ada mata kuliah yang sesuai dengan filter.</p>
+        ) : courses.length === 0 ? (
+          <p className="text-slate-500">
+            {debouncedSearch
+              ? 'Tidak ada mata kuliah yang sesuai dengan pencarian.'
+              : 'Tidak ada mata kuliah tersedia untuk prodi Anda di semester ini.'}
+          </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredCourses.map((course) => {
+            {courses.map((course) => {
               const isSelected = selectedCourseIds.has(course.curriculumId);
               const statusColors: Record<string, string> = {
                 belum_diajukan: 'bg-slate-100 text-slate-800',
