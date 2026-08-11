@@ -1972,7 +1972,7 @@ Mengimplementasikan **item #45: Filter tahun akademik saat download transkrip PD
 
 - [ ] Jalankan full CI backend test (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
 - [x] Gelombang 2 tuntas: #4 Waiting room threshold 2000, #5 Fix download transkrip (detail), #16 Admin master data + CSV import, #27 Bimbingan form searchable NIM/kelas, #48 Notifikasi pagination + mark all read
-- [ ] Gelombang 3 (7 klaster redesign UI dari audit 31): ~~1/7 Sidebar ikon + avatar dropdown (#5, #26)~~ ✅ Iterasi 14 — sisa: dashboard info universitas (#27), KRS 2 kolom (#28–30), tagihan (#14–16,24), PDF pilih tahun ajaran (#33), pilih MK 3 huruf (#18), daftar kelas (#35)
+- [ ] Gelombang 3 (7 klaster redesign UI dari audit 31): ~~1/7 Sidebar ikon + avatar dropdown (#5, #26)~~ ✅ Iterasi 14; ~~2/7 Dashboard info terkini universitas (#27)~~ ✅ Iterasi 16 — sisa: KRS 2 kolom (#28–30), tagihan (#14–16,24), PDF pilih tahun ajaran (#33), pilih MK 3 huruf (#18), daftar kelas (#35)
 
 ---
 
@@ -2184,6 +2184,46 @@ Estimasi dampak: `(0.7595 + 0.85×0.0276)/1.0276 ≈ 76.2%` branches → ≥75% 
 - Error shape `res.body.error.code` / `res.body.error.details.fields` terkonfirmasi dari `error-handler.ts` + pola `import.test.ts`.
 - File 0%/rendah lain (payroll, payment-gateway, pddikti-sync, cache, redis, metrics) **sudah ada sebelum #5** dan CI hijau — bukan penyebab regresi ini (modul terpisah, tidak ter-cover tapi tidak menurunkan melewati threshold).
 - Aksi user: `git push` commit `91eccd6` + commit ini → CI harus hijau (backend ~76.2%, frontend 80.15%).
+
+---
+
+### Iterasi 16 (2026-08-11) — Gelombang 3 item 2/7: Dashboard Info Terkini Universitas (keluhan #27)
+
+#### Ringkasan
+Keluhan #27 (mahasiswa): *"pada halaman dashboard, mahasiswa bisa melihat informasi terkini dari universitas, seperti info periode pengisian KRS, atau info penting lainnya"*.
+
+`DashboardPage` kini menampilkan section **"Info Terkini Universitas"** di bawah kartu aksi:
+
+1. **Kartu Periode Pengisian KRS** (hanya bila user punya permission `krs.*` — mahasiswa & admin akademik/sistem):
+   - Badge status **Buka** (hijau) / **Tutup** (abu) + pesan fallback saat closed.
+   - Kode semester (mis. `2025/2026-1`), nama periode (mis. `Ganjil 2025/2026`), rentang tanggal (format `id-ID`: "1 Agustus 2025 – 31 Agustus 2025").
+   - Label "Periode revisi" saat `isRevision`; CTA **"Isi KRS sekarang →"** ke `/krs` saat open.
+   - Sumber data: `GET /krs/period` (helper `getKrsPeriod` sudah ada).
+2. **Kartu Info Penting** (semua role): 3 notifikasi terbaru (`getMyNotifications(1, 3)`) dengan dot indikator belum-dibaca (primary) / dibaca (abu), judul + pesan + tanggal singkat, plus link **"Lihat semua"** → `/notifikasi`.
+
+Kedua fetch **opsional**: gagal → pesan fallback ("…tidak dapat dimuat"), dashboard tetap render (tidak crash). Hanya role dengan permission `krs.*` yang memicu fetch periode.
+
+#### File yang Diubah
+
+| File | Perubahan |
+|------|-----------|
+| `frontend/src/pages/DashboardPage.tsx` | Section Info Terkini: kartu Periode KRS + Info Penting (notifikasi terbaru); fetch opsional dengan fallback |
+| `frontend/src/pages/DashboardPage.test.tsx` | Mock api; +5 test baru (kartu periode, info penting, periode closed, fetch gagal → fallback, admin tanpa krs.* → tanpa kartu periode) |
+| `frontend/src/lib/types.ts` | `KrsPeriod.message?: string` (backend mengembalikan pesan saat closed) |
+
+#### Quality Gates (Lokal)
+
+| Gate | Hasil |
+|------|-------|
+| Frontend lint/typecheck/format | ✅ |
+| Frontend build | ✅ (bundle 82.57 kB gzip < 200 kB) |
+| Frontend test:coverage | ✅ (28/28 files, **173/173 tests** — +5 test; coverage 91.82/80.24/81.20) |
+| Backend | Tidak ada perubahan backend (endpoint `/krs/period` + notifikasi sudah ada) |
+
+#### Catatan Teknis
+- `KrsPeriod` TIDAK di-re-export dari `api.ts` (hanya di-import untuk tipe kembalian) → DashboardPage mengimpor tipe dari `../lib/types` (TS2724 jika dari `../lib/api`).
+- Test "periode" memakai `getAllByText(/Ganjil 2025\/2026/)` karena teks muncul di kartu periode DAN di pesan notifikasi mock (duplikat → `getByText` throws "multiple elements").
+- `DosenGuidance.test.tsx` sempat gagal 1× di full suite namun lulus saat dijalankan terpisah & lulus pada run ulang full suite (flaky timing, tidak terkait perubahan ini).
 
 ---
 

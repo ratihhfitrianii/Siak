@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DashboardPage } from './DashboardPage';
+import * as api from '../lib/api';
 
 let mockUser: {
   id: number;
@@ -20,6 +21,13 @@ let mockUser: {
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({ user: mockUser, booting: false, logout: vi.fn() }),
 }));
+
+vi.mock('../lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/api')>();
+  return { ...actual, getKrsPeriod: vi.fn(), getMyNotifications: vi.fn() };
+});
+
+const mockedApi = vi.mocked(api);
 
 const MAHASISWA = {
   id: 7,
@@ -49,6 +57,36 @@ const ADMIN = {
   menu: ['user.manage'],
 };
 
+const OPEN_PERIOD = {
+  id: 3,
+  semesterId: 5,
+  semesterCode: '2025/2026-1',
+  name: 'Ganjil 2025/2026',
+  startDate: '2025-08-01',
+  endDate: '2025-08-31',
+  isRevision: false,
+  status: 'open' as const,
+};
+
+const NOTIFS = [
+  {
+    id: 1,
+    title: 'Periode KRS dibuka',
+    message: 'Pengisian KRS Ganjil 2025/2026 telah dibuka.',
+    type: 'info',
+    isRead: false,
+    createdAt: '2026-08-01T08:00:00Z',
+  },
+  {
+    id: 2,
+    title: 'Jadwal pembayaran',
+    message: 'Pembayaran semester dapat dilakukan mulai pekan depan.',
+    type: 'info',
+    isRead: true,
+    createdAt: '2026-07-28T08:00:00Z',
+  },
+];
+
 function renderDashboard() {
   return render(
     <MemoryRouter>
@@ -57,7 +95,14 @@ function renderDashboard() {
   );
 }
 
-describe('DashboardPage (T1.11b)', () => {
+describe('DashboardPage (T1.11b + keluhan #27 info terkini)', () => {
+  beforeEach(() => {
+    mockedApi.getKrsPeriod.mockResolvedValue(OPEN_PERIOD);
+    mockedApi.getMyNotifications.mockResolvedValue({
+      items: NOTIFS,
+      pagination: { page: 1, limit: 3, total: 2, totalPages: 1, hasMore: false },
+    });
+  });
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -78,5 +123,72 @@ describe('DashboardPage (T1.11b)', () => {
 
     expect(screen.getByText('Kelola Pengguna')).toBeInTheDocument();
     expect(screen.queryByText('Transkrip')).not.toBeInTheDocument();
+  });
+
+  it('keluhan #27 — mahasiswa melihat kartu Periode KRS (status, semester, tanggal)', async () => {
+    mockUser = MAHASISWA;
+    renderDashboard();
+
+    expect(await screen.findByText('Periode Pengisian KRS')).toBeInTheDocument();
+    expect(screen.getByText('Buka')).toBeInTheDocument();
+    expect(screen.getByText('2025/2026-1')).toBeInTheDocument();
+    // Muncul di kartu periode + mungkin di pesan notifikasi → pakai getAllByText
+    expect(screen.getAllByText(/Ganjil 2025\/2026/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/1 Agustus 2025/)).toBeInTheDocument();
+    expect(mockedApi.getKrsPeriod).toHaveBeenCalledTimes(1);
+  });
+
+  it('keluhan #27 — Info Penting menampilkan notifikasi terbaru + link Lihat semua', async () => {
+    mockUser = MAHASISWA;
+    renderDashboard();
+
+    expect(await screen.findByText('Info Penting')).toBeInTheDocument();
+    expect(screen.getByText('Periode KRS dibuka')).toBeInTheDocument();
+    expect(screen.getByText('Jadwal pembayaran')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Lihat semua' })).toHaveAttribute(
+      'href',
+      '/notifikasi',
+    );
+    expect(mockedApi.getMyNotifications).toHaveBeenCalledWith(1, 3);
+  });
+
+  it('periode closed → badge Tutup + pesan fallback, tanpa link Isi KRS', async () => {
+    mockedApi.getKrsPeriod.mockResolvedValue({
+      id: 0,
+      semesterId: 0,
+      semesterCode: '',
+      name: '',
+      startDate: null,
+      endDate: null,
+      isRevision: false,
+      status: 'closed',
+      message: 'Tidak ada periode KRS yang sedang buka',
+    });
+    mockUser = MAHASISWA;
+    renderDashboard();
+
+    expect(await screen.findByText('Tutup')).toBeInTheDocument();
+    expect(screen.getByText(/Tidak ada periode KRS yang sedang buka/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Isi KRS sekarang/ })).not.toBeInTheDocument();
+  });
+
+  it('fetch gagal → dashboard tetap render dengan pesan fallback (tidak crash)', async () => {
+    mockedApi.getKrsPeriod.mockRejectedValue(new Error('network'));
+    mockedApi.getMyNotifications.mockRejectedValue(new Error('network'));
+    mockUser = MAHASISWA;
+    renderDashboard();
+
+    expect(await screen.findByText(/Info periode tidak dapat dimuat/)).toBeInTheDocument();
+    expect(screen.getByText(/Info penting tidak dapat dimuat/)).toBeInTheDocument();
+    expect(screen.getByText('Selamat datang, Budi')).toBeInTheDocument();
+  });
+
+  it('admin tanpa permission krs.* → tidak ada kartu Periode KRS, Info Penting tetap ada', async () => {
+    mockUser = ADMIN;
+    renderDashboard();
+
+    expect(await screen.findByText('Info Penting')).toBeInTheDocument();
+    expect(screen.queryByText('Periode Pengisian KRS')).not.toBeInTheDocument();
+    expect(mockedApi.getKrsPeriod).not.toHaveBeenCalled();
   });
 });

@@ -24,6 +24,8 @@ export interface KrsPeriod {
   endDate: string | null;
   isRevision: boolean;
   status: 'open' | 'closed';
+  /** Pesan saat status closed (backend: "Tidak ada periode KRS yang sedang buka"). */
+  message?: string;
 }
 
 export interface AvailableClass {
