@@ -33,6 +33,8 @@ interface AuthContextValue {
   login: (identifier: string, password: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Refresh profil /users/me (dipakai setelah edit profil agar header ikut ter-update). */
+  refreshMe: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -100,9 +102,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshMe = useCallback(async () => {
+    const me = await apiRequest<MeUser>('/users/me');
+    setUser((u) =>
+      u ? { ...me, mustChangePassword: u.mustChangePassword || me.mustChangePassword } : me,
+    );
+  }, []);
+
   const value = useMemo(
-    () => ({ user, booting, login, changePassword, logout }),
-    [user, booting, login, changePassword, logout],
+    () => ({ user, booting, login, changePassword, logout, refreshMe }),
+    [user, booting, login, changePassword, logout, refreshMe],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

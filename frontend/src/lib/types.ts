@@ -196,6 +196,13 @@ export interface ImportResult {
   failed: Array<{ row: number; reason: string }>;
 }
 
+// ==== #5/#26 (Gelombang 3): Edit Profil — PUT /users/me/contact ====
+
+export interface UpdateContactInput {
+  fullName?: string;
+  email?: string;
+}
+
 export interface PaginationParams {
   page?: number;
   limit?: number;

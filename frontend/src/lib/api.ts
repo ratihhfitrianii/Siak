@@ -26,6 +26,7 @@ import type {
   CreateMasterStudentInput,
   CreateMasterLecturerInput,
   ImportResult,
+  UpdateContactInput,
 } from './types';
 
 export class ApiError extends Error {
@@ -1069,4 +1070,14 @@ export async function importMasterCsv(
   }
   const body = (await res.json()) as { data?: ImportResult };
   return body.data as ImportResult;
+}
+
+/** PUT /users/me/contact — edit profil sendiri (keluhan #26: dropdown avatar → Edit Profil). */
+export async function updateMyContact(
+  input: UpdateContactInput,
+): Promise<{ id: number; email: string; fullName: string; message: string }> {
+  return apiRequest<{ id: number; email: string; fullName: string; message: string }>(
+    '/users/me/contact',
+    { method: 'PUT', body: input },
+  );
 }

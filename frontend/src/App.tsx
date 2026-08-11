@@ -43,6 +43,9 @@ const UsersPage = lazy(() => import('./pages/UsersPage').then((m) => ({ default:
 const AdminMasterPage = lazy(() =>
   import('./pages/AdminMasterPage').then((m) => ({ default: m.AdminMasterPage })),
 );
+const ProfilePage = lazy(() =>
+  import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage })),
+);
 const WaitingRoomPage = lazy(() =>
   import('./pages/WaitingRoomPage').then((m) => ({ default: m.WaitingRoomPage })),
 );
@@ -163,6 +166,17 @@ export default function App() {
               <ProtectedRoute perm="user.manage">
                 <AppLayout>
                   <AdminMasterPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Keluhan #26: Edit Profil (mahasiswa & admin_sistem — permission user.edit_contact) */}
+          <Route
+            path="/profil"
+            element={
+              <ProtectedRoute perm="user.edit_contact">
+                <AppLayout>
+                  <ProfilePage />
                 </AppLayout>
               </ProtectedRoute>
             }

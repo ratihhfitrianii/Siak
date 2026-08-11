@@ -35,7 +35,8 @@ const MAHASISWA = {
   mustChangePassword: false,
   studentId: 7,
   createdAt: '2026-01-01T00:00:00Z',
-  menu: ['krs.fill', 'krs.view_classes', 'transcript.view_own'],
+  // user.edit_contact → dropdown avatar menampilkan "Edit Profil" (keluhan #26)
+  menu: ['krs.fill', 'krs.view_classes', 'transcript.view_own', 'user.edit_contact'],
 };
 
 const ADMIN_SISTEM = {
@@ -49,7 +50,7 @@ const ADMIN_SISTEM = {
   mustChangePassword: false,
   studentId: null,
   createdAt: '2026-01-01T00:00:00Z',
-  menu: ['user.manage', 'audit.view'],
+  menu: ['user.manage', 'audit.view', 'user.edit_contact'],
 };
 
 const ADMIN_KEUANGAN = {
@@ -88,12 +89,20 @@ function renderLayout() {
       <Routes>
         <Route path="/" element={<AppLayout>KONTEN_UTAMA</AppLayout>} />
         <Route path="/login" element={<div>HALAMAN_LOGIN</div>} />
+        <Route path="/profil" element={<div>HALAMAN_PROFIL</div>} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
-describe('AppLayout (T1.11d — polish)', () => {
+/** Buka dropdown avatar (keluhan #26) — helper umum. */
+async function openAvatarMenu(user: typeof MAHASISWA | typeof DOSEN = MAHASISWA) {
+  mockUser = user;
+  renderLayout();
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Menu pengguna' }));
+}
+
+describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avatar)', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -108,8 +117,6 @@ describe('AppLayout (T1.11d — polish)', () => {
     mockUser = MAHASISWA;
     renderLayout();
 
-    expect(screen.getByText('Budi')).toBeInTheDocument();
-    expect(screen.getByText('Mahasiswa')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'KRS' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Transkrip' })).toBeInTheDocument();
@@ -124,12 +131,23 @@ describe('AppLayout (T1.11d — polish)', () => {
     expect(screen.getByText('KONTEN_UTAMA')).toBeInTheDocument();
   });
 
-  it('admin_sistem → hanya menu User (Nilai/Audit masih ComingSoon → disembunyikan)', () => {
+  it('keluhan #5 — menu berupa ikon + tooltip penjelasan singkat (hover)', () => {
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    // Tooltip berisi label + deskripsi singkat (penjelasan menu saat hover).
+    expect(screen.getByText('Isi dan lihat Kartu Rencana Studi')).toBeInTheDocument();
+    expect(screen.getByText('Lihat transkrip nilai')).toBeInTheDocument();
+    // Ikon sidebar: menu Dashboard memiliki title (tooltip native browser).
+    expect(screen.getByTitle('Dashboard')).toBeInTheDocument();
+  });
+
+  it('admin_sistem → hanya menu User & Master (Nilai/Audit ComingSoon disembunyikan)', () => {
     mockUser = ADMIN_SISTEM;
     renderLayout();
 
     expect(screen.getByRole('link', { name: 'User' })).toBeInTheDocument();
-    // T5.3: Audit/Nilai adalah dead-end (ComingSoon) → tidak diiklankan di menu
+    expect(screen.getByRole('link', { name: 'Master' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Audit' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'KRS' })).not.toBeInTheDocument();
@@ -159,13 +177,49 @@ describe('AppLayout (T1.11d — polish)', () => {
     expect(screen.queryByRole('link', { name: 'Tagihan' })).not.toBeInTheDocument();
   });
 
+  it('keluhan #26 — header hanya ikon orang; klik → dropdown (nama, role, Edit Profil, Ganti Password, Keluar)', async () => {
+    const user = userEvent.setup();
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    // Header TIDAK menampilkan nama/role langsung (hanya ikon orang).
+    expect(screen.queryByText('Budi')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Menu pengguna' }));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(screen.getByText('Budi')).toBeInTheDocument();
+    expect(screen.getByText('Mahasiswa')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Edit Profil' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Ganti Password' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Keluar' })).toBeInTheDocument();
+  });
+
+  it('keluhan #26 — dropdown avatar: Edit Profil → /profil', async () => {
+    const user = userEvent.setup();
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: 'Menu pengguna' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Edit Profil' }));
+
+    expect(await screen.findByText('HALAMAN_PROFIL')).toBeInTheDocument();
+  });
+
+  it('keluhan #26 — tanpa permission user.edit_contact (dosen) → Edit Profil tidak tampil', async () => {
+    await openAvatarMenu(DOSEN);
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Edit Profil' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Ganti Password' })).toBeInTheDocument();
+  });
+
   it('Keluar → logout dipanggil lalu pindah ke /login', async () => {
     const user = userEvent.setup();
     mockUser = MAHASISWA;
     mockLogout.mockResolvedValue(undefined);
     renderLayout();
 
-    await user.click(screen.getByRole('button', { name: 'Keluar' }));
+    await user.click(screen.getByRole('button', { name: 'Menu pengguna' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Keluar' }));
 
     expect(mockLogout).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('HALAMAN_LOGIN')).toBeInTheDocument();

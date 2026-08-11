@@ -1,24 +1,83 @@
-import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import { getMyNotifications } from '../lib/api';
 
+/**
+ * Ikon menu (inline SVG stroke — pola sama dengan ikon lonceng di header).
+ * Keluhan #5: "navbar menu ubah menjadi ikon2 sidebar, jika di handover muncul
+ * penjelasan singkat menu tersebut" — menu dirender sebagai ikon di sidebar kiri,
+ * tooltip (CSS) muncul saat hover dengan label + deskripsi singkat.
+ */
+const ICON_PATHS: Record<string, string> = {
+  home: 'M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10',
+  document:
+    'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+  clipboard:
+    'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
+  users:
+    'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z',
+  database:
+    'M4 7v10c0 1.657 3.582 3 8 3s8-1.343 8-3V7M4 7c0 1.657 3.582 3 8 3s8-1.343 8-3M4 7c0-1.657 3.582-3 8-3s8 1.343 8 3',
+  card: 'M3 10h18M7 15h3M6 6h12a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2z',
+  receipt:
+    'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+  user: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+};
+
 /** Mapping permission → item menu (RBAC UI: menu disaring dari /users/me, bukan hardcode per role). */
-const MENU_ITEMS: { permissions: string[]; label: string; path: string }[] = [
-  { permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'], label: 'KRS', path: '/krs' },
+const MENU_ITEMS: {
+  permissions: string[];
+  label: string;
+  path: string;
+  icon: string;
+  description: string;
+}[] = [
+  {
+    permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
+    label: 'KRS',
+    path: '/krs',
+    icon: 'document',
+    description: 'Isi dan lihat Kartu Rencana Studi',
+  },
   {
     permissions: ['transcript.view_own', 'transcript.view_mentee'],
     label: 'Transkrip',
     path: '/transkrip',
+    icon: 'clipboard',
+    description: 'Lihat transkrip nilai',
   },
-  { permissions: ['user.manage'], label: 'User', path: '/users' },
+  {
+    permissions: ['user.manage'],
+    label: 'User',
+    path: '/users',
+    icon: 'users',
+    description: 'Kelola pengguna sistem',
+  },
   // Keluhan #16: Master Data — admin sistem melihat master mahasiswa/dosen, input manual atau CSV.
-  { permissions: ['user.manage'], label: 'Master', path: '/admin/master' },
+  {
+    permissions: ['user.manage'],
+    label: 'Master',
+    path: '/admin/master',
+    icon: 'database',
+    description: 'Master data mahasiswa & dosen',
+  },
   // T5.3: 'Pembayaran' = tagihan mahasiswa (krs.fill); 'Tagihan' = kelola pembayaran admin keuangan (payment.update).
   // Sebelumnya keduanya digabung ke 'Pembayaran' (payment.*) → admin keuangan dapat 403 di /pembayaran.
-  { permissions: ['krs.fill'], label: 'Pembayaran', path: '/pembayaran' },
-  { permissions: ['payment.update'], label: 'Tagihan', path: '/keuangan/tagihan' },
+  {
+    permissions: ['krs.fill'],
+    label: 'Pembayaran',
+    path: '/pembayaran',
+    icon: 'card',
+    description: 'Tagihan pembayaran Anda',
+  },
+  {
+    permissions: ['payment.update'],
+    label: 'Tagihan',
+    path: '/keuangan/tagihan',
+    icon: 'receipt',
+    description: 'Kelola tagihan pembayaran',
+  },
   // 'Nilai' & 'Audit' sengaja TIDAK di-menu: route-nya masih ComingSoon (dead-end). Dosen memakai tab Nilai di dashboard.
 ];
 
@@ -44,11 +103,27 @@ const HIDDEN_MENU_BY_ROLE: Record<string, string[]> = {
   dosen: ['/transkrip'],
 };
 
-/** Layout shell: navbar sticky + konten (T1.11a). */
+function MenuIcon({ path }: { path: string }) {
+  return (
+    <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={path} />
+    </svg>
+  );
+}
+
+/**
+ * Layout shell (T1.11a + keluhan #5 & #26):
+ * - Sidebar kiri berisi menu berupa ikon; hover → tooltip "penjelasan singkat" (label + deskripsi).
+ * - Header ramping: logo, lonceng notifikasi, dan IKON ORANG (avatar) — hover → tooltip;
+ *   klik → dropdown (Edit Profil [bila permission user.edit_contact], Ganti Password, Keluar).
+ * - Responsif: di layar kecil sidebar menjadi bar ikon horizontal di bawah header.
+ */
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [unread, setUnread] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // T2.5: badge notifikasi unread — fetch ringan saat mount (polling 60s; tidak menggagalkan layout).
   // Keluhan lama: "ketika notifikasi dibaca, ikon lonceng tidak berubah" — AppLayout juga
@@ -76,6 +151,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
+  // Keluhan #26: dropdown avatar — tutup saat klik di luar menu.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [menuOpen]);
+
   if (!user) {
     return null;
   }
@@ -84,56 +169,77 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const menu = MENU_ITEMS.filter(
     (item) => !hidden.includes(item.path) && item.permissions.some((p) => user.menu.includes(p)),
   );
+  const canEditContact = user.menu.includes('user.edit_contact');
 
   async function handleLogout() {
+    setMenuOpen(false);
     await logout();
     navigate('/login', { replace: true });
   }
 
+  const navItemClass = ({ isActive }: { isActive: boolean }) =>
+    `group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition ${
+      isActive
+        ? 'bg-primary-50 text-primary-700'
+        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+    }`;
+
   return (
     <div className="min-h-screen bg-slate-100">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <NavLink to="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white">
-              S
-            </span>
-            <span className="text-lg font-bold text-slate-900">Siak</span>
+      {/* Sidebar ikon — desktop: kolom vertikal di kiri; mobile: bar horizontal di bawah header. */}
+      <aside className="fixed inset-x-0 top-14 z-30 border-b border-slate-200 bg-white md:inset-y-0 md:left-0 md:top-0 md:w-16 md:flex-col md:border-b-0 md:border-r">
+        <div className="hidden items-center justify-center border-b border-slate-100 py-3 md:flex">
+          <NavLink
+            to="/"
+            aria-label="Beranda"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white"
+          >
+            S
           </NavLink>
-
-          <nav className="flex flex-1 flex-wrap items-center gap-1" aria-label="Menu utama">
-            <NavLink
-              to="/"
-              end
-              className={({ isActive }) =>
-                `rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  isActive ? 'bg-primary-50 text-primary-700' : 'text-slate-600 hover:bg-slate-100'
-                }`
-              }
-            >
+        </div>
+        <nav
+          aria-label="Menu utama"
+          className="flex items-center gap-1 overflow-x-auto px-2 py-1.5 md:flex-col md:overflow-visible md:px-0 md:py-2"
+        >
+          <NavLink to="/" end aria-label="Dashboard" title="Dashboard" className={navItemClass}>
+            <MenuIcon path={ICON_PATHS.home} />
+            <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
               Dashboard
-            </NavLink>
-            {menu.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                    isActive
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`
-                }
-              >
+              <span className="block text-[10px] font-normal text-slate-300">
+                Ringkasan aktivitas
+              </span>
+            </span>
+          </NavLink>
+          {menu.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              aria-label={item.label}
+              title={item.label}
+              className={navItemClass}
+            >
+              <MenuIcon path={ICON_PATHS[item.icon]} />
+              <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
                 {item.label}
-              </NavLink>
-            ))}
-          </nav>
+                <span className="block text-[10px] font-normal text-slate-300">
+                  {item.description}
+                </span>
+              </span>
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
 
-          <div className="flex items-center gap-3">
+      <div className="md:pl-16">
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+          <div className="flex h-14 items-center justify-between gap-3 px-4">
+            <span className="text-lg font-bold text-slate-900 md:hidden">Siak</span>
+            <div className="flex-1" />
+
             <NavLink
               to="/notifikasi"
               aria-label="Notifikasi"
+              title="Notifikasi"
               className="relative rounded-md p-2 text-slate-600 transition hover:bg-slate-100"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,28 +256,68 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 </span>
               )}
             </NavLink>
-            <div className="text-right">
-              <p className="text-sm font-semibold text-slate-900">{user.fullName}</p>
-              <p className="text-xs text-slate-500">{ROLE_LABEL[user.role] ?? user.roleName}</p>
-            </div>
-            <NavLink
-              to="/ganti-password"
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
-            >
-              Ganti Password
-            </NavLink>
-            <button
-              type="button"
-              onClick={() => void handleLogout()}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            >
-              Keluar
-            </button>
-          </div>
-        </div>
-      </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+            {/* Keluhan #26: header hanya menampilkan ikon orang; hover → tooltip; klik → dropdown. */}
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((o) => !o)}
+                aria-label="Menu pengguna"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                title="Menu pengguna"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+              >
+                <MenuIcon path={ICON_PATHS.user} />
+              </button>
+
+              {menuOpen && (
+                <div
+                  role="menu"
+                  aria-label="Menu pengguna"
+                  className="absolute right-0 top-full z-40 mt-2 w-60 rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                >
+                  <div className="border-b border-slate-100 px-4 py-3">
+                    <p className="text-sm font-semibold text-slate-900">{user.fullName}</p>
+                    <p className="text-xs text-slate-500">
+                      {ROLE_LABEL[user.role] ?? user.roleName}
+                    </p>
+                  </div>
+                  {canEditContact && (
+                    <NavLink
+                      to="/profil"
+                      role="menuitem"
+                      onClick={() => setMenuOpen(false)}
+                      className="block px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Edit Profil
+                    </NavLink>
+                  )}
+                  <NavLink
+                    to="/ganti-password"
+                    role="menuitem"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Ganti Password
+                  </NavLink>
+                  <div className="my-1 h-px bg-slate-100" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => void handleLogout()}
+                    className="block w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                  >
+                    Keluar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      </div>
     </div>
   );
 }

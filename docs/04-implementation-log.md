@@ -1972,7 +1972,7 @@ Mengimplementasikan **item #45: Filter tahun akademik saat download transkrip PD
 
 - [ ] Jalankan full CI backend test (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
 - [x] Gelombang 2 tuntas: #4 Waiting room threshold 2000, #5 Fix download transkrip (detail), #16 Admin master data + CSV import, #27 Bimbingan form searchable NIM/kelas, #48 Notifikasi pagination + mark all read
-- [ ] Gelombang 3: 7 item redesign UI besar (dari audit 31 item)
+- [ ] Gelombang 3 (7 klaster redesign UI dari audit 31): ~~1/7 Sidebar ikon + avatar dropdown (#5, #26)~~ ✅ Iterasi 14 — sisa: dashboard info universitas (#27), KRS 2 kolom (#28–30), tagihan (#14–16,24), PDF pilih tahun ajaran (#33), pilih MK 3 huruf (#18), daftar kelas (#35)
 
 ---
 
@@ -2105,6 +2105,46 @@ Keluhan #4: *"ubah jumlah maksimal ke 2000 mahasiswa login bersamaan"*. Threshol
 - `infra/.env.staging` tetap **1500** (sengaja: staging dikalibrasi lebih rendah untuk uji antrean; hanya produksi yang dinaikkan ke 2000 sesuai keluhan).
 - Histori docs lama (`04-implementation-log.md` Iterasi 1, `decision-log.md` DL-26, `planning-t1.13/14.md`) TIDAK diubah — mencatat keputusan saat itu (default 5000), bukan nilai saat ini.
 - Deploy ke Render/Neon/Upstash: nilai env `WAITING_ROOM_THRESHOLD` di dashboard perlu diset/ubah ke 2000 saat deploy berikutnya (Render tidak auto-redeploy saat env diubah — perlu Manual Deploy, lihat runbook `docs/deployment-paas-free.md`).
+
+---
+
+### Iterasi 14 (2026-08-11) — Gelombang 3 item 1/7: Sidebar Ikon + Header Avatar Dropdown (keluhan #5 & #26)
+
+#### Ringkasan
+Gelombang 3 = 7 klaster redesign UI besar (sisa audit 31 keluhan). Item 1 mencakup dua keluhan navigasi global:
+
+- **Keluhan #5**: *"navbar menu ubah menjadi ikon2 sidebar, jika di handover muncul penjelasan singkat menu tersebut"* — menu navbar horizontal → **sidebar ikon** (desktop: kolom vertikal kiri selebar 16; mobile: bar ikon horizontal di bawah header). Setiap ikon punya **tooltip hover** berisi label + deskripsi singkat (CSS tooltip `group-hover` + `title` native untuk aksesibilitas).
+- **Keluhan #26**: *"pada header hanya muncul ikon orang, yang jika di handover muncul penjelasan singkat … dan jika di klik muncul dapat mengedit user, mengubah password dan tombol keluar"* — header kini **hanya menampilkan ikon orang** (avatar); nama & role dipindah ke dalam **dropdown** yang terbuka saat avatar diklik: Edit Profil (hanya bila `user.edit_contact` — mahasiswa & admin_sistem), Ganti Password, Keluar. Dropdown ditutup saat klik di luar (pointerdown listener) atau setelah navigasi.
+
+**Halaman baru `ProfilePage`** (`/profil`, ProtectedRoute `user.edit_contact`): form Nama + Email → `PUT /users/me/contact` (endpoint sudah ada sejak Iterasi 1). Setelah sukses, `AuthContext.refreshMe()` (fungsi baru) me-refresh `/users/me` agar nama di header langsung ter-update.
+
+#### File yang Diubah
+
+| File | Perubahan |
+|------|-----------|
+| `frontend/src/components/AppLayout.tsx` | Rewrite: sidebar ikon + tooltip (keluhan #5); header ramping + avatar dropdown (keluhan #26); responsive (sidebar ↔ bar ikon horizontal) |
+| `frontend/src/components/AppLayout.test.tsx` | Adaptasi header baru + 4 test baru (tooltip deskripsi, dropdown avatar, Edit Profil → /profil, tanpa permission → Edit Profil tersembunyi) |
+| `frontend/src/pages/ProfilePage.tsx` | **Baru** — edit profil (nama + email) |
+| `frontend/src/pages/ProfilePage.test.tsx` | **Baru** — 4 test (nilai awal, submit sukses, nama kosong → undefined, error 409) |
+| `frontend/src/lib/api.ts` | `updateMyContact(input)` → PUT /users/me/contact |
+| `frontend/src/lib/types.ts` | `UpdateContactInput` |
+| `frontend/src/auth/AuthContext.tsx` | `refreshMe()` — re-fetch /users/me setelah edit profil |
+| `frontend/src/App.tsx` | Route `/profil` (ProtectedRoute perm user.edit_contact) |
+
+#### Quality Gates (Lokal)
+
+| Gate | Hasil |
+|------|-------|
+| Frontend lint/typecheck/format | ✅ |
+| Frontend build | ✅ (bundle 82.57 kB gzip < 200 kB) |
+| Frontend test:coverage | ✅ (28/28 files, **168/168 tests** pass — +8 test; coverage 91.67/80.15/81.04) |
+| Backend | Tidak ada perubahan backend (endpoint `/users/me/contact` sudah ada + teruji) |
+
+#### Catatan Teknis
+- Aksesibilitas: NavLink sidebar pakai `aria-label` = label menu (accessible name tetap sama dengan label, sehingga `getByRole('link', { name: 'KRS' })` di test lama tetap berlaku); tooltip `pointer-events-none` agar tidak mengganggu klik; avatar button `aria-haspopup="menu"` + `aria-expanded`.
+- Nama & role TIDAK lagi dirender langsung di header (keluhan #26 minta hanya ikon orang) — dipindah ke header dropdown; test lama `getByText('Budi')` disesuaikan.
+- `user.edit_contact` hanya untuk mahasiswa & admin_sistem (policy.ts) → dosen/admin lain dapat dropdown tanpa Edit Profil (konsisten dgn RBAC, bukan sekadar UI).
+- `refreshMe` mempertahankan `mustChangePassword` dari state lama (flag login F-18 tidak hilang saat refresh profil).
 
 ---
 
