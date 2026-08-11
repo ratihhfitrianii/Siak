@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { getMyPayments, getKrsAccess, ApiError } from '../lib/api';
-import type { MyPayment, KrsAccessResult } from '../lib/types';
+import { getMyPayments, getKrsAccess, getKrsPeriod, ApiError } from '../lib/api';
+import type { MyPayment, KrsAccessResult, KrsPeriod } from '../lib/types';
 
 /** Halaman Pembayaran Mahasiswa — T2.6
  * Menampilkan tagihan per semester (SPP, Gedung, Tes) + status + detail items.
@@ -12,6 +12,8 @@ export function MyPaymentPage() {
   const [activeSemesterId, setActiveSemesterId] = useState<number | null>(null);
   const [krsAccess, setKrsAccess] = useState<KrsAccessResult | null>(null);
 
+  const [krsPeriod, setKrsPeriod] = useState<KrsPeriod | null>(null);
+
   const checkKrsAccess = useCallback(async (semesterId: number) => {
     try {
       const access = await getKrsAccess(semesterId);
@@ -21,16 +23,33 @@ export function MyPaymentPage() {
     }
   }, []);
 
+  const loadKrsPeriod = useCallback(async () => {
+    try {
+      const period = await getKrsPeriod();
+      if (period.status === 'open') {
+        setKrsPeriod(period);
+      }
+    } catch {
+      // ignore - period not open
+    }
+  }, []);
+
   const loadPayments = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await getMyPayments();
       setPayments(data);
+      
+      // Load KRS period to know which semester is active for KRS
+      await loadKrsPeriod();
+      
       if (data.length > 0) {
         const latest = data[0];
         setActiveSemesterId(latest.semesterId);
-        await checkKrsAccess(latest.semesterId);
+        // Check KRS access for the active KRS period semester (if any), otherwise for latest payment semester
+        const krsSemesterId = krsPeriod?.semesterId ?? latest.semesterId;
+        await checkKrsAccess(krsSemesterId);
       }
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : 'Gagal memuat tagihan';
@@ -38,7 +57,11 @@ export function MyPaymentPage() {
     } finally {
       setLoading(false);
     }
-  }, [checkKrsAccess]);
+  }, [checkKrsAccess, loadKrsPeriod, krsPeriod]);
+
+  useEffect(() => {
+    loadKrsPeriod();
+  }, [loadKrsPeriod]);
 
   useEffect(() => {
     loadPayments();
