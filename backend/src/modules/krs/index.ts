@@ -64,6 +64,20 @@ function requireStudent(req: Request): number {
 }
 
 /** Ambil prodi mahasiswa (satu query). */
+async function assertPaymentStatus(studentId: number, semesterId: number): Promise<void> {
+  const res = await pgPool.query(
+    `SELECT status FROM payments WHERE student_id = $1 AND semester_id = $2`,
+    [studentId, semesterId],
+  );
+  if (res.rows.length > 0 && res.rows[0].status !== 'LUNAS') {
+    throw new AppError(
+      'PAYMENT_UNPAID',
+      'Halaman KRS tidak bisa diakses karena pembayaran semester ini belum lunas.',
+      403,
+    );
+  }
+}
+
 async function getStudentProdi(studentId: number): Promise<number> {
   const result = await pgPool.query('SELECT prodi_id FROM students WHERE id = $1', [studentId]);
   if (result.rows.length === 0) {
@@ -117,6 +131,7 @@ export function createKrsRouter(): Router {
         if (!period) {
           throw new AppError('KRS_PERIOD_CLOSED', 'Periode KRS tidak sedang buka', 403);
         }
+        await assertPaymentStatus(studentId, Number(period.semester_id));
 
         // T1.12: cache 30 detik — invalidasi saat KRS submit (§7.2)
         const cacheKey = cacheKeys.availableClasses(prodiId, Number(period.semester_id));
