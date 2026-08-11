@@ -4,6 +4,7 @@ import {
   getFinanceSemesters,
   updateFinancePayment,
   generateFinancePayments,
+  getFinancePayment,
   ApiError,
 } from '../lib/api';
 import type { Payment, PaymentStatus, SemesterOption } from '../lib/types';
@@ -33,6 +34,10 @@ export function FinancePaymentsPage() {
     total: 0,
     totalPages: 0,
   });
+
+  // Detail modal state
+  const [detailPayment, setDetailPayment] = useState<Payment | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   // Load payments when filters change
   const loadPayments = useCallback(async () => {
@@ -262,38 +267,54 @@ export function FinancePaymentsPage() {
                     {formatDate(payment.dueDate)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const current = payment.paidAmount;
-                        const total = payment.totalAmount;
-                        const remaining = total - current;
-                        if (remaining <= 0) {
-                          alert('Tagihan sudah lunas');
-                          return;
-                        }
-                        const input = prompt(
-                          `Update pembayaran untuk ${payment.nim} - ${payment.fullName}\n` +
-                            `Total: ${formatRupiah(total)}\n` +
-                            `Sudah dibayar: ${formatRupiah(current)}\n` +
-                            `Sisa: ${formatRupiah(remaining)}\n\n` +
-                            `Masukkan jumlah yang sudah dibayar (0-${total}):`,
-                          String(current),
-                        );
-                        if (input !== null) {
-                          const val = parseFloat(input);
-                          if (!isNaN(val) && val >= 0 && val <= total) {
-                            handleUpdateStatus(payment.id, val);
-                          } else {
-                            alert('Jumlah tidak valid');
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDetailLoading(true);
+                          getFinancePayment(payment.id)
+                            .then(setDetailPayment)
+                            .catch(() => alert('Gagal memuat detail'))
+                            .finally(() => setDetailLoading(false));
+                        }}
+                        disabled={detailLoading}
+                        className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
+                      >
+                        {detailLoading ? 'Memuat...' : 'Detail'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const current = payment.paidAmount;
+                          const total = payment.totalAmount;
+                          const remaining = total - current;
+                          if (remaining <= 0) {
+                            alert('Tagihan sudah lunas');
+                            return;
                           }
-                        }
-                      }}
-                      disabled={updating.has(payment.id) || payment.status === 'lunas'}
-                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {updating.has(payment.id) ? 'Mengupdate...' : 'Update'}
-                    </button>
+                          const input = prompt(
+                            `Update pembayaran untuk ${payment.nim} - ${payment.fullName}\n` +
+                              `Total: ${formatRupiah(total)}\n` +
+                              `Sudah dibayar: ${formatRupiah(current)}\n` +
+                              `Sisa: ${formatRupiah(remaining)}\n\n` +
+                              `Masukkan jumlah yang sudah dibayar (0-${total}):`,
+                            String(current),
+                          );
+                          if (input !== null) {
+                            const val = parseFloat(input);
+                            if (!isNaN(val) && val >= 0 && val <= total) {
+                              handleUpdateStatus(payment.id, val);
+                            } else {
+                              alert('Jumlah tidak valid');
+                            }
+                          }
+                        }}
+                        disabled={updating.has(payment.id) || payment.status === 'lunas'}
+                        className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {updating.has(payment.id) ? 'Mengupdate...' : 'Update'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -329,6 +350,96 @@ export function FinancePaymentsPage() {
           </div>
         )}
       </div>
+    {/* Detail Modal */}
+      {detailPayment && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setDetailPayment(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="detail-title"
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
+              <h3 id="detail-title" className="text-lg font-semibold text-slate-900">
+                Rincian Tagihan: {detailPayment.nim} - {detailPayment.fullName}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setDetailPayment(null)}
+                className="text-slate-500 hover:text-slate-700 text-2xl leading-none"
+                aria-label="Tutup"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Summary */}
+              <div className="bg-slate-50 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="md:col-span-2">
+                    <h4 className="font-medium text-slate-900">{detailPayment.semesterName}</h4>
+                    <p className="text-sm text-slate-500 mt-1">
+                      {detailPayment.prodiName} · Jatuh tempo: {formatDate(detailPayment.dueDate)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-slate-500">Total Tagihan</p>
+                    <p className="text-xl font-bold text-slate-900">{formatRupiah(detailPayment.totalAmount)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-slate-500">Status</p>
+                    <div className="mt-1">{getStatusBadge(detailPayment.status)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="rounded-lg border border-slate-200 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Jenis</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Keterangan</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Jumlah</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Wajib</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {detailPayment.items.map((item, idx) => (
+                      <tr key={item.id ?? idx} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">{item.type}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600">{item.description}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-slate-900">{formatRupiah(item.amount)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">{item.isMandatory ? '✓' : '—'}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-slate-50 font-semibold">
+                      <td colSpan={2} className="px-4 py-3 text-right text-sm text-slate-900">TOTAL</td>
+                      <td className="px-4 py-3 text-right text-sm text-slate-900">{formatRupiah(detailPayment.totalAmount)}</td>
+                      <td className="px-4 py-3 text-center"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <button
+                  type="button"
+                  onClick={() => setDetailPayment(null)}
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
