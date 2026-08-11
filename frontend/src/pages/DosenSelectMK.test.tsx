@@ -123,7 +123,7 @@ describe('DosenSelectMK (T3.8)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat daftar MK');
   });
 
-  it('search memfilter daftar MK (debounced API call)', async () => {
+  it('search memfilter daftar MK (debounced API call) dan mengirim query param search)', async () => {
     const user = userEvent.setup();
     render(<DosenSelectMK />);
     await screen.findByText('Dasar-Dasar Pemrograman');
@@ -134,15 +134,24 @@ describe('DosenSelectMK (T3.8)', () => {
     // Wait for debounced search to complete (300ms + API call)
     await new Promise((r) => setTimeout(r, 400));
 
-    // The test mock returns COURSES for all /dosen/courses/available calls
-    // So both courses will still be visible - this test validates the UI renders
-    // In real app, backend would filter; here we test debounce doesn't break
+    // Verify fetch called with search param
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/dosen/courses/available?semesterId=1&search=Struktur'),
+      expect.any(Object),
+    );
+
+    // UI still shows courses (mock returns all) – focus is on debounce behavior
     expect(screen.getByText('Struktur Data')).toBeInTheDocument();
     expect(screen.getByText('Dasar-Dasar Pemrograman')).toBeInTheDocument();
 
     // Clear search
     await user.clear(screen.getByPlaceholderText('Cari berdasarkan nama atau kode MK'));
     await new Promise((r) => setTimeout(r, 400));
+    // After clearing, fetch should be called without search param
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/dosen/courses/available?semesterId=1'),
+      expect.any(Object),
+    );
     expect(screen.getByText('Dasar-Dasar Pemrograman')).toBeInTheDocument();
   });
 
