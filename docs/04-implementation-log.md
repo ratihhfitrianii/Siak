@@ -1882,7 +1882,7 @@ Mengimplementasikan **item #27: Bimbingan form searchable NIM/kelas** dari `docs
 
 ### Referensi Commit
 
-Belum di-commit (working tree dirty, 15+ file termodifikasi). Menunggu `git add . && git commit -m "Gelombang 1: 8 bug fix cepat (keluhan legacy #3,29,20,11,15+8,26,6,2)" && git push` oleh pemilik.
+Commit: `d2b2f00` "Gelombang 1: 8 bug fix cepat (keluhan legacy #3,29,20,11,15+8,26,6,2)" — sudah di-commit (Mon Aug 10 15:57:20 2026 +0700) & di-verifikasi. Gates lokal: backend lint/typecheck/format ✅; frontend lint/typecheck/format/build ✅ (bundle 80.63 kB); frontend test:coverage ✅ (93.43% lines); backend test & E2E ⏳ (butuh PostgreSQL/Redis/Docker lokal — dijadwalkan via GitHub Actions).
 
 ---
 
