@@ -223,6 +223,13 @@ export interface AppNotification {
 
 export interface NotificationsResponse {
   items: AppNotification[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
 }
 
 /* ==== T3.8 — Dosen API Types (diselaraskan dengan kontrak backend nyata) ==== */

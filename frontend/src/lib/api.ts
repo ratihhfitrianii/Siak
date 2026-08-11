@@ -1,21 +1,27 @@
 /**
+
  * API client T1.11a — fetch wrapper dengan:
+
  * - token access/refresh di localStorage (keputusan: SPA sederhana; T5 nanti bisa cookie httpOnly)
+
  * - silent refresh (1×) saat 401, lalu retry permintaan asli
+
  * - normalisasi error backend {code, message, details.fields} → ApiError
- *
+n *
+
  * Backend selalu merespons {success, data} atau {success:false, error:{code,message,details}}.
+
  */
+
 import type {
   AdminKrsPending,
-  AppNotification,
-  NotificationsResponse,
   UserListResponse,
   CreateUserInput,
   UpdateRoleInput,
   PaginationParams,
   WaitingRoomStatus,
 } from './types';
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -550,10 +556,13 @@ export async function downloadKrsPdf(): Promise<void> {
 
 /* ==== T2.5 — Notifikasi ==== */
 
-/** GET /notifications/my — daftar notifikasi user sendiri. */
-export async function getMyNotifications(): Promise<AppNotification[]> {
-  const data = await apiRequest<NotificationsResponse>('/notifications/my');
-  return data.items;
+import type { NotificationsResponse } from '../lib/types';
+
+/** GET /notifications/my — daftar notifikasi user sendiri. Optional pagination (?page=1&limit=5). */
+export async function getMyNotifications(page = 1, limit = 5): Promise<NotificationsResponse> {
+  const qs = `?page=${page}&limit=${limit}`;
+  const data = await apiRequest<NotificationsResponse>(`/notifications/my${qs}`);
+  return data;
 }
 
 /** PUT /notifications/:id/read — tandai notifikasi sebagai dibaca. */

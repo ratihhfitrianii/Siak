@@ -187,24 +187,36 @@ export async function deliverPendingNotifications(
 export function createNotificationRouter(): Router {
   const router = Router();
 
-  // GET /notifications/my — notifikasi user sendiri (AC-10)
+  // GET /notifications/my — notifikasi user sendiri (AC-10) dengan pagination
+  // Query: ?page=1&limit=5 (default limit 5 untuk pagination frontend)
   router.get(
     '/notifications/my',
     authenticate,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const result = await pgPool.query(
-          `SELECT id, title, message, type, is_read, created_at
-           FROM notifications
-           WHERE user_id = $1
-           ORDER BY created_at DESC, id DESC
-           LIMIT 50`,
-          [req.user!.id],
-        );
+        const page = Math.max(1, Number(req.query.page) || 1);
+        const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 5));
+        const offset = (page - 1) * limit;
+
+        const [itemsResult, countResult] = await Promise.all([
+          pgPool.query(
+            `SELECT id, title, message, type, is_read, created_at
+             FROM notifications
+             WHERE user_id = $1
+             ORDER BY created_at DESC, id DESC
+             LIMIT $2 OFFSET $3`,
+            [req.user!.id, limit, offset],
+          ),
+          pgPool.query(`SELECT COUNT(*) FROM notifications WHERE user_id = $1`, [req.user!.id]),
+        ]);
+
+        const total = Number(countResult.rows[0].count);
+        const totalPages = Math.ceil(total / limit);
+
         res.json({
           success: true,
           data: {
-            items: result.rows.map((r) => ({
+            items: itemsResult.rows.map((r) => ({
               id: Number(r.id),
               title: r.title,
               message: r.message,
@@ -212,6 +224,13 @@ export function createNotificationRouter(): Router {
               isRead: r.is_read,
               createdAt: r.created_at,
             })),
+            pagination: {
+              page,
+              limit,
+              total,
+              totalPages,
+              hasMore: page < totalPages,
+            },
           },
         });
       } catch (err) {

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TranscriptPage } from './TranscriptPage';
 import type { GradeItem } from '../lib/types';
@@ -145,12 +145,39 @@ describe('TranscriptPage (T1.11b)', () => {
     expect(screen.getByText(/IP: 3\.72/)).toBeInTheDocument();
     // semester 2 belum dinilai → IP '—'
     expect(screen.getByText(/IP: —/)).toBeInTheDocument();
-    // nilai belum keluar → badge '—'
-    expect(screen.getByText('Kimia Dasar')).toBeInTheDocument();
 
     // IPK total = 18.6/5 (hanya SKS yang sudah dinilai) = 3.72; Total SKS = 7
     expect(screen.getByText('3.72')).toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument();
+  });
+
+  it('keluhan #5 — detail semester tersembunyi secara default, muncul saat klik Detail', async () => {
+    mockUser = MAHASISWA;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ success: true, data: { items: GRADE_ITEMS } })),
+    );
+    render(<TranscriptPage />);
+
+    // Header semester tampil…
+    expect(await screen.findByText('Semester 2024/2025-1')).toBeInTheDocument();
+    // …tapi detail matkul TIDAK tampil sebelum klik Detail
+    expect(screen.queryByText('Matematika Dasar')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kimia Dasar')).not.toBeInTheDocument();
+
+    // Klik "Detail" → tabel semester muncul
+    const detailButtons = screen.getAllByRole('button', { name: /Detail/i });
+    detailButtons[0]!.click();
+    expect(await screen.findByText('Matematika Dasar')).toBeInTheDocument();
+    expect(screen.getByText('Fisika Dasar')).toBeInTheDocument();
+    // Semester lain masih tertutup
+    expect(screen.queryByText('Kimia Dasar')).not.toBeInTheDocument();
+
+    // Klik "Sembunyikan Detail" → tabel hilang lagi
+    screen.getByRole('button', { name: /Sembunyikan Detail/i }).click();
+    await waitFor(() => {
+      expect(screen.queryByText('Matematika Dasar')).not.toBeInTheDocument();
+    });
   });
 
   it('akun tanpa studentId → info transkrip tidak tersedia', async () => {

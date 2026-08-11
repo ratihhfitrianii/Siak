@@ -35,16 +35,27 @@ const NOTIFS: AppNotification[] = [
   },
 ];
 
+const NOTIFS_RESPONSE = {
+  success: true,
+  data: {
+    items: NOTIFS,
+    pagination: {
+      page: 1,
+      limit: 5,
+      total: 2,
+      totalPages: 1,
+      hasMore: false,
+    },
+  },
+};
+
 describe('NotificationsPage (T2.5)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   it('menampilkan daftar notifikasi + badge unread count', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(jsonResponse({ success: true, data: { items: NOTIFS } })),
-    );
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(NOTIFS_RESPONSE)));
     render(<NotificationsPage />);
 
     expect(await screen.findByText('Notifikasi')).toBeInTheDocument();
@@ -64,7 +75,7 @@ describe('NotificationsPage (T2.5)', () => {
         if (url.includes('/read')) {
           return Promise.resolve(jsonResponse({ success: true, data: { id: 1, isRead: true } }));
         }
-        return Promise.resolve(jsonResponse({ success: true, data: { items: NOTIFS } }));
+        return Promise.resolve(jsonResponse(NOTIFS_RESPONSE));
       }),
     );
     render(<NotificationsPage />);
@@ -91,7 +102,7 @@ describe('NotificationsPage (T2.5)', () => {
         if (url.includes('/read-all')) {
           return Promise.resolve(jsonResponse({ success: true, data: { marked: 1 } }));
         }
-        return Promise.resolve(jsonResponse({ success: true, data: { items: NOTIFS } }));
+        return Promise.resolve(jsonResponse(NOTIFS_RESPONSE));
       }),
     );
     render(<NotificationsPage />);
@@ -115,7 +126,15 @@ describe('NotificationsPage (T2.5)', () => {
   it('tidak ada notifikasi → empty state', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(jsonResponse({ success: true, data: { items: [] } })),
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          success: true,
+          data: {
+            items: [],
+            pagination: { page: 1, limit: 5, total: 0, totalPages: 0, hasMore: false },
+          },
+        }),
+      ),
     );
     render(<NotificationsPage />);
     expect(await screen.findByText('Belum ada notifikasi.')).toBeInTheDocument();

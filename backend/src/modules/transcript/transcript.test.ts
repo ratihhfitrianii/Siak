@@ -176,7 +176,9 @@ describe('T2.4 Transcript', () => {
       .set('Authorization', `Bearer ${studentToken}`);
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('application/pdf');
+    // Keluhan lama: filename harus pakai NIM, bukan internal studentId
     expect(res.headers['content-disposition']).toContain('attachment');
+    expect(res.headers['content-disposition']).toContain(`transkrip-TR${ts}001.pdf`);
     expect(res.body.slice(0, 5).toString()).toBe('%PDF-');
   });
 

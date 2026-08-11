@@ -1971,8 +1971,53 @@ Mengimplementasikan **item #45: Filter tahun akademik saat download transkrip PD
 ### Open Items (Iterasi 9+)
 
 - [ ] Jalankan full CI backend test (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
-- [ ] Gelombang 2 lanjutan: #4 Waiting room threshold 2000, #5 Fix download transkrip (detail), #16 Admin master data + CSV import, #27 Bimbingan form searchable NIM/kelas, #48 Notifikasi pagination + mark all read
+- [ ] Gelombang 2 lanjutan: #4 Waiting room threshold 2000, #16 Admin master data + CSV import
 - [ ] Gelombang 3: 7 item redesign UI besar (dari audit 31 item)
+
+---
+
+### Iterasi 11 (2026-08-10) — Gelombang 2: #5 Fix Download Transkrip (Detail) + #48 Notifikasi Pagination
+
+#### Ringkasan
+Dua item Gelombang 2 selesai dalam satu batch:
+
+**#48 Notifikasi pagination 5 item + tombol "Tandai semua dibaca"** — `GET /notifications/my` kini support `?page=1&limit=5` (response + `pagination` object: page/limit/total/totalPages/hasMore). FE: infinite scroll (IntersectionObserver) + fallback tombol "Muat lebih banyak"; tombol "Tandai semua dibaca" tampil saat ada unread; counter `items.length / total`. IntersectionObserver di-polyfill di `src/test/setup.ts` (jsdom tidak punya).
+
+**#5 Fix download transkrip (detail)** — 3 perbaikan:
+1. **Halaman transkrip header-only per semester** (keluhan: "hanya tampilkan header Tiap semester, jika user klik tombol detail maka akan muncul detailnya") — tiap semester jadi kartu collapsible; hanya header (nama semester, SKS, IP) + tombol **Detail**; tabel muncul saat di-expand, tombol berubah jadi "Sembunyikan Detail".
+2. **Filename PDF pakai NIM** (keluhan: hasil download tidak informatif) — `GET /transcript/my/download` sebelumnya `transkrip-<internal studentId>.pdf` (angka); kini `transkrip-<NIM>.pdf`, konsisten dengan endpoint wali. Regression test ditambahkan.
+3. **Error download ditampilkan apa adanya** (keluhan: "download PDF belum berhasil" tanpa penjelasan) — `handleDownload` FE dulu menelan pesan error (catch tanpa argumen, pesan generik); kini menampilkan `ApiError.message` asli dari backend.
+
+#### File yang Diubah
+
+| File | Perubahan |
+|------|-----------|
+| `backend/src/modules/notification/index.ts` | Pagination `?page&limit` + `pagination` di response |
+| `backend/src/modules/transcript/index.ts` | Filename download pakai `data.student.nim` |
+| `backend/src/modules/transcript/transcript.test.ts` | Assert filename `transkrip-TR<ts>001.pdf` |
+| `frontend/src/lib/types.ts` | `NotificationsResponse.pagination` |
+| `frontend/src/lib/api.ts` | `getMyNotifications(page, limit)` return full response |
+| `frontend/src/components/AppLayout.tsx` | Badge pakai `getMyNotifications(1, 5)` |
+| `frontend/src/pages/NotificationsPage.tsx` | Infinite scroll + load more + tombol mark-all + counter |
+| `frontend/src/pages/NotificationsPage.test.tsx` | Update shape pagination |
+| `frontend/src/pages/TranscriptPage.tsx` | Collapsible semester + error download asli |
+| `frontend/src/pages/TranscriptPage.test.tsx` | Test detail toggle (keluhan #5) |
+| `frontend/src/test/setup.ts` | Polyfill `IntersectionObserver` |
+
+#### Quality Gates (Lokal)
+
+| Gate | Hasil |
+|------|-------|
+| Backend lint/typecheck/format | ✅ |
+| Frontend lint/typecheck/format | ✅ |
+| Frontend build | ✅ (bundle 80.77 kB gzip < 200 kB) |
+| Frontend test:coverage | ✅ (26/26 files, **154/154 tests** pass — +1 test detail toggle) |
+| Backend test | ⏳ (butuh Docker/PostgreSQL lokal; perubahan kecil & type-safe) |
+
+#### Catatan Teknis
+- Filter tahun akademik di `fetchTranscriptData` memakai `semesters.academic_year_id` (alias `s` di query grades) — benar secara semantik; pilihan "Semua Tahun Akademik" = tanpa filter.
+- Optimistic UI mark-read tetap ada; event `siak:notif-changed` sinkron badge header.
+- `aria-expanded` + `aria-controls` dipasang pada tombol Detail untuk aksesibilitas.
 
 ---
 

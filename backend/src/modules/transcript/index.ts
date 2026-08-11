@@ -475,13 +475,14 @@ export function createTranscriptRouter(): Router {
         const academicYearId = req.query.academicYearId
           ? Number(req.query.academicYearId as string)
           : undefined;
-        const pdf = await generateTranscriptPDF(
-          await fetchTranscriptData(req.user.studentId, academicYearId),
-        );
+        const data = await fetchTranscriptData(req.user.studentId, academicYearId);
+        const pdf = await generateTranscriptPDF(data);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
           'Content-Disposition',
-          `attachment; filename="transkrip-${req.user.studentId}${academicYearId ? `-${academicYearId}` : ''}.pdf"`,
+          // Keluhan lama: filename pakai internal studentId (angka) → tidak informatif.
+          // Konsisten dengan endpoint wali: pakai NIM.
+          `attachment; filename="transkrip-${data.student.nim}${academicYearId ? `-${academicYearId}` : ''}.pdf"`,
         );
         res.send(pdf);
       } catch (err) {

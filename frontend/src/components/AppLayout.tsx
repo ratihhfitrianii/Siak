@@ -55,9 +55,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
     if (!user) return;
     let cancelled = false;
     const load = () => {
-      getMyNotifications()
-        .then((items) => {
-          if (!cancelled) setUnread(items.filter((n) => !n.isRead).length);
+      getMyNotifications(1, 5)
+        .then((res) => {
+          if (!cancelled) setUnread(res.items.filter((n) => !n.isRead).length);
         })
         .catch(() => {
           /* badge opsional — gagal fetch tidak menggagalkan layout */

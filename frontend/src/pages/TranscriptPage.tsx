@@ -21,7 +21,10 @@ function computeStats(items: GradeItem[]) {
  * Transkrip nilai mahasiswa (T1.11b):
  * - GET /grades/student/:studentId (diri sendiri; studentId dari /users/me)
  * - dikelompokkan per semester (urut periode terbaru), IP per semester + IPK total
- * - Download PDF dengan filter tahun akademik (keluhan lama #45)
+ * - Keluhan lama #5: hanya tampilkan HEADER tiap semester; detail muncul saat
+ *   klik tombol "Detail" (collapsible per semester)
+ * - Download PDF dengan filter tahun akademik (keluhan lama #45); error
+ *   download ditampilkan apa adanya (keluhan lama "download PDF belum berhasil")
  */
 export function TranscriptPage() {
   const { user } = useAuth();
@@ -34,6 +37,8 @@ export function TranscriptPage() {
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState<number | null>(null);
   const [academicYears, setAcademicYears] = useState<Array<{ id: number; code: string }>>([]);
+  // Semester yang di-expand (tombol Detail). Default: semua tertutup — hanya header.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   // Fetch academic years for dropdown
   useEffect(() => {
@@ -47,13 +52,23 @@ export function TranscriptPage() {
       });
   }, []);
 
+  function toggleSemester(semester: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(semester)) next.delete(semester);
+      else next.add(semester);
+      return next;
+    });
+  }
+
   async function handleDownload() {
     setDownloading(true);
     setDownloadError(null);
     try {
       await downloadTranscriptPdf(selectedAcademicYearId ?? undefined);
-    } catch {
-      setDownloadError('Gagal mengunduh PDF. Coba lagi.');
+    } catch (err) {
+      // Keluhan lama: pesan error generik menyembunyikan penyebab sebenarnya.
+      setDownloadError(err instanceof ApiError ? err.message : 'Gagal mengunduh PDF. Coba lagi.');
     } finally {
       setDownloading(false);
     }
@@ -189,60 +204,111 @@ export function TranscriptPage() {
       ) : (
         groups.map(([semester, semesterItems]) => {
           const stats = computeStats(semesterItems);
+          const isOpen = expanded.has(semester);
           return (
-            <section key={semester} className="rounded-2xl bg-white p-5 shadow-sm">
+            <section
+              key={semester}
+              className={`rounded-2xl bg-white p-5 shadow-sm ${isOpen ? 'ring-1 ring-primary-100' : ''}`}
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="font-semibold text-slate-900">Semester {semester}</h2>
-                <p className="text-sm text-slate-600">
-                  SKS: {stats.sks} · IP: {stats.ipk === null ? '—' : stats.ipk.toFixed(2)}
-                </p>
+                <div>
+                  <h2 className="font-semibold text-slate-900">Semester {semester}</h2>
+                  <p className="text-sm text-slate-600">
+                    SKS: {stats.sks} · IP: {stats.ipk === null ? '—' : stats.ipk.toFixed(2)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleSemester(semester)}
+                  aria-expanded={isOpen}
+                  aria-controls={`transcript-detail-${semester}`}
+                  className="inline-flex items-center gap-1 rounded-lg border border-primary-300 px-3 py-1.5 text-sm font-medium text-primary-700 transition hover:bg-primary-50"
+                >
+                  {isOpen ? (
+                    <>
+                      Sembunyikan Detail
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 15l7-7 7 7"
+                        />
+                      </svg>
+                    </>
+                  ) : (
+                    <>
+                      Detail
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </>
+                  )}
+                </button>
               </div>
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full min-w-[560px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
-                      <th scope="col" className="py-2 pr-3 font-medium">
-                        Kode
-                      </th>
-                      <th scope="col" className="py-2 pr-3 font-medium">
-                        Mata Kuliah
-                      </th>
-                      <th scope="col" className="py-2 pr-3 font-medium">
-                        SKS
-                      </th>
-                      <th scope="col" className="py-2 pr-3 font-medium">
-                        Nilai
-                      </th>
-                      <th scope="col" className="py-2 font-medium">
-                        Poin
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {semesterItems.map((it) => (
-                      <tr key={it.id}>
-                        <td className="py-3 pr-3 font-medium text-slate-900">{it.course.code}</td>
-                        <td className="py-3 pr-3 text-slate-700">{it.course.name}</td>
-                        <td className="py-3 pr-3 text-slate-600">{it.course.credits}</td>
-                        <td className="py-3 pr-3">
-                          <span
-                            className={`rounded px-2 py-0.5 text-xs font-bold ${
-                              it.gradeLetter
-                                ? 'bg-primary-100 text-primary-700'
-                                : 'bg-slate-100 text-slate-500'
-                            }`}
-                          >
-                            {it.gradeLetter ?? '—'}
-                          </span>
-                        </td>
-                        <td className="py-3 text-slate-600">
-                          {it.gradePoint === null ? '—' : it.gradePoint.toFixed(2)}
-                        </td>
+              {isOpen && (
+                <div id={`transcript-detail-${semester}`} className="mt-3 overflow-x-auto">
+                  <table className="w-full min-w-[560px] text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                        <th scope="col" className="py-2 pr-3 font-medium">
+                          Kode
+                        </th>
+                        <th scope="col" className="py-2 pr-3 font-medium">
+                          Mata Kuliah
+                        </th>
+                        <th scope="col" className="py-2 pr-3 font-medium">
+                          SKS
+                        </th>
+                        <th scope="col" className="py-2 pr-3 font-medium">
+                          Nilai
+                        </th>
+                        <th scope="col" className="py-2 font-medium">
+                          Poin
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {semesterItems.map((it) => (
+                        <tr key={it.id}>
+                          <td className="py-3 pr-3 font-medium text-slate-900">{it.course.code}</td>
+                          <td className="py-3 pr-3 text-slate-700">{it.course.name}</td>
+                          <td className="py-3 pr-3 text-slate-600">{it.course.credits}</td>
+                          <td className="py-3 pr-3">
+                            <span
+                              className={`rounded px-2 py-0.5 text-xs font-bold ${
+                                it.gradeLetter
+                                  ? 'bg-primary-100 text-primary-700'
+                                  : 'bg-slate-100 text-slate-500'
+                              }`}
+                            >
+                              {it.gradeLetter ?? '—'}
+                            </span>
+                          </td>
+                          <td className="py-3 text-slate-600">
+                            {it.gradePoint === null ? '—' : it.gradePoint.toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </section>
           );
         })
