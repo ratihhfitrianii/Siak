@@ -1972,7 +1972,7 @@ Mengimplementasikan **item #45: Filter tahun akademik saat download transkrip PD
 
 - [ ] Jalankan full CI backend test (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
 - [x] Gelombang 2 tuntas: #4 Waiting room threshold 2000, #5 Fix download transkrip (detail), #16 Admin master data + CSV import, #27 Bimbingan form searchable NIM/kelas, #48 Notifikasi pagination + mark all read
-- [ ] Gelombang 3 (7 klaster redesign UI dari audit 31): ~~1/7 Sidebar ikon + avatar dropdown (#5, #26)~~ ✅ Iterasi 14; ~~2/7 Dashboard info terkini universitas (#27)~~ ✅ Iterasi 16; ~~3/7 KRS 2 kolom + checkbox + pagination (#28–30)~~ ✅ Iterasi 17; ~~4/7 Tagihan: semester dinamis + redirect login (#14–16, #24)~~ ✅ Iterasi 18; ~~5/7 Hapus signature/dosen di PDF KRS (#50)~~ ✅ Iterasi 19 — sisa: pilih MK 3 huruf (#18), daftar kelas (#35)
+- [ ] Gelombang 3 (7 klaster redesign UI dari audit 31): ~~1/7 Sidebar ikon + avatar dropdown (#5, #26)~~ ✅ Iterasi 14; ~~2/7 Dashboard info terkini universitas (#27)~~ ✅ Iterasi 16; ~~3/7 KRS 2 kolom + checkbox + pagination (#28–30)~~ ✅ Iterasi 17; ~~4/7 Tagihan: semester dinamis + redirect login (#14–16, #24)~~ ✅ Iterasi 18; ~~5/7 Hapus signature/dosen di PDF KRS (#50)~~ ✅ Iterasi 19; ~~6/7 Pilih MK dosen cari 3 huruf sesuai prodi (#18)~~ ✅ Iterasi 20 — sisa: daftar kelas muncul (#35)
 
 ---
 
