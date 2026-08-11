@@ -67,7 +67,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-only-please-change-this-secret}
       CORS_ORIGIN: http://localhost:5173
       # T1.14: ambang waiting room configurable dari env (DL-11; kalibrasi via load test)
-      WAITING_ROOM_THRESHOLD: ${WAITING_ROOM_THRESHOLD:-5000}
+      WAITING_ROOM_THRESHOLD: ${WAITING_ROOM_THRESHOLD:-2000}
       # T1.14: ukuran pool postgres (kalibrasi via load test; prod VPS naikkan)
       DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-20}
     ports:

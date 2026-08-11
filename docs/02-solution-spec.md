@@ -104,7 +104,7 @@ sequenceDiagram
 
     M->>LB: GET /api/v1/krs/available-classes
     LB->>WR: Cek active_users_count
-    alt count < WAITING_ROOM_THRESHOLD (default 5000)
+    alt count < WAITING_ROOM_THRESHOLD (default 2000)
         WR->>API: Forward request
     else count >= threshold
         WR->>R: LPUSH waiting_queue (Virtual Token)
@@ -693,7 +693,7 @@ JWT_ACCESS_EXPIRY=15m
 JWT_REFRESH_EXPIRY=7d
 RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX=100
-WAITING_ROOM_THRESHOLD=5000
+WAITING_ROOM_THRESHOLD=2000
 SESSION_TIMEOUT_MS=900000
 CORS_ORIGIN=https://siak.kampus.ac.id
 NOTIFICATION_PROVIDER=email

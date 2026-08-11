@@ -75,7 +75,7 @@ certbot certonly --standalone -d siak.yourdomain.com
 | Variable | Staging | Production | Description |
 |----------|---------|------------|-------------|
 | `DATABASE_POOL_MAX` | 100-200 | 200-300 | PG pool size (DL-28) |
-| `WAITING_ROOM_THRESHOLD` | 1500 | 5000 | Kalibrasi dari load test (DL-11) |
+| `WAITING_ROOM_THRESHOLD` | 1500 | 2000 | Kalibrasi dari load test (DL-11; keluhan #4) |
 | `JWT_SECRET` | ≥32 chars | ≥32 chars | Rotate periodically |
 | `POSTGRES_PASSWORD` | strong | very strong | |
 | `CORS_ORIGIN` | https://staging... | https://prod... | |

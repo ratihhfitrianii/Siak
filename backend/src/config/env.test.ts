@@ -11,7 +11,7 @@ describe('Validasi environment (env.ts)', () => {
   it('memuat konfigurasi default di lingkungan test', () => {
     expect(env.NODE_ENV).toBe('test');
     expect(env.PORT).toBeGreaterThan(0);
-    expect(env.WAITING_ROOM_THRESHOLD).toBe(5000);
+    expect(env.WAITING_ROOM_THRESHOLD).toBe(2000);
     expect(env.RATE_LIMIT_MAX).toBe(100);
   });
 

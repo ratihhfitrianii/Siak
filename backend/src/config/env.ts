@@ -18,7 +18,7 @@ const envSchema = z
     SESSION_TIMEOUT_MS: z.coerce.number().int().positive().default(900000),
     RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
     RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
-    WAITING_ROOM_THRESHOLD: z.coerce.number().int().positive().default(5000),
+    WAITING_ROOM_THRESHOLD: z.coerce.number().int().positive().default(2000),
     // T1.14: ukuran pool PostgreSQL (kalibrasi load test; default 20 — test/CI aman)
     DATABASE_POOL_MAX: z.coerce.number().int().positive().default(20),
     NOTIFICATION_PROVIDER: z.string().default('inapp'),
