@@ -2148,6 +2148,45 @@ Gelombang 3 = 7 klaster redesign UI besar (sisa audit 31 keluhan). Item 1 mencak
 
 ---
 
+### Iterasi 15 (2026-08-11) — Fix GitHub Actions merah: coverage threshold branches
+
+#### Ringkasan
+Dua run CI terakhir (push `d9d4708` #4 + `d706961` update dokumen) **merah**, padahal semua test pass. Root cause dari `gh run view --log-failed`:
+
+- **Backend**: `Test Suites: 25 passed (25), Tests: 638 passed (638)` — tapi `Jest: "global" coverage threshold for branches (75%) not met: 73.91%`.
+- **Frontend**: `Tests 160 passed` — tapi `ERROR: Coverage for branches (79.98%) does not meet global threshold (80%)`.
+
+Analisis delta vs run hijau terakhir (#5 `2a5809e`):
+- Run #5 backend branches **75.95%** (hijau) — belum ada modul `admin-master`.
+- Push berikutnya membawa modul baru `admin-master` (#16, 340 baris, **0% branch coverage** — tanpa test sama sekali) → branch turun ke 73.91% < 75% → merah.
+- Frontend branches turun 80.51% (run #5) → 79.98% (state `d9d4708`, sebelum item 1/7 Gelombang 3 yang menambah 8 test → sudah naik ke **80.15%** di Iterasi 14, tapi belum di-push).
+
+**Fix backend**: test baru `backend/src/modules/admin-master/admin-master.test.ts` (16 test, pola `import.test.ts` — supertest + DB test :5433/CI 5432, admin seed, cleanup prefiks `am{ts}%`):
+- GET students/lecturers: 200 + pagination, search, filter prodi, page invalid 400, 401 tanpa token, 403 role mahasiswa.
+- POST students: 201 + cek DB (role mahasiswa, must_change_password=true, email default `nim@student.siak.local`), NIM duplikat 409, email duplikat 409, prodi/angkatan tidak ada 400, body invalid 400.
+- POST lecturers: 201 + cek DB (role dosen), NIDN duplikat 409, body invalid 400.
+
+Estimasi dampak: `(0.7595 + 0.85×0.0276)/1.0276 ≈ 76.2%` branches → ≥75% ✅ (modul admin-master sekarang ter-cover ~85% branch).
+
+**Fix frontend**: sudah ter-cover oleh Iterasi 14 (commit `91eccd6`, belum di-push) — saat push berikutnya membawa state terbaru, frontend branches 80.15% ≥ 80% ✅.
+
+#### Quality Gates (Lokal)
+
+| Gate | Hasil |
+|------|-------|
+| Backend lint/typecheck/format | ✅ |
+| Backend test:coverage | ⏳ butuh DB (jalan di CI — pola sama dgn krs/import test) |
+| Frontend | Tidak ada perubahan FE di iterasi ini |
+
+#### Catatan Teknis
+- Pola `?search=${ts}` memakai timestamp suffix agar unik per run; cleanup `DELETE ... LIKE 'am${ts}%'` mencegah kebocoran data antar-run (FK students/lecturers → users dihapus berurutan).
+- `entry_type VARCHAR(20)` & `employment_type VARCHAR(20)` bebas enum (bukan CHECK constraint) → nilai 'Manual'/'tetap' aman.
+- Error shape `res.body.error.code` / `res.body.error.details.fields` terkonfirmasi dari `error-handler.ts` + pola `import.test.ts`.
+- File 0%/rendah lain (payroll, payment-gateway, pddikti-sync, cache, redis, metrics) **sudah ada sebelum #5** dan CI hijau — bukan penyebab regresi ini (modul terpisah, tidak ter-cover tapi tidak menurunkan melewati threshold).
+- Aksi user: `git push` commit `91eccd6` + commit ini → CI harus hijau (backend ~76.2%, frontend 80.15%).
+
+---
+
 ### Iterasi 5 (T5.1–T5.7 + Gap Closing) — SELESAI & TERVERIFIKASI SEMUA GATE CI ✅
 
 ---
