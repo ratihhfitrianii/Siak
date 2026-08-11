@@ -102,6 +102,7 @@ interface KrsMocks {
   available?: AvailableClass[];
   onDraft?: (body: unknown) => void;
   onSubmit?: (body: unknown) => void;
+  duplicateCourseError?: boolean;
 }
 
 /** Mock fetch yang merutekan endpoint KRS; POST draft/submit dicatat untuk asersi. */
@@ -111,11 +112,28 @@ function mockKrsRoutes({
   available = AVAILABLE,
   onDraft,
   onSubmit,
+  duplicateCourseError = false,
 }: KrsMocks = {}) {
   const fetchMock = vi.fn((url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
     if (method === 'POST' && String(url).includes('/krs/draft')) {
       onDraft?.(JSON.parse(String(init?.body)));
+      if (duplicateCourseError) {
+        return Promise.resolve(
+          jsonResponse(
+            {
+              success: false,
+              error: {
+                code: 'DUPLICATE_COURSE',
+                message:
+                  'Tidak boleh mengambil matkul yang sama (MAT1) lebih dari satu kali dalam 1 KRS',
+                details: { fields: { classIds: [{ message: 'Duplikat course_code: MAT1' }] } },
+              },
+            },
+            409,
+          ),
+        );
+      }
       return Promise.resolve(
         jsonResponse({
           success: true,
@@ -380,5 +398,54 @@ describe('KrsPage (T1.11b + Gelombang 3 #28–#30 redesign)', () => {
 
     expect(await screen.findByText('Gagal memuat data KRS')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Coba lagi' })).toBeInTheDocument();
+  });
+
+  it('keluhan #59 — pilih 2 kelas beda jadwal sama kode MK → error DUPLICATE_COURSE', async () => {
+    const user = userEvent.setup();
+    let draftCall: unknown = null;
+    mockKrsRoutes({
+      available: [
+        cls({
+          id: 1,
+          classCode: 'A',
+          course: { code: 'MAT1', name: 'Matematika Dasar', credits: 3 },
+          dayOfWeek: 1,
+          startTime: '08:00:00',
+          endTime: '09:40:00',
+          lecturerName: 'Dr. Andi',
+        }),
+        cls({
+          id: 2,
+          classCode: 'B',
+          course: { code: 'MAT1', name: 'Matematika Dasar', credits: 3 },
+          dayOfWeek: 3,
+          startTime: '10:00:00',
+          endTime: '11:40:00',
+          lecturerName: 'Prof. Sari',
+        }),
+      ],
+      my: { ...MY_DRAFT, items: [] },
+      onDraft: (body) => {
+        draftCall = body;
+      },
+      duplicateCourseError: true,
+    });
+    render(<KrsPage />);
+
+    const cards = await screen.findAllByText(/Matematika Dasar/);
+    expect(cards).toHaveLength(2);
+
+    // Centang kedua kartu (kode MK sama MAT1)
+    const checkboxes = screen.getAllByRole('checkbox', { name: 'Pilih Matematika Dasar' });
+    await user.click(checkboxes[0]);
+    await user.click(checkboxes[1]);
+
+    // Simpan draft → harus error DUPLICATE_COURSE
+    await user.click(await screen.findByRole('button', { name: 'Simpan Draft' }));
+
+    await vi.waitFor(() => expect(draftCall).toEqual({ classIds: [1, 2] }));
+    // Backend seharusnya tolak → fetchMock akan return error response
+    // Kita test bahwa error ditampilkan di UI
+    expect(await screen.findByText(/Tidak boleh mengambil matkul yang sama/i)).toBeInTheDocument();
   });
 });

@@ -341,8 +341,9 @@ export function createKrsRouter(): Router {
 
           // Validasi kelas: milik prodi mahasiswa + aktif
           const classes = await client.query(
-            `SELECT cl.id FROM classes cl
+            `SELECT cl.id, c.code AS course_code FROM classes cl
            JOIN curricula cur ON cur.id = cl.curriculum_id
+           JOIN courses c ON c.id = cur.course_id
            WHERE cl.id = ANY($1::bigint[]) AND cur.prodi_id = $2 AND cur.semester_id = $3 AND cl.is_active
            ORDER BY cl.id`,
             [parsed.data.classIds, prodiId, period.semester_id],
@@ -352,6 +353,18 @@ export function createKrsRouter(): Router {
               'CLASS_NOT_AVAILABLE',
               'Ada kelas yang tidak tersedia untuk prodi Anda',
               409,
+            );
+          }
+
+          // Validasi: tidak boleh ada duplikat course_code dalam 1 KRS (keluhan #59)
+          const courseCodes = classes.rows.map((r) => r.course_code);
+          const dup = courseCodes.find((code, i) => courseCodes.indexOf(code) !== i);
+          if (dup) {
+            throw new AppError(
+              'DUPLICATE_COURSE',
+              `Tidak boleh mengambil matkul yang sama (${dup}) lebih dari satu kali dalam 1 KRS`,
+              409,
+              { details: [{ field: 'classIds', message: `Duplikat course_code: ${dup}` }] },
             );
           }
 
@@ -483,6 +496,18 @@ export function createKrsRouter(): Router {
                   message: `Kelas ${r.course_code}-${r.class_code} tidak tersedia`,
                 })),
               },
+            );
+          }
+
+          // Validasi: tidak boleh ada duplikat course_code dalam 1 KRS (keluhan #59)
+          const courseCodes = classes.rows.map((r) => r.course_code);
+          const dup = courseCodes.find((code, i) => courseCodes.indexOf(code) !== i);
+          if (dup) {
+            throw new AppError(
+              'DUPLICATE_COURSE',
+              `Tidak boleh mengambil matkul yang sama (${dup}) lebih dari satu kali dalam 1 KRS`,
+              409,
+              { details: [{ field: 'classIds', message: `Duplikat course_code: ${dup}` }] },
             );
           }
 
