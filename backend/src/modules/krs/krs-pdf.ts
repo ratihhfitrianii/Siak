@@ -229,13 +229,6 @@ export function generateKrsPdf(data: KrsPdfData): Promise<Buffer> {
     line(y);
     y += 12;
     text(`Total SKS: ${data.totalCredits}`, 50, y, { size: 11, bold: true, align: 'right' });
-    y += 26;
-
-    text('Dosen Wali / Admin Akademik', 380, y, { size: 10, align: 'center' });
-    y += 40;
-    line(y);
-    y += 8;
-    text('(tanda tangan)', 380, y, { size: 8, align: 'center', color: '#666' });
 
     doc.end();
   });
