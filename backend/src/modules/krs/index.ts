@@ -69,7 +69,7 @@ async function assertPaymentStatus(studentId: number, semesterId: number): Promi
     `SELECT status FROM payments WHERE student_id = $1 AND semester_id = $2`,
     [studentId, semesterId],
   );
-  if (res.rows.length > 0 && res.rows[0].status !== 'LUNAS') {
+  if (res.rows.length > 0 && res.rows[0].status !== 'lunas') {
     throw new AppError(
       'PAYMENT_UNPAID',
       'Halaman KRS tidak bisa diakses karena pembayaran semester ini belum lunas.',
