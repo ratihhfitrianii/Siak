@@ -40,6 +40,9 @@ const TranscriptPage = lazy(() =>
   import('./pages/TranscriptPage').then((m) => ({ default: m.TranscriptPage })),
 );
 const UsersPage = lazy(() => import('./pages/UsersPage').then((m) => ({ default: m.UsersPage })));
+const AdminMasterPage = lazy(() =>
+  import('./pages/AdminMasterPage').then((m) => ({ default: m.AdminMasterPage })),
+);
 const WaitingRoomPage = lazy(() =>
   import('./pages/WaitingRoomPage').then((m) => ({ default: m.WaitingRoomPage })),
 );
@@ -149,6 +152,17 @@ export default function App() {
               <ProtectedRoute perm="user.manage">
                 <AppLayout>
                   <UsersPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Keluhan #16: Master Data (admin_sistem) — list + input manual + import CSV */}
+          <Route
+            path="/admin/master"
+            element={
+              <ProtectedRoute perm="user.manage">
+                <AppLayout>
+                  <AdminMasterPage />
                 </AppLayout>
               </ProtectedRoute>
             }

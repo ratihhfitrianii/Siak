@@ -1971,7 +1971,7 @@ Mengimplementasikan **item #45: Filter tahun akademik saat download transkrip PD
 ### Open Items (Iterasi 9+)
 
 - [ ] Jalankan full CI backend test (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
-- [ ] Gelombang 2 lanjutan: #4 Waiting room threshold 2000, #16 Admin master data + CSV import
+- [x] Gelombang 2 tuntas: #4 Waiting room threshold 2000, #5 Fix download transkrip (detail), #16 Admin master data + CSV import, #27 Bimbingan form searchable NIM/kelas, #48 Notifikasi pagination + mark all read
 - [ ] Gelombang 3: 7 item redesign UI besar (dari audit 31 item)
 
 ---
@@ -2018,6 +2018,93 @@ Dua item Gelombang 2 selesai dalam satu batch:
 - Filter tahun akademik di `fetchTranscriptData` memakai `semesters.academic_year_id` (alias `s` di query grades) — benar secara semantik; pilihan "Semua Tahun Akademik" = tanpa filter.
 - Optimistic UI mark-read tetap ada; event `siak:notif-changed` sinkron badge header.
 - `aria-expanded` + `aria-controls` dipasang pada tombol Detail untuk aksesibilitas.
+
+---
+
+### Iterasi 12 (2026-08-11) — Gelombang 2: #16 Admin Master Data + CSV Import
+
+#### Ringkasan
+Keluhan #16: *"admin sistem bisa melihat Master Mahasiswa, master dosen, dimana master data tersebut bisa diinput dari sistem ataupun dari csv"*. Backend import CSV (POST /import/*) sudah ada sejak Iterasi 1 — yang kurang adalah **list master data** dan **input manual dari sistem**, plus **halaman FE**.
+
+**Backend — modul baru `admin-master`** (RBAC `user.manage`, hanya admin_sistem):
+- `GET /admin-master/students` — list mahasiswa paginated (NIM, nama, prodi, angkatan, email, status) + filter `search` (NIM/nama ILIKE) & `prodi`
+- `GET /admin-master/lecturers` — list dosen paginated (NIDN, nama, prodi, email, wali, status) + filter sama
+- `POST /admin-master/students` — buat mahasiswa manual: validasi prodi & angkatan aktif, cek duplikat NIM/email (409), password default = **NIM**, `must_change_password=true`, `entry_type='Manual'`, audit `INSERT` atomik dalam transaksi
+- `POST /admin-master/lecturers` — buat dosen manual: validasi prodi aktif, cek duplikat NIDN/email (409), password default = **NIDN**, audit `INSERT`
+
+**Frontend — halaman `AdminMasterPage`** (route `/admin/master`, menu "Master"):
+- Tab **Master Mahasiswa** / **Master Dosen** (role=tab, aria-selected)
+- Tabel list + search debounce 300ms + filter prodi (dropdown dari /academic/prodis) + pagination
+- **+ Tambah Manual**: modal form NIM/NIDN, nama, prodi, angkatan (mahasiswa), email opsional; pesan sukses menyebut password awal = NIM/NIDN
+- **Import CSV**: hidden file input (accept .csv/.xlsx) → `POST /import/students|lecturers` multipart via `importMasterCsv()` (handle 401 refresh + retry, FormData); hasil ditampilkan: inserted/updated + **daftar baris gagal** (max 10 + "…dan N lainnya")
+
+**Keputusan**: password default = NIM/NIDN (konsisten dgn keputusan login: mahasiswa pakai NIM, dosen pakai NIK/NIDN, must_change_password) — bukan `IMPORT_DEFAULT_PASSWORD` (Siak123!) yang dipakai import CSV. Catatan perbedaan ini disengaja: input manual mengikuti aturan login per-role, import massal tetap satu password default.
+
+#### File yang Diubah
+
+| File | Perubahan |
+|------|-----------|
+| `backend/src/modules/admin-master/index.ts` | **Baru** — list + create manual students/lecturers |
+| `backend/src/app.ts` | Mount `/api/v1/admin-master` |
+| `frontend/src/lib/types.ts` | `MasterStudent`, `MasterLecturer`, `MasterListResponse<T>`, `CreateMaster*Input`, `ImportResult` |
+| `frontend/src/lib/api.ts` | `listMasterStudents`, `listMasterLecturers`, `createMasterStudent`, `createMasterLecturer`, `importMasterCsv` (multipart + refresh) |
+| `frontend/src/pages/AdminMasterPage.tsx` | **Baru** — halaman master data (tab + list + form manual + import CSV) |
+| `frontend/src/pages/AdminMasterPage.test.tsx` | **Baru** — 6 test (list, tab, search, create mahasiswa, create dosen, import CSV) |
+| `frontend/src/App.tsx` | Route `/admin/master` (ProtectedRoute perm user.manage) |
+| `frontend/src/components/AppLayout.tsx` | Menu "Master" (perm user.manage) |
+
+#### Quality Gates (Lokal)
+
+| Gate | Hasil |
+|------|-------|
+| Backend lint/typecheck/format | ✅ |
+| Frontend lint/typecheck/format | ✅ |
+| Frontend build | ✅ (bundle 81.16 kB gzip < 200 kB) |
+| Frontend test:coverage | ✅ (27/27 files, **160/160 tests** pass — +6 test master data; coverage 91.59/80.01/81.09/91.59) |
+| Backend test | ⏳ (butuh Docker/PostgreSQL lokal; modul baru type-safe, pola sama dgn import module yang sudah teruji) |
+
+#### Catatan Teknis
+- Permissions: `user.manage` (bukan `import.data`) karena akses master data = kelola pengguna; import massal tetap `import.data`.
+- Duplikasi email dicek di `users` (bukan hanya NIM/NIDN di tabel profil) — mencegah bentrok login (email > NIM > NIK > NIDN resolver).
+- `importMasterCsv` tidak bisa lewat `apiRequest` (yang selalu set Content-Type JSON) — pakai `fetchWithTimeout` langsung + `FormData` (browser set multipart boundary otomatis), dengan retry 401 seperti helper lain.
+
+---
+
+### Iterasi 13 (2026-08-11) — Gelombang 2: #4 Waiting Room Threshold 2000
+
+#### Ringkasan
+Keluhan #4: *"ubah jumlah maksimal ke 2000 mahasiswa login bersamaan"*. Threshold waiting room diturunkan **5000 → 2000** di semua lapisan (default config, env contoh/nyata, docker-compose, docs). Perubahan hanya nilai konfigurasi — logika service/middleware/lua tidak berubah.
+
+#### File yang Diubah
+
+| File | Perubahan |
+|------|-----------|
+| `backend/src/config/env.ts` | `WAITING_ROOM_THRESHOLD` default `5000` → `2000` |
+| `backend/src/config/env.test.ts` | Expect default `2000` |
+| `backend/.env` (lokal) | `5000` → `2000` |
+| `backend/.env.example` | `5000` → `2000` |
+| `.env.example` (root) | `5000` → `2000` |
+| `infra/.env.prod` | `5000` → `2000` |
+| `infra/.env.prod.example` | `5000` → `2000` |
+| `infra/.env.production.example` | `5000` → `2000` |
+| `infra/docker-compose.yml` | default `${WAITING_ROOM_THRESHOLD:-5000}` → `:-2000` |
+| `infra/docker-compose.prod.yml` | default `:-5000` → `:-2000` |
+| `docs/02-solution-spec.md` | Mermaid diagram + contoh env `5000` → `2000` |
+| `docs/deployment-staging.md` | Tabel env Production `5000` → `2000` (catatan keluhan #4) |
+
+#### Quality Gates (Lokal)
+
+| Gate | Hasil |
+|------|-------|
+| Backend lint/typecheck/format | ✅ |
+| Backend `env.test.ts` (Jest, unit tanpa DB) | ✅ 3/3 |
+| Backend `waiting-room.test.ts` (Jest, mock Redis) | ✅ 18/18 |
+| Frontend | Tidak ada perubahan FE (config-only) |
+
+#### Catatan Teknis
+- `infra/.env.staging` tetap **1500** (sengaja: staging dikalibrasi lebih rendah untuk uji antrean; hanya produksi yang dinaikkan ke 2000 sesuai keluhan).
+- Histori docs lama (`04-implementation-log.md` Iterasi 1, `decision-log.md` DL-26, `planning-t1.13/14.md`) TIDAK diubah — mencatat keputusan saat itu (default 5000), bukan nilai saat ini.
+- Deploy ke Render/Neon/Upstash: nilai env `WAITING_ROOM_THRESHOLD` di dashboard perlu diset/ubah ke 2000 saat deploy berikutnya (Render tidak auto-redeploy saat env diubah — perlu Manual Deploy, lihat runbook `docs/deployment-paas-free.md`).
 
 ---
 

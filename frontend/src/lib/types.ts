@@ -138,6 +138,64 @@ export interface UpdateRoleInput {
   isWali: boolean;
 }
 
+// ==== #16 Master Data (admin_sistem) ====
+
+export interface MasterStudent {
+  id: number;
+  nim: string;
+  fullName: string;
+  email: string;
+  userActive: boolean;
+  prodiCode: string;
+  prodiName: string;
+  angkatan: string;
+  status: string;
+}
+
+export interface MasterLecturer {
+  id: number;
+  nidn: string;
+  fullName: string;
+  email: string;
+  userActive: boolean;
+  isWali: boolean;
+  prodiCode: string;
+  prodiName: string;
+  employmentType: string;
+}
+
+export interface MasterListResponse<T> {
+  items: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+}
+
+export interface CreateMasterStudentInput {
+  nim: string;
+  fullName: string;
+  prodiCode: string;
+  angkatan: string;
+  email?: string;
+}
+
+export interface CreateMasterLecturerInput {
+  nidn: string;
+  fullName: string;
+  prodiCode: string;
+  email?: string;
+}
+
+export interface ImportResult {
+  filename: string;
+  total: number;
+  inserted: number;
+  updated: number;
+  failed: Array<{ row: number; reason: string }>;
+}
+
 export interface PaginationParams {
   page?: number;
   limit?: number;

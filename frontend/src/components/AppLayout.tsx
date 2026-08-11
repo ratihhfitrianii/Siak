@@ -13,6 +13,8 @@ const MENU_ITEMS: { permissions: string[]; label: string; path: string }[] = [
     path: '/transkrip',
   },
   { permissions: ['user.manage'], label: 'User', path: '/users' },
+  // Keluhan #16: Master Data — admin sistem melihat master mahasiswa/dosen, input manual atau CSV.
+  { permissions: ['user.manage'], label: 'Master', path: '/admin/master' },
   // T5.3: 'Pembayaran' = tagihan mahasiswa (krs.fill); 'Tagihan' = kelola pembayaran admin keuangan (payment.update).
   // Sebelumnya keduanya digabung ke 'Pembayaran' (payment.*) → admin keuangan dapat 403 di /pembayaran.
   { permissions: ['krs.fill'], label: 'Pembayaran', path: '/pembayaran' },

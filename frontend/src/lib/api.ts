@@ -20,6 +20,12 @@ import type {
   UpdateRoleInput,
   PaginationParams,
   WaitingRoomStatus,
+  MasterListResponse,
+  MasterStudent,
+  MasterLecturer,
+  CreateMasterStudentInput,
+  CreateMasterLecturerInput,
+  ImportResult,
 } from './types';
 
 export class ApiError extends Error {
@@ -961,4 +967,106 @@ export async function submitGrades(input: GradeInput): Promise<{ id: number }> {
 /** PUT /grades/:id — edit nilai. */
 export async function updateGrade(id: number, input: GradeInput): Promise<{ id: number }> {
   return apiRequest<{ id: number }>(`/grades/${id}`, { method: 'PUT', body: input });
+}
+
+/* ==== #16 Admin Master Data (perm user.manage) ==== */
+
+/** GET /admin-master/students — list master mahasiswa (pagination + filter). */
+export async function listMasterStudents(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  prodi?: string;
+}): Promise<MasterListResponse<MasterStudent>> {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set('page', String(params.page));
+  if (params.limit) qs.set('limit', String(params.limit));
+  if (params.search) qs.set('search', params.search);
+  if (params.prodi) qs.set('prodi', params.prodi);
+  const q = qs.toString();
+  return apiRequest<MasterListResponse<MasterStudent>>(`/admin-master/students${q ? `?${q}` : ''}`);
+}
+
+/** GET /admin-master/lecturers — list master dosen (pagination + filter). */
+export async function listMasterLecturers(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  prodi?: string;
+}): Promise<MasterListResponse<MasterLecturer>> {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set('page', String(params.page));
+  if (params.limit) qs.set('limit', String(params.limit));
+  if (params.search) qs.set('search', params.search);
+  if (params.prodi) qs.set('prodi', params.prodi);
+  const q = qs.toString();
+  return apiRequest<MasterListResponse<MasterLecturer>>(
+    `/admin-master/lecturers${q ? `?${q}` : ''}`,
+  );
+}
+
+/** POST /admin-master/students — buat mahasiswa manual (password default = NIM). */
+export async function createMasterStudent(
+  input: CreateMasterStudentInput,
+): Promise<{ id: number; nim: string; message: string }> {
+  return apiRequest<{ id: number; nim: string; message: string }>('/admin-master/students', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+/** POST /admin-master/lecturers — buat dosen manual (password default = NIDN). */
+export async function createMasterLecturer(
+  input: CreateMasterLecturerInput,
+): Promise<{ id: number; nidn: string; message: string }> {
+  return apiRequest<{ id: number; nidn: string; message: string }>('/admin-master/lecturers', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+/** POST /import/students | /import/lecturers — upload CSV/XLSX (multipart). */
+export async function importMasterCsv(
+  kind: 'students' | 'lecturers',
+  file: File,
+): Promise<ImportResult> {
+  const token = getAccessToken();
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetchWithTimeout(`${API_BASE}/import/${kind}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: form,
+  });
+  if (res.status === 401) {
+    const refreshed = await tryRefresh();
+    if (!refreshed) {
+      throw new ApiError(401, 'UNAUTHORIZED', 'Sesi berakhir. Silakan login kembali.');
+    }
+    const retry = await fetchWithTimeout(`${API_BASE}/import/${kind}`, {
+      method: 'POST',
+      headers: getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : undefined,
+      body: form,
+    });
+    if (!retry.ok) {
+      const payload = (await retry.json()) as { error?: { code?: string; message?: string } };
+      throw new ApiError(
+        retry.status,
+        payload?.error?.code ?? 'IMPORT_FAILED',
+        payload?.error?.message ?? `Import gagal (${retry.status})`,
+      );
+    }
+    const retryBody = (await retry.json()) as { data?: ImportResult };
+    return retryBody.data as ImportResult;
+  }
+  if (!res.ok) {
+    const payload = (await res.json()) as { error?: { code?: string; message?: string } };
+    throw new ApiError(
+      res.status,
+      payload?.error?.code ?? 'IMPORT_FAILED',
+      payload?.error?.message ?? `Import gagal (${res.status})`,
+    );
+  }
+  const body = (await res.json()) as { data?: ImportResult };
+  return body.data as ImportResult;
 }

@@ -20,6 +20,7 @@ import { createScheduleRouter } from './modules/schedule';
 import { createAttendanceRouter } from './modules/attendance';
 import { createGuidanceRouter } from './modules/guidance';
 import { createSubstituteRouter } from './modules/substitute';
+import { createAdminMasterRouter } from './modules/admin-master';
 import {
   WaitingRoomService,
   WR_DEFAULT_OPTIONS,
@@ -91,6 +92,7 @@ export function createApp(healthDeps: HealthDependencies = {}, options: AppOptio
   app.use('/api/v1/attendance', createAttendanceRouter());
   app.use('/api/v1/guidance', createGuidanceRouter());
   app.use('/api/v1/substitute', createSubstituteRouter());
+  app.use('/api/v1/admin-master', createAdminMasterRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);
