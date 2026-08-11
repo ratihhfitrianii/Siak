@@ -30,7 +30,7 @@ interface AuthContextValue {
   user: MeUser | null;
   /** true saat restore sesi dari localStorage masih berjalan */
   booting: boolean;
-  login: (identifier: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<MeUser>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   /** Refresh profil /users/me (dipakai setelah edit profil agar header ikut ter-update). */
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (identifier: string, password: string) => {
+  const login = useCallback(async (identifier: string, password: string): Promise<MeUser> => {
     const data = await apiRequest<{
       accessToken: string;
       refreshToken: string;
@@ -80,7 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setTokens(data.accessToken, data.refreshToken);
     const me = await apiRequest<MeUser>('/users/me');
-    setUser({ ...me, mustChangePassword: me.mustChangePassword || data.user.mustChangePassword });
+    const merged = {
+      ...me,
+      mustChangePassword: me.mustChangePassword || data.user.mustChangePassword,
+    };
+    setUser(merged);
+    return merged;
   }, []);
 
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {

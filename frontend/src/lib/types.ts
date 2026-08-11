@@ -264,7 +264,12 @@ export interface PaymentsResponse {
   };
 }
 
-// MyPayment is semantically a student's view of Payment (same shape, different permission context)
+/** Opsi semester utk dropdown filter (GET /finance/semesters). */
+export interface SemesterOption {
+  id: number;
+  code: string;
+  name: string;
+}
 export type MyPayment = Payment;
 
 export interface KrsAccessResult {

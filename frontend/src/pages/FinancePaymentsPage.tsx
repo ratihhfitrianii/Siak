@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   getFinancePayments,
+  getFinanceSemesters,
   updateFinancePayment,
   generateFinancePayments,
   ApiError,
 } from '../lib/api';
-import type { Payment, PaymentStatus } from '../lib/types';
+import type { Payment, PaymentStatus, SemesterOption } from '../lib/types';
 
 /** Halaman Kelola Tagihan — Admin Keuangan (T2.6)
  * List tagihan semua mhs + filter + pagination + update status bayar (partial/lunas).
@@ -16,6 +17,7 @@ export function FinancePaymentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<Set<number>>(new Set());
   const [generating, setGenerating] = useState(false);
+  const [semesters, setSemesters] = useState<SemesterOption[]>([]);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -58,6 +60,22 @@ export function FinancePaymentsPage() {
   useEffect(() => {
     loadPayments();
   }, [loadPayments]);
+
+  // Muat daftar semester utk dropdown filter (keluhan #15/#16 — sebelumnya hardcoded id 1,2,3
+  // yang tidak cocok dgn data produksi → filter tak pernah cocok → halaman tampak kosong).
+  useEffect(() => {
+    let cancelled = false;
+    getFinanceSemesters()
+      .then((list) => {
+        if (!cancelled) setSemesters(list);
+      })
+      .catch(() => {
+        // Non-blocking: dropdown tetap punya "Semua Semester" bila gagal.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleUpdateStatus(paymentId: number, paidAmount: number) {
     const newUpdating = new Set(updating);
@@ -144,10 +162,11 @@ export function FinancePaymentsPage() {
             disabled={generating}
           >
             <option value="">Semua Semester</option>
-            {/* Options populated from data or hardcoded */}
-            <option value="3">Ganjil 2024/2025 (2024/2025-1)</option>
-            <option value="2">Genap 2023/2024 (2023/2024-2)</option>
-            <option value="1">Ganjil 2023/2024 (2023/2024-1)</option>
+            {semesters.map((s) => (
+              <option key={s.id} value={String(s.id)}>
+                {s.name} ({s.code})
+              </option>
+            ))}
           </select>
           <select
             value={filters.status}

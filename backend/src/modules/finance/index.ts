@@ -17,6 +17,22 @@ export function createFinanceRouter(): Router {
   // All finance routes require authentication
   router.use(authenticate);
 
+  // ── GET /api/v1/finance/semesters — Daftar semester utk filter (admin keuangan/sistem) ───
+  router.get(
+    '/semesters',
+    authorize('payment.update'),
+    async (_req: Request, res: Response, next: NextFunction) => {
+      try {
+        const result = await pgPool.query(
+          `SELECT id, code, name FROM semesters ORDER BY start_date DESC, id DESC`,
+        );
+        res.json({ success: true, data: result.rows });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // ── GET /api/v1/finance/payments — List payments (admin keuangan/sistem) ─────────────────
   router.get(
     '/payments',

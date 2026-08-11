@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth, type MeUser } from '../auth/AuthContext';
 import { ApiError, NetworkError } from '../lib/api';
 import { FieldError, FormAlert } from '../components/ErrorInline';
 
@@ -8,6 +8,33 @@ interface FieldErrors {
   identifier?: string[];
   password?: string[];
   [key: string]: string[] | undefined;
+}
+
+/**
+ * Peta path → permission yang dibutuhkan (sinkron dgn prop `perm` di App.tsx).
+ * Dipakai utk memastikan redirect pasca-login tidak mengirim user ke halaman
+ * yang tak punya akses (keluhan #14 — admin keuangan diarahkan ke /keuangan/tagihan
+ * padahal login dari halaman terlarang → 403).
+ */
+const ROUTE_PERMS: Record<string, string | string[]> = {
+  '/krs': ['krs.fill', 'krs.approve'],
+  '/transkrip': 'transcript.view_own',
+  '/pembayaran': 'krs.fill',
+  '/keuangan/tagihan': 'payment.update',
+  '/users': 'user.manage',
+  '/admin/master': 'user.manage',
+  '/profil': 'user.edit_contact',
+};
+
+/** Path tujuan aman: `from` bila user punya akses, selain itu dashboard. */
+function safeFrom(from: string, user: MeUser): string {
+  if (from === '/' || from === '') return '/';
+  const perm = ROUTE_PERMS[from];
+  if (perm === undefined) return from; // path tanpa guard → aman
+  const has = Array.isArray(perm)
+    ? perm.some((p) => user.menu.includes(p))
+    : user.menu.includes(perm);
+  return has ? from : '/';
 }
 
 export function LoginPage() {
@@ -24,7 +51,8 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   if (user) {
-    return <Navigate to={user.mustChangePassword ? '/ganti-password' : from} replace />;
+    const target = user.mustChangePassword ? '/ganti-password' : safeFrom(from, user);
+    return <Navigate to={target} replace />;
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -33,8 +61,8 @@ export function LoginPage() {
     setFormError(null);
     setLoading(true);
     try {
-      await login(identifier, password);
-      navigate(from, { replace: true });
+      const me = await login(identifier, password);
+      navigate(safeFrom(from, me), { replace: true });
     } catch (err) {
       if (err instanceof NetworkError) {
         setFormError(err.message);

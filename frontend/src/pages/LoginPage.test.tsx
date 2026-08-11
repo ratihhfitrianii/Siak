@@ -85,6 +85,94 @@ describe('LoginPage (T1.11a)', () => {
     expect(await screen.findByText('HALAMAN_DASHBOARD')).toBeInTheDocument();
   });
 
+  it('keluhan #14 — login dari halaman tanpa izin → redirect ke dashboard (bukan 403)', async () => {
+    const user = userEvent.setup();
+    const adminKeuangan = { ...ME, role: 'admin_keuangan', menu: ['payment.update'] };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.includes('/auth/login')) {
+          return Promise.resolve(
+            jsonResponse({
+              success: true,
+              data: {
+                accessToken: 'access-1',
+                refreshToken: 'refresh-1',
+                user: { mustChangePassword: false },
+                expiresIn: 900,
+              },
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse({ success: true, data: adminKeuangan }));
+      }),
+    );
+
+    // Admin keuangan membuka /krs saat belum login → ProtectedRoute menyimpan
+    // `from` = /krs. Setelah login, karena menu TIDAK punya krs.fill/krs.approve,
+    // redirect harus ke dashboard, bukan ke /krs (yang akan menampilkan 403).
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/login', state: { from: '/krs' } }]}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<div>HALAMAN_DASHBOARD</div>} />
+            <Route path="/krs" element={<div>HALAMAN_KRS_TERLARANG</div>} />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByLabelText('NIM / NIK / Email'), 'admin@kampus.ac.id');
+    await user.type(screen.getByLabelText('Password'), 'Rahasia123!');
+    await user.click(screen.getByRole('button', { name: 'Masuk' }));
+
+    expect(await screen.findByText('HALAMAN_DASHBOARD')).toBeInTheDocument();
+    expect(screen.queryByText('HALAMAN_KRS_TERLARANG')).not.toBeInTheDocument();
+  });
+
+  it('login dari halaman yang punya akses → tetap ke halaman itu', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.includes('/auth/login')) {
+          return Promise.resolve(
+            jsonResponse({
+              success: true,
+              data: {
+                accessToken: 'access-1',
+                refreshToken: 'refresh-1',
+                user: { mustChangePassword: false },
+                expiresIn: 900,
+              },
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse({ success: true, data: ME }));
+      }),
+    );
+
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/login', state: { from: '/pembayaran' } }]}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<div>HALAMAN_DASHBOARD</div>} />
+            <Route path="/pembayaran" element={<div>HALAMAN_PEMBAYARAN</div>} />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByLabelText('NIM / NIK / Email'), 'budi@kampus.ac.id');
+    await user.type(screen.getByLabelText('Password'), 'Rahasia123!');
+    await user.click(screen.getByRole('button', { name: 'Masuk' }));
+
+    // ME menu ['krs.fill'] → /pembayaran butuh krs.fill → boleh lanjut ke sana
+    expect(await screen.findByText('HALAMAN_PEMBAYARAN')).toBeInTheDocument();
+  });
+
   it('kredensial salah → error inline tampil', async () => {
     const user = userEvent.setup();
     vi.stubGlobal(

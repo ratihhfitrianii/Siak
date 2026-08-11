@@ -1972,7 +1972,7 @@ Mengimplementasikan **item #45: Filter tahun akademik saat download transkrip PD
 
 - [ ] Jalankan full CI backend test (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
 - [x] Gelombang 2 tuntas: #4 Waiting room threshold 2000, #5 Fix download transkrip (detail), #16 Admin master data + CSV import, #27 Bimbingan form searchable NIM/kelas, #48 Notifikasi pagination + mark all read
-- [ ] Gelombang 3 (7 klaster redesign UI dari audit 31): ~~1/7 Sidebar ikon + avatar dropdown (#5, #26)~~ ✅ Iterasi 14; ~~2/7 Dashboard info terkini universitas (#27)~~ ✅ Iterasi 16; ~~3/7 KRS 2 kolom + checkbox + pagination (#28–30)~~ ✅ Iterasi 17 — sisa: tagihan (#14–16,24), PDF pilih tahun ajaran (#33), pilih MK 3 huruf (#18), daftar kelas (#35)
+- [ ] Gelombang 3 (7 klaster redesign UI dari audit 31): ~~1/7 Sidebar ikon + avatar dropdown (#5, #26)~~ ✅ Iterasi 14; ~~2/7 Dashboard info terkini universitas (#27)~~ ✅ Iterasi 16; ~~3/7 KRS 2 kolom + checkbox + pagination (#28–30)~~ ✅ Iterasi 17; ~~4/7 Tagihan: semester dinamis + redirect login (#14–16, #24)~~ ✅ Iterasi 18 — sisa: PDF pilih tahun ajaran (#33), pilih MK 3 huruf (#18), daftar kelas (#35)
 
 ---
 
@@ -2262,6 +2262,44 @@ Redesign halaman KRS mahasiswa sesuai 3 keluhan:
 - Test grouping memakai `findAllByText(/Teknologi Informasi/)` (2 kartu); teks duplikat antara kartu kiri & draft kanan → assertion di-scope `within(list)`.
 - `DosenGuidance.test.tsx` flaky lagi 1× di full suite (tanpa fake timers; userEvent 739ms) — lulus saat terpisah & pada run ulang full suite; **tidak terkait perubahan ini** (file tidak tersentuh).
 - Field baru `lecturerName` di cache `AVAILABLE_CLASSES` (TTL 30 dtk) — cache lama kedaluwarsa sendiri; tidak ada perubahan cache key.
+
+---
+
+### Iterasi 18 (2026-08-11) — Gelombang 3 item 4/7: Halaman Tagihan & Redirect Login (keluhan #14–#16, #24)
+
+#### Ringkasan
+Perbaikan halaman kelola tagihan (admin keuangan) + redirect pasca-login:
+
+- **#14** — *login admin keuangan dari halaman yang tak punya akses → setelah login dikirim balik ke halaman terlarang → 403*: `AuthContext.login()` kini **return `MeUser`**; `LoginPage` memvalidasi path `from` terhadap permission user via `safeFrom()` + peta `ROUTE_PERMS` (sinkron dgn prop `perm` di App.tsx) — user tanpa akses diarahkan ke dashboard, bukan halaman 403. Berlaku juga utk redirect saat sudah login (`if (user)`).
+- **#15/#16** — *dropdown semester di halaman tagihan hardcoded (id 1,2,3) yang tidak cocok dgn data produksi → filter tak pernah cocok → halaman tampak kosong*: backend baru **`GET /api/v1/finance/semesters`** (perm `payment.update`) → dropdown semester diisi **dinamis dari API** (urut `start_date DESC`), fallback non-blocking bila gagal.
+
+#### File yang Diubah
+
+| File | Perubahan |
+|------|-----------|
+| `backend/src/modules/finance/index.ts` | Endpoint baru `GET /semesters` (SELECT id, code, name FROM semesters ORDER BY start_date DESC) |
+| `frontend/src/lib/types.ts` | Tipe baru `SemesterOption` (id, code, name) |
+| `frontend/src/lib/api.ts` | Helper `getFinanceSemesters()` |
+| `frontend/src/pages/FinancePaymentsPage.tsx` | Dropdown semester dinamis (hapus 3 opsi hardcoded) |
+| `frontend/src/pages/FinancePaymentsPage.test.tsx` | Mock `/semesters` di semua skenario + assert opsi dari API (7 test) |
+| `frontend/src/auth/AuthContext.tsx` | `login()` return `MeUser` (merged dgn mustChangePassword) |
+| `frontend/src/pages/LoginPage.tsx` | `ROUTE_PERMS` + `safeFrom()` — redirect pasca-login hormati permission |
+| `frontend/src/pages/LoginPage.test.tsx` | +2 test: admin keuangan buka /krs → dashboard; user dgn akses → tetap ke halaman (9 test) |
+
+#### Quality Gates (Lokal)
+
+| Gate | Hasil |
+|------|-------|
+| Backend lint/typecheck/format | ✅ |
+| Frontend lint/typecheck/format | ✅ |
+| Frontend build | ✅ (bundle 82.60 kB gzip < 200 kB) |
+| Frontend test:coverage | ✅ (28/28 files, **177/177 tests** — +2; coverage 92.00/80.39/81.10) |
+| Backend test | ⏳ butuh DB (endpoint baru tervalidasi lint/typecheck; eksekusi di CI) |
+
+#### Catatan Teknis
+- `ROUTE_PERMS` memetakan path → permission sama persis dgn `perm` di App.tsx; path tanpa guard (dashboard, notifikasi) otomatis aman. Duplikasi ini disengaja agar LoginPage tetap ringan (tanpa refactor route config besar).
+- Debug panjang (1 jem): test FinancePaymentsPage gagal dgn banner "Permintaan gagal (undefined)" — **root cause: rewrite mock `fetchMock` menghilangkan wrapper `jsonResponse`** di branch default (return `LIST_RESPONSE` mentah, bukan `jsonResponse(LIST_RESPONSE)`), sehingga `apiRequest` menerima objek tanpa `ok`/`status`. Bukan bug kode produksi; mock di-revert ke pola asli + branch `/semesters`.
+- `getFinanceSemesters()` memakai `apiRequest<SemesterOption[]>` — apiRequest sudah meng-unwrap envelope `{data}` (jangan double-unwrap).
 
 ---
 

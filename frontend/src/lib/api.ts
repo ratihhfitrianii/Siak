@@ -397,6 +397,7 @@ import type {
   MyPayment,
   KrsAccessResult,
   UpdatePaymentInput,
+  SemesterOption,
 } from './types';
 
 /** GET /finance/payments — list tagihan (admin keuangan/sistem). */
@@ -422,6 +423,11 @@ export async function getFinancePayments(params?: {
 /** GET /finance/payments/:id — detail tagihan. */
 export async function getFinancePayment(id: number): Promise<Payment> {
   return apiRequest<Payment>(`/finance/payments/${id}`);
+}
+
+/** GET /finance/semesters — daftar semester utk dropdown filter tagihan (admin keuangan). */
+export async function getFinanceSemesters(): Promise<SemesterOption[]> {
+  return apiRequest<SemesterOption[]>('/finance/semesters');
 }
 
 /** POST /finance/payments/:id/update — update status bayar (admin keuangan). */

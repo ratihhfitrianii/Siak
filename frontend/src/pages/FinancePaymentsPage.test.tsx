@@ -42,10 +42,20 @@ const LIST_RESPONSE = {
   data: { data: [PAYMENT], pagination: { page: 1, limit: 20, total: 1, totalPages: 1 } },
 };
 
-const fetchMock = (url: string) =>
-  Promise.resolve(
-    jsonResponse(url.includes('/update') ? { success: true, data: { id: 1 } } : LIST_RESPONSE),
-  );
+const SEMESTERS = [
+  { id: 5, code: '2025/2026-1', name: 'Ganjil 2025/2026' },
+  { id: 3, code: '2024/2025-1', name: 'Ganjil 2024/2025' },
+];
+
+const fetchMock = (url: string) => {
+  if (url.includes('/semesters')) {
+    return Promise.resolve(jsonResponse({ success: true, data: SEMESTERS }));
+  }
+  if (url.includes('/update')) {
+    return Promise.resolve(jsonResponse({ success: true, data: { id: 1 } }));
+  }
+  return Promise.resolve(jsonResponse(LIST_RESPONSE));
+};
 
 describe('FinancePaymentsPage (T2.6)', () => {
   afterEach(() => {
@@ -63,6 +73,10 @@ describe('FinancePaymentsPage (T2.6)', () => {
     expect(screen.getAllByText(/4\.000\.000/).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('combobox').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole('button', { name: /Generate Tagihan/i })).toBeInTheDocument();
+    // Keluhan #15/#16: opsi semester dari API (bukan hardcoded)
+    expect(
+      await screen.findByRole('option', { name: 'Ganjil 2024/2025 (2024/2025-1)' }),
+    ).toBeInTheDocument();
   });
 
   it('update status bayar via prompt → POST + refresh', async () => {
@@ -105,18 +119,18 @@ describe('FinancePaymentsPage (T2.6)', () => {
     const fetchCalls: string[] = [];
     const fetchSpy = vi.fn((url: string) => {
       fetchCalls.push(url);
-      return Promise.resolve(
-        jsonResponse(
-          url.includes('/generate') ? { success: true, data: { message: 'ok' } } : LIST_RESPONSE,
-        ),
-      );
+      if (url.includes('/generate')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { message: 'ok' } }));
+      }
+      return fetchMock(url);
     });
     vi.stubGlobal('fetch', fetchSpy);
     const alertSpy = vi.fn();
     vi.stubGlobal('alert', alertSpy);
     render(<FinancePaymentsPage />);
 
-    // Pilih semester dulu (select pertama = filter semester)
+    // Tunggu opsi semester dari API, lalu pilih (select pertama = filter semester)
+    await screen.findByRole('option', { name: 'Ganjil 2024/2025 (2024/2025-1)' });
     const semesterSelect = (await screen.findAllByRole('combobox'))[0] as HTMLSelectElement;
     semesterSelect.value = '3';
     semesterSelect.dispatchEvent(new Event('change', { bubbles: true }));
@@ -149,12 +163,17 @@ describe('FinancePaymentsPage (T2.6)', () => {
   it('tidak ada data → empty state', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse({
-          success: true,
-          data: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } },
-        }),
-      ),
+      vi.fn((url: string) => {
+        if (url.includes('/semesters')) {
+          return Promise.resolve(jsonResponse({ success: true, data: SEMESTERS }));
+        }
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } },
+          }),
+        );
+      }),
     );
     render(<FinancePaymentsPage />);
     expect(await screen.findByText('Tidak ada data tagihan untuk filter ini')).toBeInTheDocument();
