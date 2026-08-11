@@ -288,10 +288,10 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
     y += 10;
 
     // SEMESTER TABLES
-    const colWidths = [40, 180, 50, 50, 50, 60];
-    const headers = ['No', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
-    // Cumulative x-position per column for pdfkit (base 50 margin). Math ke-2 absen
-    // noUncheckedIndexedAccess → bangun lewat reduce agar tak ada index possibly-undefined.
+    // Kolom: No, Kode MK, Mata Kuliah, SKS, Angka, Huruf, Status
+    const colWidths = [30, 70, 180, 40, 60, 50, 60];
+    const headers = ['No', 'Kode MK', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
+    // Cumulative x-position per column for pdfkit (base 50 margin).
     const colStarts: number[] = [];
     for (const w of colWidths) {
       colStarts.push(colStarts.length === 0 ? 50 : colStarts[colStarts.length - 1]! + w);
@@ -309,7 +309,7 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
       headers.forEach((h, i) => {
         doc.text(h, colStarts[i]!, y, {
           width: colWidths[i],
-          align: i === 0 || i >= 2 ? 'center' : 'left',
+          align: i === 0 || i >= 3 ? 'center' : 'left',
         });
       });
       y += 16;
@@ -326,7 +326,8 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
         const status = course.isRepeated ? 'Diulang' : course.isRemedial ? 'Remedial' : '';
         const rowData = [
           String(rowNum),
-          `${course.courseCode} - ${course.courseName}`,
+          course.courseCode,
+          course.courseName,
           String(course.credits),
           course.finalScore !== null ? course.finalScore.toFixed(2) : '-',
           course.gradeLetter || '-',
@@ -339,7 +340,7 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
         rowData.forEach((v, i) => {
           doc.text(v, colStarts[i]!, y, {
             width: colWidths[i],
-            align: i === 0 || i >= 2 ? 'center' : 'left',
+            align: i === 0 || i >= 3 ? 'center' : 'left',
           });
         });
         y += 14;
