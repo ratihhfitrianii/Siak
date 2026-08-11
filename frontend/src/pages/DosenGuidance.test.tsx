@@ -4,6 +4,10 @@ import { controlFor } from '../test/controls';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenGuidance } from './DosenGuidance';
 
+// userEvent + coverage instrumentation lambat → timeout default 5s sering kebentur
+// (flaky pre-existing saat full suite; standalone selalu pass). Naikkan per-file.
+vi.setConfig({ testTimeout: 20_000 });
+
 function jsonResponse(payload: unknown, status = 200) {
   return {
     ok: status >= 200 && status < 300,

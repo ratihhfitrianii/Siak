@@ -195,4 +195,80 @@ describe('FinancePaymentsPage (T2.6)', () => {
     render(<FinancePaymentsPage />);
     expect(await screen.findByText('Gagal memuat daftar tagihan')).toBeInTheDocument();
   });
+
+  it('detail modal — klik Detail → fetch /payments/:id → tampilkan rincian items', async () => {
+    const detailPayment: Payment = {
+      ...PAYMENT,
+      items: [
+        {
+          id: 1,
+          type: 'spp',
+          description: 'SPP Ganjil 2024/2025',
+          amount: 2750000,
+          isMandatory: true,
+        },
+        {
+          id: 2,
+          type: 'biaya_dev',
+          description: 'Biaya Pengembangan',
+          amount: 500000,
+          isMandatory: true,
+        },
+      ],
+    };
+    const fetchSpy = vi.fn((url: string) => {
+      if (url.includes('/payments/1')) {
+        return Promise.resolve(jsonResponse({ success: true, data: detailPayment }));
+      }
+      if (url.includes('/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: SEMESTERS }));
+      }
+      return Promise.resolve(jsonResponse(LIST_RESPONSE));
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+    vi.stubGlobal('alert', vi.fn());
+    render(<FinancePaymentsPage />);
+
+    await screen.findByText('20240001');
+    const detailBtn = screen.getByRole('button', { name: /Detail/i });
+    detailBtn.click();
+
+    await screen.findByText('Rincian Tagihan: 20240001 - Andi');
+    expect(screen.getByText('SPP Ganjil 2024/2025')).toBeInTheDocument();
+    expect(screen.getByText('Biaya Pengembangan')).toBeInTheDocument();
+    expect(screen.getByText('Rp 2.750.000')).toBeInTheDocument();
+    expect(screen.getByText('Rp 500.000')).toBeInTheDocument();
+    expect(screen.getByText('Tutup')).toBeInTheDocument();
+  });
+
+  it('detail modal — tutup modal → kembali ke daftar', async () => {
+    const detailPayment: Payment = {
+      ...PAYMENT,
+      items: [{ id: 1, type: 'spp', description: 'SPP', amount: 1000000, isMandatory: true }],
+    };
+    const fetchSpy = vi.fn((url: string) => {
+      if (url.includes('/payments/1')) {
+        return Promise.resolve(jsonResponse({ success: true, data: detailPayment }));
+      }
+      if (url.includes('/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: SEMESTERS }));
+      }
+      return Promise.resolve(jsonResponse(LIST_RESPONSE));
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+    render(<FinancePaymentsPage />);
+
+    await screen.findByText('20240001');
+    const detailBtn = screen.getByRole('button', { name: /Detail/i });
+    detailBtn.click();
+
+    await screen.findByText('Rincian Tagihan: 20240001 - Andi');
+    const closeBtn = screen.getByText('Tutup');
+    closeBtn.click();
+
+    await waitFor(() => {
+      expect(screen.queryByText('Rincian Tagihan: 20240001 - Andi')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('Kelola Tagihan')).toBeInTheDocument();
+  });
 });
