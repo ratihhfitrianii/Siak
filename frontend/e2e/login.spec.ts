@@ -42,7 +42,9 @@ test.describe('Login — critical path (T5.7)', () => {
     await page.getByRole('button', { name: 'Masuk' }).click();
     await expect(page.getByText(/Selamat datang/)).toBeVisible({ timeout: 10_000 });
 
-    await page.getByRole('button', { name: 'Keluar' }).click();
+    // Buka menu dropdown terlebih dahulu
+    await page.getByRole('button', { name: 'Menu pengguna' }).click();
+    await page.getByRole('menuitem', { name: 'Keluar' }).click();
     await expect(page.getByRole('heading', { name: /Masuk ke Siak/ })).toBeVisible();
   });
 
