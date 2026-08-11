@@ -40,10 +40,10 @@ export function MyPaymentPage() {
       setError(null);
       const data = await getMyPayments();
       setPayments(data);
-      
+
       // Load KRS period to know which semester is active for KRS
       await loadKrsPeriod();
-      
+
       if (data.length > 0) {
         const latest = data[0];
         setActiveSemesterId(latest.semesterId);

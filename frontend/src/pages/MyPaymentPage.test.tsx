@@ -161,26 +161,26 @@ describe('MyPaymentPage (T2.6)', () => {
   });
 
   it('menampilkan tagihan mahasiswa + rincian items', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockImplementation((url: string) => {
-          if (url.includes('/krs/period')) {
-            return Promise.resolve(jsonResponse({ data: KRS_PERIOD_OPEN }));
-          }
-          if (url.includes('/krs-access')) {
-            return Promise.resolve(jsonResponse({ success: true, data: KRS_OK }));
-          }
-          return Promise.resolve(jsonResponse({ success: true, data: PAYMENTS_SNAKE }));
-        }),
-      );
-      render(<MyPaymentPage />);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/krs/period')) {
+          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_OPEN }));
+        }
+        if (url.includes('/krs-access')) {
+          return Promise.resolve(jsonResponse({ success: true, data: KRS_OK }));
+        }
+        return Promise.resolve(jsonResponse({ success: true, data: PAYMENTS_SNAKE }));
+      }),
+    );
+    render(<MyPaymentPage />);
 
-      expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
-      // Tab semester
-      expect(screen.getByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
-      expect(screen.getByText('Genap 2023/2024 (2023/2024-2)')).toBeInTheDocument();
-      expect(screen.getAllByText(/4\.000\.000/).length).toBeGreaterThan(0);
-    });
+    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+    // Tab semester
+    expect(screen.getByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
+    expect(screen.getByText('Genap 2023/2024 (2023/2024-2)')).toBeInTheDocument();
+    expect(screen.getAllByText(/4\.000\.000/).length).toBeGreaterThan(0);
+  });
 
   it('menampilkan status belum lunas & indikator KRS diblokir', async () => {
     vi.stubGlobal(
@@ -251,22 +251,22 @@ describe('MyPaymentPage (T2.6)', () => {
   });
 
   it('error → pesan error', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockImplementation((url: string) => {
-          if (url.includes('/krs/period')) {
-            return Promise.resolve(jsonResponse({ data: KRS_PERIOD_CLOSED }));
-          }
-          return Promise.resolve(
-            jsonResponse(
-              { success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal memuat tagihan' } },
-              500,
-            ),
-          );
-        }),
-      );
-      render(<MyPaymentPage />);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/krs/period')) {
+          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_CLOSED }));
+        }
+        return Promise.resolve(
+          jsonResponse(
+            { success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal memuat tagihan' } },
+            500,
+          ),
+        );
+      }),
+    );
+    render(<MyPaymentPage />);
 
-      expect(await screen.findByText('Gagal memuat tagihan')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Gagal memuat tagihan')).toBeInTheDocument();
   });
+});

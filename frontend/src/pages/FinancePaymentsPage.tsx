@@ -350,7 +350,7 @@ export function FinancePaymentsPage() {
           </div>
         )}
       </div>
-    {/* Detail Modal */}
+      {/* Detail Modal */}
       {detailPayment && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -389,7 +389,9 @@ export function FinancePaymentsPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-slate-500">Total Tagihan</p>
-                    <p className="text-xl font-bold text-slate-900">{formatRupiah(detailPayment.totalAmount)}</p>
+                    <p className="text-xl font-bold text-slate-900">
+                      {formatRupiah(detailPayment.totalAmount)}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-slate-500">Status</p>
@@ -403,24 +405,42 @@ export function FinancePaymentsPage() {
                 <table className="w-full">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Jenis</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Keterangan</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Jumlah</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Wajib</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Jenis
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Keterangan
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Jumlah
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Wajib
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {detailPayment.items.map((item, idx) => (
                       <tr key={item.id ?? idx} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">{item.type}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
+                          {item.type}
+                        </td>
                         <td className="px-4 py-3 text-sm text-slate-600">{item.description}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-slate-900">{formatRupiah(item.amount)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">{item.isMandatory ? '✓' : '—'}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-slate-900">
+                          {formatRupiah(item.amount)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">
+                          {item.isMandatory ? '✓' : '—'}
+                        </td>
                       </tr>
                     ))}
                     <tr className="bg-slate-50 font-semibold">
-                      <td colSpan={2} className="px-4 py-3 text-right text-sm text-slate-900">TOTAL</td>
-                      <td className="px-4 py-3 text-right text-sm text-slate-900">{formatRupiah(detailPayment.totalAmount)}</td>
+                      <td colSpan={2} className="px-4 py-3 text-right text-sm text-slate-900">
+                        TOTAL
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-slate-900">
+                        {formatRupiah(detailPayment.totalAmount)}
+                      </td>
                       <td className="px-4 py-3 text-center"></td>
                     </tr>
                   </tbody>
