@@ -122,16 +122,6 @@ const KRS_OK: KrsAccessResult = {
   },
 };
 
-const KRS_BLOCKED: KrsAccessResult = {
-  canAccess: false,
-  payment: {
-    status: 'belum_lunas',
-    totalAmount: 4000000,
-    paidAmount: 0,
-    dueDate: '2026-02-15T00:00:00Z',
-  },
-};
-
 /** Konversi fixture camelCase → snake_case: mock fetch harus mencerminkan kontrak backend nyata
  *  (normalisasi snake→camel dilakukan getMyPayments di api.ts). */
 function toSnake(p: MyPayment): Record<string, unknown> {
