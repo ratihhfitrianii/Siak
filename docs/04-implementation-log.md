@@ -1972,7 +1972,7 @@ Mengimplementasikan **item #45: Filter tahun akademik saat download transkrip PD
 
 - [ ] Jalankan full CI backend test (tunggu Docker/PostgreSQL lokal ready, atau biarkan GitHub Actions)
 - [x] Gelombang 2 tuntas: #4 Waiting room threshold 2000, #5 Fix download transkrip (detail), #16 Admin master data + CSV import, #27 Bimbingan form searchable NIM/kelas, #48 Notifikasi pagination + mark all read
-- [ ] Gelombang 3 (7 klaster redesign UI dari audit 31): ~~1/7 Sidebar ikon + avatar dropdown (#5, #26)~~ ✅ Iterasi 14; ~~2/7 Dashboard info terkini universitas (#27)~~ ✅ Iterasi 16 — sisa: KRS 2 kolom (#28–30), tagihan (#14–16,24), PDF pilih tahun ajaran (#33), pilih MK 3 huruf (#18), daftar kelas (#35)
+- [ ] Gelombang 3 (7 klaster redesign UI dari audit 31): ~~1/7 Sidebar ikon + avatar dropdown (#5, #26)~~ ✅ Iterasi 14; ~~2/7 Dashboard info terkini universitas (#27)~~ ✅ Iterasi 16; ~~3/7 KRS 2 kolom + checkbox + pagination (#28–30)~~ ✅ Iterasi 17 — sisa: tagihan (#14–16,24), PDF pilih tahun ajaran (#33), pilih MK 3 huruf (#18), daftar kelas (#35)
 
 ---
 
@@ -2224,6 +2224,44 @@ Kedua fetch **opsional**: gagal → pesan fallback ("…tidak dapat dimuat"), da
 - `KrsPeriod` TIDAK di-re-export dari `api.ts` (hanya di-import untuk tipe kembalian) → DashboardPage mengimpor tipe dari `../lib/types` (TS2724 jika dari `../lib/api`).
 - Test "periode" memakai `getAllByText(/Ganjil 2025\/2026/)` karena teks muncul di kartu periode DAN di pesan notifikasi mock (duplikat → `getByText` throws "multiple elements").
 - `DosenGuidance.test.tsx` sempat gagal 1× di full suite namun lulus saat dijalankan terpisah & lulus pada run ulang full suite (flaky timing, tidak terkait perubahan ini).
+
+---
+
+### Iterasi 17 (2026-08-11) — Gelombang 3 item 3/7: KRS Redesign 2 Kolom (keluhan #28–#30)
+
+#### Ringkasan
+Redesign halaman KRS mahasiswa sesuai 3 keluhan:
+
+- **#28** — *"kolom untuk memilih matkul di sebelah kiri … tampilkan matkul hanya per 5 matkul … kolom draft KRS ada di sebelah kanan"*: layout grid `lg:grid-cols-5` — kiri (3 kolom) daftar mata kuliah **5 kartu per halaman** dengan pagination "← Sebelumnya / Halaman X / Y / Berikutnya →", kanan (2 kolom) **Draft KRS sticky** (`lg:sticky lg:top-20`) berisi pilihan, total SKS, Simpan Draft & Submit.
+- **#29** — *"hanya tampilkan mata kuliah yang berbeda jadwal dan dosennya, gabungkan matkul dengan kode, jadwal dan dosen yang sama lalu tombol pilih ubah menjadi checkbox"*: kelas dikelompokkan dengan key `kode|hari|jam|dosen`; kombinasi identik → **1 kartu** (sub-label "N kelas (A, B)"); tombol "Tambah" → **checkbox** (centang = pilih semua kelas grup berkuota, uncentang = hapus).
+- **#30** — format kartu sesuai permintaan: baris 1 `Nama MK — Kode | N SKS`, baris 2 `Nama Dosen | Hari Jam`, baris 3 `Kuota tersisa: X`, badge `WAJIB`.
+
+**Backend** (nama dosen pengampu belum pernah diekspos ke FE): `GET /krs/available-classes` & `GET /krs/my` kini `LEFT JOIN users lecturer ON lecturer.id = cl.lecturer_id` → field `lecturerName` per item (null saat kelas tanpa dosen).
+
+#### File yang Diubah
+
+| File | Perubahan |
+|------|-----------|
+| `backend/src/modules/krs/index.ts` | `lecturerName` di available-classes & /krs/my (LEFT JOIN users) |
+| `frontend/src/pages/KrsPage.tsx` | Redesign: 2 kolom, kartu checkbox, grouping kelas identik, pagination 5/halaman, draft sticky |
+| `frontend/src/pages/KrsPage.test.tsx` | Adaptasi tombol→checkbox + 13 test (format kartu, grouping, pagination, locked, PDF, periode tutup, error) |
+| `frontend/src/lib/types.ts` | `AvailableClass.lecturerName: string \| null`; `MyKrsItem.lecturerName?: string \| null` |
+
+#### Quality Gates (Lokal)
+
+| Gate | Hasil |
+|------|-------|
+| Backend lint/typecheck/format | ✅ |
+| Frontend lint/typecheck/format | ✅ |
+| Frontend build | ✅ (bundle 82.57 kB gzip < 200 kB) |
+| Frontend test:coverage | ✅ (28/28 files, **175/175 tests** — +2; coverage 91.94/80.20/80.95) |
+| Backend test | ⏳ butuh DB (perubahan query SQL — tervalidasi lint/typecheck; eksekusi di CI) |
+
+#### Catatan Teknis
+- Grouping pakai `Map` key `${course.code}|${dayOfWeek}|${startTime}|${endTime}|${lecturerName}` → kelas duplikat jadwal+dosen jadi 1 kartu; sortir `course.code`.
+- Test grouping memakai `findAllByText(/Teknologi Informasi/)` (2 kartu); teks duplikat antara kartu kiri & draft kanan → assertion di-scope `within(list)`.
+- `DosenGuidance.test.tsx` flaky lagi 1× di full suite (tanpa fake timers; userEvent 739ms) — lulus saat terpisah & pada run ulang full suite; **tidak terkait perubahan ini** (file tidak tersentuh).
+- Field baru `lecturerName` di cache `AVAILABLE_CLASSES` (TTL 30 dtk) — cache lama kedaluwarsa sendiri; tidak ada perubahan cache key.
 
 ---
 

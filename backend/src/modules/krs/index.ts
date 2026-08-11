@@ -133,10 +133,12 @@ export function createKrsRouter(): Router {
                   (cl.capacity - cl.current_enrolled) AS quota_left,
                   cl.room, cl.day_of_week, cl.start_time, cl.end_time,
                   c.code AS course_code, c.name AS course_name, c.credits,
+                  lecturer.full_name AS lecturer_name,
                   cur.is_mandatory, cur.semester_number
            FROM classes cl
            JOIN curricula cur ON cur.id = cl.curriculum_id
            JOIN courses c ON c.id = cur.course_id
+           LEFT JOIN users lecturer ON lecturer.id = cl.lecturer_id
            WHERE cur.prodi_id = $1
              AND cur.semester_id = $2
              AND cl.is_active
@@ -158,6 +160,9 @@ export function createKrsRouter(): Router {
             startTime: r.start_time,
             endTime: r.end_time,
             course: { code: r.course_code, name: r.course_name, credits: r.credits },
+            // Keluhan #29/#30 (Gelombang 3): nama dosen pengampu — dipakai untuk
+            // menggabungkan kelas dengan jadwal+dosen sama dan format kartu matkul.
+            lecturerName: r.lecturer_name ?? null,
             isMandatory: r.is_mandatory,
             semesterNumber: r.semester_number,
           })),
@@ -203,13 +208,15 @@ export function createKrsRouter(): Router {
         const items = await pgPool.query(
           `SELECT ki.id as krs_item_id, cl.id, cl.class_code, cl.capacity, cl.current_enrolled,
                 c.code AS course_code, c.name AS course_name, c.credits,
-                cl.day_of_week, cl.start_time, cl.end_time, cl.room
-         FROM krs_items ki
-         JOIN classes cl ON cl.id = ki.class_id
-         JOIN curricula cur ON cur.id = cl.curriculum_id
-         JOIN courses c ON c.id = cur.course_id
-         WHERE ki.krs_submission_id = $1
-         ORDER BY c.code`,
+                cl.day_of_week, cl.start_time, cl.end_time, cl.room,
+                lecturer.full_name AS lecturer_name
+        FROM krs_items ki
+        JOIN classes cl ON cl.id = ki.class_id
+        JOIN curricula cur ON cur.id = cl.curriculum_id
+        JOIN courses c ON c.id = cur.course_id
+        LEFT JOIN users lecturer ON lecturer.id = cl.lecturer_id
+        WHERE ki.krs_submission_id = $1
+        ORDER BY c.code`,
           [submission.rows[0].id],
         );
 
@@ -232,6 +239,7 @@ export function createKrsRouter(): Router {
               startTime: r.start_time,
               endTime: r.end_time,
               room: r.room,
+              lecturerName: r.lecturer_name ?? null,
             })),
           },
         });

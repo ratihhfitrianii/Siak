@@ -40,6 +40,8 @@ export interface AvailableClass {
   startTime: string | null;
   endTime: string | null;
   course: { code: string; name: string; credits: number };
+  /** Nama dosen pengampu (keluhan #29/#30 — grouping & kartu matkul). */
+  lecturerName: string | null;
   isMandatory: boolean;
   semesterNumber: number;
 }
@@ -56,6 +58,8 @@ export interface MyKrsItem {
   startTime: string | null;
   endTime: string | null;
   room: string | null;
+  /** Nama dosen pengampu (keluhan #29/#30); opsional utk kompatibilitas item lama. */
+  lecturerName?: string | null;
 }
 
 export interface MyKrs {
