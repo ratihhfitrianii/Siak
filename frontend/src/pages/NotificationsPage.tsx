@@ -6,26 +6,16 @@ import {
   markNotificationRead,
 } from '../lib/api';
 import type { AppNotification, NotificationsResponse } from '../lib/types';
+import { TYPE_LABEL } from '../lib/notificationLabels';
 
 /**
- * Halaman Notifikasi (T2.5) — AC-04d:
+ * Halaman Notifikasi (T2.5) — AC-04d (arsip lengkap; panel ringkas di header AppLayout):
  * - daftar notifikasi sendiri (in-app; GET /notifications/my?page&limit=5)
  * - infinite scroll / pagination (5 item per page)
  * - tandai dibaca per item (PUT /notifications/:id/read)
  * - tandai semua dibaca (PUT /notifications/read-all)
  * - badge unread di header (AppLayout) memakai endpoint yang sama
  */
-const TYPE_LABEL: Record<string, string> = {
-  krs_approved: 'KRS Disetujui',
-  krs_rejected: 'KRS Ditolak',
-  krs_reminder: 'Pengingat KRS',
-  payment_due: 'Tagihan',
-  grade_posted: 'Nilai',
-  schedule_change: 'Jadwal',
-  substitute: 'Substitute',
-  system: 'Sistem',
-};
-
 export function NotificationsPage() {
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);

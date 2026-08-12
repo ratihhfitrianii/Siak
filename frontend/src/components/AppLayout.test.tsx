@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -115,7 +115,57 @@ async function openAvatarMenu(user: typeof MAHASISWA | typeof DOSEN = MAHASISWA)
 describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avatar)', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
+
+  const NOTIF_PAYLOAD = {
+    items: [
+      {
+        id: 1,
+        title: 'KRS Anda disetujui',
+        message: 'KRS semester Ganjil 2025/2026 disetujui.',
+        type: 'krs_approved',
+        isRead: false,
+        createdAt: '2026-08-01T08:00:00Z',
+      },
+      {
+        id: 2,
+        title: 'Tagihan SPP jatuh tempo',
+        message: 'Segera bayar tagihan SPP bulan Agustus.',
+        type: 'payment_due',
+        isRead: true,
+        createdAt: '2026-08-02T08:00:00Z',
+      },
+    ],
+    pagination: { page: 1, limit: 5, total: 2, hasMore: false },
+  };
+
+  // Stub fetch STATEFUL: GET mengembalikan kondisi terkini; PUT /read & /read-all
+  // benar-benar mengubah state → badge & panel ikut sinkron (pola nyata backend).
+  function stubNotifFetch() {
+    const state = structuredClone(NOTIF_PAYLOAD);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? 'GET';
+        if (method === 'PUT' && url.includes('/read-all')) {
+          state.items.forEach((n) => {
+            n.isRead = true;
+          });
+        } else if (method === 'PUT' && url.includes('/read')) {
+          const id = Number(url.split('/').at(-2));
+          const item = state.items.find((n) => n.id === id);
+          if (item) item.isRead = true;
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ data: structuredClone(state) }),
+        } as Response;
+      }),
+    );
+  }
 
   it('user null → tidak render apa pun', () => {
     mockUser = null;
@@ -257,5 +307,91 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
 
     expect(mockLogout).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('HALAMAN_LOGIN')).toBeInTheDocument();
+  });
+
+  it('keluhan — notifikasi HALAMAN MELAYANG: klik lonceng → panel muncul TANPA pindah halaman', async () => {
+    stubNotifFetch();
+    const user = userEvent.setup();
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    // Sebelum dibuka: tidak ada panel dialog
+    expect(screen.queryByRole('dialog', { name: 'Notifikasi' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Notifikasi' }));
+
+    // Panel melayang muncul dengan daftar notifikasi
+    expect(screen.getByRole('dialog', { name: 'Notifikasi' })).toBeInTheDocument();
+    expect(await screen.findByText('KRS Anda disetujui')).toBeInTheDocument();
+    expect(screen.getByText('Tagihan SPP jatuh tempo')).toBeInTheDocument();
+    // TIDAK pindah halaman: konten halaman saat ini masih tampil
+    expect(screen.getByText('KONTEN_UTAMA')).toBeInTheDocument();
+  });
+
+  it('panel — Tandai dibaca per item (optimistik) → tombol hilang & badge unread berkurang', async () => {
+    stubNotifFetch();
+    const user = userEvent.setup();
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: 'Notifikasi' }));
+    // Hanya 1 unread (id 1) → badge 1; tombol "Tandai dibaca" hanya untuk item 1
+    expect(await screen.findByText('KRS Anda disetujui')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument(); // badge unread
+
+    await user.click(screen.getByRole('button', { name: 'Tandai dibaca' }));
+
+    // Item 1 jadi dibaca → tombol hilang; item 2 sudah dibaca → tidak ada tombol sama sekali
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Tandai dibaca' })).not.toBeInTheDocument(),
+    );
+    // Badge unread hilang (0) — setelah event siak:notif-changed memicu refresh badge
+    await waitFor(() => expect(screen.queryByText('1')).not.toBeInTheDocument());
+  });
+
+  it('panel — Tandai semua dibaca → semua item jadi dibaca', async () => {
+    stubNotifFetch();
+    const user = userEvent.setup();
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: 'Notifikasi' }));
+    expect(await screen.findByText('KRS Anda disetujui')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Tandai semua dibaca' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Tandai dibaca' })).not.toBeInTheDocument(),
+    );
+    // Tombol "Tandai semua dibaca" hilang setelah badge unread = 0
+    await waitFor(() => expect(screen.queryByText('Tandai semua dibaca')).not.toBeInTheDocument());
+  });
+
+  it('panel — klik di luar panel → panel tertutup', async () => {
+    stubNotifFetch();
+    const user = userEvent.setup();
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: 'Notifikasi' }));
+    expect(await screen.findByText('KRS Anda disetujui')).toBeInTheDocument();
+
+    // Klik konten halaman (di luar panel) → panel menutup
+    await user.click(screen.getByText('KONTEN_UTAMA'));
+
+    expect(screen.queryByRole('dialog', { name: 'Notifikasi' })).not.toBeInTheDocument();
+  });
+
+  it('panel — tautan "Lihat semua notifikasi" mengarah ke /notifikasi', async () => {
+    stubNotifFetch();
+    const user = userEvent.setup();
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: 'Notifikasi' }));
+    await screen.findByText('KRS Anda disetujui');
+
+    const link = screen.getByRole('link', { name: 'Lihat semua notifikasi' });
+    expect(link).toHaveAttribute('href', '/notifikasi');
   });
 });

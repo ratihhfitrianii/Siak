@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
-import { getMyNotifications } from '../lib/api';
+import {
+  ApiError,
+  getMyNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '../lib/api';
+import type { AppNotification } from '../lib/types';
+import { TYPE_LABEL } from '../lib/notificationLabels';
 
 /**
  * Ikon menu (inline SVG stroke — pola sama dengan ikon lonceng di header).
@@ -183,6 +190,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [unread, setUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  // Keluhan: notifikasi berupa HALAMAN MELAYANG (floating), bukan pindah halaman.
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifItems, setNotifItems] = useState<AppNotification[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [notifError, setNotifError] = useState<string | null>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   // T2.5: badge notifikasi unread — fetch ringan saat mount (polling 60s; tidak menggagalkan layout).
   // Keluhan lama: "ketika notifikasi dibaca, ikon lonceng tidak berubah" — AppLayout juga
@@ -219,6 +232,59 @@ export function AppLayout({ children }: { children: ReactNode }) {
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [menuOpen]);
+
+  // Panel notifikasi melayang — tutup saat klik di luar panel.
+  useEffect(() => {
+    if (!notifOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [notifOpen]);
+
+  // Muat ulang isi panel (5 notifikasi terbaru) — dipanggil tiap panel dibuka.
+  const refreshPanel = async () => {
+    setNotifLoading(true);
+    try {
+      const res = await getMyNotifications(1, 5);
+      setNotifItems(res.items);
+      setNotifError(null);
+      setUnread(res.items.filter((n) => !n.isRead).length);
+    } catch (e) {
+      setNotifError(e instanceof ApiError ? e.message : 'Gagal memuat notifikasi');
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  function toggleNotif() {
+    setNotifOpen((open) => {
+      if (!open) void refreshPanel();
+      return !open;
+    });
+  }
+
+  async function handleNotifRead(id: number) {
+    // optimistik: tandai dibaca dulu, rollback bila gagal
+    setNotifItems((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    try {
+      await markNotificationRead(id);
+      window.dispatchEvent(new Event('siak:notif-changed')); // sinkronkan badge
+    } catch {
+      setNotifItems((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)));
+    }
+  }
+
+  async function handleNotifAllRead() {
+    try {
+      await markAllNotificationsRead();
+      setNotifItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      window.dispatchEvent(new Event('siak:notif-changed'));
+    } catch {
+      setNotifError('Gagal menandai semua notifikasi sebagai dibaca');
+    }
+  }
 
   if (!user) {
     return null;
@@ -298,26 +364,122 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <span className="text-lg font-bold text-slate-900 md:hidden">Siak</span>
             <div className="flex-1" />
 
-            <NavLink
-              to="/notifikasi"
-              aria-label="Notifikasi"
-              title="Notifikasi"
-              className="relative rounded-md p-2 text-slate-600 transition hover:bg-slate-100"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-              {unread > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
-                  {unread > 99 ? '99+' : unread}
-                </span>
+            {/* Keluhan: notifikasi HALAMAN MELAYANG (floating overlay), bukan pindah halaman.
+                Klik lonceng → panel melayang berisi 5 notifikasi terbaru; arsip lengkap tetap
+                di /notifikasi lewat tautan "Lihat semua". */}
+            <div className="relative" ref={notifRef}>
+              <button
+                type="button"
+                onClick={toggleNotif}
+                aria-label="Notifikasi"
+                aria-haspopup="dialog"
+                aria-expanded={notifOpen}
+                title="Notifikasi"
+                className="relative rounded-md p-2 text-slate-600 transition hover:bg-slate-100"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+                {unread > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div
+                  role="dialog"
+                  aria-label="Notifikasi"
+                  className="absolute right-0 top-full z-40 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg"
+                >
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
+                    <p className="text-sm font-semibold text-slate-900">Notifikasi</p>
+                    {unread > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => void handleNotifAllRead()}
+                        className="rounded-md border border-primary-300 px-2 py-1 text-xs font-medium text-primary-700 transition hover:bg-primary-50"
+                      >
+                        Tandai semua dibaca
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-[60vh] overflow-y-auto">
+                    {notifLoading ? (
+                      <div className="flex justify-center py-10" role="status" aria-label="Memuat">
+                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+                      </div>
+                    ) : notifError ? (
+                      <p className="px-4 py-8 text-center text-sm text-red-600">{notifError}</p>
+                    ) : notifItems.length === 0 ? (
+                      <p className="px-4 py-8 text-center text-sm text-slate-500">
+                        Belum ada notifikasi.
+                      </p>
+                    ) : (
+                      <ul role="list" aria-label="Daftar notifikasi">
+                        {notifItems.map((n) => (
+                          <li
+                            key={n.id}
+                            className={`flex items-start justify-between gap-2 border-b border-slate-50 px-4 py-3 ${
+                              n.isRead ? '' : 'bg-primary-50/40'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                  {TYPE_LABEL[n.type] ?? n.type}
+                                </span>
+                                {!n.isRead && (
+                                  <span
+                                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary-600"
+                                    aria-label="Belum dibaca"
+                                  />
+                                )}
+                              </div>
+                              <p
+                                className={`mt-1 truncate text-xs font-semibold ${
+                                  n.isRead ? 'text-slate-600' : 'text-slate-900'
+                                }`}
+                              >
+                                {n.title}
+                              </p>
+                              <p className="truncate text-xs text-slate-500">{n.message}</p>
+                              <p className="mt-0.5 text-[10px] text-slate-400">
+                                {new Date(n.createdAt).toLocaleString('id-ID')}
+                              </p>
+                            </div>
+                            {!n.isRead && (
+                              <button
+                                type="button"
+                                onClick={() => void handleNotifRead(n.id)}
+                                className="shrink-0 rounded-md border border-primary-300 px-2 py-1 text-[10px] font-medium text-primary-700 transition hover:bg-primary-50"
+                              >
+                                Tandai dibaca
+                              </button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="border-t border-slate-100 p-2">
+                    <NavLink
+                      to="/notifikasi"
+                      onClick={() => setNotifOpen(false)}
+                      className="block rounded-md px-3 py-2 text-center text-xs font-medium text-primary-700 transition hover:bg-primary-50"
+                    >
+                      Lihat semua notifikasi
+                    </NavLink>
+                  </div>
+                </div>
               )}
-            </NavLink>
+            </div>
 
             {/* Keluhan #26: header hanya menampilkan ikon orang; hover → tooltip; klik → dropdown. */}
             <div className="relative" ref={menuRef}>
