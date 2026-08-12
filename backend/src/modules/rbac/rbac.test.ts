@@ -617,17 +617,37 @@ describe('User Service (RBAC endpoints)', () => {
         .expect(400);
     });
 
-    // lookup di sini (bukan describe terpisah) agar data student/lecturer dari
-    // beforeAll di atas masih ada — afterAll describe ini menghapusnya.
+    // lookup test: gunakan student yang sudah ada (beforeAll) — jangan pakai TEST_NIM
+    // karena test sebelumnya mengupdate full_name-nya; cukup assert found=true & field lain ada.
     it('GET /users/lookup: NIM terdaftar → found dengan fullName/email/prodi', async () => {
+      // buat student khusus lookup agar tidak bentrok dgn test NIM/NIK di atas
+      const ins = await pgPool.query(
+        `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+         VALUES ('rbac-test-lookup-mhs@siak.local', 'x', 'Lookup Mahasiswa',
+                 (SELECT id FROM roles WHERE code='mahasiswa'), true)
+         RETURNING id`,
+      );
+      const uid = ins.rows[0].id;
+      await pgPool.query(
+        `INSERT INTO students (user_id, nim, name, prodi_id)
+         VALUES ($1, 'LOOKUP_NIM_1', 'Lookup Mahasiswa',
+                 (SELECT id FROM study_programs WHERE code = 'TI'))`,
+        [uid],
+      );
+
       const res = await request(app)
-        .get('/api/v1/users/lookup?role=mahasiswa&identifier=9990001')
+        .get('/api/v1/users/lookup?role=mahasiswa&identifier=LOOKUP_NIM_1')
         .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
         .expect(200);
       expect(res.body.data.found).toBe(true);
-      expect(res.body.data.fullName).toBe('Test mahasiswa');
-      expect(res.body.data.email).toBe('rbac-test-mhs@siak.local');
+      expect(res.body.data.fullName).toBe('Lookup Mahasiswa');
+      expect(res.body.data.email).toBe('rbac-test-lookup-mhs@siak.local');
       expect(res.body.data.prodiName).toBeTruthy();
+      expect(res.body.data.isActive).toBe(true);
+      expect(res.body.data.mustChangePassword).toBe(true);
+
+      await pgPool.query('DELETE FROM students WHERE nim = $1', ['LOOKUP_NIM_1']);
+      await pgPool.query('DELETE FROM users WHERE email = $1', ['rbac-test-lookup-mhs@siak.local']);
     });
 
     it('GET /users/lookup: NIK tidak terdaftar → found=false', async () => {
