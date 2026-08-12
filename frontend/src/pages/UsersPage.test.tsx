@@ -34,6 +34,8 @@ interface UsersMocks {
   onRole?: (body: unknown) => void;
   onDelete?: (id: number) => void;
   failCreate?: boolean;
+  /** default true — NIM/NIK '22051001' ditemukan di master data */
+  lookupFound?: boolean;
 }
 
 function mockUsersRoutes({
@@ -46,10 +48,33 @@ function mockUsersRoutes({
   onRole,
   onDelete,
   failCreate = false,
+  lookupFound = true,
 }: UsersMocks = {}) {
   const fetchMock = vi.fn((url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
     const u = String(url);
+    if (method === 'GET' && u.includes('/users/lookup')) {
+      if (!lookupFound) {
+        return Promise.resolve(jsonResponse({ success: true, data: { found: false } }));
+      }
+      return Promise.resolve(
+        jsonResponse({
+          success: true,
+          data: {
+            found: true,
+            userId: 11,
+            nim: '22051001',
+            nik: null,
+            fullName: 'Andi',
+            email: 'andi@kampus.ac.id',
+            isActive: true,
+            mustChangePassword: true,
+            prodiCode: 'TI',
+            prodiName: 'Teknik Informatika',
+          },
+        }),
+      );
+    }
     if (method === 'DELETE' && u.includes('/users/')) {
       const id = Number(u.split('/users/')[1]);
       onDelete?.(id);
@@ -58,7 +83,8 @@ function mockUsersRoutes({
       );
     }
     if (method === 'POST' && u.includes('/users') && !u.includes('/role')) {
-      onCreate?.(JSON.parse(String(init?.body)));
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      onCreate?.(body);
       if (failCreate) {
         return Promise.resolve(
           jsonResponse(
@@ -74,16 +100,19 @@ function mockUsersRoutes({
           ),
         );
       }
+      const isNimNik = typeof body.nim === 'string' || typeof body.nik === 'string';
       return Promise.resolve(
         jsonResponse({
           success: true,
           data: {
             id: 99,
-            email: 'baru@kampus.ac.id',
-            full_name: 'User Baru',
+            email: isNimNik ? 'andi@kampus.ac.id' : String(body.email),
+            full_name: isNimNik ? 'Andi' : 'User Baru',
             is_wali: false,
             created_at: '2026-08-03T00:00:00Z',
-            message: 'User berhasil dibuat',
+            message: isNimNik
+              ? 'Akun Andi diaktifkan — password awal = NIM'
+              : 'User berhasil dibuat',
           },
         }),
       );
@@ -143,7 +172,7 @@ describe('UsersPage (T1.11c)', () => {
     expect(screen.getAllByText('Dosen').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('buat user → modal → POST /users dengan payload benar → sukses + reload', async () => {
+  it('buat user mahasiswa: cukup NIM → lookup → preview readonly → POST {roleCode, nim}', async () => {
     const user = userEvent.setup();
     const onCreate = vi.fn();
     mockUsersRoutes({ onCreate });
@@ -153,23 +182,71 @@ describe('UsersPage (T1.11c)', () => {
     await user.click(screen.getByRole('button', { name: '+ Buat User' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
-    await user.type(within(dialog).getByLabelText('Nama Lengkap'), 'User Baru');
-    await user.type(within(dialog).getByLabelText('Email'), 'baru@kampus.ac.id');
+    await user.type(within(dialog).getByLabelText('NIM'), '22051001');
+
+    // Kolom lain auto-fill + readonly dari lookup master data
+    expect(await within(dialog).findByDisplayValue('Andi')).toBeInTheDocument();
+    expect(within(dialog).getByDisplayValue('andi@kampus.ac.id')).toBeInTheDocument();
+    expect(within(dialog).getByDisplayValue('Teknik Informatika')).toBeInTheDocument();
+    // catatan password awal (teks terpecah <strong>NIM</strong> — cocokkan substring utuh)
+    expect(within(dialog).getByText(/wajib diganti saat login pertama/)).toBeInTheDocument();
+    expect(within(dialog).getByDisplayValue('Andi')).toHaveAttribute('readonly');
+    expect(within(dialog).getByDisplayValue('andi@kampus.ac.id')).toHaveAttribute('readonly');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Buat User' }));
+
+    await vi.waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
+    expect(onCreate).toHaveBeenCalledWith({ roleCode: 'mahasiswa', nim: '22051001' });
+    expect(
+      await screen.findByText('Akun Andi diaktifkan — password awal = NIM'),
+    ).toBeInTheDocument();
+  });
+
+  it('NIM tidak terdaftar di master data → hint merah + tombol submit nonaktif', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes({ lookupFound: false });
+    render(<UsersPage />);
+
+    await screen.findByText('Andi');
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.type(within(dialog).getByLabelText('NIM'), '9999999');
+
+    expect(
+      await within(dialog).findByText(/NIM tidak ditemukan di data mahasiswa/),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Buat User' })).toBeDisabled();
+  });
+
+  it('peran admin (tanpa NIM/NIK): form manual → POST lengkap → sukses', async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn();
+    mockUsersRoutes({ onCreate });
+    render(<UsersPage />);
+
+    await screen.findByText('Andi');
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.selectOptions(within(dialog).getByLabelText('Peran'), 'admin_akademik');
+    await user.type(within(dialog).getByLabelText('Nama Lengkap'), 'Admin Baru');
+    await user.type(within(dialog).getByLabelText('Email'), 'admin.baru@kampus.ac.id');
     await user.type(within(dialog).getByLabelText('Password Awal'), 'rahasia123');
     await user.click(within(dialog).getByRole('button', { name: 'Buat User' }));
 
     await vi.waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
     expect(onCreate).toHaveBeenCalledWith({
-      email: 'baru@kampus.ac.id',
+      roleCode: 'admin_akademik',
+      email: 'admin.baru@kampus.ac.id',
       password: 'rahasia123',
-      fullName: 'User Baru',
-      roleCode: 'mahasiswa',
+      fullName: 'Admin Baru',
       isWali: false,
     });
-    expect(await screen.findByText('User baru@kampus.ac.id berhasil dibuat.')).toBeInTheDocument();
+    expect(await screen.findByText('User berhasil dibuat')).toBeInTheDocument();
   });
 
-  it('create gagal (duplikat email) → error inline di field email', async () => {
+  it('create gagal (duplikat email, peran admin) → error inline di field email', async () => {
     const user = userEvent.setup();
     mockUsersRoutes({ failCreate: true });
     render(<UsersPage />);
@@ -177,6 +254,7 @@ describe('UsersPage (T1.11c)', () => {
     await screen.findByText('Andi');
     await user.click(screen.getByRole('button', { name: '+ Buat User' }));
     const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.selectOptions(within(dialog).getByLabelText('Peran'), 'admin_akademik');
     await user.type(within(dialog).getByLabelText('Nama Lengkap'), 'User Baru');
     await user.type(within(dialog).getByLabelText('Email'), 'andi@kampus.ac.id');
     await user.type(within(dialog).getByLabelText('Password Awal'), 'rahasia123');

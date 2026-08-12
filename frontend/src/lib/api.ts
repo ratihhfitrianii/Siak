@@ -17,6 +17,7 @@ import type {
   AdminKrsPending,
   UserListResponse,
   CreateUserInput,
+  UserCreateLookup,
   UpdateRoleInput,
   PaginationParams,
   WaitingRoomStatus,
@@ -344,17 +345,40 @@ interface CreatedUser {
   created_at: string;
 }
 
+/** GET /users/lookup — preview auto-fill form Buat User (NIM/NIK → data master). */
+export async function lookupUserForCreate(
+  role: 'mahasiswa' | 'dosen',
+  identifier: string,
+): Promise<UserCreateLookup> {
+  const q = `role=${encodeURIComponent(role)}&identifier=${encodeURIComponent(identifier)}`;
+  return apiRequest<UserCreateLookup>(`/users/lookup?${q}`);
+}
+
 /** POST /users — buat user baru (perm user.manage, admin_sistem). */
-export async function createUser(
-  input: CreateUserInput,
-): Promise<{ id: number; email: string; fullName: string; isWali: boolean; createdAt: string }> {
-  const raw = await apiRequest<CreatedUser>('/users', { method: 'POST', body: input });
+export async function createUser(input: CreateUserInput): Promise<{
+  id: number;
+  email: string;
+  fullName: string;
+  isWali: boolean;
+  createdAt: string;
+  message?: string;
+  nim?: string | null;
+  nik?: string | null;
+  prodiName?: string;
+}> {
+  const raw = await apiRequest<
+    CreatedUser & { message?: string; nim?: string | null; nik?: string | null; prodiName?: string }
+  >('/users', { method: 'POST', body: input });
   return {
     id: Number(raw.id),
     email: raw.email,
     fullName: raw.full_name,
     isWali: raw.is_wali,
     createdAt: raw.created_at,
+    message: raw.message,
+    nim: raw.nim,
+    nik: raw.nik,
+    prodiName: raw.prodiName,
   };
 }
 

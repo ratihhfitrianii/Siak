@@ -25,13 +25,40 @@ const updateContactSchema = z.object({
   password: z.string().min(8, 'Password minimal 8 karakter').optional(),
 });
 
-const createUserSchema = z.object({
-  email: z.string().email('Email tidak valid'),
-  password: z.string().min(8, 'Password minimal 8 karakter'),
-  fullName: z.string().min(2, 'Nama minimal 2 karakter'),
-  roleCode: z.enum(['mahasiswa', 'dosen', 'admin_akademik', 'admin_keuangan', 'admin_sistem']),
-  isWali: z.boolean().default(false),
-});
+const createUserSchema = z
+  .object({
+    email: z.string().email('Email tidak valid').optional(),
+    password: z.string().min(8, 'Password minimal 8 karakter').optional(),
+    fullName: z.string().min(2, 'Nama minimal 2 karakter').optional(),
+    roleCode: z.enum(['mahasiswa', 'dosen', 'admin_akademik', 'admin_keuangan', 'admin_sistem']),
+    isWali: z.boolean().default(false),
+    // Flow NIM/NIK (keluhan: buat user cukup peran + NIM/NIK; sisanya auto + readonly):
+    //   mahasiswa → nim (lookup students), dosen → nik (lookup lecturers).
+    //   Password awal = NIM/NIK, must_change_password = true.
+    nim: z.string().min(1, 'NIM wajib diisi').max(20).optional(),
+    nik: z.string().min(1, 'NIK wajib diisi').max(20).optional(),
+  })
+  .superRefine((val, ctx) => {
+    const hasNimNik = !!val.nim || !!val.nik;
+    if (val.nim && val.roleCode !== 'mahasiswa') {
+      ctx.addIssue({ code: 'custom', message: 'NIM hanya untuk peran Mahasiswa' });
+    }
+    if (val.nik && val.roleCode !== 'dosen') {
+      ctx.addIssue({ code: 'custom', message: 'NIK hanya untuk peran Dosen' });
+    }
+    if (hasNimNik && (val.email || val.password || val.fullName)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Pilih salah satu: NIM/NIK (auto-generate) ATAU email+password+nama (manual)',
+      });
+    }
+    if (!hasNimNik && !(val.email && val.password && val.fullName)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Lengkapi NIM/NIK (mahasiswa/dosen) atau email + password + nama (peran lain)',
+      });
+    }
+  });
 
 const updateRoleSchema = z.object({
   roleCode: z.enum(['mahasiswa', 'dosen', 'admin_akademik', 'admin_keuangan', 'admin_sistem']),
@@ -43,6 +70,11 @@ const listQuerySchema = z.object({
   search: z.string().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+const lookupQuerySchema = z.object({
+  role: z.enum(['mahasiswa', 'dosen']),
+  identifier: z.string().min(1, 'NIM/NIK wajib diisi').max(20),
 });
 
 export function createRbacRouter(): Router {
@@ -213,6 +245,60 @@ export function createRbacRouter(): Router {
     },
   );
 
+  // GET /users/lookup — cari master data utk form "Buat User" (NIM/NIK → nama/email/prodi,
+  // auto-fill + readonly di frontend). Dipanggil saat admin mengetik NIM/NIK.
+  router.get(
+    '/lookup',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const q = lookupQuerySchema.safeParse(req.query);
+        if (!q.success) {
+          throw new AppError('VALIDATION_ERROR', 'Parameter tidak valid', 400);
+        }
+        const { role, identifier } = q.data;
+        const isStudent = role === 'mahasiswa';
+        const sql = isStudent
+          ? `SELECT u.id, u.full_name, u.email, u.is_active, u.must_change_password,
+                    p.code AS prodi_code, p.name AS prodi_name, s.nim
+             FROM students s
+             JOIN users u ON u.id = s.user_id
+             JOIN prodis p ON p.id = s.prodi_id
+             WHERE s.nim = $1`
+          : `SELECT u.id, u.full_name, u.email, u.is_active, u.must_change_password,
+                    p.code AS prodi_code, p.name AS prodi_name, l.nik
+             FROM lecturers l
+             JOIN users u ON u.id = l.user_id
+             JOIN prodis p ON p.id = l.prodi_id
+             WHERE l.nik = $1`;
+        const r = await pgPool.query(sql, [identifier]);
+        if (r.rows.length === 0) {
+          res.json({ success: true, data: { found: false } });
+          return;
+        }
+        const row = r.rows[0];
+        res.json({
+          success: true,
+          data: {
+            found: true,
+            userId: Number(row.id),
+            nim: row.nim ?? null,
+            nik: row.nik ?? null,
+            fullName: row.full_name,
+            email: row.email,
+            isActive: row.is_active === true,
+            mustChangePassword: row.must_change_password === true,
+            prodiCode: row.prodi_code,
+            prodiName: row.prodi_name,
+          },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // POST /users — create user + role (admin_sistem)
   router.post(
     '/',
@@ -227,7 +313,91 @@ export function createRbacRouter(): Router {
           });
         }
 
-        const { email, password, fullName, roleCode, isWali } = parsed.data;
+        const { email, password, fullName, roleCode, isWali, nim, nik } = parsed.data;
+
+        // ---- Flow NIM/NIK: buat user cukup peran + NIM/NIK; lookup master data,
+        // aktifkan akun + reset password = NIM/NIK (wajib ganti saat login pertama).
+        if (nim || nik) {
+          const identifier = nim ?? nik!;
+          const isStudent = roleCode === 'mahasiswa';
+          const lookupSql = isStudent
+            ? `SELECT u.id, u.full_name, u.is_active, u.must_change_password,
+                      p.code AS prodi_code, p.name AS prodi_name, s.nim
+               FROM students s
+               JOIN users u ON u.id = s.user_id
+               JOIN prodis p ON p.id = s.prodi_id
+               WHERE s.nim = $1`
+            : `SELECT u.id, u.full_name, u.is_active, u.must_change_password,
+                      p.code AS prodi_code, p.name AS prodi_name, l.nik
+               FROM lecturers l
+               JOIN users u ON u.id = l.user_id
+               JOIN prodis p ON p.id = l.prodi_id
+               WHERE l.nik = $1`;
+          const lookup = await pgPool.query(lookupSql, [identifier]);
+          if (lookup.rows.length === 0) {
+            const label = isStudent ? 'NIM' : 'NIK';
+            throw new AppError(
+              'NOT_FOUND',
+              `${label} ${identifier} tidak ditemukan di data ${
+                isStudent ? 'mahasiswa' : 'dosen'
+              }. Impor data atau tambah via Master Data dulu.`,
+              404,
+            );
+          }
+          const row = lookup.rows[0];
+
+          const passwordHash = await bcrypt.hash(identifier, BCRYPT_ROUNDS);
+          const result = await pgPool.query(
+            `UPDATE users
+                SET password_hash = $1, must_change_password = true, is_active = true,
+                    failed_login_attempts = 0, locked_until = NULL,
+                    role_id = (SELECT id FROM roles WHERE code = $2),
+                    updated_at = now()
+             WHERE id = $3
+             RETURNING id, email, full_name, is_wali`,
+            [passwordHash, roleCode, row.id],
+          );
+
+          // Audit trail (F-13, S-06, S-07) — password TIDAK pernah dicatat (S-04)
+          await auditFromRequest(req.user!, req, {
+            tableName: 'users',
+            recordId: Number(result.rows[0].id),
+            action: 'UPDATE',
+            oldValues: {
+              isActive: row.is_active,
+              mustChangePassword: row.must_change_password,
+            },
+            newValues: {
+              isActive: true,
+              mustChangePassword: true,
+              passwordReset: true,
+              roleCode,
+              identifierType: isStudent ? 'NIM' : 'NIK',
+            },
+          });
+
+          res.json({
+            success: true,
+            data: {
+              ...result.rows[0],
+              id: Number(result.rows[0].id),
+              nim: row.nim ?? null,
+              nik: row.nik ?? null,
+              prodiCode: row.prodi_code,
+              prodiName: row.prodi_name,
+              message: `Akun ${row.full_name} diaktifkan — password awal = ${
+                isStudent ? 'NIM' : 'NIK'
+              } (wajib diganti saat login pertama)`,
+            },
+          });
+          return;
+        }
+
+        // ---- Flow manual (peran admin tanpa NIM/NIK, backward-compat) ----
+        // superRefine di atas menjamin ketiganya ada saat tanpa nim/nik — narrow utk TS.
+        if (!email || !password || !fullName) {
+          throw new AppError('VALIDATION_ERROR', 'Email, password, dan nama wajib diisi', 400);
+        }
 
         const dup = await pgPool.query('SELECT id FROM users WHERE email = $1', [email]);
         if (dup.rows.length > 0) {

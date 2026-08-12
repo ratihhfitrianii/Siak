@@ -131,12 +131,36 @@ export interface UserListResponse {
   };
 }
 
-export interface CreateUserInput {
+export interface CreateUserByNimNikInput {
+  roleCode: 'mahasiswa' | 'dosen';
+  /** mahasiswa → NIM; dosen → NIK. Lookup master data; password awal = NIM/NIK. */
+  nim?: string;
+  nik?: string;
+  isWali?: boolean;
+}
+
+export interface CreateUserManualInput {
+  roleCode: 'admin_akademik' | 'admin_keuangan' | 'admin_sistem';
   email: string;
   password: string;
   fullName: string;
-  roleCode: 'mahasiswa' | 'dosen' | 'admin_akademik' | 'admin_keuangan' | 'admin_sistem';
-  isWali: boolean;
+  isWali?: boolean;
+}
+
+export type CreateUserInput = CreateUserByNimNikInput | CreateUserManualInput;
+
+/** GET /users/lookup — preview auto-fill form Buat User (NIM/NIK → data master). */
+export interface UserCreateLookup {
+  found: boolean;
+  userId?: number;
+  nim?: string | null;
+  nik?: string | null;
+  fullName?: string;
+  email?: string;
+  isActive?: boolean;
+  mustChangePassword?: boolean;
+  prodiCode?: string;
+  prodiName?: string;
 }
 
 export interface UpdateRoleInput {

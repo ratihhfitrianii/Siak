@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ApiError, createUser, deleteUser, listUsers, updateUserRole } from '../lib/api';
-import type { CreateUserInput, UserListItem, UpdateRoleInput } from '../lib/types';
+import {
+  ApiError,
+  createUser,
+  deleteUser,
+  listUsers,
+  lookupUserForCreate,
+  updateUserRole,
+} from '../lib/api';
+import type {
+  CreateUserInput,
+  UserListItem,
+  UserCreateLookup,
+  UpdateRoleInput,
+} from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
 const ROLE_OPTIONS: Array<{ code: string; label: string }> = [
@@ -23,6 +35,8 @@ interface UserFormState {
   fullName: string;
   roleCode: string;
   isWali: boolean;
+  nim: string;
+  nik: string;
 }
 
 const EMPTY_FORM: UserFormState = {
@@ -31,7 +45,19 @@ const EMPTY_FORM: UserFormState = {
   fullName: '',
   roleCode: 'mahasiswa',
   isWali: false,
+  nim: '',
+  nik: '',
 };
+
+type LookupStatus =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ok'; data: UserCreateLookup }
+  | { status: 'notfound' }
+  | { status: 'error'; message: string };
+
+/** Peran berbasis NIM/NIK (lookup master data; kolom lain auto + readonly). */
+const NIM_NIK_ROLES = new Set(['mahasiswa', 'dosen']);
 
 /** Halaman manajemen pengguna (T1.11c, perm user.manage) — list + filter + buat user + ubah role. */
 export function UsersPage() {
@@ -51,6 +77,7 @@ export function UsersPage() {
   const [form, setForm] = useState<UserFormState>(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null);
   const [creating, setCreating] = useState(false);
+  const [lookup, setLookup] = useState<LookupStatus>({ status: 'idle' });
 
   // modal ubah role
   const [editTarget, setEditTarget] = useState<UserListItem | null>(null);
@@ -93,24 +120,55 @@ export function UsersPage() {
     setForm(EMPTY_FORM);
     setFieldErrors(null);
     setActionError(null);
+    setLookup({ status: 'idle' });
     setCreateOpen(true);
   };
+
+  // Lookup master data saat ketik NIM/NIK (debounce 400ms) — preview kolom auto + readonly.
+  const useNimNik = NIM_NIK_ROLES.has(form.roleCode);
+  const identifier = form.roleCode === 'mahasiswa' ? form.nim : form.nik;
+  useEffect(() => {
+    if (!useNimNik || !createOpen) {
+      setLookup({ status: 'idle' });
+      return;
+    }
+    const id = identifier.trim();
+    if (!id) {
+      setLookup({ status: 'idle' });
+      return;
+    }
+    setLookup((l) => (l.status === 'ok' || l.status === 'notfound' ? { status: 'loading' } : l));
+    const t = setTimeout(() => {
+      lookupUserForCreate(form.roleCode as 'mahasiswa' | 'dosen', id)
+        .then((d) => setLookup(d.found ? { status: 'ok', data: d } : { status: 'notfound' }))
+        .catch(() => setLookup({ status: 'error', message: 'Gagal mencari data. Coba lagi.' }));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [useNimNik, createOpen, form.roleCode, identifier]);
 
   const submitCreate = useCallback(async () => {
     setCreating(true);
     setActionError(null);
     setFieldErrors(null);
     try {
-      const input: CreateUserInput = {
-        email: form.email.trim(),
-        password: form.password,
-        fullName: form.fullName.trim(),
-        roleCode: form.roleCode as CreateUserInput['roleCode'],
-        isWali: form.roleCode === 'dosen' && form.isWali,
-      };
-      await createUser(input);
+      const useNimNikFlow = NIM_NIK_ROLES.has(form.roleCode);
+      const input: CreateUserInput = useNimNikFlow
+        ? {
+            roleCode: form.roleCode as 'mahasiswa' | 'dosen',
+            ...(form.roleCode === 'mahasiswa'
+              ? { nim: form.nim.trim() }
+              : { nik: form.nik.trim() }),
+          }
+        : {
+            roleCode: form.roleCode as 'admin_akademik' | 'admin_keuangan' | 'admin_sistem',
+            email: form.email.trim(),
+            password: form.password,
+            fullName: form.fullName.trim(),
+            isWali: form.roleCode === 'dosen' && form.isWali,
+          };
+      const res = await createUser(input);
       setCreateOpen(false);
-      setSuccess(`User ${input.email} berhasil dibuat.`);
+      setSuccess(res.message ?? `User ${res.email} berhasil dibuat.`);
       setPage(1);
       await load(1, roleFilter, debouncedSearch);
     } catch (err) {
@@ -376,54 +434,12 @@ export function UsersPage() {
         >
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="text-lg font-bold text-slate-900">Buat User Baru</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {useNimNik
+                ? 'Cukup pilih peran + isi NIM/NIK — kolom lain terisi otomatis (readonly).'
+                : 'Peran admin tidak punya NIM/NIK — isi manual.'}
+            </p>
             <div className="mt-4 space-y-4">
-              <div>
-                <label htmlFor="cu-nama" className={labelCls}>
-                  Nama Lengkap
-                </label>
-                <input
-                  id="cu-nama"
-                  className={inputCls}
-                  value={form.fullName}
-                  onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
-                  placeholder="Nama lengkap"
-                />
-                {errText('fullName') && (
-                  <p className="mt-1 text-xs text-red-600">{errText('fullName')}</p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="cu-email" className={labelCls}>
-                  Email
-                </label>
-                <input
-                  id="cu-email"
-                  type="email"
-                  className={inputCls}
-                  value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  placeholder="nama@kampus.ac.id"
-                />
-                {errText('email') && (
-                  <p className="mt-1 text-xs text-red-600">{errText('email')}</p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="cu-password" className={labelCls}>
-                  Password Awal
-                </label>
-                <input
-                  id="cu-password"
-                  type="password"
-                  className={inputCls}
-                  value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  placeholder="Minimal 8 karakter"
-                />
-                {errText('password') && (
-                  <p className="mt-1 text-xs text-red-600">{errText('password')}</p>
-                )}
-              </div>
               <div>
                 <label htmlFor="cu-role" className={labelCls}>
                   Peran
@@ -432,7 +448,10 @@ export function UsersPage() {
                   id="cu-role"
                   className={inputCls}
                   value={form.roleCode}
-                  onChange={(e) => setForm((f) => ({ ...f, roleCode: e.target.value }))}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, roleCode: e.target.value }));
+                    setLookup({ status: 'idle' });
+                  }}
                 >
                   {ROLE_OPTIONS.map((o) => (
                     <option key={o.code} value={o.code}>
@@ -441,16 +460,146 @@ export function UsersPage() {
                   ))}
                 </select>
               </div>
-              {form.roleCode === 'dosen' && (
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={form.isWali}
-                    onChange={(e) => setForm((f) => ({ ...f, isWali: e.target.checked }))}
-                    className="h-4 w-4 rounded border-slate-300 text-primary-600"
-                  />
-                  Dosen Wali (membimbing mahasiswa)
-                </label>
+
+              {useNimNik ? (
+                <>
+                  <div>
+                    <label htmlFor="cu-nimnik" className={labelCls}>
+                      {form.roleCode === 'mahasiswa' ? 'NIM' : 'NIK'}
+                    </label>
+                    <input
+                      id="cu-nimnik"
+                      className={inputCls}
+                      value={identifier}
+                      onChange={(e) =>
+                        setForm((f) =>
+                          form.roleCode === 'mahasiswa'
+                            ? { ...f, nim: e.target.value }
+                            : { ...f, nik: e.target.value },
+                        )
+                      }
+                      placeholder={
+                        form.roleCode === 'mahasiswa' ? 'cth: 22051001' : 'cth: 198512342010011001'
+                      }
+                    />
+                  </div>
+
+                  {lookup.status === 'loading' && (
+                    <p className="text-xs text-slate-500" role="status">
+                      Mencari data…
+                    </p>
+                  )}
+                  {lookup.status === 'notfound' && (
+                    <p className="text-xs text-red-600" role="alert">
+                      {form.roleCode === 'mahasiswa' ? 'NIM' : 'NIK'} tidak ditemukan di data{' '}
+                      {form.roleCode === 'mahasiswa' ? 'mahasiswa' : 'dosen'} — impor data atau
+                      tambah via Master Data dulu.
+                    </p>
+                  )}
+                  {lookup.status === 'error' && (
+                    <p className="text-xs text-red-600" role="alert">
+                      {lookup.message}
+                    </p>
+                  )}
+
+                  {lookup.status === 'ok' && lookup.data && (
+                    <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div>
+                        <label htmlFor="cu-preview-nama" className={labelCls}>
+                          Nama Lengkap
+                        </label>
+                        <input
+                          id="cu-preview-nama"
+                          className={inputCls}
+                          value={lookup.data.fullName ?? ''}
+                          readOnly
+                          aria-readonly="true"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="cu-preview-email" className={labelCls}>
+                          Email
+                        </label>
+                        <input
+                          id="cu-preview-email"
+                          className={inputCls}
+                          value={lookup.data.email ?? ''}
+                          readOnly
+                          aria-readonly="true"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="cu-preview-prodi" className={labelCls}>
+                          Prodi
+                        </label>
+                        <input
+                          id="cu-preview-prodi"
+                          className={inputCls}
+                          value={lookup.data.prodiName ?? ''}
+                          readOnly
+                          aria-readonly="true"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        Password awal ={' '}
+                        <strong>{form.roleCode === 'mahasiswa' ? 'NIM' : 'NIK'}</strong> · wajib
+                        diganti saat login pertama
+                        {lookup.data.isActive === false &&
+                          ' · akun nonaktif akan diaktifkan kembali'}
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label htmlFor="cu-nama" className={labelCls}>
+                      Nama Lengkap
+                    </label>
+                    <input
+                      id="cu-nama"
+                      className={inputCls}
+                      value={form.fullName}
+                      onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
+                      placeholder="Nama lengkap"
+                    />
+                    {errText('fullName') && (
+                      <p className="mt-1 text-xs text-red-600">{errText('fullName')}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label htmlFor="cu-email" className={labelCls}>
+                      Email
+                    </label>
+                    <input
+                      id="cu-email"
+                      type="email"
+                      className={inputCls}
+                      value={form.email}
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                      placeholder="nama@kampus.ac.id"
+                    />
+                    {errText('email') && (
+                      <p className="mt-1 text-xs text-red-600">{errText('email')}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label htmlFor="cu-password" className={labelCls}>
+                      Password Awal
+                    </label>
+                    <input
+                      id="cu-password"
+                      type="password"
+                      className={inputCls}
+                      value={form.password}
+                      onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                      placeholder="Minimal 8 karakter"
+                    />
+                    {errText('password') && (
+                      <p className="mt-1 text-xs text-red-600">{errText('password')}</p>
+                    )}
+                  </div>
+                </>
               )}
             </div>
             <div className="mt-5 flex justify-end gap-2">
@@ -465,7 +614,7 @@ export function UsersPage() {
               <button
                 type="button"
                 onClick={() => void submitCreate()}
-                disabled={creating}
+                disabled={creating || (useNimNik && lookup.status !== 'ok')}
                 className="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700 disabled:opacity-50"
               >
                 {creating ? 'Membuat…' : 'Buat User'}

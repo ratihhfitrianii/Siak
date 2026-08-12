@@ -499,6 +499,153 @@ describe('User Service (RBAC endpoints)', () => {
     });
   });
 
+  describe('POST /users (flow NIM/NIK — buat user cukup peran + NIM/NIK)', () => {
+    const TEST_NIM = '9990001';
+    const TEST_NIK = '8870001';
+    let prodiId: number;
+    let ayId: number;
+    let mhsUserId: number;
+    let dosenUserId: number;
+
+    beforeAll(async () => {
+      const prodi = await pgPool.query(
+        `SELECT id FROM prodis WHERE code = 'TI' AND is_active LIMIT 1`,
+      );
+      const ay = await pgPool.query(
+        `SELECT id FROM academic_years WHERE code = '2023/2024' LIMIT 1`,
+      );
+      prodiId = Number(
+        prodi.rows[0]?.id ?? (await pgPool.query('SELECT id FROM prodis LIMIT 1')).rows[0].id,
+      );
+      ayId = Number(
+        ay.rows[0]?.id ?? (await pgPool.query('SELECT id FROM academic_years LIMIT 1')).rows[0].id,
+      );
+      const mhs = await pgPool.query(`SELECT id FROM users WHERE email = $1`, [
+        'rbac-test-mhs@siak.local',
+      ]);
+      const dosen = await pgPool.query(`SELECT id FROM users WHERE email = $1`, [
+        'rbac-test-dosen@siak.local',
+      ]);
+      mhsUserId = Number(mhs.rows[0].id);
+      dosenUserId = Number(dosen.rows[0].id);
+      await pgPool.query(
+        `INSERT INTO students (user_id, nim, prodi_id, academic_year_id, entry_type, is_active, status)
+         VALUES ($1, $2, $3, $4, 'Test', true, 'aktif')
+         ON CONFLICT (nim) DO UPDATE SET user_id = $1, is_active = true`,
+        [mhsUserId, TEST_NIM, prodiId, ayId],
+      );
+      await pgPool.query(
+        `INSERT INTO lecturers (user_id, nidn, nik, prodi_id, employment_type, is_active)
+         VALUES ($1, $2, $3, $4, 'tetap', true)
+         ON CONFLICT (nik) DO UPDATE SET user_id = $1, is_active = true`,
+        [dosenUserId, '8880001', TEST_NIK, prodiId],
+      );
+    }, 20_000);
+
+    afterAll(async () => {
+      await pgPool.query('DELETE FROM students WHERE nim = $1', [TEST_NIM]);
+      await pgPool.query('DELETE FROM lecturers WHERE nik = $1', [TEST_NIK]);
+    });
+
+    it('mahasiswa: NIM terdaftar → akun diaktifkan, password = NIM, must_change = true', async () => {
+      // nonaktifkan dulu untuk membuktikan alur mengaktifkan kembali
+      await pgPool.query('UPDATE users SET is_active = false WHERE id = $1', [mhsUserId]);
+      const res = await request(app)
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .send({ roleCode: 'mahasiswa', nim: TEST_NIM })
+        .expect(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.nim).toBe(TEST_NIM);
+      expect(res.body.data.message).toContain('password awal = NIM');
+
+      // bukti nyata: login pakai NIM + password NIM berhasil & wajib ganti password
+      const login = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ identifier: TEST_NIM, password: TEST_NIM })
+        .expect(200);
+      expect(login.body.data.mustChangePassword).toBe(true);
+      await pgPool.query('UPDATE users SET is_active = true WHERE id = $1', [mhsUserId]);
+    });
+
+    it('dosen: NIK terdaftar → password = NIK, must_change = true', async () => {
+      const res = await request(app)
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .send({ roleCode: 'dosen', nik: TEST_NIK })
+        .expect(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.nik).toBe(TEST_NIK);
+      expect(res.body.data.message).toContain('password awal = NIK');
+
+      const login = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ identifier: TEST_NIK, password: TEST_NIK })
+        .expect(200);
+      expect(login.body.data.mustChangePassword).toBe(true);
+    });
+
+    it('NIM tidak terdaftar di master data → 404 dengan pesan jelas', async () => {
+      const res = await request(app)
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .send({ roleCode: 'mahasiswa', nim: '9999999' })
+        .expect(404);
+      expect(res.body.error.message).toContain('tidak ditemukan di data mahasiswa');
+    });
+
+    it('nim + roleCode dosen → 400 (NIM hanya utk mahasiswa)', async () => {
+      const res = await request(app)
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .send({ roleCode: 'dosen', nim: TEST_NIM })
+        .expect(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('nim + field manual bersamaan → 400', async () => {
+      await request(app)
+        .post('/api/v1/users')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .send({
+          roleCode: 'mahasiswa',
+          nim: TEST_NIM,
+          email: 'x@siak.local',
+          password: 'TestPass123!',
+          fullName: 'X',
+        })
+        .expect(400);
+    });
+  });
+
+  describe('GET /users/lookup (preview auto-fill form Buat User)', () => {
+    it('NIM terdaftar → found dengan fullName/email/prodi', async () => {
+      const res = await request(app)
+        .get('/api/v1/users/lookup?role=mahasiswa&identifier=9990001')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .expect(200);
+      expect(res.body.data.found).toBe(true);
+      expect(res.body.data.fullName).toBe('Test mahasiswa');
+      expect(res.body.data.email).toBe('rbac-test-mhs@siak.local');
+      expect(res.body.data.prodiName).toBeTruthy();
+    });
+
+    it('NIK tidak terdaftar → found=false', async () => {
+      const res = await request(app)
+        .get('/api/v1/users/lookup?role=dosen&identifier=9999999')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+        .expect(200);
+      expect(res.body.data.found).toBe(false);
+    });
+
+    it('non-admin_sistem → 403', async () => {
+      await request(app)
+        .get('/api/v1/users/lookup?role=mahasiswa&identifier=9990001')
+        .set('Authorization', `Bearer ${tokenByRole.get('mahasiswa')}`)
+        .expect(403);
+    });
+  });
+
   describe('PUT /users/:id/role (update role)', () => {
     let targetId: number;
 
