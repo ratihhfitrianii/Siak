@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useParams } from 'react-router';
 import { DosenSelectMK } from './DosenSelectMK';
 import { DosenSchedule } from './DosenSchedule';
 import { DosenAttendance } from './DosenAttendance';
@@ -7,22 +7,28 @@ import { DosenSubstitute } from './DosenSubstitute';
 import { DosenGrades } from './DosenGrades';
 
 /**
- * Dashboard Dosen (T3.7) — container tab untuk modul dosen:
+ * Dashboard Dosen (T3.7) — container modul dosen:
  * Pilih MK, Jadwal, Absensi, Bimbingan, Substitute, Nilai (permission grade.input).
+ *
+ * Keluhan #5: menu dashboard dosen dipindah dari tab teks horizontal ke SIDEBAR ikon
+ * (AppLayout MENU_ITEMS → route /dosen/:tab). Tab aktif dibaca dari URL sehingga
+ * sidebar NavLink bisa menandai item aktif dan browser back/forward berfungsi.
  */
+const TABS = [
+  { id: 'pilih-mk', component: DosenSelectMK },
+  { id: 'jadwal', component: DosenSchedule },
+  { id: 'absensi', component: DosenAttendance },
+  { id: 'bimbingan', component: DosenGuidance },
+  { id: 'substitute', component: DosenSubstitute },
+  { id: 'nilai', component: DosenGrades },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
 export function DosenDashboardPage() {
-  const [activeTab, setActiveTab] = useState('pilih_mk');
-
-  const tabs = [
-    { id: 'pilih_mk', label: 'Pilih MK', component: DosenSelectMK },
-    { id: 'jadwal', label: 'Jadwal', component: DosenSchedule },
-    { id: 'absensi', label: 'Absensi', component: DosenAttendance },
-    { id: 'bimbingan', label: 'Bimbingan', component: DosenGuidance },
-    { id: 'substitute', label: 'Substitute', component: DosenSubstitute },
-    { id: 'nilai', label: 'Nilai', component: DosenGrades },
-  ];
-
-  const ActiveComponent = tabs.find((tab) => tab.id === activeTab)?.component ?? tabs[0].component;
+  const { tab } = useParams<{ tab?: string }>();
+  const activeTab: TabId = TABS.some((t) => t.id === tab) ? (tab as TabId) : 'pilih-mk';
+  const ActiveComponent = TABS.find((t) => t.id === activeTab)!.component;
 
   return (
     <div className="space-y-6">
@@ -34,27 +40,8 @@ export function DosenDashboardPage() {
         </p>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Konten modul aktif — navigasi lewat sidebar ikon (keluhan #5) */}
       <div className="bg-white rounded-lg shadow-sm">
-        <div className="border-b border-slate-200">
-          <nav className="flex space-x-8 px-6" aria-label="Tabs">
-            {tabs.map((tab) => (
-              <button
-                type="button"
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
         <div className="p-6">
           <ActiveComponent />
         </div>

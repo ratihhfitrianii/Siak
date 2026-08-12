@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenDashboardPage } from './DosenDashboardPage';
 
@@ -16,7 +16,8 @@ function jsonResponse(payload: unknown) {
 }
 
 /**
- * Dashboard Dosen (T3.7) — container tab; verifikasi navigasi antar 6 tab.
+ * Dashboard Dosen (T3.7 + keluhan #5) — container modul; tab aktif dari URL
+ * (/dosen/:tab) karena menu dipindah ke sidebar. Verifikasi render per tab.
  * Fetch dimock per-URL dengan payload valid sesuai kontrak API nyata agar
  * setiap subkomponen (fetch saat mount) merender tanpa error.
  */
@@ -79,48 +80,58 @@ describe('DosenDashboardPage (T3.7)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('render — header + 6 tab + tab pertama aktif (Pilih MK)', () => {
-    render(<DosenDashboardPage />);
+  function renderAt(path: string) {
+    return render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/dosen/:tab?" element={<DosenDashboardPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it('render — header dashboard + konten default Pilih MK (keluhan #5: tanpa tab bar teks)', () => {
+    renderAt('/dosen');
     expect(screen.getByText('Dashboard Dosen')).toBeInTheDocument();
-    for (const label of ['Pilih MK', 'Jadwal', 'Absensi', 'Bimbingan', 'Substitute', 'Nilai']) {
-      expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
-    }
-    // Tab pertama aktif → konten Pilih MK tampil
+    // Tab teks horizontal TIDAK ada lagi (menu pindah ke sidebar)
+    expect(screen.queryByRole('button', { name: 'Jadwal' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nilai' })).not.toBeInTheDocument();
+    // Konten default = Pilih MK
     expect(screen.getByText('Pilih Mata Kuliah')).toBeInTheDocument();
   });
 
-  it('klik tab Jadwal → render DosenSchedule (view availability)', async () => {
-    const user = userEvent.setup();
-    render(<DosenDashboardPage />);
-    await user.click(screen.getByRole('button', { name: 'Jadwal' }));
+  it('route /dosen/jadwal → render DosenSchedule (view availability)', () => {
+    renderAt('/dosen/jadwal');
     expect(screen.getByText('Jadwal Mengajar')).toBeInTheDocument();
   });
 
-  it('klik tab Absensi → render DosenAttendance', async () => {
-    const user = userEvent.setup();
-    render(<DosenDashboardPage />);
-    await user.click(screen.getByRole('button', { name: 'Absensi' }));
+  it('route /dosen/absensi → render DosenAttendance', () => {
+    renderAt('/dosen/absensi');
     expect(screen.getByText('Absensi Mengajar')).toBeInTheDocument();
   });
 
-  it('klik tab Bimbingan → render DosenGuidance', async () => {
-    const user = userEvent.setup();
-    render(<DosenDashboardPage />);
-    await user.click(screen.getByRole('button', { name: 'Bimbingan' }));
+  it('route /dosen/bimbingan → render DosenGuidance', () => {
+    renderAt('/dosen/bimbingan');
     expect(screen.getByText('Bimbingan Mahasiswa Binaan')).toBeInTheDocument();
   });
 
-  it('klik tab Substitute → render DosenSubstitute', async () => {
-    const user = userEvent.setup();
-    render(<DosenDashboardPage />);
-    await user.click(screen.getByRole('button', { name: 'Substitute' }));
+  it('route /dosen/substitute → render DosenSubstitute', () => {
+    renderAt('/dosen/substitute');
     expect(screen.getByText('Substitute Teaching')).toBeInTheDocument();
   });
 
-  it('klik tab Nilai → render DosenGrades', async () => {
-    const user = userEvent.setup();
-    render(<DosenDashboardPage />);
-    await user.click(screen.getByRole('button', { name: 'Nilai' }));
+  it('route /dosen/nilai → render DosenGrades', () => {
+    renderAt('/dosen/nilai');
     expect(screen.getByText('Input Nilai')).toBeInTheDocument();
+  });
+
+  it('route /dosen/pilih-mk → render DosenSelectMK', () => {
+    renderAt('/dosen/pilih-mk');
+    expect(screen.getByText('Pilih Mata Kuliah')).toBeInTheDocument();
+  });
+
+  it('tab tidak dikenal → fallback ke Pilih MK', () => {
+    renderAt('/dosen/tidak-ada');
+    expect(screen.getByText('Pilih Mata Kuliah')).toBeInTheDocument();
   });
 });

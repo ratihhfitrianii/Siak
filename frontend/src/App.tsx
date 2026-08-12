@@ -109,6 +109,18 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          {/* Keluhan #5: submenu dashboard dosen di sidebar → route /dosen/:tab.
+              Dosen juga tetap bisa buka / (dashboard default = Pilih MK). */}
+          <Route
+            path="/dosen/:tab?"
+            element={
+              <ProtectedRoute perm="lecturer.select_course">
+                <AppLayout>
+                  <DosenDashboardPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/krs"
             element={

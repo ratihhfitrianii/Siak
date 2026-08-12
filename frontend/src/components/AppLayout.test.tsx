@@ -69,6 +69,7 @@ const ADMIN_KEUANGAN = {
 
 // Dosen punya transcript.view_own (matriks §6.1) tapi menu Transkrip sengaja disembunyikan
 // (keluhan lama: "menu yang tidak tersedia tidak perlu ditampilkan").
+// Submenu dosen (Pilih MK, Jadwal, dll) tampil di sidebar (keluhan #5) — butuh permission tsb.
 const DOSEN = {
   id: 4,
   email: 'dosen@kampus.ac.id',
@@ -80,7 +81,16 @@ const DOSEN = {
   mustChangePassword: false,
   studentId: null,
   createdAt: '2026-01-01T00:00:00Z',
-  menu: ['transcript.view_own', 'schedule.view'],
+  menu: [
+    'transcript.view_own',
+    'schedule.view',
+    'lecturer.select_course',
+    'lecturer.availability',
+    'attendance.input',
+    'guidance.manage',
+    'substitute.manage',
+    'grade.input',
+  ],
 };
 
 function renderLayout() {
@@ -175,6 +185,30 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.queryByRole('link', { name: 'User' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Pembayaran' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Tagihan' })).not.toBeInTheDocument();
+  });
+
+  it('keluhan #5 — submenu dosen pindah ke sidebar (Pilih MK, Jadwal, Absensi, Bimbingan, Substitute, Nilai)', () => {
+    mockUser = DOSEN;
+    renderLayout();
+
+    for (const label of ['Pilih MK', 'Jadwal', 'Absensi', 'Bimbingan', 'Substitute', 'Nilai']) {
+      expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
+    }
+    // Tooltip penjelasan singkat saat hover ikut tampil (pola keluhan #5)
+    expect(screen.getByText('Pilih mata kuliah yang diampu')).toBeInTheDocument();
+    expect(screen.getByText('Input dan ubah nilai')).toBeInTheDocument();
+  });
+
+  it('submenu dosen TIDAK muncul untuk role lain (mahasiswa/admin)', () => {
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    expect(screen.queryByRole('link', { name: 'Pilih MK' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Jadwal' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Absensi' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Bimbingan' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Substitute' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
   });
 
   it('keluhan #26 — header hanya ikon orang; klik → dropdown (nama, role, Edit Profil, Ganti Password, Keluar)', async () => {
