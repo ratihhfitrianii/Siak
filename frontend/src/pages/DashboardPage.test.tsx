@@ -107,22 +107,29 @@ describe('DashboardPage (T1.11b + keluhan #27 info terkini)', () => {
     vi.clearAllMocks();
   });
 
-  it('mahasiswa → kartu KRS & Transkrip (menu-based)', () => {
+  it('keluhan — grid menu (KRS/Transkrip/Kelola Pengguna) TIDAK tampil; hanya info penting', () => {
     mockUser = MAHASISWA;
     renderDashboard();
 
     expect(screen.getByText('Selamat datang, Budi')).toBeInTheDocument();
-    expect(screen.getByText('KRS')).toBeInTheDocument();
-    expect(screen.getByText('Transkrip')).toBeInTheDocument();
+    // Grid menu dihapus — kartu navigasi tidak boleh tampil sebagai teks apa pun
+    expect(
+      screen.queryByText('Isi & pantau Kartu Rencana Studi periode aktif'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Nilai & IPK per semester')).not.toBeInTheDocument();
     expect(screen.queryByText('Kelola Pengguna')).not.toBeInTheDocument();
+    expect(screen.queryByText('Informasi Akun')).not.toBeInTheDocument();
   });
 
-  it('admin_sistem → kartu Kelola Pengguna, tanpa KRS/Transkrip', () => {
+  it('keluhan — admin_sistem juga tanpa kartu menu (navigasi via sidebar)', () => {
     mockUser = ADMIN;
     renderDashboard();
 
-    expect(screen.getByText('Kelola Pengguna')).toBeInTheDocument();
-    expect(screen.queryByText('Transkrip')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kelola Pengguna')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Isi & pantau Kartu Rencana Studi periode aktif'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Informasi Akun')).not.toBeInTheDocument();
   });
 
   it('keluhan #27 — mahasiswa melihat kartu Periode KRS (status, semester, tanggal)', async () => {

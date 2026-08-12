@@ -76,24 +76,6 @@ export function DashboardPage() {
     return null;
   }
 
-  const cards = [
-    user.menu.includes('krs.fill') && {
-      title: 'KRS',
-      desc: 'Isi & pantau Kartu Rencana Studi periode aktif',
-      to: '/krs',
-    },
-    user.menu.includes('transcript.view_own') && {
-      title: 'Transkrip',
-      desc: 'Nilai & IPK per semester',
-      to: '/transkrip',
-    },
-    user.menu.includes('user.manage') && {
-      title: 'Kelola Pengguna',
-      desc: 'Daftar, buat, dan atur peran pengguna',
-      to: '/users',
-    },
-  ].filter((c): c is { title: string; desc: string; to: string } => Boolean(c));
-
   const showPeriodCard = user.menu.some((p) => p.startsWith('krs.'));
 
   return (
@@ -107,29 +89,11 @@ export function DashboardPage() {
           </span>
           .
         </p>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {cards.map((card) => (
-            <Link
-              key={card.to}
-              to={card.to}
-              className="group rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-primary-300 hover:bg-primary-50"
-            >
-              <h2 className="text-sm font-semibold text-slate-900 group-hover:text-primary-700">
-                {card.title}
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">{card.desc}</p>
-            </Link>
-          ))}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <h2 className="text-sm font-semibold text-slate-700">Informasi Akun</h2>
-            <p className="mt-1 text-sm text-slate-500">Email: {user.email}</p>
-            <p className="mt-1 text-sm text-slate-500">ID: {user.id}</p>
-          </div>
-        </div>
       </div>
 
-      {/* Keluhan #27 — informasi terkini universitas (semua role; kartu periode khusus yang punya akses krs.*) */}
+      {/* Keluhan: dashboard hanya menampilkan grid INFORMASI PENTING — grid menu (kartu
+          navigasi KRS/Transkrip/Kelola Pengguna) dihapus; navigasi tetap lewat sidebar ikon.
+          Keluhan #27 — informasi terkini universitas (semua role; kartu periode khusus yang punya akses krs.*) */}
       <div className="grid gap-4 lg:grid-cols-3">
         {showPeriodCard && (
           <div className="rounded-2xl bg-white p-6 shadow-sm">
