@@ -55,16 +55,18 @@ test.describe('Critical path: transkrip (T5.7)', () => {
 });
 
 test.describe('Critical path: absensi & nilai dosen (T5.7)', () => {
-  test('dosen lihat kelas di tab Absensi & Nilai', async ({ page }) => {
+  test('dosen lihat kelas di menu Absensi & Nilai (sidebar — keluhan #5)', async ({ page }) => {
     await login(page, DOSEN.identifier, DOSEN.pass);
     await expect(page.getByText('Dashboard Dosen')).toBeVisible({ timeout: 10_000 });
 
-    // Tab Absensi → kelas yang diampu muncul
-    await page.getByRole('button', { name: 'Absensi' }).click();
+    // Keluhan #5: tab teks diganti menu sidebar ikon → navigasi via link /dosen/absensi
+    await page.getByRole('link', { name: 'Absensi' }).click();
+    await expect(page).toHaveURL(/\/dosen\/absensi/);
     await expect(page.getByText(/Kelas|Pilih kelas/i).first()).toBeVisible({ timeout: 10_000 });
 
-    // Tab Nilai → kelas + daftar mahasiswa
-    await page.getByRole('button', { name: 'Nilai' }).click();
+    // Menu Nilai di sidebar → /dosen/nilai
+    await page.getByRole('link', { name: 'Nilai' }).click();
+    await expect(page).toHaveURL(/\/dosen\/nilai/);
     await expect(page.getByText(/Nilai|Kelas/i).first()).toBeVisible({ timeout: 10_000 });
   });
 });
