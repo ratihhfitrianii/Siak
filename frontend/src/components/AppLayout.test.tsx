@@ -394,4 +394,66 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     const link = screen.getByRole('link', { name: 'Lihat semua notifikasi' });
     expect(link).toHaveAttribute('href', '/notifikasi');
   });
+
+  // --- Sidebar collapse/expand ---
+  it('sidebar default expanded — tooltip label+deskripsi terlihat saat hover ikon', () => {
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    // Tooltip (label+deskripsi) ada di DOM saat sidebar expanded
+    expect(screen.getByText('Isi dan lihat Kartu Rencana Studi')).toBeInTheDocument();
+    expect(screen.getByText('Lihat transkrip nilai')).toBeInTheDocument();
+  });
+
+  it('klik tombol "Tutup menu" → sidebar collapse; tooltip hilang, hanya ikon', async () => {
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    // Sidebar expanded initially → tooltip ada
+    expect(screen.getByText('Isi dan lihat Kartu Rencana Studi')).toBeInTheDocument();
+
+    // Klik tombol collapse
+    const collapseBtn = screen.getByRole('button', { name: 'Collapse sidebar' });
+    await userEvent.setup().click(collapseBtn);
+
+    // Sidebar collapsed → tooltip label+deskripsi TIDAK di DOM (hanya ikon)
+    expect(screen.queryByText('Isi dan lihat Kartu Rencana Studi')).not.toBeInTheDocument();
+    expect(screen.queryByText('Lihat transkrip nilai')).not.toBeInTheDocument();
+
+    // Tombol expand muncul
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
+  });
+
+  it('klik tombol "Buka menu" → sidebar expand kembali; tooltip muncul lagi', async () => {
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    // Collapse dulu
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+    expect(screen.queryByText('Isi dan lihat Kartu Rencana Studi')).not.toBeInTheDocument();
+
+    // Klik expand
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Expand sidebar' }));
+
+    // Tooltip kembali muncul
+    expect(screen.getByText('Isi dan lihat Kartu Rencana Studi')).toBeInTheDocument();
+    expect(screen.getByText('Lihat transkrip nilai')).toBeInTheDocument();
+
+    // Tombol collapse kembali muncul
+    expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toBeInTheDocument();
+  });
+
+  it('sidebar collapse tidak mempengaruhi navigasi link (Dashboard tetap bisa diklik)', async () => {
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    // Collapse
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+
+    // Klik link Dashboard (ikon saja) — harus navigasi (MemoryRouter handle)
+    await userEvent.setup().click(screen.getByRole('link', { name: 'Dashboard' }));
+
+    // Content tetap render (tidak error)
+    expect(screen.getByText('KONTEN_UTAMA')).toBeInTheDocument();
+  });
 });

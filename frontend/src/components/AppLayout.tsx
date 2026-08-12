@@ -189,6 +189,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [unread, setUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   // Keluhan: notifikasi berupa HALAMAN MELAYANG (floating), bukan pindah halaman.
   const [notifOpen, setNotifOpen] = useState(false);
@@ -315,7 +316,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Sidebar ikon — desktop: kolom vertikal di kiri; mobile: bar horizontal di bawah header. */}
-      <aside className="fixed inset-x-0 top-14 z-30 border-b border-slate-200 bg-white md:inset-y-0 md:left-0 md:top-0 md:w-16 md:flex-col md:border-b-0 md:border-r">
+      <aside
+        className={`fixed inset-x-0 top-14 z-30 border-b border-slate-200 bg-white md:inset-y-0 md:left-0 md:flex-col md:border-b-0 md:border-r transition-all duration-200 ${
+          sidebarCollapsed ? 'md:w-16' : 'md:w-64'
+        }`}
+      >
         <div className="hidden items-center justify-center border-b border-slate-100 py-3 md:flex">
           <NavLink
             to="/"
@@ -327,16 +332,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
         <nav
           aria-label="Menu utama"
-          className="flex items-center gap-1 overflow-x-auto px-2 py-1.5 md:flex-col md:overflow-visible md:px-0 md:py-2"
+          className={`flex items-center gap-1 overflow-x-auto px-2 py-1.5 md:flex-col md:overflow-visible md:py-2 transition-all duration-200 ${
+            sidebarCollapsed ? 'md:px-0' : 'md:px-2'
+          }`}
         >
           <NavLink to="/" end aria-label="Dashboard" title="Dashboard" className={navItemClass}>
             <MenuIcon path={ICON_PATHS.home} />
-            <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
-              Dashboard
-              <span className="block text-[10px] font-normal text-slate-300">
-                Ringkasan aktivitas
+            {!sidebarCollapsed && (
+              <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
+                Dashboard
+                <span className="block text-[10px] font-normal text-slate-300">
+                  Ringkasan aktivitas
+                </span>
               </span>
-            </span>
+            )}
           </NavLink>
           {menu.map((item) => (
             <NavLink
@@ -347,18 +356,75 @@ export function AppLayout({ children }: { children: ReactNode }) {
               className={navItemClass}
             >
               <MenuIcon path={ICON_PATHS[item.icon]} />
-              <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
-                {item.label}
-                <span className="block text-[10px] font-normal text-slate-300">
-                  {item.description}
+              {!sidebarCollapsed && (
+                <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
+                  {item.label}
+                  <span className="block text-[10px] font-normal text-slate-300">
+                    {item.description}
+                  </span>
                 </span>
-              </span>
+              )}
             </NavLink>
           ))}
         </nav>
+        {/* Tombol expand/collapse di ujung bawah sidebar */}
+        {!sidebarCollapsed && (
+          <div className="hidden absolute bottom-0 left-0 right-0 border-t border-slate-100 p-2 md:block">
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(true)}
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+              className="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            >
+              <svg
+                className="h-5 w-5 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                />
+              </svg>
+              <span>Tutup menu</span>
+            </button>
+          </div>
+        )}
+        {sidebarCollapsed && (
+          <div className="hidden absolute bottom-0 left-0 right-0 border-t border-slate-100 p-2 md:block">
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(false)}
+              aria-label="Expand sidebar"
+              title="Expand sidebar"
+              className="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            >
+              <svg
+                className="h-5 w-5 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                />
+              </svg>
+              <span>Buka menu</span>
+            </button>
+          </div>
+        )}
       </aside>
 
-      <div className="md:pl-16">
+      <div
+        className={`md:transition-all md:duration-200 ${sidebarCollapsed ? 'md:pl-4' : 'md:pl-16'}`}
+      >
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex h-14 items-center justify-between gap-3 px-4">
             <span className="text-lg font-bold text-slate-900 md:hidden">Siak</span>
