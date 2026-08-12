@@ -30,3 +30,6 @@ Thumbs.db
 # Backup lokal (di luar repo)
 backup/
 docs/list perbaikan.txt
+
+.vercel
+.env*
