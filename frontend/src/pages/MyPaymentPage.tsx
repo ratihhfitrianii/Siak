@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { getMyPayments, getKrsAccess, getKrsPeriod, ApiError } from '../lib/api';
 import type { MyPayment, KrsAccessResult, KrsPeriod } from '../lib/types';
 
@@ -12,7 +12,11 @@ export function MyPaymentPage() {
   const [activeSemesterId, setActiveSemesterId] = useState<number | null>(null);
   const [krsAccess, setKrsAccess] = useState<KrsAccessResult | null>(null);
 
-  const [krsPeriod, setKrsPeriod] = useState<KrsPeriod | null>(null);
+  // Keluhan "menu pembayaran berkedip": periode KRS disimpan di ref, BUKAN state.
+  // loadPayments memakai krsPeriod (via closure) — jika state, tiap fetch mengubah
+  // referensi → loadPayments dibuat ulang → effect jalan lagi → loop fetch tak hingga
+  // → halaman flicker antara spinner dan konten. Ref tidak memicu re-render.
+  const krsPeriodRef = useRef<KrsPeriod | null>(null);
 
   const checkKrsAccess = useCallback(async (semesterId: number) => {
     try {
@@ -27,7 +31,7 @@ export function MyPaymentPage() {
     try {
       const period = await getKrsPeriod();
       if (period.status === 'open') {
-        setKrsPeriod(period);
+        krsPeriodRef.current = period;
       }
     } catch {
       // ignore - period not open
@@ -48,7 +52,7 @@ export function MyPaymentPage() {
         const latest = data[0];
         setActiveSemesterId(latest.semesterId);
         // Check KRS access for the active KRS period semester (if any), otherwise for latest payment semester
-        const krsSemesterId = krsPeriod?.semesterId ?? latest.semesterId;
+        const krsSemesterId = krsPeriodRef.current?.semesterId ?? latest.semesterId;
         await checkKrsAccess(krsSemesterId);
       }
     } catch (e) {
@@ -57,7 +61,7 @@ export function MyPaymentPage() {
     } finally {
       setLoading(false);
     }
-  }, [checkKrsAccess, loadKrsPeriod, krsPeriod]);
+  }, [checkKrsAccess, loadKrsPeriod]);
 
   useEffect(() => {
     loadKrsPeriod();

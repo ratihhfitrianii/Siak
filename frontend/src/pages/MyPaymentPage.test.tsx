@@ -269,4 +269,28 @@ describe('MyPaymentPage (T2.6)', () => {
 
     expect(await screen.findByText('Gagal memuat tagihan')).toBeInTheDocument();
   });
+
+  it('fetch tagihan HANYA SEKALI — regresi loop flicker (krsPeriod via ref)', async () => {
+    let paymentsCalls = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/krs/period')) {
+          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_OPEN }));
+        }
+        if (url.includes('/krs-access')) {
+          return Promise.resolve(jsonResponse({ success: true, data: KRS_OK }));
+        }
+        paymentsCalls += 1;
+        return Promise.resolve(jsonResponse({ success: true, data: PAYMENTS_SNAKE }));
+      }),
+    );
+    render(<MyPaymentPage />);
+
+    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+    // Beri waktu beberapa tick: bila ada loop dependency (krsPeriod state), fetch
+    // akan berulang tanpa henti — test ini gagal sebelum fix (paymentsCalls >> 1).
+    await new Promise((r) => setTimeout(r, 150));
+    expect(paymentsCalls).toBe(1);
+  });
 });
