@@ -564,7 +564,7 @@ describe('User Service (RBAC endpoints)', () => {
         .post('/api/v1/auth/login')
         .send({ identifier: TEST_NIM, password: TEST_NIM })
         .expect(200);
-      expect(login.body.data.mustChangePassword).toBe(true);
+      expect(login.body.data.user.mustChangePassword).toBe(true);
       await pgPool.query('UPDATE users SET is_active = true WHERE id = $1', [mhsUserId]);
     });
 
@@ -582,7 +582,7 @@ describe('User Service (RBAC endpoints)', () => {
         .post('/api/v1/auth/login')
         .send({ identifier: TEST_NIK, password: TEST_NIK })
         .expect(200);
-      expect(login.body.data.mustChangePassword).toBe(true);
+      expect(login.body.data.user.mustChangePassword).toBe(true);
     });
 
     it('NIM tidak terdaftar di master data → 404 dengan pesan jelas', async () => {
@@ -616,10 +616,10 @@ describe('User Service (RBAC endpoints)', () => {
         })
         .expect(400);
     });
-  });
 
-  describe('GET /users/lookup (preview auto-fill form Buat User)', () => {
-    it('NIM terdaftar → found dengan fullName/email/prodi', async () => {
+    // lookup di sini (bukan describe terpisah) agar data student/lecturer dari
+    // beforeAll di atas masih ada — afterAll describe ini menghapusnya.
+    it('GET /users/lookup: NIM terdaftar → found dengan fullName/email/prodi', async () => {
       const res = await request(app)
         .get('/api/v1/users/lookup?role=mahasiswa&identifier=9990001')
         .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
@@ -630,7 +630,7 @@ describe('User Service (RBAC endpoints)', () => {
       expect(res.body.data.prodiName).toBeTruthy();
     });
 
-    it('NIK tidak terdaftar → found=false', async () => {
+    it('GET /users/lookup: NIK tidak terdaftar → found=false', async () => {
       const res = await request(app)
         .get('/api/v1/users/lookup?role=dosen&identifier=9999999')
         .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
@@ -638,7 +638,7 @@ describe('User Service (RBAC endpoints)', () => {
       expect(res.body.data.found).toBe(false);
     });
 
-    it('non-admin_sistem → 403', async () => {
+    it('GET /users/lookup: non-admin_sistem → 403', async () => {
       await request(app)
         .get('/api/v1/users/lookup?role=mahasiswa&identifier=9990001')
         .set('Authorization', `Bearer ${tokenByRole.get('mahasiswa')}`)
