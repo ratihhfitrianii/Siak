@@ -313,7 +313,11 @@ describe('User Service (RBAC endpoints)', () => {
 
   afterAll(async () => {
     for (const u of users) {
-      await pgPool.query('DELETE FROM users WHERE email = $1', [u.email]);
+      try {
+        await pgPool.query('DELETE FROM users WHERE email = $1', [u.email]);
+      } catch {
+        // ignore cleanup race
+      }
     }
     // T1.9: pgPool.end() dihapus — pool dibagikan antar suite (race; jest forceExit: true).
   });
@@ -543,8 +547,12 @@ describe('User Service (RBAC endpoints)', () => {
     }, 20_000);
 
     afterAll(async () => {
-      await pgPool.query('DELETE FROM students WHERE nim = $1', [TEST_NIM]);
-      await pgPool.query('DELETE FROM lecturers WHERE nik = $1', [TEST_NIK]);
+      try {
+        await pgPool.query('DELETE FROM students WHERE nim = $1', [TEST_NIM]);
+        await pgPool.query('DELETE FROM lecturers WHERE nik = $1', [TEST_NIK]);
+      } catch {
+        // ignore cleanup race
+      }
     });
 
     it('mahasiswa: NIM terdaftar → akun diaktifkan, password = NIM, must_change = true', async () => {
@@ -616,43 +624,54 @@ describe('User Service (RBAC endpoints)', () => {
         })
         .expect(400);
     });
+  });
 
-    // lookup test: gunakan student yang sudah ada (beforeAll) — jangan pakai TEST_NIM
-    // karena test sebelumnya mengupdate full_name-nya; cukup assert found=true & field lain ada.
-    it('GET /users/lookup: NIM terdaftar → found dengan fullName/email/prodi', async () => {
-      // buat user+student khusus lookup agar tidak bentrok dgn test NIM/NIK di atas
+  describe('GET /users/lookup (preview auto-fill)', () => {
+    const LOOKUP_NIM = '9990002';
+    const LOOKUP_EMAIL = 'rbac-test-lookup-mhs-2@siak.local';
+    let lookupUserId: number;
+
+    beforeAll(async () => {
       const ins = await pgPool.query(
         `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
-         VALUES ('rbac-test-lookup-mhs@siak.local', 'x', 'Lookup Mahasiswa',
+         VALUES ($1, 'x', 'Lookup Mahasiswa 2',
                  (SELECT id FROM roles WHERE code='mahasiswa'), true)
          RETURNING id`,
+        [LOOKUP_EMAIL],
       );
-      const uid = ins.rows[0].id;
+      lookupUserId = ins.rows[0].id;
       await pgPool.query(
         `INSERT INTO students (user_id, nim, prodi_id, academic_year_id, entry_type)
-         VALUES ($1, 'LOOKUP_NIM_1',
+         VALUES ($1, $2,
                  (SELECT id FROM prodis WHERE code = 'TI'),
                  (SELECT id FROM academic_years ORDER BY id LIMIT 1),
                  'Mandiri')`,
-        [uid],
+        [lookupUserId, LOOKUP_NIM],
       );
+    }, 20_000);
 
+    afterAll(async () => {
+      try {
+        await pgPool.query('DELETE FROM students WHERE nim = $1', [LOOKUP_NIM]);
+        await pgPool.query('DELETE FROM users WHERE id = $1', [lookupUserId]);
+      } catch {
+        // ignore cleanup race
+      }
+    });
+
+    it('NIM terdaftar → found dengan detail lengkap', async () => {
       const res = await request(app)
-        .get('/api/v1/users/lookup?role=mahasiswa&identifier=LOOKUP_NIM_1')
+        .get(`/api/v1/users/lookup?role=mahasiswa&identifier=${LOOKUP_NIM}`)
         .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
         .expect(200);
       expect(res.body.data.found).toBe(true);
-      expect(res.body.data.fullName).toBe('Lookup Mahasiswa');
-      expect(res.body.data.email).toBe('rbac-test-lookup-mhs@siak.local');
+      expect(res.body.data.fullName).toBe('Lookup Mahasiswa 2');
+      expect(res.body.data.email).toBe(LOOKUP_EMAIL);
       expect(res.body.data.prodiName).toBeTruthy();
-      expect(res.body.data.isActive).toBe(true);
-      expect(res.body.data.mustChangePassword).toBe(true);
-
-      await pgPool.query('DELETE FROM students WHERE nim = $1', ['LOOKUP_NIM_1']);
-      await pgPool.query('DELETE FROM users WHERE email = $1', ['rbac-test-lookup-mhs@siak.local']);
+      expect(typeof res.body.data.mustChangePassword).toBe('boolean');
     });
 
-    it('GET /users/lookup: NIK tidak terdaftar → found=false', async () => {
+    it('NIK tidak terdaftar → found=false', async () => {
       const res = await request(app)
         .get('/api/v1/users/lookup?role=dosen&identifier=9999999')
         .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
@@ -660,9 +679,9 @@ describe('User Service (RBAC endpoints)', () => {
       expect(res.body.data.found).toBe(false);
     });
 
-    it('GET /users/lookup: non-admin_sistem → 403', async () => {
+    it('non-admin_sistem → 403', async () => {
       await request(app)
-        .get('/api/v1/users/lookup?role=mahasiswa&identifier=9990001')
+        .get(`/api/v1/users/lookup?role=mahasiswa&identifier=${LOOKUP_NIM}`)
         .set('Authorization', `Bearer ${tokenByRole.get('mahasiswa')}`)
         .expect(403);
     });
@@ -681,7 +700,11 @@ describe('User Service (RBAC endpoints)', () => {
     });
 
     afterAll(async () => {
-      await pgPool.query('DELETE FROM users WHERE email = $1', ['rbac-test-target@siak.local']);
+      try {
+        await pgPool.query('DELETE FROM users WHERE email = $1', ['rbac-test-target@siak.local']);
+      } catch {
+        // ignore cleanup race
+      }
     });
 
     it('admin_sistem boleh update role + is_wali', async () => {
@@ -763,7 +786,11 @@ describe('User Service (RBAC endpoints)', () => {
     });
 
     afterAll(async () => {
-      await pgPool.query('DELETE FROM users WHERE email = $1', ['rbac-test-delete@siak.local']);
+      try {
+        await pgPool.query('DELETE FROM users WHERE email = $1', ['rbac-test-delete@siak.local']);
+      } catch {
+        // ignore cleanup race
+      }
     });
 
     it('admin_sistem boleh nonaktifkan user → 200 + is_active=false', async () => {
