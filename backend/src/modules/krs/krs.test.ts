@@ -35,6 +35,25 @@ async function restoreClassQuota(studentId: number): Promise<void> {
   }
 }
 
+/** Pilih N kelas dengan kode MK BERBEDA (keluhan #59: 1 KRS tidak boleh punya
+ * duplikat course_code). Seed punya beberapa kelas per matkul (A, B, ...),
+ * jadi slice(0, N) naif bisa memilih kelas kode MK sama → DUPLICATE_COURSE 409.
+ */
+function pickDistinctClasses(
+  classes: Array<{ id: number; courseCode: string }>,
+  n: number,
+): number[] {
+  const seen = new Set<string>();
+  const ids: number[] = [];
+  for (const c of classes) {
+    if (seen.has(c.courseCode)) continue;
+    seen.add(c.courseCode);
+    ids.push(c.id);
+    if (ids.length >= n) break;
+  }
+  return ids;
+}
+
 /**
  * T1.5 KRS Core tests.
  * Setup: buat mahasiswa + kelas test di DB, login, jalankan alur draft → submit.
@@ -166,7 +185,7 @@ describe('KRS Core (T1.5)', () => {
   });
 
   it('POST /krs/draft → simpan draft', async () => {
-    const classIds = availableClasses.slice(0, 2).map((c) => c.id);
+    const classIds = pickDistinctClasses(availableClasses, 2);
     const res = await request(app)
       .post('/api/v1/krs/draft')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -209,7 +228,7 @@ describe('KRS Core (T1.5)', () => {
   });
 
   it('POST /krs/submit → submitted + locked (AC-07)', async () => {
-    const classIds = availableClasses.slice(0, 2).map((c) => c.id);
+    const classIds = pickDistinctClasses(availableClasses, 2);
     const res = await request(app)
       .post('/api/v1/krs/submit')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -466,6 +485,40 @@ describe('KRS Core edge cases (coverage branches)', () => {
       );
     }
   });
+
+  it('draft dengan 2 kelas kode MK sama → 409 DUPLICATE_COURSE (keluhan #59)', async () => {
+    // Cari 2 kelas (prodi sama, periode aktif) yang matkulnya sama kode
+    const dup = await pgPool.query(
+      `SELECT cl.id, c.code
+       FROM classes cl
+       JOIN curricula cur ON cur.id = cl.curriculum_id
+       JOIN courses c ON c.id = cur.course_id
+       JOIN krs_periods kp ON kp.semester_id = cur.semester_id
+       WHERE cur.prodi_id = $1
+         AND kp.is_active AND now() BETWEEN kp.start_date AND kp.end_date
+         AND cl.is_active
+         AND c.code IN (
+           SELECT c2.code FROM classes cl2
+           JOIN curricula cur2 ON cur2.id = cl2.curriculum_id
+           JOIN courses c2 ON c2.id = cur2.course_id
+           WHERE cur2.prodi_id = $1 AND cl2.is_active
+           GROUP BY c2.code HAVING COUNT(*) >= 2
+         )
+       ORDER BY c.code, cl.id
+       LIMIT 2`,
+      [edgeProdiId],
+    );
+    if (dup.rows.length < 2) {
+      return; // skip jika seed tidak punya kelas duplikat
+    }
+    const res = await request(app)
+      .post('/api/v1/krs/draft')
+      .set('Authorization', `Bearer ${edgeToken}`)
+      .send({ classIds: dup.rows.map((r) => Number(r.id)) })
+      .expect(409);
+    expect(res.body.error.code).toBe('DUPLICATE_COURSE');
+    expect(res.body.error.message).toContain('matkul yang sama');
+  });
 });
 
 describe('KRS Validasi Admin (T1.6)', () => {
@@ -477,7 +530,7 @@ describe('KRS Validasi Admin (T1.6)', () => {
   let semesterId: number;
   let adminAkademikToken: string;
   let adminKeuanganToken: string;
-  let classes: { id: number }[];
+  let classes: { id: number; courseCode: string }[];
   let submissionAId: number;
   let submissionBId: number;
   let notifAId: number;
@@ -588,14 +641,18 @@ describe('KRS Validasi Admin (T1.6)', () => {
     adminKeuanganToken = keuLogin.body.data.accessToken;
 
     const classesRes = await pgPool.query(
-      `SELECT cl.id FROM classes cl
+      `SELECT cl.id, c.code AS course_code FROM classes cl
        JOIN curricula cur ON cur.id = cl.curriculum_id
+       JOIN courses c ON c.id = cur.course_id
        WHERE cur.prodi_id = $1 AND cur.semester_id = $2 AND cl.is_active
          AND cl.current_enrolled < cl.capacity
-       ORDER BY cl.id LIMIT 4`,
+       ORDER BY cl.id LIMIT 6`,
       [prodiId, semesterId],
     );
-    classes = classesRes.rows.map((r) => ({ id: Number(r.id) }));
+    classes = classesRes.rows.map((r) => ({
+      id: Number(r.id),
+      courseCode: r.course_code,
+    }));
   }, 30_000);
 
   afterAll(async () => {
@@ -629,7 +686,7 @@ describe('KRS Validasi Admin (T1.6)', () => {
     const res = await request(app)
       .post('/api/v1/krs/submit')
       .set('Authorization', `Bearer ${tokens[emails[0]!]}`)
-      .send({ classIds: classes.slice(0, 2).map((c) => c.id) })
+      .send({ classIds: pickDistinctClasses(classes, 2) })
       .expect(200);
     submissionAId = res.body.data.submissionId;
 
@@ -701,7 +758,7 @@ describe('KRS Validasi Admin (T1.6)', () => {
     const submitB = await request(app)
       .post('/api/v1/krs/submit')
       .set('Authorization', `Bearer ${tokens[emails[1]!]}`)
-      .send({ classIds: classes.slice(0, 2).map((c) => c.id) })
+      .send({ classIds: pickDistinctClasses(classes, 2) })
       .expect(200);
     submissionBId = submitB.body.data.submissionId;
 
@@ -754,16 +811,21 @@ describe('KRS Validasi Admin (T1.6)', () => {
   });
 
   it('revisi setelah reject → draft + submit ulang berhasil, rejection di-reset (AC-04c)', async () => {
-    // Re-query kelas yang masih ada kuota (bisa berubah karena submit sebelumnya)
+    // Re-query kelas yang masih ada kuota (bisa berubah karena submit sebelumnya);
+    // pilih kode MK berbeda agar lolos validasi DUPLICATE_COURSE (keluhan #59).
     const freshClasses = await pgPool.query(
-      `SELECT cl.id FROM classes cl
+      `SELECT cl.id, c.code AS course_code FROM classes cl
        JOIN curricula cur ON cur.id = cl.curriculum_id
+       JOIN courses c ON c.id = cur.course_id
        WHERE cur.prodi_id = $1 AND cur.semester_id = $2 AND cl.is_active
          AND cl.current_enrolled < cl.capacity
-       ORDER BY cl.id LIMIT 3`,
+       ORDER BY cl.id LIMIT 8`,
       [prodiId, semesterId],
     );
-    const classIds = freshClasses.rows.map((r) => Number(r.id));
+    const classIds = pickDistinctClasses(
+      freshClasses.rows.map((r) => ({ id: Number(r.id), courseCode: r.course_code })),
+      3,
+    );
     expect(classIds.length).toBeGreaterThanOrEqual(3);
 
     const draft = await request(app)
