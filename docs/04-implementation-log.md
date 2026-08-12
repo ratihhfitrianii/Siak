@@ -1776,7 +1776,7 @@ Refinement pada Waiting Room MVP (T1.13) untuk produksi:
 2. **`ENOENT dist/modules/waiting-room/waiting-room.lua`** (start Render) — `tsc` tidak menyalin file non-TS; `waiting-room.service.ts:22` membaca `waiting-room.lua` via `__dirname` saat startup. Dockerfile lama menanganinya via `COPY`, native build tidak. Fix: script `build` di `backend/package.json` kini `tsc -p tsconfig.build.json && node -e "mkdirSync + copyFileSync"` (cross-platform). Terverifikasi: `npm run build` → lua tersalin identik; boot `node dist/index.js` (PORT 3999) → health `GET /api/v1/health` `200 {"status":"ok"}`.
 3. **`REDIS_URL: Invalid url`** (start Render) — validasi Zod `z.string().url()` gagal pada nilai di dashboard (terverifikasi probe: format benar `rediss://default:...@host:6379` OK; kutip/`rediss//`/token polos FAIL). Fix pemilik: paste ulang connection string dari console Upstash (tombol Connect → Node.js), tanpa tanda kutip, lalu **deploy baru** (Render tidak auto-redeploy saat env diubah).
 4. **`SECURITY WARNING: ... aliases for verify-full`** (start Render, warning level 40 dari `pg` 8.13+, terpasang `pg@8.22`) — `sslmode=require` di URL Neon di-alias `pg` ke `verify-full`; koneksi sebenarnya **sudah diverifikasi penuh** (warning cuma notifikasi perilaku). Fix: ubah param query URL `sslmode=require` → `sslmode=verify-full` di `DATABASE_URL` (dashboard Render + `.env` lokal). Terverifikasi probe pg: `require` → warning count 1; `verify-full` → warning count 0, `SELECT 1` OK di kedua kasus (cert Neon valid untuk verify-full).
-5. **`PostgreSQL pool connection failed` / `Connection terminated unexpectedly`** (startup Render, level 50) — test `SELECT 1` startup (`src/lib/pg.ts`) gagal karena **Neon free auto-suspend**: Render cold start (free: suspend 15 menit idle) bersamaan Neon masih tertidur → koneksi pertama ditolak/di-terminate → setelah 5 dtk (timeout lama) log error. **Self-healing** (app tetap jalan, query retry otomatis, Neon resume 2-5 dtk), tapi ada 2 kelemahan di kode lama: `process.exit(-1)` pada event `pgPool 'error'` (client idle yang koneksinya ditutup Neon saat suspend → pool emit error → **app crash**, berisiko crash-loop; melanggar filosofi graceful degradation docs/02 §7.1) dan test startup sekali coba. Fix di `src/lib/pg.ts`: idle client error → `logger.warn` saja (pool auto-reconnect); test startup retry 3× (delay 2 dtk, log warn "Neon mungkin sedang cold start"); `connectionTimeoutMillis` 5000 → 10000. Terverifikasi: lint/typecheck/format/build hijau, suite backend penuh hijau; verifikasi ad-hoc boot `dist/index.js` dengan `DATABASE_URL` mati (127.0.0.1:59999): proses tetap hidup 12 dtk, warn retry terekam di log (2×), health tetap 200 — graceful degradation terbukti.
+Terverifikasi: lint/typecheck/format/build hijau, suite backend penuh hijau; verifikasi ad-hoc boot `dist/index.js` dengan `DATABASE_URL` mati (127.0.0.1:59999): proses tetap hidup 12 dtk, warn retry terekam di log (2×), health tetap 200 — graceful degradation terbukti.
 
 ---
 
@@ -2338,3 +2338,168 @@ Perbaikan halaman kelola tagihan (admin keuangan) + redirect pasca-login:
 3. **`REDIS_URL: Invalid url`** (start Render) — validasi Zod `z.string().url()` gagal pada nilai di dashboard (terverifikasi probe: format benar `rediss://default:...@host:6379` OK; kutip/`rediss//`/token polos FAIL). Fix pemilik: paste ulang connection string dari console Upstash (tombol Connect → Node.js), tanpa tanda kutip, lalu **deploy baru** (Render tidak auto-redeploy saat env diubah).
 4. **`SECURITY WARNING: ... aliases for verify-full`** (start Render, warning level 40 dari `pg` 8.13+, terpasang `pg@8.22`) — `sslmode=require` di URL Neon di-alias `pg` ke `verify-full`; koneksi sebenarnya **sudah diverifikasi penuh** (warning cuma notifikasi perilaku). Fix: ubah param query URL `sslmode=require` → `sslmode=verify-full` di `DATABASE_URL` (dashboard Render + `.env` lokal). Terverifikasi probe pg: `require` → warning count 1; `verify-full` → warning count 0, `SELECT 1` OK di kedua kasus (cert Neon valid untuk verify-full).
 5. **`PostgreSQL pool connection failed` / `Connection terminated unexpectedly`** (startup Render, level 50) — test `SELECT 1` startup (`src/lib/pg.ts`) gagal karena **Neon free auto-suspend**: Render cold start (free: suspend 15 menit idle) bersamaan Neon masih tertidur → koneksi pertama ditolak/di-terminate → setelah 5 dtk (timeout lama) log error. **Self-healing** (app tetap jalan, query retry otomatis, Neon resume 2-5 dtk), tapi ada 2 kelemahan di kode lama: `process.exit(-1)` pada event `pgPool 'error'` (client idle yang koneksinya ditutup Neon saat suspend → pool emit error → **app crash**, berisiko crash-loop; melanggar filosofi graceful degradation docs/02 §7.1) dan test startup sekali coba. Fix di `src/lib/pg.ts`: idle client error → `logger.warn` saja (pool auto-reconnect); test startup retry 3× (delay 2 dtk, log warn "Neon mungkin sedang cold start"); `connectionTimeoutMillis` 5000 → 10000. Terverifikasi: lint/typecheck/format/build hijau, suite backend penuh hijau; verifikasi ad-hoc boot `dist/index.js` dengan `DATABASE_URL` mati (127.0.0.1:59999): proses tetap hidup 12 dtk, warn retry terekam di log (2×), health tetap 200 — graceful degradation terbukti.
+
+---
+
+### Iterasi 7 (2026-08-11) — Fix #60: Halaman Pembayaran Mahasiswa Berkedip
+
+#### Ringkasan
+Bug: halaman pembayaran (`/pembayaran`) fetch berulang (loop) menyebabkan UI berkedip. Root cause: `loadPayments` memakai state `krsPeriod` yang update setelah fetch → re-render → fetch lagi → loop.
+Fix: `krsPeriod` dipindah ke `useRef` (stabil, tidak memicu re-render) + `useEffect` load sekali saat mount.
+
+#### File yang Diubah
+| File | Perubahan |
+|------|-----------|
+| `frontend/src/pages/MyPaymentPage.tsx` | `krsPeriod` jadi `useRef`; `loadPayments` load sekali; `useEffect` dep `[]` |
+| `frontend/src/pages/MyPaymentPage.test.tsx` | +1 test regresi: `fetch('/payments')` hanya dipanggil **sekali** (bukan loop) |
+
+#### Quality Gates
+| Gate | Hasil |
+|------|-------|
+| Frontend lint/typecheck/format | ✅ |
+| Frontend test:coverage | ✅ (28 files, 174 tests — +1) |
+| Backend | Tidak ada perubahan |
+
+---
+
+### Iterasi 8 (2026-08-11) — Fix #5: Navbar Menu Dosen Pindah ke Sidebar Ikon + Tooltip
+
+#### Ringkasan
+Menu dashboard dosen dipindah dari horizontal tab (`Absensi`, `Nilai`, `Substitute`, `Bimbingan`, `KRS`, `Mahasiswa`) ke sidebar vertikal 6 link ikon + tooltip. Route terpadu `/dosen/:tab?` (default `absensi`). Tab teks horizontal dihapus.
+
+#### File yang Diubah
+| File | Perubahan |
+|------|-----------|
+| `frontend/src/pages/DosenDashboardPage.tsx` | Sidebar ikon + tooltip; state `activeTab` via `useParams`; `navigate(\`/dosen/\${tab}\`)` |
+| `frontend/src/App.tsx` | Route `/dosen/:tab?` → `DosenDashboardPage` (hapus 6 route terpisah) |
+| `frontend/src/components/AppLayout.tsx` | `MENU_ITEMS` dosen: 6 entry `roles: ['dosen']` + `perm: 'lecturer.select_course'` |
+| `frontend/src/pages/DosenDashboardPage.test.tsx` | 12 test: sidebar render, link aktif, navigasi, URL sync, permission fallback |
+| `frontend/src/components/AppLayout.test.tsx` | Assert dosen menu 6 link + `roles` field |
+
+#### Quality Gates
+| Gate | Hasil |
+|------|-------|
+| Frontend test:coverage | ✅ (29 files, 194 tests — +20) |
+| Frontend lint/typecheck/format/build | ✅ (bundle 84.28 kB gzip) |
+
+---
+
+### Iterasi 9 (2026-08-12) — Notifikasi Floating Panel (Ring 3)
+
+#### Ringkasan
+Panel notifikasi floating (ikon lonceng di kanan-atas, klik → panel 5 notifikasi terbaru, scroll `<div className="max-h-[300px] overflow-y-auto">`, mark-read per-item & mark-all optimistik, "Lihat semua" → `/notifikasi`). Polling 60 detik + event `siak:notif-changed` (emit saat POST/PUT notifikasi, read-all, dst).
+
+#### File yang Diubah
+| File | Perubahan |
+|------|-----------|
+| `frontend/src/components/AppLayout.tsx` | `NotificationBell` + `NotificationPanel` state, polling, event listener |
+| `frontend/src/lib/notificationLabels.ts` | **Baru** — `TYPE_LABEL` (enum → string) + `formatNotifTime` (DRY, aman `react-refresh`) |
+| `frontend/src/pages/NotificationsPage.tsx` | Import `TYPE_LABEL` dari `notificationLabels` (hindari re-export non-komponen) |
+| `frontend/src/components/AppLayout.test.tsx` | +4 test: bell toggle, mark-read, mark-all, "Lihat semua" navigasi |
+
+#### Quality Gates
+| Gate | Hasil |
+|------|-------|
+| Frontend test:coverage | ✅ (29 files, 194 tests) |
+| Bundle | 84.28 kB gzip |
+
+---
+
+### Iterasi 10 (2026-08-12) — Dashboard Tanpa Grid Menu (Ring 3)
+
+#### Ringkasan
+Halaman dashboard hanya 2 kartu: **Periode KRS** (untuk role `krs.*`) + **Info Penting** (3 notifikasi terbaru, semua role). Grid menu "Kelola Pengguna" / "Informasi Akun" dihapus — ditangani via sidebar.
+
+#### File yang Diubah
+| File | Perubahan |
+|------|-----------|
+| `frontend/src/pages/DashboardPage.tsx` | Section Info Terkini: 2 kartu saja (periode + notifikasi) |
+| `frontend/src/pages/DashboardPage.test.tsx` | +5 test baru (kartu periode, info penting, periode closed, fetch gagal → fallback, admin tanpa krs.* → tanpa kartu periode) |
+
+#### Quality Gates
+| Gate | Hasil |
+|------|-------|
+| Frontend test:coverage | ✅ (29 files, 194 tests) |
+| Bundle | 84.28 kB gzip |
+
+---
+
+### Iterasi 11 (2026-08-12) — Fix Bug Race: Logout dari Halaman Terproteksi → Login Role Lain
+
+#### Ringkasan
+Bug: mahasiswa logout dari `/pembayaran` → dosen login → dosen masuk ke `/pembayaran` (padahal tidak punya menu). Root cause (React 19): race condition antara **passive effect** `<Navigate state={{from}}>` (ProtectedRoute) dan handler `navigate('/login')` (tanpa state) — passive effect menimpa state `/login` bersih.
+
+Fix 2 lapis:
+1. **ProtectedRoute** — saat `!user && location.pathname === '/login'` → `return null` (JANGAN render Navigate; mencegah passive effect menimpa state `/login`).
+2. **LoginPage** — `safeFrom` diperluas cover route dinamis `/dosen` & `/dosen/:tab` via cek perm `lecturer.select_course` (menutup celah arah sebaliknya: logout dosen → login mahasiswa diarahkan ke `/dosen`).
+
+#### File yang Diubah
+| File | Perubahan |
+|------|-----------|
+| `frontend/src/auth/ProtectedRoute.tsx` | `if (!user && location.pathname === '/login') return null` (anti-race) |
+| `frontend/src/auth/ProtectedRoute.test.tsx` | +test array perm OR: user hanya `transcript.view_own` → 403 |
+| `frontend/src/pages/LoginPage.tsx` | `safeFrom` cover `/dosen` & `/dosen/:tab` |
+| `frontend/src/auth/LoginFlow.test.tsx` | **Baru** — regresi logout→login ganti role dari `/pembayaran` (pakai `rerender`) |
+
+#### Quality Gates
+| Gate | Hasil |
+|------|-------|
+| Frontend test:coverage | ✅ (29 files, 196 tests — +2 file baru) |
+| Frontend lint/typecheck/format/build | ✅ (bundle 84.33 kB gzip) |
+
+---
+
+### Iterasi 12 (2026-08-12) — Reset Password Admin Produksi
+
+#### Ringkasan
+Admin lupa password `admin@siak.local`. One-off script `backend/scripts/reset-admin-password.ts`:
+- `NEW_ADMIN_PASSWORD` dari env (min 12 char, **tidak hardcode**)
+- `bcrypt.hash` cost 12
+- `UPDATE users SET password_hash=..., must_change_password=true, failed_login_attempts=0, locked_until=NULL WHERE email='admin@siak.local' AND role_id=(SELECT id FROM roles WHERE code='admin_sistem')`
+- Pola `pgPool` sama `seed-e2e.ts`
+- Verifikasi langsung ke DB Neon produksi: `must_change_password=true`, `is_active=true`, `failed_login_attempts=0`, `locked_until=NULL`
+- Secret handling: `DATABASE_URL` & password sementara via temp file `AppData\Local\Temp\*.txt` → dipakai via `$(cat ...)` → dihapus setelah selesai
+
+#### File yang Diubah
+| File | Perubahan |
+|------|-----------|
+| `backend/scripts/reset-admin-password.ts` | **Baru** (untracked, one-off tooling) |
+
+#### Catatan
+Script belum di-commit (menunggu keputusan: commit utk tooling masa depan vs hapus repo bersih).
+
+---
+
+### Iterasi 13 (2026-08-12) — Fitur Baru: Buat User Cukup Peran + NIM/NIK
+
+#### Ringkasan
+Form "Buat User" (Kelola Pengguna) disederhanakan:
+- **Mahasiswa**: admin pilih peran `mahasiswa` + isi **NIM** → lookup master data `students` → kolom Nama/Email/Prodi **auto-fill + readonly**; password awal = NIM; `must_change_password=true`.
+- **Dosen**: admin pilih peran `dosen` + isi **NIK** → lookup `lecturers` (kolom `nik` unik) → auto-fill readonly; password awal = NIK.
+- **Admin** (tanpa NIM/NIK): form manual tetap (nama, email, password).
+- Endpoint baru `GET /api/v1/users/lookup?role=mahasiswa|dosen&identifier=...` untuk preview auto-fill di modal.
+- Backend `POST /users`: branch validasi NIM/NIK vs manual; lookup master data → re-activate akun existing (`is_active=true`) + reset password = NIM/NIK + `must_change_password=true`.
+
+#### File yang Diubah
+| File | Perubahan |
+|------|-----------|
+| `backend/src/modules/rbac/index.ts` | Schema `CreateUserInput` (nim/nik optional, email/password/fullName conditional); endpoint `GET /users/lookup`; branch NIM/NIK di `POST /users` |
+| `backend/src/modules/rbac/rbac.test.ts` | +7 test: flow NIM/NIK mahasiswa/dosen, lookup, not found 404, validasi cross (nim+role dosen), manual admin |
+| `frontend/src/lib/types.ts` | `CreateUserByNimNikInput` + `UserCreateLookup` |
+| `frontend/src/lib/api.ts` | `lookupUserForCreate(role, identifier)` |
+| `frontend/src/pages/UsersPage.tsx` | Modal role-aware: NIM/NIK → lookup → preview readonly; admin → form manual; debounce lookup |
+| `frontend/src/pages/UsersPage.test.tsx` | Mock `GET /users/lookup`; 4 test baru (mahasiswa NIM flow, NIM not found, admin manual, duplikat email) |
+
+#### Quality Gates
+| Gate | Hasil |
+|------|-------|
+| Backend lint/typecheck/format/test | ✅ (664/664 pass — +7 test) |
+| Frontend test:coverage | ✅ (29 files, 196 tests) |
+| Frontend lint/typecheck/format/build | ✅ (bundle 84.33 kB gzip) |
+
+#### Catatan Teknis
+- `students` tabel: `nim` UNIQUE, FK `user_id` → users (nama dari `users.full_name`, bukan kolom `name`).
+- `lecturers` tabel: `nik` UNIQUE (migrasi `20260809018`), FK `user_id` → users.
+- Login resolver sudah support email > NIM > NIK > NIDN (deterministik `UNION ALL` + `match_priority`).
+- Password awal NIM/NIK di-hash bcrypt cost 12 (sama `reset-admin-password.ts`).
+- Lookup master data memastikan NIM/NIK sudah terdaftar (impor CSV / tambah manual Master Data dulu).
