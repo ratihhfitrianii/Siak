@@ -620,7 +620,7 @@ describe('User Service (RBAC endpoints)', () => {
     // lookup test: gunakan student yang sudah ada (beforeAll) — jangan pakai TEST_NIM
     // karena test sebelumnya mengupdate full_name-nya; cukup assert found=true & field lain ada.
     it('GET /users/lookup: NIM terdaftar → found dengan fullName/email/prodi', async () => {
-      // buat student khusus lookup agar tidak bentrok dgn test NIM/NIK di atas
+      // buat user+student khusus lookup agar tidak bentrok dgn test NIM/NIK di atas
       const ins = await pgPool.query(
         `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
          VALUES ('rbac-test-lookup-mhs@siak.local', 'x', 'Lookup Mahasiswa',
@@ -629,9 +629,11 @@ describe('User Service (RBAC endpoints)', () => {
       );
       const uid = ins.rows[0].id;
       await pgPool.query(
-        `INSERT INTO students (user_id, nim, name, prodi_id)
-         VALUES ($1, 'LOOKUP_NIM_1', 'Lookup Mahasiswa',
-                 (SELECT id FROM study_programs WHERE code = 'TI'))`,
+        `INSERT INTO students (user_id, nim, prodi_id, academic_year_id, entry_type)
+         VALUES ($1, 'LOOKUP_NIM_1',
+                 (SELECT id FROM study_programs WHERE code = 'TI'),
+                 (SELECT id FROM academic_years ORDER BY id LIMIT 1),
+                 'Mandiri')`,
         [uid],
       );
 
