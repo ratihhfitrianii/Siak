@@ -30,6 +30,13 @@ export function ProtectedRoute({
   }
 
   if (!user) {
+    // Saat sudah di /login (mis. logout dari halaman terproteksi), JANGAN render Navigate:
+    // <Navigate state={{from}}> dari sini bisa menimpa state /login lewat passive effect
+    // (race) → user yang login berikutnya diarahkan ke halaman yang bukan haknya
+    // (keluhan: mahasiswa logout dari /pembayaran → dosen login malah diarahkan ke sana).
+    if (location.pathname === '/login') {
+      return null;
+    }
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 

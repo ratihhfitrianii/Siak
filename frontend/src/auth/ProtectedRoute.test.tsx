@@ -124,4 +124,49 @@ describe('ProtectedRoute (T1.11a)', () => {
     renderAt('/aman', ['krs.fill', 'krs.approve']);
     expect(await screen.findByText('Akses ditolak')).toBeInTheDocument();
   });
+
+  it('belum login & SUDAH di /login → tidak render Navigate (anti race state.from)', async () => {
+    // Reproduksi race: logout dari halaman terproteksi → ProtectedRoute me-render
+    // <Navigate state={{from}}> yang bisa menimpa state /login. Guard: pathname==='/login'
+    // → return null. Konten /login (bukan Navigate berulang) yang tampil.
+    const view = render(
+      <MemoryRouter initialEntries={['/login']}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<div>HALAMAN_LOGIN</div>} />
+            <Route
+              path="/aman"
+              element={
+                <ProtectedRoute perm="krs.fill">
+                  <div>KONTEN_PROTEKSI</div>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('HALAMAN_LOGIN')).toBeInTheDocument();
+
+    // Tetap di /login setelah re-render (tidak ada Navigate loop / state tertimpa)
+    view.rerender(
+      <MemoryRouter initialEntries={['/login']}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<div>HALAMAN_LOGIN</div>} />
+            <Route
+              path="/aman"
+              element={
+                <ProtectedRoute perm="krs.fill">
+                  <div>KONTEN_PROTEKSI</div>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('HALAMAN_LOGIN')).toBeInTheDocument();
+    expect(screen.queryByText('KONTEN_PROTEKSI')).not.toBeInTheDocument();
+  });
 });

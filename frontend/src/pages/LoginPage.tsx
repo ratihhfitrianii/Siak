@@ -29,6 +29,10 @@ const ROUTE_PERMS: Record<string, string | string[]> = {
 /** Path tujuan aman: `from` bila user punya akses, selain itu dashboard. */
 function safeFrom(from: string, user: MeUser): string {
   if (from === '/' || from === '') return '/';
+  // Route dinamis dosen: /dosen & /dosen/:tab — butuh lecturer.select_course.
+  if (from === '/dosen' || from.startsWith('/dosen/')) {
+    return user.menu.includes('lecturer.select_course') ? from : '/';
+  }
   const perm = ROUTE_PERMS[from];
   if (perm === undefined) return from; // path tanpa guard → aman
   const has = Array.isArray(perm)
