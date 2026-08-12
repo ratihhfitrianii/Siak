@@ -307,7 +307,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }
 
   const navItemClass = ({ isActive }: { isActive: boolean }) =>
-    `group relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition ${
+    `group relative flex h-10 shrink-0 items-center rounded-md transition ${
+      sidebarCollapsed ? 'w-10 justify-center' : 'w-full justify-start gap-2 px-2.5'
+    } ${
       isActive
         ? 'bg-primary-50 text-primary-700'
         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -315,7 +317,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      {/* Sidebar ikon — desktop: kolom vertikal di kiri; mobile: bar horizontal di bawah header. */}
+      {/* Sidebar — desktop: kolom vertikal di kiri (expand: label inline; collapse: ikon + tooltip hover);
+          mobile: bar horizontal di bawah header. */}
       <aside
         className={`fixed inset-x-0 top-14 z-30 border-b border-slate-200 bg-white md:inset-y-0 md:left-0 md:flex-col md:border-b-0 md:border-r transition-all duration-200 ${
           sidebarCollapsed ? 'md:w-16' : 'md:w-64'
@@ -333,12 +336,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <nav
           aria-label="Menu utama"
           className={`flex items-center gap-1 overflow-x-auto px-2 py-1.5 md:flex-col md:overflow-visible md:py-2 transition-all duration-200 ${
-            sidebarCollapsed ? 'md:px-0' : 'md:px-2'
+            sidebarCollapsed ? 'md:items-center md:px-0' : 'md:items-stretch md:px-2'
           }`}
         >
           <NavLink to="/" end aria-label="Dashboard" title="Dashboard" className={navItemClass}>
             <MenuIcon path={ICON_PATHS.home} />
-            {!sidebarCollapsed && (
+            {!sidebarCollapsed && <span className="truncate text-sm font-medium">Dashboard</span>}
+            {sidebarCollapsed && (
               <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
                 Dashboard
                 <span className="block text-[10px] font-normal text-slate-300">
@@ -357,6 +361,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
             >
               <MenuIcon path={ICON_PATHS[item.icon]} />
               {!sidebarCollapsed && (
+                <span className="truncate text-sm font-medium">{item.label}</span>
+              )}
+              {sidebarCollapsed && (
                 <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
                   {item.label}
                   <span className="block text-[10px] font-normal text-slate-300">
@@ -367,63 +374,31 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </nav>
-        {/* Tombol expand/collapse di ujung bawah sidebar */}
-        {!sidebarCollapsed && (
-          <div className="hidden absolute bottom-0 left-0 right-0 border-t border-slate-100 p-2 md:block">
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(true)}
-              aria-label="Collapse sidebar"
-              title="Collapse sidebar"
-              className="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
-            >
-              <svg
-                className="h-5 w-5 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-                />
-              </svg>
-              <span>Tutup menu</span>
-            </button>
-          </div>
-        )}
-        {sidebarCollapsed && (
-          <div className="hidden absolute bottom-0 left-0 right-0 border-t border-slate-100 p-2 md:block">
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(false)}
-              aria-label="Expand sidebar"
-              title="Expand sidebar"
-              className="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
-            >
-              <svg
-                className="h-5 w-5 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 5l7 7-7 7M5 5l7 7-7 7"
-                />
-              </svg>
-              <span>Buka menu</span>
-            </button>
-          </div>
-        )}
+        {/* Tombol expand/collapse di ujung bawah sidebar — hanya ikon (tanpa teks). */}
+        <div className="hidden border-t border-slate-100 p-2 md:block">
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((c) => !c)}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={`flex items-center rounded-md text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 ${
+              sidebarCollapsed ? 'mx-auto h-10 w-10 justify-center' : 'w-full h-10 justify-center'
+            }`}
+          >
+            <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d={sidebarCollapsed ? 'M13 5l7 7-7 7M5 5l7 7-7 7' : 'M11 19l-7-7 7-7m8 14l-7-7 7-7'}
+              />
+            </svg>
+          </button>
+        </div>
       </aside>
 
       <div
-        className={`md:transition-all md:duration-200 ${sidebarCollapsed ? 'md:pl-4' : 'md:pl-16'}`}
+        className={`md:transition-all md:duration-200 ${sidebarCollapsed ? 'md:pl-16' : 'md:pl-64'}`}
       >
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex h-14 items-center justify-between gap-3 px-4">

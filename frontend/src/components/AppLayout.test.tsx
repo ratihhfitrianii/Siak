@@ -191,13 +191,15 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.getByText('KONTEN_UTAMA')).toBeInTheDocument();
   });
 
-  it('keluhan #5 — menu berupa ikon + tooltip penjelasan singkat (hover)', () => {
+  it('keluhan #5 — menu berupa ikon + label inline saat expanded; tooltip hover saat collapsed', () => {
     mockUser = MAHASISWA;
     renderLayout();
 
-    // Tooltip berisi label + deskripsi singkat (penjelasan menu saat hover).
-    expect(screen.getByText('Isi dan lihat Kartu Rencana Studi')).toBeInTheDocument();
-    expect(screen.getByText('Lihat transkrip nilai')).toBeInTheDocument();
+    // Expanded: label inline tampil (bukan tooltip).
+    expect(screen.getByText('KRS')).toBeInTheDocument();
+    expect(screen.getByText('Transkrip')).toBeInTheDocument();
+    // Tooltip deskripsi TIDAK dirender saat expanded.
+    expect(screen.queryByText('Isi dan lihat Kartu Rencana Studi')).not.toBeInTheDocument();
     // Ikon sidebar: menu Dashboard memiliki title (tooltip native browser).
     expect(screen.getByTitle('Dashboard')).toBeInTheDocument();
   });
@@ -244,9 +246,12 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     for (const label of ['Pilih MK', 'Jadwal', 'Absensi', 'Bimbingan', 'Substitute', 'Nilai']) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
-    // Tooltip penjelasan singkat saat hover ikut tampil (pola keluhan #5)
-    expect(screen.getByText('Pilih mata kuliah yang diampu')).toBeInTheDocument();
-    expect(screen.getByText('Input dan ubah nilai')).toBeInTheDocument();
+    // Expanded: label inline tampil (bukan tooltip).
+    expect(screen.getByText('Pilih MK')).toBeInTheDocument();
+    expect(screen.getByText('Nilai')).toBeInTheDocument();
+    // Tooltip deskripsi TIDAK dirender saat expanded.
+    expect(screen.queryByText('Pilih mata kuliah yang diampu')).not.toBeInTheDocument();
+    expect(screen.queryByText('Input dan ubah nilai')).not.toBeInTheDocument();
   });
 
   it('submenu dosen TIDAK muncul untuk role lain (mahasiswa/admin)', () => {
@@ -395,50 +400,55 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(link).toHaveAttribute('href', '/notifikasi');
   });
 
-  // --- Sidebar collapse/expand ---
-  it('sidebar default expanded — tooltip label+deskripsi terlihat saat hover ikon', () => {
+  // --- Sidebar expand/collapse ---
+  it('sidebar default expanded — label menu tampil inline (bukan tooltip)', () => {
     mockUser = MAHASISWA;
     renderLayout();
 
-    // Tooltip (label+deskripsi) ada di DOM saat sidebar expanded
-    expect(screen.getByText('Isi dan lihat Kartu Rencana Studi')).toBeInTheDocument();
-    expect(screen.getByText('Lihat transkrip nilai')).toBeInTheDocument();
+    // Expanded: label inline terlihat (KRS, Transkrip, Pembayaran)
+    expect(screen.getByRole('link', { name: 'KRS' })).toBeInTheDocument();
+    expect(screen.getByText('KRS')).toBeInTheDocument();
+    expect(screen.getByText('Transkrip')).toBeInTheDocument();
+    // Tooltip (label+deskripsi) TIDAK dirender saat expanded
+    expect(screen.queryByText('Isi dan lihat Kartu Rencana Studi')).not.toBeInTheDocument();
+    // Tombol collapse (ikon saja, tanpa teks) ada
+    expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toBeInTheDocument();
+    expect(screen.queryByText('Tutup menu')).not.toBeInTheDocument();
   });
 
-  it('klik tombol "Tutup menu" → sidebar collapse; tooltip hilang, hanya ikon', async () => {
+  it('klik ikon collapse → sidebar mengecil; label hilang, tooltip hover muncul', async () => {
     mockUser = MAHASISWA;
-    renderLayout();
+    const { container } = renderLayout();
 
-    // Sidebar expanded initially → tooltip ada
+    // Expanded: label inline ada (span.truncate)
+    expect(container.querySelector('span.truncate')).toBeTruthy();
+
+    // Klik tombol collapse (ikon saja)
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+
+    // Collapsed: label inline HILANG
+    expect(container.querySelector('span.truncate')).toBeNull();
+    // Tooltip (deskripsi) kini dirender di DOM (muncul saat hover)
     expect(screen.getByText('Isi dan lihat Kartu Rencana Studi')).toBeInTheDocument();
-
-    // Klik tombol collapse
-    const collapseBtn = screen.getByRole('button', { name: 'Collapse sidebar' });
-    await userEvent.setup().click(collapseBtn);
-
-    // Sidebar collapsed → tooltip label+deskripsi TIDAK di DOM (hanya ikon)
-    expect(screen.queryByText('Isi dan lihat Kartu Rencana Studi')).not.toBeInTheDocument();
-    expect(screen.queryByText('Lihat transkrip nilai')).not.toBeInTheDocument();
-
-    // Tombol expand muncul
+    // Tombol expand (ikon saja) muncul
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
   });
 
-  it('klik tombol "Buka menu" → sidebar expand kembali; tooltip muncul lagi', async () => {
+  it('klik ikon expand → sidebar melebar kembali; label inline muncul lagi', async () => {
     mockUser = MAHASISWA;
-    renderLayout();
+    const { container } = renderLayout();
 
     // Collapse dulu
     await userEvent.setup().click(screen.getByRole('button', { name: 'Collapse sidebar' }));
-    expect(screen.queryByText('Isi dan lihat Kartu Rencana Studi')).not.toBeInTheDocument();
+    expect(container.querySelector('span.truncate')).toBeNull();
 
     // Klik expand
     await userEvent.setup().click(screen.getByRole('button', { name: 'Expand sidebar' }));
 
-    // Tooltip kembali muncul
-    expect(screen.getByText('Isi dan lihat Kartu Rencana Studi')).toBeInTheDocument();
-    expect(screen.getByText('Lihat transkrip nilai')).toBeInTheDocument();
-
+    // Label inline kembali muncul
+    expect(container.querySelector('span.truncate')).toBeTruthy();
+    // Tooltip tidak dirender saat expanded
+    expect(screen.queryByText('Isi dan lihat Kartu Rencana Studi')).not.toBeInTheDocument();
     // Tombol collapse kembali muncul
     expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toBeInTheDocument();
   });
