@@ -631,7 +631,7 @@ describe('User Service (RBAC endpoints)', () => {
       await pgPool.query(
         `INSERT INTO students (user_id, nim, prodi_id, academic_year_id, entry_type)
          VALUES ($1, 'LOOKUP_NIM_1',
-                 (SELECT id FROM study_programs WHERE code = 'TI'),
+                 (SELECT id FROM prodis WHERE code = 'TI'),
                  (SELECT id FROM academic_years ORDER BY id LIMIT 1),
                  'Mandiri')`,
         [uid],
