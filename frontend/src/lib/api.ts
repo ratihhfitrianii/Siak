@@ -441,12 +441,20 @@ export async function getFinancePayments(params?: {
   if (params?.page) search.set('page', String(params.page));
   if (params?.limit) search.set('limit', String(params.limit));
   const qs = search.toString();
-  return apiRequest<PaymentsResponse>(`/finance/payments${qs ? `?${qs}` : ''}`);
+  const response = await apiRequest<{
+    items: Record<string, unknown>[];
+    pagination: PaymentsResponse['pagination'];
+  }>(`/finance/payments${qs ? `?${qs}` : ''}`);
+  return {
+    items: response.items.map(normalizePayment),
+    pagination: response.pagination,
+  };
 }
 
 /** GET /finance/payments/:id — detail tagihan. */
 export async function getFinancePayment(id: number): Promise<Payment> {
-  return apiRequest<Payment>(`/finance/payments/${id}`);
+  const response = await apiRequest<Record<string, unknown>>(`/finance/payments/${id}`);
+  return normalizePayment(response);
 }
 
 /** GET /finance/semesters — daftar semester utk dropdown filter tagihan (admin keuangan). */

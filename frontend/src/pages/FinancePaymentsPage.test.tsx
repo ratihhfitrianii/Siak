@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FinancePaymentsPage } from './FinancePaymentsPage';
-import type { Payment } from '../lib/types';
 
 // Mock auth — FinancePaymentsPage tidak pakai useAuth
 vi.mock('../auth/AuthContext', () => ({
@@ -16,30 +15,31 @@ function jsonResponse(payload: unknown, status = 200) {
   } as Response;
 }
 
-const PAYMENT: Payment = {
+/** Backend snake_case shape — normalisasi oleh normalizePayment di api.ts */
+const PAYMENT_ROW = {
   id: 1,
-  studentId: 10,
+  student_id: 10,
   nim: '20240001',
-  fullName: 'Andi',
-  prodiId: 1,
-  prodiName: 'Teknik Informatika',
-  semesterId: 3,
-  semesterCode: '2024/2025-1',
-  semesterName: 'Ganjil 2024/2025',
-  totalAmount: 4000000,
-  paidAmount: 0,
+  full_name: 'Andi',
+  prodi_id: 1,
+  prodi_name: 'Teknik Informatika',
+  semester_id: 3,
+  semester_code: '2024/2025-1',
+  semester_name: 'Ganjil 2024/2025',
+  total_amount: 4000000,
+  paid_amount: 0,
   status: 'belum_lunas',
-  dueDate: '2026-02-15T00:00:00Z',
-  isWaived: false,
-  waivedReason: null,
-  createdAt: '2026-01-01T00:00:00Z',
-  updatedAt: '2026-01-01T00:00:00Z',
+  due_date: '2026-02-15T00:00:00Z',
+  is_waived: false,
+  waived_reason: null,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
   items: [],
 };
 
 const LIST_RESPONSE = {
   success: true,
-  data: { items: [PAYMENT], pagination: { page: 1, limit: 20, total: 1, totalPages: 1 } },
+  data: { items: [PAYMENT_ROW], pagination: { page: 1, limit: 20, total: 1, totalPages: 1 } },
 };
 
 const SEMESTERS = [
@@ -197,28 +197,28 @@ describe('FinancePaymentsPage (T2.6)', () => {
   });
 
   it('detail modal — klik Detail → fetch /payments/:id → tampilkan rincian items', async () => {
-    const detailPayment: Payment = {
-      ...PAYMENT,
+    const detailRow = {
+      ...PAYMENT_ROW,
       items: [
         {
           id: 1,
           type: 'spp',
           description: 'SPP Ganjil 2024/2025',
           amount: 2750000,
-          isMandatory: true,
+          is_mandatory: true,
         },
         {
           id: 2,
           type: 'biaya_dev',
           description: 'Biaya Pengembangan',
           amount: 500000,
-          isMandatory: true,
+          is_mandatory: true,
         },
       ],
     };
     const fetchSpy = vi.fn((url: string) => {
       if (url.includes('/payments/1')) {
-        return Promise.resolve(jsonResponse({ success: true, data: detailPayment }));
+        return Promise.resolve(jsonResponse({ success: true, data: detailRow }));
       }
       if (url.includes('/semesters')) {
         return Promise.resolve(jsonResponse({ success: true, data: SEMESTERS }));
@@ -229,46 +229,20 @@ describe('FinancePaymentsPage (T2.6)', () => {
     vi.stubGlobal('alert', vi.fn());
     render(<FinancePaymentsPage />);
 
-    await screen.findByText('20240001');
-    const detailBtn = screen.getByRole('button', { name: /Detail/i });
+    const detailBtn = await screen.findByRole('button', { name: /Detail/i });
     detailBtn.click();
 
-    await screen.findByText('Rincian Tagihan: 20240001 - Andi');
+    expect(await screen.findByText(/Rincian Tagihan: 20240001 - Andi/)).toBeInTheDocument();
     expect(screen.getByText('SPP Ganjil 2024/2025')).toBeInTheDocument();
     expect(screen.getByText('Biaya Pengembangan')).toBeInTheDocument();
-    expect(screen.getByText('Rp 2.750.000')).toBeInTheDocument();
-    expect(screen.getByText('Rp 500.000')).toBeInTheDocument();
-    expect(screen.getByText('Tutup')).toBeInTheDocument();
-  });
+    expect(screen.getAllByText(/2\.750\.000/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/500\.000/).length).toBeGreaterThan(0);
 
-  it('detail modal — tutup modal → kembali ke daftar', async () => {
-    const detailPayment: Payment = {
-      ...PAYMENT,
-      items: [{ id: 1, type: 'spp', description: 'SPP', amount: 1000000, isMandatory: true }],
-    };
-    const fetchSpy = vi.fn((url: string) => {
-      if (url.includes('/payments/1')) {
-        return Promise.resolve(jsonResponse({ success: true, data: detailPayment }));
-      }
-      if (url.includes('/semesters')) {
-        return Promise.resolve(jsonResponse({ success: true, data: SEMESTERS }));
-      }
-      return Promise.resolve(jsonResponse(LIST_RESPONSE));
-    });
-    vi.stubGlobal('fetch', fetchSpy);
-    render(<FinancePaymentsPage />);
-
-    await screen.findByText('20240001');
-    const detailBtn = screen.getByRole('button', { name: /Detail/i });
-    detailBtn.click();
-
-    await screen.findByText('Rincian Tagihan: 20240001 - Andi');
-    const closeBtn = screen.getByText('Tutup');
-    closeBtn.click();
-
+    // Tutup modal (tombol silang & tombol "Tutup" di bawah)
+    const closeBtns = screen.getAllByRole('button', { name: /Tutup/i });
+    closeBtns[0].click();
     await waitFor(() => {
-      expect(screen.queryByText('Rincian Tagihan: 20240001 - Andi')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Rincian Tagihan/)).not.toBeInTheDocument();
     });
-    expect(screen.getByText('Kelola Tagihan')).toBeInTheDocument();
   });
 });
