@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenSchedule } from './DosenSchedule';
 import { unclaimClass } from '../lib/api';
-import type { ClaimableClass } from '../lib/types';
+// import type { ClaimableClass } from '../lib/types';
 
 function jsonResponse(payload: unknown, status = 200) {
   return {

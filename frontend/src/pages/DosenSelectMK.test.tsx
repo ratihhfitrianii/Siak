@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenSelectMK } from './DosenSelectMK';
-import type { SemesterOption, LecturerCourseAvailable } from '../lib/types';
+import type { SemesterOption } from '../lib/types';
 
 function jsonResponse(payload: unknown, status = 200) {
   return {
@@ -13,8 +13,8 @@ function jsonResponse(payload: unknown, status = 200) {
 }
 
 const SEMESTERS: SemesterOption[] = [
-  { id: 1, code: '2025/2026-1', name: 'Ganjil 2025/2026', isActive: true },
-  { id: 2, code: '2024/2025-2', name: 'Genap 2024/2025', isActive: true },
+  { id: 1, code: '2025/2026-1', name: 'Ganjil 2025/2026' },
+  { id: 2, code: '2024/2025-2', name: 'Genap 2024/2025' },
 ];
 
 const COURSES = [
@@ -84,9 +84,6 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
   });
 
   it('ganti semester → load ulang MK untuk semester terpilih', async () => {
-    const user = userEvent.setup();
-    let semesterId: number | null = 1;
-
     fetchMock.mockImplementation((url: string) => {
       if (String(url).includes('/dosen/semesters')) {
         return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
