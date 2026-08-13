@@ -167,6 +167,29 @@ export function createAcademicRouter(): Router {
     },
   );
 
+  // --- CLASSES BY CURRICULUM ---
+  router.get('/classes', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { curriculum_id } = req.query;
+      if (!curriculum_id) {
+        return res.status(400).json({ success: false, error: 'curriculum_id required' });
+      }
+      const curId = Number(curriculum_id);
+      const result = await pgPool.query(
+        `SELECT cl.*, cur.semester_id, co.code as course_code, co.name as course_name
+           FROM classes cl
+           JOIN curricula cur ON cur.id = cl.curriculum_id
+           JOIN courses co ON co.id = cur.course_id
+           WHERE cl.curriculum_id = $1 AND cl.is_active
+           ORDER BY cl.class_code`,
+        [curId],
+      );
+      res.json({ success: true, data: { items: result.rows } });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // --- MATA KULIAH (COURSES) ---
   router.get('/courses', authenticate, async (req: Request, res: Response, next: NextFunction) => {
     try {

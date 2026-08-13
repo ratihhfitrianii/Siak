@@ -49,6 +49,9 @@ const ProfilePage = lazy(() =>
 const WaitingRoomPage = lazy(() =>
   import('./pages/WaitingRoomPage').then((m) => ({ default: m.WaitingRoomPage })),
 );
+const AdminSchedulePage = lazy(() =>
+  import('./pages/AdminSchedulePage').then((m) => ({ default: m.AdminSchedulePage })),
+);
 
 /** Fallback saat chunk halaman di-download (T5.6) — spinner konsisten dengan pola loading existing. */
 function PageFallback() {
@@ -178,6 +181,17 @@ export default function App() {
               <ProtectedRoute perm="user.manage">
                 <AppLayout>
                   <AdminMasterPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Admin Sistem / Admin Akademik: Kelola Jadwal Pengajar (T3.2, perm schedule.manage) */}
+          <Route
+            path="/admin/jadwal"
+            element={
+              <ProtectedRoute perm="schedule.manage">
+                <AppLayout>
+                  <AdminSchedulePage />
                 </AppLayout>
               </ProtectedRoute>
             }

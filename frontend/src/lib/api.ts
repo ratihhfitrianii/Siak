@@ -28,6 +28,7 @@ import type {
   CreateMasterLecturerInput,
   ImportResult,
   UpdateContactInput,
+  ClassSchedule,
 } from './types';
 
 export class ApiError extends Error {
@@ -481,6 +482,67 @@ export async function generateFinancePayments(semester_id: number): Promise<{ me
   });
 }
 
+/** GET /academic/classes?curriculum_id=N — daftar kelas aktif dalam satu kurikulum. */
+export async function getAcademicClasses(curriculumId: number): Promise<{
+  items: Array<{
+    id: number;
+    class_code: string;
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    room: string;
+    capacity: number;
+    current_enrolled: number;
+    is_active: boolean;
+  }>;
+}> {
+  return apiRequest<{
+    items: Array<{
+      id: number;
+      class_code: string;
+      day_of_week: number;
+      start_time: string;
+      end_time: string;
+      room: string;
+      capacity: number;
+      current_enrolled: number;
+      is_active: boolean;
+    }>;
+  }>(`/academic/classes?curriculum_id=${curriculumId}`);
+}
+
+/** GET /academic/curricula — daftar kurikulum (filter prodi, semester). */
+export async function getAcademicCurricula(params?: {
+  prodiId?: number;
+  semesterId?: number;
+}): Promise<{
+  items: Array<{
+    id: number;
+    course_code: string;
+    course_name: string;
+    credits: number;
+    semester_number: number;
+    prodi_name: string;
+    semester_id: number;
+  }>;
+}> {
+  const search = new URLSearchParams();
+  if (params?.prodiId) search.set('prodi_id', String(params.prodiId));
+  if (params?.semesterId) search.set('semester_id', String(params.semesterId));
+  const qs = search.toString();
+  return apiRequest<{
+    items: Array<{
+      id: number;
+      course_code: string;
+      course_name: string;
+      credits: number;
+      semester_number: number;
+      prodi_name: string;
+      semester_id: number;
+    }>;
+  }>(`/academic/curricula${qs ? `?${qs}` : ''}`);
+}
+
 /** GET /finance/my-payment — mahasiswa lihat tagihan sendiri. */
 function normalizePayment(r: Record<string, unknown>): MyPayment {
   return {
@@ -741,6 +803,63 @@ export async function getScheduleAvailability(date: string): Promise<ScheduleAva
   return apiRequest<ScheduleAvailability>(
     `/schedule/availability?date=${encodeURIComponent(date)}`,
   );
+}
+
+/** GET /schedule/class/:classId — jadwal pertemuan untuk satu kelas (admin akademik/sistem). */
+export async function getScheduleClass(
+  classId: number,
+): Promise<{ class: unknown; schedules: ClassSchedule[] }> {
+  const res = await apiRequest<{ class: unknown; schedules: Record<string, unknown>[] }>(
+    `/schedule/class/${classId}`,
+  );
+  return { class: res.class, schedules: res.schedules.map(normalizeClassSchedule) };
+}
+
+/** Normalisasi baris jadwal kelas (snake_case → camelCase) agar cocok tipe ClassSchedule. */
+function normalizeClassSchedule(r: Record<string, unknown>): ClassSchedule {
+  return {
+    id: Number(r.id),
+    meetingNumber: Number(r.meeting_number),
+    scheduledDate: String(r.scheduled_date ?? ''),
+    topic: r.topic == null ? null : String(r.topic),
+    isCompleted: Boolean(r.is_completed),
+  };
+}
+
+/** POST /schedule — buat jadwal (admin akademik/sistem). */
+export async function createSchedule(input: {
+  classId: number;
+  meetingNumber: number;
+  scheduledDate: string;
+  topic?: string;
+}): Promise<ClassSchedule> {
+  const res = await apiRequest<Record<string, unknown>>('/schedule', {
+    method: 'POST',
+    body: input,
+  });
+  return normalizeClassSchedule(res);
+}
+
+/** PUT /schedule/:id — update jadwal (admin akademik/sistem). */
+export async function updateSchedule(
+  id: number,
+  input: {
+    meetingNumber?: number;
+    scheduledDate?: string;
+    topic?: string;
+    isCompleted?: boolean;
+  },
+): Promise<ClassSchedule> {
+  const res = await apiRequest<Record<string, unknown>>(`/schedule/${id}`, {
+    method: 'PUT',
+    body: input,
+  });
+  return normalizeClassSchedule(res);
+}
+
+/** DELETE /schedule/:id — hapus jadwal (admin akademik/sistem). */
+export async function deleteSchedule(id: number): Promise<{ id: number; deleted: boolean }> {
+  return apiRequest<{ id: number; deleted: boolean }>(`/schedule/${id}`, { method: 'DELETE' });
 }
 
 /* --- Absensi (semua path /attendance/sessions, snake_case → camelCase) --- */

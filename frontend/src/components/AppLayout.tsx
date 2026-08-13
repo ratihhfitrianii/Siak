@@ -113,6 +113,15 @@ const MENU_ITEMS: {
     icon: 'calendar',
     description: 'Lihat jadwal mengajar',
   },
+  // ---- Admin Sistem: Jadwal Pengajar (keluhan #5 + T3.2) ----
+  {
+    permissions: ['schedule.manage'],
+    roles: ['admin_sistem', 'admin_akademik'],
+    label: 'Jadwal',
+    path: '/admin/jadwal',
+    icon: 'calendar',
+    description: 'Kelola jadwal pengajar per kelas',
+  },
   {
     permissions: ['attendance.input'],
     roles: ['dosen'],
