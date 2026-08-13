@@ -25,6 +25,7 @@ export function FinancePaymentsPage() {
     semester_id: '' as string,
     status: '' as string,
     prodi_id: '' as string,
+    search: '' as string,
     page: 1,
     limit: 20,
   });
@@ -48,6 +49,7 @@ export function FinancePaymentsPage() {
         semester_id: filters.semester_id ? parseInt(filters.semester_id) : undefined,
         status: filters.status || undefined,
         prodi_id: filters.prodi_id ? parseInt(filters.prodi_id) : undefined,
+        search: filters.search || undefined,
         page: filters.page,
         limit: filters.limit,
       };
@@ -60,7 +62,7 @@ export function FinancePaymentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters.page, filters.limit, filters.semester_id, filters.status, filters.prodi_id]);
+  }, [filters.page, filters.limit, filters.semester_id, filters.status, filters.prodi_id, filters.search]);
 
   useEffect(() => {
     loadPayments();
@@ -183,6 +185,13 @@ export function FinancePaymentsPage() {
             <option value="partial">Cicil</option>
             <option value="lunas">Lunas</option>
           </select>
+          <input
+            type="text"
+            placeholder="Cari NIM/Nama..."
+            value={filters.search}
+            onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value, page: 1 }))}
+            className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48 sm:w-64"
+          />
           <button
             type="button"
             onClick={handleGeneratePayments}

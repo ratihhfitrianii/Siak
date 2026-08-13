@@ -39,7 +39,7 @@ export function createFinanceRouter(): Router {
     authorize('payment.update'), // admin keuangan/sistem can read payments
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { semester_id, status, student_id, prodi_id, page = '1', limit = '20' } = req.query;
+        const { semester_id, status, student_id, prodi_id, search, page = '1', limit = '20' } = req.query;
         const p = Math.max(1, parseInt(page as string, 10));
         const l = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
         const offset = (p - 1) * l;
@@ -63,6 +63,11 @@ export function createFinanceRouter(): Router {
         if (prodi_id) {
           where += ` AND s.prodi_id = $${paramIdx++}`;
           params.push(parseInt(prodi_id as string, 10));
+        }
+        if (search) {
+          where += ` AND (s.nim ILIKE $${paramIdx} OR u.full_name ILIKE $${paramIdx})`;
+          params.push(`%${search}%`);
+          paramIdx++;
         }
 
         // Count total
