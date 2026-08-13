@@ -3,6 +3,7 @@ import {
   ApiError,
   createMasterLecturer,
   createMasterStudent,
+  getAccessToken,
   importMasterCsv,
   listMasterLecturers,
   listMasterStudents,
@@ -75,8 +76,8 @@ export function AdminMasterPage() {
 
   const loadProdis = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/academic/prodis', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('siak.access_token') ?? ''}` },
+      const res = await fetch('/api/v1/prodis', {
+        headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
       });
       if (!res.ok) return;
       const body = (await res.json()) as {
