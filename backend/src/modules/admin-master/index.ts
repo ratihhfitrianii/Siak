@@ -61,7 +61,7 @@ export function createAdminMasterRouter(): Router {
           throw new AppError('VALIDATION_ERROR', 'Parameter tidak valid', 400);
         }
         const { search, prodi, page, limit } = q.data;
-        const where: string[] = [];
+        const where: string[] = ['u.is_active'];
         const params: unknown[] = [];
 
         if (search) {
@@ -86,8 +86,8 @@ export function createAdminMasterRouter(): Router {
         );
 
         const listResult = await pgPool.query(
-          `SELECT s.id, s.nim, u.full_name, u.email, u.is_active AS user_active,
-                  p.code AS prodi_code, p.name AS prodi_name,
+          `SELECT s.id, s.nim, u.full_name AS "fullName", u.email, u.is_active AS "userActive",
+                  p.code AS "prodiCode", p.name AS "prodiName",
                   ay.code AS angkatan, s.status
            FROM students s
            JOIN users u ON u.id = s.user_id
@@ -124,7 +124,7 @@ export function createAdminMasterRouter(): Router {
           throw new AppError('VALIDATION_ERROR', 'Parameter tidak valid', 400);
         }
         const { search, prodi, page, limit } = q.data;
-        const where: string[] = [];
+        const where: string[] = ['u.is_active'];
         const params: unknown[] = [];
 
         if (search) {
@@ -148,8 +148,8 @@ export function createAdminMasterRouter(): Router {
         );
 
         const listResult = await pgPool.query(
-          `SELECT l.id, l.nidn, u.full_name, u.email, u.is_active AS user_active, u.is_wali,
-                  p.code AS prodi_code, p.name AS prodi_name, l.employment_type
+          `SELECT l.id, l.nidn, u.full_name AS "fullName", u.email, u.is_active AS "userActive", u.is_wali AS "isWali",
+                  p.code AS "prodiCode", p.name AS "prodiName", l.employment_type
            FROM lecturers l
            JOIN users u ON u.id = l.user_id
            JOIN prodis p ON p.id = l.prodi_id

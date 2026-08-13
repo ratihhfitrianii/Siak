@@ -108,7 +108,7 @@ describe('Modul Admin Master Data (#16)', () => {
       expect(res.body.data.pagination.total).toBeGreaterThan(0);
       expect(res.body.data.pagination.page).toBe(1);
       expect(res.body.data.items[0]).toHaveProperty('nim');
-      expect(res.body.data.items[0]).toHaveProperty('full_name');
+      expect(res.body.data.items[0]).toHaveProperty('fullName');
     });
 
     it('search (nim sebagian) → item test ditemukan', async () => {
@@ -127,7 +127,7 @@ describe('Modul Admin Master Data (#16)', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
       for (const item of res.body.data.items) {
-        expect(item.prodi_code).toBe(prodiCode);
+        expect(item.prodiCode).toBe(prodiCode);
       }
     });
 
@@ -148,7 +148,7 @@ describe('Modul Admin Master Data (#16)', () => {
       expect(res.body.success).toBe(true);
       expect(Array.isArray(res.body.data.items)).toBe(true);
       expect(res.body.data.items[0]).toHaveProperty('nidn');
-      expect(res.body.data.items[0]).toHaveProperty('full_name');
+      expect(res.body.data.items[0]).toHaveProperty('fullName');
     });
 
     it('search nama dosen', async () => {

@@ -58,11 +58,11 @@ const LECTURERS = [
 ];
 
 function studentListResponse(items = STUDENTS, total = items.length) {
-  return { items, pagination: { page: 1, limit: 20, total } };
+  return { items, pagination: { page: 1, limit: 10, total } };
 }
 
 function lecturerListResponse(items = LECTURERS, total = items.length) {
-  return { items, pagination: { page: 1, limit: 20, total } };
+  return { items, pagination: { page: 1, limit: 10, total } };
 }
 
 describe('AdminMasterPage (keluhan #16)', () => {
@@ -100,7 +100,7 @@ describe('AdminMasterPage (keluhan #16)', () => {
     expect(screen.getAllByText('TI — Teknik Informatika').length).toBeGreaterThan(0);
     expect(screen.getAllByText('2024/2025').length).toBeGreaterThan(0);
     expect(mockedApi.listMasterStudents).toHaveBeenCalledWith(
-      expect.objectContaining({ page: 1, limit: 20 }),
+      expect.objectContaining({ page: 1, limit: 10 }),
     );
   });
 

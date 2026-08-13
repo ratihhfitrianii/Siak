@@ -19,7 +19,7 @@ import { FormAlert } from '../components/ErrorInline';
 type TabKind = 'students' | 'lecturers';
 type CreateKind = 'students' | 'lecturers';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 const EMPTY_STUDENT_FORM: CreateMasterStudentInput = {
   nim: '',
