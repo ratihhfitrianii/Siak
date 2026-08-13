@@ -62,7 +62,14 @@ export function FinancePaymentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters.page, filters.limit, filters.semester_id, filters.status, filters.prodi_id, filters.search]);
+  }, [
+    filters.page,
+    filters.limit,
+    filters.semester_id,
+    filters.status,
+    filters.prodi_id,
+    filters.search,
+  ]);
 
   useEffect(() => {
     loadPayments();

@@ -39,7 +39,15 @@ export function createFinanceRouter(): Router {
     authorize('payment.update'), // admin keuangan/sistem can read payments
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { semester_id, status, student_id, prodi_id, search, page = '1', limit = '20' } = req.query;
+        const {
+          semester_id,
+          status,
+          student_id,
+          prodi_id,
+          search,
+          page = '1',
+          limit = '20',
+        } = req.query;
         const p = Math.max(1, parseInt(page as string, 10));
         const l = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
         const offset = (p - 1) * l;
