@@ -155,10 +155,10 @@ describe('T2.6 Finance — Payments & KRS Gate', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(Array.isArray(res.body.data)).toBe(true);
-    expect(res.body.pagination).toMatchObject({ page: 1, limit: 20 });
-    expect(res.body.pagination.total).toBeGreaterThanOrEqual(1);
-    const found = res.body.data.find((r: { id: number }) => Number(r.id) === paymentId1);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+    expect(res.body.data.pagination).toMatchObject({ page: 1, limit: 20 });
+    expect(res.body.data.pagination.total).toBeGreaterThanOrEqual(1);
+    const found = res.body.data.items.find((r: { id: number }) => Number(r.id) === paymentId1);
     expect(found).toBeTruthy();
     expect(found.total_amount).toBe(500000);
     expect(Array.isArray(found.items)).toBe(true);
@@ -181,10 +181,10 @@ describe('T2.6 Finance — Payments & KRS Gate', () => {
       .set('Authorization', `Bearer ${keuanganToken}`);
 
     expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
     // prodi_id=1 mungkin tidak cocok dengan student — hasil boleh kosong; yang penting tidak error
-    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
   });
-
   it('GET /payments — filter tidak cocok → 200 kosong', async () => {
     // student_id 999999 dipastikan tidak ada → filter kombinasi selalu kosong
     const res = await request(app)
@@ -192,8 +192,9 @@ describe('T2.6 Finance — Payments & KRS Gate', () => {
       .set('Authorization', `Bearer ${keuanganToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.data).toEqual([]);
-    expect(res.body.pagination.total).toBe(0);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.items).toEqual([]);
+    expect(res.body.data.pagination.total).toBe(0);
   });
 
   it('GET /payments — pagination page=2 & limit besar di-clamp → 200', async () => {
@@ -202,8 +203,9 @@ describe('T2.6 Finance — Payments & KRS Gate', () => {
       .set('Authorization', `Bearer ${keuanganToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.pagination.page).toBe(2);
-    expect(res.body.pagination.limit).toBe(100);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.pagination.page).toBe(2);
+    expect(res.body.data.pagination.limit).toBe(100);
   });
 
   it('GET /payments — mahasiswa → 403', async () => {
