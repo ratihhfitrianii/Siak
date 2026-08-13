@@ -43,16 +43,11 @@ describe('DosenDashboardPage (T3.7)', () => {
           },
         });
       }
-      if (u.includes('/schedule/availability')) {
-        return jsonResponse({
-          data: {
-            date: '2026-08-10',
-            dayOfWeek: 1,
-            busySlots: [],
-            availableSlots: [],
-            isAvailable: true,
-          },
-        });
+      if (u.includes('/dosen/available-classes')) {
+        return jsonResponse({ data: { items: [] } });
+      }
+      if (u.includes('/dosen/semesters')) {
+        return jsonResponse({ data: { items: [] } });
       }
       if (u.includes('/attendance/sessions')) {
         return jsonResponse({ data: [] });
@@ -100,9 +95,9 @@ describe('DosenDashboardPage (T3.7)', () => {
     expect(screen.getByText('Pilih Mata Kuliah')).toBeInTheDocument();
   });
 
-  it('route /dosen/jadwal → render DosenSchedule (view availability)', () => {
+  it('route /dosen/jadwal → render DosenSchedule (checklist klaim)', () => {
     renderAt('/dosen/jadwal');
-    expect(screen.getByText('Jadwal Mengajar')).toBeInTheDocument();
+    expect(screen.getByText('Ketersediaan Jadwal Mengajar')).toBeInTheDocument();
   });
 
   it('route /dosen/absensi → render DosenAttendance', () => {

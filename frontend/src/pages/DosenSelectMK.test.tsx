@@ -1,8 +1,8 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { controlFor } from '../test/controls';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenSelectMK } from './DosenSelectMK';
+import type { SemesterOption, LecturerCourseAvailable } from '../lib/types';
 
 function jsonResponse(payload: unknown, status = 200) {
   return {
@@ -12,16 +12,10 @@ function jsonResponse(payload: unknown, status = 200) {
   } as Response;
 }
 
-const PERIOD_OPEN = {
-  id: 1,
-  semesterId: 1,
-  semesterCode: '2025/2026-1',
-  name: 'Ganjil 2025/2026',
-  startDate: null,
-  endDate: null,
-  isRevision: false,
-  status: 'open',
-};
+const SEMESTERS: SemesterOption[] = [
+  { id: 1, code: '2025/2026-1', name: 'Ganjil 2025/2026', isActive: true },
+  { id: 2, code: '2024/2025-2', name: 'Genap 2024/2025', isActive: true },
+];
 
 const COURSES = [
   {
@@ -50,112 +44,150 @@ const COURSES = [
   },
 ];
 
-describe('DosenSelectMK (T3.8)', () => {
+describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huruf)', () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
-    fetchMock.mockImplementation((url: string) => {
-      const u = String(url);
-      if (u.includes('/krs/period')) {
-        return Promise.resolve(jsonResponse({ data: PERIOD_OPEN }));
-      }
-      if (u.includes('/dosen/courses/available')) {
-        return Promise.resolve(jsonResponse({ data: COURSES }));
-      }
-      return Promise.resolve(jsonResponse({ data: [] }));
-    });
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('render — semester aktif dari /krs/period → MK langsung termuat', async () => {
+  it('render — semester dari /dosen/semesters → MK langsung termuat (semester default yang terbaru)', async () => {
+    const fetchCalls: string[] = [];
+    fetchMock.mockImplementation((url: string) => {
+      fetchCalls.push(url);
+      if (String(url).includes('/dosen/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
+      }
+      if (String(url).includes('/dosen/courses/available')) {
+        return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: { items: [] } }));
+    });
+
     render(<DosenSelectMK />);
+
     expect(screen.getByText('Pilih Mata Kuliah')).toBeInTheDocument();
 
+    // Default semester should be the first one (latest)
     expect(await screen.findByText('Dasar-Dasar Pemrograman')).toBeInTheDocument();
     expect(screen.getByText('TI102')).toBeInTheDocument();
     expect(screen.getByText('disetujui')).toBeInTheDocument();
-    // URL benar (semesterId aktif = 1) — tanpa interaksi user
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/dosen/courses/available?semesterId=1'),
-      expect.any(Object),
-    );
-    // Dropdown semester berisi periode aktif saja
-    expect(controlFor('Semester', 'select')).toHaveValue('1');
+
+    // Verify semesters loaded then courses for semesterId=1
+    expect(fetchCalls).toContainEqual(expect.stringContaining('/dosen/semesters'));
+    expect(fetchCalls).toContainEqual(expect.stringContaining('/dosen/courses/available?semesterId=1'));
   });
 
-  it('periode tidak buka → pesan tidak ada periode aktif', async () => {
+  it('ganti semester → load ulang MK untuk semester terpilih', async () => {
+    const user = userEvent.setup();
+    let semesterId: number | null = 1;
+
     fetchMock.mockImplementation((url: string) => {
-      if (String(url).includes('/krs/period')) {
-        return Promise.resolve(jsonResponse({ data: { ...PERIOD_OPEN, status: 'closed' } }));
+      if (String(url).includes('/dosen/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
       }
-      return Promise.resolve(jsonResponse({ data: { items: [] } }));
+      if (String(url).includes('/dosen/courses/available')) {
+        // Return different courses based on semesterId in URL
+        const u = String(url);
+        if (u.includes('semesterId=2')) {
+          return Promise.resolve(
+            jsonResponse({ success: true, data: [
+              {
+                curriculum_id: 201,
+                course_code: 'TI201',
+                course_name: 'Pemrograman Lanjut',
+                credits: 3,
+                semester_number: 3,
+                is_mandatory: true,
+                available_classes: 1,
+                selection_status: 'belum_diajukan',
+                priority: null,
+                notes: null,
+              },
+            ]}),
+          );
+        }
+        return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: { items: [] } }));
     });
+
     render(<DosenSelectMK />);
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Tidak ada periode KRS yang sedang buka',
-    );
+    await screen.findByText('Dasar-Dasar Pemrograman');
+
+    // Change semester to 2
+    const select = screen.getByDisplayValue('Ganjil 2025/2026');
+    await userEvent.selectOptions(select, '2');
+
+    // Wait for reload
+    expect(await screen.findByText('Pemrograman Lanjut')).toBeInTheDocument();
+    expect(screen.queryByText('Dasar-Dasar Pemrograman')).not.toBeInTheDocument();
   });
 
-  it('load periode gagal → error', async () => {
+  it('load semester gagal → error', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'gagal' } }, 500),
     );
     render(<DosenSelectMK />);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat periode aktif');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat daftar semester');
   });
 
   it('load MK gagal → tampilkan error', async () => {
     fetchMock.mockImplementation((url: string) => {
-      const u = String(url);
-      if (u.includes('/krs/period')) {
-        return Promise.resolve(jsonResponse({ data: PERIOD_OPEN }));
+      if (String(url).includes('/dosen/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
       }
       return Promise.resolve(
         jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'gagal' } }, 500),
       );
     });
     render(<DosenSelectMK />);
+
     expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat daftar MK');
   });
 
-  it('search memfilter daftar MK (debounced API call) dan mengirim query param search)', async () => {
+  it('search 3 huruf minimal → debounced API call dengan query param search', async () => {
     const user = userEvent.setup();
+    const fetchCalls: string[] = [];
+
+    fetchMock.mockImplementation((url: string) => {
+      fetchCalls.push(url);
+      if (String(url).includes('/dosen/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
+      }
+      if (String(url).includes('/dosen/courses/available')) {
+        return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: { items: [] } }));
+    });
+
     render(<DosenSelectMK />);
     await screen.findByText('Dasar-Dasar Pemrograman');
 
-    // Type search term - this triggers debounced API call
-    await user.type(controlFor('Cari Mata Kuliah', 'input'), 'Struktur');
+    // Type 2 chars — should NOT trigger API yet (debounce + min 3 chars enforced by backend)
+    await user.type(screen.getByPlaceholderText('Cari berdasarkan nama atau kode MK'), 'St');
+    await waitFor(() => expect(fetchCalls.filter((u) => u.includes('/dosen/courses/available'))).toHaveLength(1));
 
-    // Wait for debounced search to complete (300ms + API call)
-    await new Promise((r) => setTimeout(r, 400));
-
-    // Verify fetch called with search param
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/dosen/courses/available?semesterId=1&search=Struktur'),
-      expect.any(Object),
+    // Type 3rd char — should trigger debounced API call with search=Str
+    await user.type(screen.getByPlaceholderText('Cari berdasarkan nama atau kode MK'), 'r');
+    await waitFor(() =>
+      expect(fetchCalls).toContainEqual(expect.stringContaining('/dosen/courses/available?semesterId=1&search=Str')),
     );
-
-    // UI still shows courses (mock returns all) – focus is on debounce behavior
-    expect(screen.getByText('Struktur Data')).toBeInTheDocument();
-    expect(screen.getByText('Dasar-Dasar Pemrograman')).toBeInTheDocument();
-
-    // Clear search
-    await user.clear(screen.getByPlaceholderText('Cari berdasarkan nama atau kode MK'));
-    await new Promise((r) => setTimeout(r, 400));
-    // After clearing, fetch should be called without search param
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/dosen/courses/available?semesterId=1'),
-      expect.any(Object),
-    );
-    expect(screen.getByText('Dasar-Dasar Pemrograman')).toBeInTheDocument();
   });
 
   it('submit tanpa pilih MK → tombol disabled', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url).includes('/dosen/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+    });
     render(<DosenSelectMK />);
     await screen.findByText('Dasar-Dasar Pemrograman');
     expect(screen.getByRole('button', { name: /Ajukan 0 MK/ })).toBeDisabled();
@@ -164,6 +196,7 @@ describe('DosenSelectMK (T3.8)', () => {
   it('pilih MK lalu submit → POST /dosen/courses/select per MK + success', async () => {
     const user = userEvent.setup();
     const postBody: unknown[] = [];
+
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       const u = String(url);
       if (init?.method === 'POST' && u.includes('/dosen/courses/select')) {
@@ -185,11 +218,12 @@ describe('DosenSelectMK (T3.8)', () => {
           }),
         );
       }
-      if (u.includes('/krs/period')) {
-        return Promise.resolve(jsonResponse({ data: PERIOD_OPEN }));
+      if (u.includes('/dosen/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
       }
-      return Promise.resolve(jsonResponse({ data: COURSES }));
+      return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
     });
+
     render(<DosenSelectMK />);
     await screen.findByText('Dasar-Dasar Pemrograman');
 
@@ -202,6 +236,7 @@ describe('DosenSelectMK (T3.8)', () => {
 
   it('submit gagal VALIDATION_ERROR → tampilkan pesan API', async () => {
     const user = userEvent.setup();
+
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       const u = String(url);
       if (init?.method === 'POST' && u.includes('/dosen/courses/select')) {
@@ -215,11 +250,12 @@ describe('DosenSelectMK (T3.8)', () => {
           ),
         );
       }
-      if (u.includes('/krs/period')) {
-        return Promise.resolve(jsonResponse({ data: PERIOD_OPEN }));
+      if (u.includes('/dosen/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
       }
-      return Promise.resolve(jsonResponse({ data: COURSES }));
+      return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
     });
+
     render(<DosenSelectMK />);
     await screen.findByText('Dasar-Dasar Pemrograman');
 
@@ -229,15 +265,26 @@ describe('DosenSelectMK (T3.8)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('MK sudah pernah diajukan');
   });
 
-  it('tampilkan checkbox dalam kartu MK dengan label Pilih/Dipilih', async () => {
+  it('checkbox dalam kartu MK dengan label Pilih/Dipilih', async () => {
     const user = userEvent.setup();
+
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url).includes('/dosen/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+    });
+
     render(<DosenSelectMK />);
     await screen.findByText('Dasar-Dasar Pemrograman');
 
     const card = screen.getByText('Dasar-Dasar Pemrograman').closest('div.border');
     expect(card).not.toBeNull();
-    const cb = within(card as HTMLElement).getByRole('checkbox');
-    await user.click(cb);
-    expect(within(card as HTMLElement).getByText('Dipilih')).toBeInTheDocument();
+    const cb = card!.querySelector('input[type="checkbox"]');
+    expect(cb).not.toBeNull();
+    await user.click(cb!);
+    // Find the label span that says "Pilih" or "Dipilih"
+    const labelSpan = card!.querySelector('label span');
+    expect(labelSpan?.textContent).toContain('Dipilih');
   });
 });

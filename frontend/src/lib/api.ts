@@ -29,6 +29,8 @@ import type {
   ImportResult,
   UpdateContactInput,
   ClassSchedule,
+  ClaimableClass,
+  ClaimableClassResponse,
 } from './types';
 
 export class ApiError extends Error {
@@ -788,6 +790,17 @@ export async function getKrsPeriod(): Promise<KrsPeriod> {
   return apiRequest<KrsPeriod>('/krs/period');
 }
 
+/** GET /dosen/semesters — daftar semester aktif untuk dropdown Pilih MK (T3.9). */
+export async function getDosenSemesters(): Promise<SemesterOption[]> {
+  const res = await apiRequest<{ items: Record<string, unknown>[] }>('/dosen/semesters');
+  return res.items.map((r) => ({
+    id: Number(r.id),
+    code: String(r.code),
+    name: String(r.name),
+    isActive: Boolean(r.is_active),
+  }));
+}
+
 /** GET /dosen/my-classes — kelas yang diampu dosen + jadwal pertemuan (T3.8). */
 export async function getMyClasses(): Promise<MyClassesResponse> {
   return apiRequest<MyClassesResponse>('/dosen/my-classes');
@@ -796,6 +809,27 @@ export async function getMyClasses(): Promise<MyClassesResponse> {
 /** GET /dosen/lecturers — daftar dosen aktif untuk substitute teaching (T3.8). */
 export async function getLecturers(): Promise<LecturersResponse> {
   return apiRequest<LecturersResponse>('/dosen/lecturers');
+}
+
+/** GET /dosen/available-classes — kelas belum diklaim (lecturer_id NULL) di prodi dosen (T3.9). */
+export async function getDosenAvailableClasses(): Promise<ClaimableClassResponse> {
+  const res = await apiRequest<{ items: Record<string, unknown>[] }>('/dosen/available-classes');
+  return { items: res.items.map(normalizeClaimableClass) };
+}
+
+/** POST /dosen/claim-class — dosen klaim kelas (set lecturer_id) (T3.9, F-21). */
+export async function claimClass(classId: number): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/dosen/claim-class', {
+    method: 'POST',
+    body: { classId },
+  });
+}
+
+/** DELETE /dosen/claim-class/:classId — dosen batalkan klaim (T3.9, F-21). */
+export async function unclaimClass(classId: number): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/dosen/claim-class/${classId}`, {
+    method: 'DELETE',
+  });
 }
 
 /** GET /schedule/availability?date=YYYY-MM-DD — jadwal mengajar + slot kosong dosen (T3.8). */
@@ -823,6 +857,28 @@ function normalizeClassSchedule(r: Record<string, unknown>): ClassSchedule {
     scheduledDate: String(r.scheduled_date ?? ''),
     topic: r.topic == null ? null : String(r.topic),
     isCompleted: Boolean(r.is_completed),
+  };
+}
+
+function normalizeClaimableClass(r: Record<string, unknown>): ClaimableClass {
+  return {
+    id: Number(r.id),
+    classCode: String(r.class_code ?? ''),
+    dayOfWeek: r.day_of_week == null ? null : Number(r.day_of_week),
+    startTime: r.start_time == null ? null : String(r.start_time),
+    endTime: r.end_time == null ? null : String(r.end_time),
+    room: r.room == null ? null : String(r.room),
+    capacity: Number(r.capacity ?? 0),
+    currentEnrolled: Number(r.current_enrolled ?? 0),
+    curriculumId: Number(r.curriculum_id),
+    semesterId: Number(r.semester_id),
+    semesterNumber: Number(r.semester_number),
+    courseCode: String(r.course_code ?? ''),
+    courseName: String(r.course_name ?? ''),
+    credits: Number(r.credits ?? 0),
+    semesterCode: String(r.semester_code ?? ''),
+    semesterName: String(r.semester_name ?? ''),
+    schedules: ((r.schedules as Record<string, unknown>[]) ?? []).map(normalizeClassSchedule),
   };
 }
 

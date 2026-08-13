@@ -452,6 +452,31 @@ export interface MyClassesResponse {
   items: MyClass[];
 }
 
+// --- Kelas belum diklaim (GET /dosen/available-classes) — dosen pilih via checkbox (T3.9, F-21) ---
+export interface ClaimableClass {
+  id: number;
+  classCode: string;
+  dayOfWeek: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  room: string | null;
+  capacity: number;
+  currentEnrolled: number;
+  curriculumId: number;
+  semesterId: number;
+  semesterNumber: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  semesterCode: string;
+  semesterName: string;
+  schedules: ClassSchedule[];
+}
+
+export interface ClaimableClassResponse {
+  items: ClaimableClass[];
+}
+
 // --- Daftar dosen (GET /dosen/lecturers) — untuk substitute ---
 export interface LecturerBrief {
   id: number; // lecturers.id

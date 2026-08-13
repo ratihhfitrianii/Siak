@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { getAvailableCourses, submitCourseSelection, getKrsPeriod } from '../lib/api';
-import type { LecturerCourseAvailable } from '../lib/types';
+import { getAvailableCourses, submitCourseSelection, getDosenSemesters } from '../lib/api';
+import type { LecturerCourseAvailable, SemesterOption } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
 /**
- * Pilih MK (T3.7 + T3.8, perm lecturer.select_course) — filter prodi + cari MK (typeahead 3 huruf).
+ * Pilih MK (T3.7 + T3.8 + T3.9, perm lecturer.select_course) — filter prodi + cari MK (typeahead 3 huruf).
  * Terhubung ke endpoint /dosen/courses/available dan /dosen/courses/select.
- * Semester aktif diambil dari GET /krs/period (periode KRS berjalan).
+ * Semester diambil dari GET /dosen/semesters (semua semester aktif, tidak bergantung pada periode KRS).
  */
 export function DosenSelectMK() {
   const [semesterId, setSemesterId] = useState<number | null>(null);
-  const [semesterLabel, setSemesterLabel] = useState('');
+  const [semesterOptions, setSemesterOptions] = useState<SemesterOption[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,19 +20,18 @@ export function DosenSelectMK() {
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<number>>(new Set());
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Muat periode KRS aktif → set semester default
+  // Muat daftar semester aktif → set default ke yang terbaru
   useEffect(() => {
-    getKrsPeriod()
-      .then((period) => {
-        if (period.status === 'open') {
-          setSemesterId(period.semesterId);
-          setSemesterLabel(`${period.semesterCode} (${period.name})`);
-        } else {
-          setError('Tidak ada periode KRS yang sedang buka');
+    getDosenSemesters()
+      .then((res) => {
+        setSemesterOptions(res);
+        if (res.length > 0) {
+          const latest = res[0];
+          setSemesterId(latest.id);
         }
       })
       .catch(() => {
-        setError('Gagal memuat periode aktif');
+        setError('Gagal memuat daftar semester');
       });
   }, []);
 
@@ -117,11 +116,6 @@ export function DosenSelectMK() {
       setIsLoading(false);
     }
   };
-
-  // Semester aktif — dari GET /krs/period (periode KRS berjalan)
-  const semesterOptions = semesterId
-    ? [{ id: semesterId, name: semesterLabel || 'Semester Aktif' }]
-    : [];
 
   return (
     <div className="space-y-6">
