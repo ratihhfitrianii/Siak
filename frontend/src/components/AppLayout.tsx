@@ -165,7 +165,6 @@ const ROLE_LABEL: Record<string, string> = {
  *   dari matriks §6.1 — UI tidak menampilkannya).
  */
 const HIDDEN_MENU_BY_ROLE: Record<string, string[]> = {
-  admin_sistem: ['/krs', '/transkrip', '/pembayaran', '/keuangan/tagihan'],
   dosen: ['/transkrip'],
   admin_keuangan: ['/transkrip'],
 };
