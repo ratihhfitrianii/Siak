@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
 import { useAuth, type MeUser } from '../auth/AuthContext';
 import { ApiError, NetworkError } from '../lib/api';
 import { FieldError, FormAlert } from '../components/ErrorInline';
@@ -43,7 +43,6 @@ function safeFrom(from: string, user: MeUser): string {
 
 export function LoginPage() {
   const { user, login } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/';
 
@@ -65,8 +64,8 @@ export function LoginPage() {
     setFormError(null);
     setLoading(true);
     try {
-      const me = await login(identifier, password);
-      navigate(safeFrom(from, me), { replace: true });
+      await login(identifier, password);
+      // Navigation ditangani oleh `if (user)` guard di atas (anti double-navigate race).
     } catch (err) {
       if (err instanceof NetworkError) {
         setFormError(err.message);

@@ -101,13 +101,15 @@ export function createFinanceRouter(): Router {
 
         res.json({
           success: true,
-          data: dataRes.rows.map((r) => ({
-            ...r,
-            total_amount: parseFloat(r.total_amount),
-            paid_amount: parseFloat(r.paid_amount),
-            items: r.items || [],
-          })),
-          pagination: { page: p, limit: l, total, totalPages: Math.ceil(total / l) },
+          data: {
+            items: dataRes.rows.map((r) => ({
+              ...r,
+              total_amount: parseFloat(r.total_amount),
+              paid_amount: parseFloat(r.paid_amount),
+              items: r.items || [],
+            })),
+            pagination: { page: p, limit: l, total, totalPages: Math.ceil(total / l) },
+          },
         });
       } catch (err) {
         next(err);

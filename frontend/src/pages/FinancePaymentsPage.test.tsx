@@ -39,7 +39,7 @@ const PAYMENT: Payment = {
 
 const LIST_RESPONSE = {
   success: true,
-  data: { data: [PAYMENT], pagination: { page: 1, limit: 20, total: 1, totalPages: 1 } },
+  data: { items: [PAYMENT], pagination: { page: 1, limit: 20, total: 1, totalPages: 1 } },
 };
 
 const SEMESTERS = [
@@ -170,7 +170,7 @@ describe('FinancePaymentsPage (T2.6)', () => {
         return Promise.resolve(
           jsonResponse({
             success: true,
-            data: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } },
+            data: { items: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } },
           }),
         );
       }),

@@ -279,7 +279,7 @@ export interface Payment {
 }
 
 export interface PaymentsResponse {
-  data: Payment[];
+  items: Payment[];
   pagination: {
     page: number;
     limit: number;

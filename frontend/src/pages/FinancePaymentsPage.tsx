@@ -52,7 +52,7 @@ export function FinancePaymentsPage() {
         limit: filters.limit,
       };
       const data = await getFinancePayments(params);
-      setPayments(data.data);
+      setPayments(data.items);
       setPagination(data.pagination);
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : 'Gagal memuat daftar tagihan';
