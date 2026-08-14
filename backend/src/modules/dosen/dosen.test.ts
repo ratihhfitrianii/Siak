@@ -587,11 +587,13 @@ describe('T3.8 Dosen: my-classes & semesters (integrasi dashboard)', () => {
     expect(res.status).toBe(403);
   });
 
-  it('GET /dosen/semesters — dosen tanpa profil lecturer (ghost) → 404', async () => {
+  it('GET /dosen/semesters — dosen tanpa profil lecturer (ghost) → 200 + daftar semester aktif', async () => {
     const res = await request(app)
       .get('/api/v1/dosen/semesters')
       .set('Authorization', `Bearer ${ghostDosenToken}`);
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.items.length).toBeGreaterThan(0);
   });
 
   it('GET /dosen/my-classes — dosen tanpa profil lecturer (ghost) → 200 + items kosong', async () => {

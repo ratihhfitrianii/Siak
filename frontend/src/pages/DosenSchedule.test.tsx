@@ -89,7 +89,9 @@ describe('DosenSchedule (T3.9 — checklist klaim jadwal)', () => {
   });
 
   it('render awal — header + tabel kelas yang bisa diklaim', async () => {
-    fetchMock.mockResolvedValue(jsonResponse({ success: true, data: { items: CLAIMABLE_CLASSES_RAW } }));
+    fetchMock.mockResolvedValue(
+      jsonResponse({ success: true, data: { items: CLAIMABLE_CLASSES_RAW } }),
+    );
     render(<DosenSchedule />);
 
     expect(screen.getByText('Ketersediaan Jadwal Mengajar')).toBeInTheDocument();
@@ -122,10 +124,14 @@ describe('DosenSchedule (T3.9 — checklist klaim jadwal)', () => {
       fetchCalls.push(url);
       if (init?.method === 'POST' && String(url).includes('/claim-class')) {
         postBodies.push(JSON.parse(String(init.body)));
-        return Promise.resolve(jsonResponse({ success: true, data: { message: 'Kelas berhasil diklaim' } }));
+        return Promise.resolve(
+          jsonResponse({ success: true, data: { message: 'Kelas berhasil diklaim' } }),
+        );
       }
       // Initial GET + reload GET
-      return Promise.resolve(jsonResponse({ success: true, data: { items: CLAIMABLE_CLASSES_RAW } }));
+      return Promise.resolve(
+        jsonResponse({ success: true, data: { items: CLAIMABLE_CLASSES_RAW } }),
+      );
     });
 
     render(<DosenSchedule />);
@@ -151,9 +157,13 @@ describe('DosenSchedule (T3.9 — checklist klaim jadwal)', () => {
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method === 'DELETE' && String(url).includes('/claim-class/')) {
         deleteCalls.push(url);
-        return Promise.resolve(jsonResponse({ success: true, data: { message: 'Klaim kelas dibatalkan' } }));
+        return Promise.resolve(
+          jsonResponse({ success: true, data: { message: 'Klaim kelas dibatalkan' } }),
+        );
       }
-      return Promise.resolve(jsonResponse({ success: true, data: { items: CLAIMABLE_CLASSES_RAW } }));
+      return Promise.resolve(
+        jsonResponse({ success: true, data: { items: CLAIMABLE_CLASSES_RAW } }),
+      );
     });
 
     render(<DosenSchedule />);
@@ -162,7 +172,9 @@ describe('DosenSchedule (T3.9 — checklist klaim jadwal)', () => {
     // First click checkbox to claim
     const checkbox = screen.getAllByRole('checkbox')[1]; // First data row checkbox (index 0 is header)
     await userEvent.click(checkbox);
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Kelas berhasil diklaim'));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('Kelas berhasil diklaim'),
+    );
 
     // Now directly call the unclaim function through the component's internal logic
     // by clicking the checkbox again (which toggles to unclaim when not in claiming state)
@@ -180,14 +192,18 @@ describe('DosenSchedule (T3.9 — checklist klaim jadwal)', () => {
     );
     render(<DosenSchedule />);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat daftar kelas yang bisa diklaim');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Gagal memuat daftar kelas yang bisa diklaim',
+    );
   });
 
   it('tidak ada kelas tersedia → pesan kosong', async () => {
     fetchMock.mockResolvedValue(jsonResponse({ success: true, data: { items: [] } }));
     render(<DosenSchedule />);
 
-    expect(await screen.findByText('Tidak ada kelas yang tersedia untuk diklaim di prodi Anda.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Tidak ada kelas yang tersedia untuk diklaim di prodi Anda.'),
+    ).toBeInTheDocument();
   });
 
   it('checkbox "Pilih semua" → klaim semua kelas sekaligus', async () => {
@@ -196,9 +212,13 @@ describe('DosenSchedule (T3.9 — checklist klaim jadwal)', () => {
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method === 'POST' && String(url).includes('/claim-class')) {
         postBodies.push(JSON.parse(String(init.body)));
-        return Promise.resolve(jsonResponse({ success: true, data: { message: 'Kelas berhasil diklaim' } }));
+        return Promise.resolve(
+          jsonResponse({ success: true, data: { message: 'Kelas berhasil diklaim' } }),
+        );
       }
-      return Promise.resolve(jsonResponse({ success: true, data: { items: CLAIMABLE_CLASSES_RAW } }));
+      return Promise.resolve(
+        jsonResponse({ success: true, data: { items: CLAIMABLE_CLASSES_RAW } }),
+      );
     });
 
     render(<DosenSchedule />);

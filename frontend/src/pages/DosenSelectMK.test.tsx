@@ -80,7 +80,9 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
 
     // Verify semesters loaded then courses for semesterId=1
     expect(fetchCalls).toContainEqual(expect.stringContaining('/dosen/semesters'));
-    expect(fetchCalls).toContainEqual(expect.stringContaining('/dosen/courses/available?semesterId=1'));
+    expect(fetchCalls).toContainEqual(
+      expect.stringContaining('/dosen/courses/available?semesterId=1'),
+    );
   });
 
   it('ganti semester → load ulang MK untuk semester terpilih', async () => {
@@ -93,20 +95,23 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
         const u = String(url);
         if (u.includes('semesterId=2')) {
           return Promise.resolve(
-            jsonResponse({ success: true, data: [
-              {
-                curriculum_id: 201,
-                course_code: 'TI201',
-                course_name: 'Pemrograman Lanjut',
-                credits: 3,
-                semester_number: 3,
-                is_mandatory: true,
-                available_classes: 1,
-                selection_status: 'belum_diajukan',
-                priority: null,
-                notes: null,
-              },
-            ]}),
+            jsonResponse({
+              success: true,
+              data: [
+                {
+                  curriculum_id: 201,
+                  course_code: 'TI201',
+                  course_name: 'Pemrograman Lanjut',
+                  credits: 3,
+                  semester_number: 3,
+                  is_mandatory: true,
+                  available_classes: 1,
+                  selection_status: 'belum_diajukan',
+                  priority: null,
+                  notes: null,
+                },
+              ],
+            }),
           );
         }
         return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
@@ -169,12 +174,16 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
 
     // Type 2 chars — should NOT trigger API yet (debounce + min 3 chars enforced by backend)
     await user.type(screen.getByPlaceholderText('Cari berdasarkan nama atau kode MK'), 'St');
-    await waitFor(() => expect(fetchCalls.filter((u) => u.includes('/dosen/courses/available'))).toHaveLength(1));
+    await waitFor(() =>
+      expect(fetchCalls.filter((u) => u.includes('/dosen/courses/available'))).toHaveLength(1),
+    );
 
     // Type 3rd char — should trigger debounced API call with search=Str
     await user.type(screen.getByPlaceholderText('Cari berdasarkan nama atau kode MK'), 'r');
     await waitFor(() =>
-      expect(fetchCalls).toContainEqual(expect.stringContaining('/dosen/courses/available?semesterId=1&search=Str')),
+      expect(fetchCalls).toContainEqual(
+        expect.stringContaining('/dosen/courses/available?semesterId=1&search=Str'),
+      ),
     );
   });
 

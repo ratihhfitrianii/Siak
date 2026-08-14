@@ -59,13 +59,14 @@ test.describe('Critical path: absensi & nilai dosen (T5.7)', () => {
     await login(page, DOSEN.identifier, DOSEN.pass);
     await expect(page.getByText('Dashboard Dosen')).toBeVisible({ timeout: 10_000 });
 
-    // Keluhan #5: tab teks diganti menu sidebar ikon → navigasi via link /dosen/absensi
-    await page.getByRole('link', { name: 'Absensi' }).click();
+    // Keluhan #5: tab teks diganti menu sidebar ikon → navigasi via sidebar link /dosen/absensi
+    // Gunakan link di sidebar (aria-label) untuk menghindari collision dengan card/link lain
+    await page.locator('aside nav a[aria-label="Absensi"]').click();
     await expect(page).toHaveURL(/\/dosen\/absensi/);
     await expect(page.getByText(/Kelas|Pilih kelas/i).first()).toBeVisible({ timeout: 10_000 });
 
     // Menu Nilai di sidebar → /dosen/nilai
-    await page.getByRole('link', { name: 'Nilai' }).click();
+    await page.locator('aside nav a[aria-label="Nilai"]').click();
     await expect(page).toHaveURL(/\/dosen\/nilai/);
     await expect(page.getByText(/Nilai|Kelas/i).first()).toBeVisible({ timeout: 10_000 });
   });

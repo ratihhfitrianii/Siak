@@ -88,7 +88,9 @@ describe('DosenDashboardPage (T3.7)', () => {
   it('render — header dashboard + konten default Pilih MK (keluhan #5: tanpa tab bar teks)', () => {
     renderAt('/dosen');
     expect(screen.getByText('Dashboard Dosen')).toBeInTheDocument();
-    expect(screen.getByText('Ringkasan aktivitas mengajar: kelas, jadwal, absensi, dan bimbingan')).toBeInTheDocument();
+    expect(
+      screen.getByText('Ringkasan aktivitas mengajar: kelas, jadwal, absensi, dan bimbingan'),
+    ).toBeInTheDocument();
     // Tab teks horizontal TIDAK ada lagi (menu pindah ke sidebar)
     expect(screen.queryByRole('button', { name: 'Jadwal' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Nilai' })).not.toBeInTheDocument();
