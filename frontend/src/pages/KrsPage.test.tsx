@@ -448,4 +448,110 @@ describe('KrsPage (T1.11b + Gelombang 3 #28–#30 redesign)', () => {
     // Kita test bahwa error ditampilkan di UI
     expect(await screen.findByText(/Tidak boleh mengambil matkul yang sama/i)).toBeInTheDocument();
   });
+
+  it('periode revisi (isRevision: true) → render normal, tombol Submit KRS tetap ada', async () => {
+    mockKrsRoutes({
+      period: { ...PERIOD, isRevision: true, status: 'open' },
+      my: { ...MY_DRAFT, items: [], status: 'draft', isLocked: false, submittedAt: null },
+    });
+    render(<KrsPage />);
+
+    expect(await screen.findByText('Periode Buka')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Submit KRS' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Simpan Draft' })).toBeInTheDocument();
+  });
+
+  it('periode tutup → tidak ada daftar matkul, tombol Simpan Draft disabled', async () => {
+    mockKrsRoutes({ period: { ...PERIOD, status: 'closed' }, available: [] });
+    render(<KrsPage />);
+
+    expect(await screen.findByText('Periode KRS sedang tutup.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Pengisian KRS hanya dapat dilakukan saat periode KRS sedang buka.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Tidak ada kelas tersedia untuk prodi Anda pada periode ini.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Simpan Draft' })).toBeDisabled();
+  });
+
+  it('error muat data → pesan error + tombol coba lagi', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+    render(<KrsPage />);
+
+    expect(await screen.findByText('Gagal memuat data KRS')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Coba lagi' })).toBeInTheDocument();
+  });
+
+  it('checkbox kelas yang sudah full (quotaLeft === 0) → disabled', async () => {
+    mockKrsRoutes({
+      available: [
+        cls({
+          id: 1,
+          classCode: 'A',
+          course: { code: 'MAT1', name: 'Matematika Dasar', credits: 3 },
+          currentEnrolled: 40,
+          quotaLeft: 0,
+        }),
+      ],
+      my: { ...MY_DRAFT, items: [] },
+    });
+    render(<KrsPage />);
+
+    expect(await screen.findByText('Matematika Dasar')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Pilih Matematika Dasar' })).toBeDisabled();
+  });
+
+  it('centang kelas yang PENUH tapi sudah di draft → tetap bisa uncentang', async () => {
+    const user = userEvent.setup();
+    mockKrsRoutes({
+      available: [
+        cls({
+          id: 101,
+          classCode: 'A',
+          course: { code: 'MAT1', name: 'Matematika Dasar', credits: 3 },
+          currentEnrolled: 40,
+          quotaLeft: 0,
+        }),
+      ],
+      my: {
+        ...MY_DRAFT,
+        items: [
+          {
+            id: 101,
+            classCode: 'A',
+            course: { code: 'MAT1', name: 'Matematika Dasar', credits: 3 },
+            dayOfWeek: 1,
+            startTime: '08:00:00',
+            endTime: '09:40:00',
+            room: 'R.101',
+            lecturerName: 'Dr. Andi',
+          },
+        ],
+      },
+    });
+    render(<KrsPage />);
+
+    const draft = await screen.findByLabelText('Kelas terpilih');
+    expect(within(draft).getByText(/Matematika Dasar/)).toBeInTheDocument();
+
+    // Uncentang → bisa karena sudah di draft
+    await user.click(screen.getByRole('checkbox', { name: 'Pilih Matematika Dasar' }));
+
+    // Cek total SKS turun
+    expect(screen.getByText(/Total SKS:/)).toBeInTheDocument();
+  });
+
+  it('pagination halaman terakhir → tombol Berikutnya disabled', async () => {
+    const user = userEvent.setup();
+    mockKrsRoutes({ available: MANY, my: { ...MY_DRAFT, items: [] } });
+    render(<KrsPage />);
+
+    await screen.findByText('Mata Kuliah 1');
+    await user.click(screen.getByRole('button', { name: 'Berikutnya →' }));
+
+    expect(screen.getByText('Halaman 2 / 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Berikutnya →' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '← Sebelumnya' })).not.toBeDisabled();
+  });
 });

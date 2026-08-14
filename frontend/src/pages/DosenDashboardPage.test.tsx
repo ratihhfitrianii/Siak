@@ -7,10 +7,10 @@ vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({ user: { id: 4, username: 'dosen.TI1' }, booting: false, logout: vi.fn() }),
 }));
 
-function jsonResponse(payload: unknown) {
+function jsonResponse(payload: unknown, status = 200) {
   return {
-    ok: true,
-    status: 200,
+    ok: status >= 200 && status < 300,
+    status,
     json: async () => payload,
   } as Response;
 }

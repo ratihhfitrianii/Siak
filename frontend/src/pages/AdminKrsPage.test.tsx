@@ -232,4 +232,67 @@ describe('AdminKrsPage (T1.11c)', () => {
     await vi.waitFor(() => expect(screen.queryByText('Budi Santoso')).not.toBeInTheDocument());
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('Tolak → Batal → dialog tertutup tanpa POST', async () => {
+    const user = userEvent.setup();
+    const rejectBody = vi.fn();
+    mockAdminRoutes({ rejectBody });
+    render(<AdminKrsPage />);
+
+    await screen.findByText('Budi Santoso');
+    const rejectButtons = screen.getAllByRole('button', { name: 'Tolak' });
+    await user.click(rejectButtons[0]);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Tolak KRS' });
+    await user.click(within(dialog).getByRole('button', { name: 'Batal' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(rejectBody).not.toHaveBeenCalled();
+  });
+
+  it('Tolak → alasan < 5 karakter → tombol Tolak KRS disabled', async () => {
+    const user = userEvent.setup();
+    const rejectBody = vi.fn();
+    mockAdminRoutes({ rejectBody });
+    render(<AdminKrsPage />);
+
+    await screen.findByText('Budi Santoso');
+    const rejectButtons = screen.getAllByRole('button', { name: 'Tolak' });
+    await user.click(rejectButtons[0]);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Tolak KRS' });
+    const submitBtn = within(dialog).getByRole('button', { name: 'Tolak KRS' });
+    await user.type(within(dialog).getByPlaceholderText(/Contoh:/), 'ABC'); // < 5
+    expect(submitBtn).toBeDisabled();
+    await user.type(within(dialog).getByPlaceholderText(/Contoh:/), 'ABCD'); // = 5
+    expect(submitBtn).toBeEnabled();
+  });
+
+  it('error approve (non-409) → pesan error generic', async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockAdminRoutes();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      const u = String(url);
+      if (method === 'POST' && u.includes('/approve')) {
+        return Promise.resolve(
+          jsonResponse(
+            { success: false, error: { code: 'INTERNAL_ERROR', message: 'Server error' } },
+            500,
+          ),
+        );
+      }
+      if (u.includes('/krs/admin/pending')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: PENDING } }));
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: null }));
+    });
+
+    render(<AdminKrsPage />);
+    await screen.findByText('Budi Santoso');
+    const approveButtons = screen.getAllByRole('button', { name: 'Setujui' });
+    await user.click(approveButtons[0]);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Server error');
+  });
 });

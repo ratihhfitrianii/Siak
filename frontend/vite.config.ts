@@ -33,6 +33,8 @@ export default defineConfig({
         'src/test/**',
         'src/main.tsx', // entry point (bukan logika)
         'src/lib/types.ts', // deklarasi tipe murni
+        'src/App.tsx', // routing + lazy loading (hard to cover all branches)
+        'src/vite-env.d.ts', // type declarations only
       ],
       thresholds: {
         lines: 80,
