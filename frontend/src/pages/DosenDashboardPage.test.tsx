@@ -88,36 +88,49 @@ describe('DosenDashboardPage (T3.7)', () => {
   it('render — header dashboard + konten default Pilih MK (keluhan #5: tanpa tab bar teks)', () => {
     renderAt('/dosen');
     expect(screen.getByText('Dashboard Dosen')).toBeInTheDocument();
+    expect(screen.getByText('Ringkasan aktivitas mengajar: kelas, jadwal, absensi, dan bimbingan')).toBeInTheDocument();
     // Tab teks horizontal TIDAK ada lagi (menu pindah ke sidebar)
     expect(screen.queryByRole('button', { name: 'Jadwal' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Nilai' })).not.toBeInTheDocument();
-    // Konten default = Pilih MK
-    expect(screen.getByText('Pilih Mata Kuliah')).toBeInTheDocument();
+    // Konten dashboard: kartu ringkasan + aksi cepat
+    expect(screen.getByText('Kelas Diampu')).toBeInTheDocument();
+    expect(screen.getByText('Total Pertemuan')).toBeInTheDocument();
+    expect(screen.getByText('Pertemuan Selesai')).toBeInTheDocument();
+    expect(screen.getByText('Akan Datang')).toBeInTheDocument();
+    expect(screen.getByText('Aksi Cepat')).toBeInTheDocument();
+    expect(screen.getByText('Pilih MK')).toBeInTheDocument();
+    expect(screen.getByText('Klaim Jadwal')).toBeInTheDocument();
+    expect(screen.getByText('Input Absensi')).toBeInTheDocument();
   });
 
-  it('route /dosen/jadwal → render DosenSchedule (checklist klaim)', () => {
+  it('route /dosen/jadwal → render DosenSchedule (checklist klaim) — TIDAK ada header Dashboard Dosen', () => {
     renderAt('/dosen/jadwal');
     expect(screen.getByText('Ketersediaan Jadwal Mengajar')).toBeInTheDocument();
+    expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 
-  it('route /dosen/absensi → render DosenAttendance', () => {
+  it('route /dosen/absensi → render DosenAttendance — TIDAK ada header Dashboard Dosen', () => {
     renderAt('/dosen/absensi');
     expect(screen.getByText('Absensi Mengajar')).toBeInTheDocument();
+    expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 
-  it('route /dosen/bimbingan → render DosenGuidance', () => {
+  it('route /dosen/bimbingan → render DosenGuidance — TIDAK ada header Dashboard Dosen', () => {
     renderAt('/dosen/bimbingan');
     expect(screen.getByText('Bimbingan Mahasiswa Binaan')).toBeInTheDocument();
+    expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 
-  it('route /dosen/substitute → render DosenSubstitute', () => {
+  it('route /dosen/substitute → render DosenSubstitute — TIDAK ada header Dashboard Dosen', () => {
     renderAt('/dosen/substitute');
     expect(screen.getByText('Substitute Teaching')).toBeInTheDocument();
+    expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 
-  it('route /dosen/nilai → render DosenGrades', () => {
+  it('route /dosen/nilai → render DosenGrades — TIDAK ada header Dashboard Dosen', () => {
     renderAt('/dosen/nilai');
     expect(screen.getByText('Input Nilai')).toBeInTheDocument();
+    expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 
   it('route /dosen/pilih-mk → render DosenSelectMK', () => {
@@ -125,8 +138,9 @@ describe('DosenDashboardPage (T3.7)', () => {
     expect(screen.getByText('Pilih Mata Kuliah')).toBeInTheDocument();
   });
 
-  it('tab tidak dikenal → fallback ke Pilih MK', () => {
+  it('tab tidak dikenal → render dashboard overview (bukan Pilih MK)', () => {
     renderAt('/dosen/tidak-ada');
-    expect(screen.getByText('Pilih Mata Kuliah')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard Dosen')).toBeInTheDocument();
+    expect(screen.getByText('Kelas Diampu')).toBeInTheDocument();
   });
 });

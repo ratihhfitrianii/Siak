@@ -457,7 +457,7 @@ describe('T3.1 Dosen Pilih MK', () => {
   });
 });
 
-describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {
+describe('T3.8 Dosen: my-classes & semesters (integrasi dashboard)', () => {
   let dosenToken: string;
   let dosenUserId: number;
   let mhsToken: string;
@@ -492,8 +492,8 @@ describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {
       const passHash = await bcrypt.hash('Dosen123!', 12);
       const newU = await pgPool.query(
         `INSERT INTO users (role_id, email, password_hash, full_name, is_active, must_change_password)
-         VALUES ($1, 'ghost.dosen@siak.local', $2, 'Ghost Dosen', true, false)
-         RETURNING id, email`,
+           VALUES ($1, 'ghost.dosen@siak.local', $2, 'Ghost Dosen', true, false)
+           RETURNING id, email`,
         [roleId, passHash],
       );
       ghostRes = {
@@ -564,27 +564,34 @@ describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {
     expect(res.status).toBe(401);
   });
 
-  it('GET /dosen/lecturers — dosen → 200 + daftar dosen aktif', async () => {
+  it('GET /dosen/semesters — dosen → 200 + daftar semester aktif', async () => {
     const res = await request(app)
-      .get('/api/v1/dosen/lecturers')
+      .get('/api/v1/dosen/semesters')
       .set('Authorization', `Bearer ${dosenToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.items.length).toBeGreaterThan(0);
-    for (const l of res.body.data.items) {
-      expect(l.id).toEqual(expect.any(Number)); // lecturers.id
-      expect(l.userId).toEqual(expect.any(Number));
-      expect(l.fullName).toEqual(expect.any(String));
-      expect(l.prodiCode).toEqual(expect.any(String));
+    for (const s of res.body.data.items) {
+      expect(s.id).toEqual(expect.any(Number));
+      expect(s.code).toEqual(expect.any(String));
+      expect(s.name).toEqual(expect.any(String));
+      expect(s.isActive).toBe(true);
     }
   });
 
-  it('GET /dosen/lecturers — mahasiswa → 403 (bukan substitute.manage)', async () => {
+  it('GET /dosen/semesters — mahasiswa → 403 (bukan lecturer.select_course)', async () => {
     const res = await request(app)
-      .get('/api/v1/dosen/lecturers')
+      .get('/api/v1/dosen/semesters')
       .set('Authorization', `Bearer ${mhsToken}`);
     expect(res.status).toBe(403);
+  });
+
+  it('GET /dosen/semesters — dosen tanpa profil lecturer (ghost) → 404', async () => {
+    const res = await request(app)
+      .get('/api/v1/dosen/semesters')
+      .set('Authorization', `Bearer ${ghostDosenToken}`);
+    expect(res.status).toBe(404);
   });
 
   it('GET /dosen/my-classes — dosen tanpa profil lecturer (ghost) → 200 + items kosong', async () => {
@@ -595,14 +602,5 @@ describe('T3.8 Dosen: my-classes & lecturers (integrasi dashboard)', () => {
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data.items)).toBe(true);
     expect(res.body.data.items.length).toBe(0);
-  });
-
-  it('GET /dosen/lecturers — dosen tanpa profil lecturer (ghost) → 200 + daftar dosen aktif', async () => {
-    const res = await request(app)
-      .get('/api/v1/dosen/lecturers')
-      .set('Authorization', `Bearer ${ghostDosenToken}`);
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(Array.isArray(res.body.data.items)).toBe(true);
   });
 });
