@@ -337,4 +337,147 @@ describe('UsersPage (T1.11c)', () => {
 
     expect(await screen.findByText('Tidak ada pengguna yang cocok.')).toBeInTheDocument();
   });
+
+  it('lookup error → tampilkan pesan error di form NIM', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes({
+      lookupFound: false, // akan trigger 'notfound' status
+    });
+    render(<UsersPage />);
+
+    await screen.findByText('Andi');
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.type(within(dialog).getByLabelText('NIM'), '9999999');
+
+    expect(
+      await within(dialog).findByText(/NIM tidak ditemukan di data mahasiswa/),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Buat User' })).toBeDisabled();
+  });
+
+  it('peran admin tanpa NIM/NIK → form manual dengan fullName, email, password', async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn();
+    mockUsersRoutes({ onCreate });
+    render(<UsersPage />);
+
+    await screen.findByText('Andi');
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.selectOptions(within(dialog).getByLabelText('Peran'), 'admin_akademik');
+
+    // NIM/NIK field harus hidden/disabled untuk admin roles
+    expect(within(dialog).queryByLabelText('NIM')).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText('NIK')).not.toBeInTheDocument();
+
+    await user.type(within(dialog).getByLabelText('Nama Lengkap'), 'Admin Baru');
+    await user.type(within(dialog).getByLabelText('Email'), 'admin.baru@kampus.ac.id');
+    await user.type(within(dialog).getByLabelText('Password Awal'), 'rahasia123');
+    await user.click(within(dialog).getByRole('button', { name: 'Buat User' }));
+
+    await vi.waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
+    expect(onCreate).toHaveBeenCalledWith({
+      roleCode: 'admin_akademik',
+      email: 'admin.baru@kampus.ac.id',
+      password: 'rahasia123',
+      fullName: 'Admin Baru',
+      isWali: false,
+    });
+    expect(await screen.findByText('User berhasil dibuat')).toBeInTheDocument();
+  });
+
+  it('create gagal duplikat email → error inline di field email', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes({ failCreate: true });
+    render(<UsersPage />);
+
+    await screen.findByText('Andi');
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.selectOptions(within(dialog).getByLabelText('Peran'), 'admin_akademik');
+    await user.type(within(dialog).getByLabelText('Nama Lengkap'), 'User Baru');
+    await user.type(within(dialog).getByLabelText('Email'), 'andi@kampus.ac.id');
+    await user.type(within(dialog).getByLabelText('Password Awal'), 'rahasia123');
+    await user.click(within(dialog).getByRole('button', { name: 'Buat User' }));
+
+    expect(await screen.findByText('Email sudah digunakan')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('ubah peran → modal → PUT /users/:id/role dengan payload → sukses', async () => {
+    const user = userEvent.setup();
+    const onRole = vi.fn();
+    mockUsersRoutes({ onRole });
+    render(<UsersPage />);
+
+    await screen.findByText('Bu Rina');
+    const editButtons = screen.getAllByRole('button', { name: 'Ubah Peran' });
+    await user.click(editButtons[1]); // Bu Rina (dosen)
+
+    const dialog = await screen.findByRole('dialog', { name: 'Ubah peran' });
+    expect(within(dialog).getByText('Bu Rina · rina@kampus.ac.id')).toBeInTheDocument();
+    const roleSelect = within(dialog).getByLabelText('Peran Baru');
+    await user.selectOptions(roleSelect, 'admin_akademik');
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan Perubahan' }));
+
+    await vi.waitFor(() => expect(onRole).toHaveBeenCalledTimes(1));
+    expect(onRole).toHaveBeenCalledWith({ roleCode: 'admin_akademik', isWali: false });
+    expect(
+      await screen.findByText('Role rina@kampus.ac.id diperbarui menjadi Admin Akademik.'),
+    ).toBeInTheDocument();
+  });
+
+  it('ubah peran wali dosen → checkbox isWali muncul dan dikirim', async () => {
+    const user = userEvent.setup();
+    const onRole = vi.fn();
+    mockUsersRoutes({
+      items: [
+        {
+          id: 3,
+          email: 'wali@kampus.ac.id',
+          full_name: 'Pak Wali',
+          is_wali: false,
+          role_code: 'dosen',
+          role_name: 'Dosen',
+          is_active: true,
+          last_login_at: null,
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      ],
+      onRole,
+    });
+    render(<UsersPage />);
+
+    await screen.findByText('Pak Wali');
+    const editButtons = screen.getAllByRole('button', { name: 'Ubah Peran' });
+    await user.click(editButtons[0]);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Ubah peran' });
+    const waliCheckbox = within(dialog).getByLabelText('Dosen Wali');
+    await user.click(waliCheckbox);
+
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan Perubahan' }));
+
+    await vi.waitFor(() => expect(onRole).toHaveBeenCalledTimes(1));
+    expect(onRole).toHaveBeenCalledWith({ roleCode: 'dosen', isWali: true });
+  });
+
+  it('hapus user → confirm → DELETE /users/:id → sukses + reload', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    mockUsersRoutes({ onDelete });
+    render(<UsersPage />);
+
+    await screen.findByText('Andi');
+    await user.click(screen.getAllByRole('button', { name: 'Hapus' })[0]); // Andi (mahasiswa)
+
+    await vi.waitFor(() => expect(onDelete).toHaveBeenCalledTimes(1));
+    expect(onDelete).toHaveBeenCalledWith(1);
+    expect(await screen.findByText('User dinonaktifkan')).toBeInTheDocument();
+    confirmSpy.mockRestore();
+  });
 });
