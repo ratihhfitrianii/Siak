@@ -336,14 +336,14 @@ export interface NotificationsResponse {
 
 // --- Dosen Pilih MK (GET/POST /dosen/courses/*) ---
 export interface LecturerCourseAvailable {
-  curriculumId: number;
-  courseCode: string;
-  courseName: string;
+  curriculum_id: number;
+  course_code: string;
+  course_name: string;
   credits: number;
-  semesterNumber: number;
-  isMandatory: boolean;
-  availableClasses: number;
-  selectionStatus: 'belum_diajukan' | 'diajukan' | 'disetujui' | 'ditolak';
+  semester_number: number;
+  is_mandatory: boolean;
+  available_classes: number;
+  selection_status: 'belum_diajukan' | 'diajukan' | 'disetujui' | 'ditolak';
   priority: number | null;
   notes: string | null;
 }

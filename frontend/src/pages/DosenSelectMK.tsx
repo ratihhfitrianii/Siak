@@ -187,7 +187,7 @@ export function DosenSelectMK() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {courses.map((course) => {
-              const isSelected = selectedCourseIds.has(course.curriculumId);
+              const isSelected = selectedCourseIds.has(course.curriculum_id);
               const statusColors: Record<string, string> = {
                 belum_diajukan: 'bg-slate-100 text-slate-800',
                 diajukan: 'bg-primary-100 text-primary-800',
@@ -196,23 +196,23 @@ export function DosenSelectMK() {
               };
               return (
                 <div
-                  key={course.curriculumId}
+                  key={course.curriculum_id}
                   className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-slate-900">{course.courseName}</h4>
-                    <span className="text-sm text-slate-500">{course.courseCode}</span>
+                    <h4 className="font-semibold text-slate-900">{course.course_name}</h4>
+                    <span className="text-sm text-slate-500">{course.course_code}</span>
                   </div>
-                  <p className="text-sm text-slate-600 mb-1">Semester: {course.semesterNumber}</p>
+                  <p className="text-sm text-slate-600 mb-1">Semester: {course.semester_number}</p>
                   <p className="text-sm text-slate-600 mb-2">SKS: {course.credits}</p>
                   <div className="flex justify-between items-center mb-3">
                     <span className="text-sm text-slate-600">
-                      Kelas tersedia: {course.availableClasses}
+                      Kelas tersedia: {course.available_classes}
                     </span>
                     <span
-                      className={`text-xs px-2 py-1 rounded-full ${statusColors[course.selectionStatus] ?? 'bg-slate-100 text-slate-800'}`}
+                      className={`text-xs px-2 py-1 rounded-full ${statusColors[course.selection_status] ?? 'bg-slate-100 text-slate-800'}`}
                     >
-                      {course.selectionStatus.replace('_', ' ')}
+                      {course.selection_status.replace('_', ' ')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -220,7 +220,7 @@ export function DosenSelectMK() {
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => toggleSelect(course.curriculumId)}
+                        onChange={() => toggleSelect(course.curriculum_id)}
                         className="w-4 h-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
                       />
                       <span className="text-sm text-slate-700">
