@@ -463,6 +463,36 @@ export function createDosenRouter(): Router {
     },
   );
 
+  // --- DOSEN: Daftar dosen aktif (untuk substitute teaching dropdown) ---
+  router.get(
+    '/lecturers',
+    authenticate,
+    authorize('substitute.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const result = await pgPool.query(
+          `SELECT l.id, l.user_id, l.nidn, u.full_name, u.email, p.code as prodi_code
+           FROM lecturers l
+           JOIN users u ON u.id = l.user_id
+           JOIN prodis p ON p.id = l.prodi_id
+           WHERE l.is_active AND u.is_active
+           ORDER BY u.full_name`,
+        );
+        const items = result.rows.map((r) => ({
+          id: Number(r.id),
+          userId: Number(r.user_id),
+          nidn: r.nidn,
+          fullName: r.full_name,
+          email: r.email,
+          prodiCode: r.prodi_code,
+        }));
+        res.json({ success: true, data: { items } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // --- DOSEN: Kelas belum diklaim (lecturer_id IS NULL) di prodi dosen + jadwal-nya (T3.9) ---
   router.get(
     '/available-classes',
