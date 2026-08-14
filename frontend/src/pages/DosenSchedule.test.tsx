@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenSchedule } from './DosenSchedule';
 import { unclaimClass } from '../lib/api';
-// import type { ClaimableClass } from '../lib/types';
 
 function jsonResponse(payload: unknown, status = 200) {
   return {
@@ -193,14 +192,12 @@ describe('DosenSchedule (T3.9 — checklist klaim jadwal)', () => {
 
   it('checkbox "Pilih semua" → klaim semua kelas sekaligus', async () => {
     const postBodies: unknown[] = [];
-    let callCount = 0;
 
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method === 'POST' && String(url).includes('/claim-class')) {
         postBodies.push(JSON.parse(String(init.body)));
         return Promise.resolve(jsonResponse({ success: true, data: { message: 'Kelas berhasil diklaim' } }));
       }
-      callCount++;
       return Promise.resolve(jsonResponse({ success: true, data: { items: CLAIMABLE_CLASSES_RAW } }));
     });
 
