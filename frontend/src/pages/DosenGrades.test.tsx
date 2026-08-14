@@ -162,13 +162,13 @@ describe('DosenGrades (T3.8)', () => {
     ).toBeInTheDocument();
   });
 
-  it('edit skor → submit → POST /grades + success + reload', async () => {
+  it('edit skor → submit → PUT /grades/:id + success + reload', async () => {
     const user = userEvent.setup();
-    const postBodies: unknown[] = [];
+    const putBodies: unknown[] = [];
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       const u = String(url);
-      if (init?.method === 'POST' && u.endsWith('/grades')) {
-        postBodies.push(JSON.parse(String(init.body)));
+      if (init?.method === 'PUT' && u.includes('/grades/')) {
+        putBodies.push(JSON.parse(String(init.body)));
         return Promise.resolve(jsonResponse({ success: true, data: { id: 52 } }));
       }
       if (u.includes('/dosen/my-classes')) {
@@ -202,7 +202,7 @@ describe('DosenGrades (T3.8)', () => {
 
     await user.click(screen.getByRole('button', { name: 'Simpan Nilai' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Nilai berhasil disimpan');
-    expect(postBodies).toEqual([
+    expect(putBodies).toEqual([
       {
         krsItemId: 501,
         tugasScore: 80,
@@ -219,7 +219,7 @@ describe('DosenGrades (T3.8)', () => {
     const user = userEvent.setup();
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       const u = String(url);
-      if (init?.method === 'POST' && u.endsWith('/grades')) {
+      if (init?.method === 'PUT' && u.includes('/grades/')) {
         return Promise.resolve(
           jsonResponse(
             { success: false, error: { code: 'VALIDATION_ERROR', message: 'Skor > 100' } },

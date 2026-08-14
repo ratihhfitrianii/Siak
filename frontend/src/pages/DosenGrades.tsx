@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getGradesByClass, submitGrades, getMyClasses } from '../lib/api';
+import { getGradesByClass, submitGrades, updateGrade, getMyClasses } from '../lib/api';
 import type { GradeClassItem, GradeInput, MyClass } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
@@ -109,7 +109,15 @@ export function DosenGrades() {
           remedialUtsScore: grade.remedialUtsScore,
           remedialUasScore: grade.remedialUasScore,
         };
-        await submitGrades(input);
+        // Grade sudah ada (memiliki id) → gunakan updateGrade (PUT), bukan submitGrades (POST)
+        if (
+          grade.id &&
+          (grade.tugasScore !== null || grade.utsScore !== null || grade.uasScore !== null)
+        ) {
+          await updateGrade(grade.id, input);
+        } else {
+          await submitGrades(input);
+        }
       }
       setSuccess('Nilai berhasil disimpan');
       if (classId) {
@@ -119,6 +127,8 @@ export function DosenGrades() {
       const apiError = err as { code?: string; message?: string };
       if (apiError.code === 'VALIDATION_ERROR') {
         setError(apiError.message ?? 'Data tidak valid');
+      } else if (apiError.code === 'CONFLICT') {
+        setError('Nilai sudah ada — gunakan edit, bukan tambah baru');
       } else {
         setError('Gagal menyimpan nilai');
       }
