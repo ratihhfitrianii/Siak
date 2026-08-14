@@ -44,6 +44,8 @@ const COURSES = [
   },
 ];
 
+const COURSES_RESPONSE = { success: true, data: { items: COURSES } };
+
 describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huruf)', () => {
   const fetchMock = vi.fn();
 
@@ -64,7 +66,7 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
         return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
       }
       if (String(url).includes('/dosen/courses/available')) {
-        return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+        return Promise.resolve(jsonResponse(COURSES_RESPONSE));
       }
       return Promise.resolve(jsonResponse({ success: true, data: { items: [] } }));
     });
@@ -97,24 +99,26 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
           return Promise.resolve(
             jsonResponse({
               success: true,
-              data: [
-                {
-                  curriculum_id: 201,
-                  course_code: 'TI201',
-                  course_name: 'Pemrograman Lanjut',
-                  credits: 3,
-                  semester_number: 3,
-                  is_mandatory: true,
-                  available_classes: 1,
-                  selection_status: 'belum_diajukan',
-                  priority: null,
-                  notes: null,
-                },
-              ],
+              data: {
+                items: [
+                  {
+                    curriculum_id: 201,
+                    course_code: 'TI201',
+                    course_name: 'Pemrograman Lanjut',
+                    credits: 3,
+                    semester_number: 3,
+                    is_mandatory: true,
+                    available_classes: 1,
+                    selection_status: 'belum_diajukan',
+                    priority: null,
+                    notes: null,
+                  },
+                ],
+              },
             }),
           );
         }
-        return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+        return Promise.resolve(jsonResponse(COURSES_RESPONSE));
       }
       return Promise.resolve(jsonResponse({ success: true, data: { items: [] } }));
     });
@@ -164,7 +168,7 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
         return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
       }
       if (String(url).includes('/dosen/courses/available')) {
-        return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+        return Promise.resolve(jsonResponse(COURSES_RESPONSE));
       }
       return Promise.resolve(jsonResponse({ success: true, data: { items: [] } }));
     });
@@ -192,7 +196,7 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
       if (String(url).includes('/dosen/semesters')) {
         return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
       }
-      return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+      return Promise.resolve(jsonResponse(COURSES_RESPONSE));
     });
     render(<DosenSelectMK />);
     await screen.findByText('Dasar-Dasar Pemrograman');
@@ -227,7 +231,7 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
       if (u.includes('/dosen/semesters')) {
         return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
       }
-      return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+      return Promise.resolve(jsonResponse(COURSES_RESPONSE));
     });
 
     render(<DosenSelectMK />);
@@ -259,7 +263,7 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
       if (u.includes('/dosen/semesters')) {
         return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
       }
-      return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+      return Promise.resolve(jsonResponse(COURSES_RESPONSE));
     });
 
     render(<DosenSelectMK />);
@@ -278,7 +282,7 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
       if (String(url).includes('/dosen/semesters')) {
         return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
       }
-      return Promise.resolve(jsonResponse({ success: true, data: COURSES }));
+      return Promise.resolve(jsonResponse(COURSES_RESPONSE));
     });
 
     render(<DosenSelectMK />);

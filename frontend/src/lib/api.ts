@@ -740,10 +740,10 @@ export async function getAvailableCourses(
   search?: string,
 ): Promise<LecturerCourseAvailableResponse> {
   const qs = search ? `&search=${encodeURIComponent(search)}` : '';
-  const rows = await apiRequest<Record<string, unknown>[]>(
+  const res = await apiRequest<{ items: Array<Record<string, unknown>> }>(
     `/dosen/courses/available?semesterId=${semesterId}${qs}`,
   );
-  return { items: rows.map(normalizeCourseAvailable) };
+  return { items: res.items.map(normalizeCourseAvailable) };
 }
 
 /** POST /dosen/courses/select — ajukan/diperbarui pilihan MK. */
@@ -781,8 +781,10 @@ export async function getMyCourseSelections(
   semesterId?: number,
 ): Promise<MyCourseSelectionsResponse> {
   const qs = semesterId ? `?semesterId=${semesterId}` : '';
-  const rows = await apiRequest<Record<string, unknown>[]>(`/dosen/courses/my${qs}`);
-  return { items: rows.map(normalizeMyCourseSelection) };
+  const res = await apiRequest<{ items: Array<Record<string, unknown>> }>(
+    `/dosen/courses/my${qs}`,
+  );
+  return { items: res.items.map(normalizeMyCourseSelection) };
 }
 
 /** GET /krs/period — periode KRS aktif (dipakai Pilih MK untuk default semester). */
