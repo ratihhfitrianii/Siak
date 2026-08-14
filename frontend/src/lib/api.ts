@@ -513,7 +513,7 @@ export async function getAcademicClasses(curriculumId: number): Promise<{
   }>(`/academic/classes?curriculum_id=${curriculumId}`);
 }
 
-/** GET /academic/curricula — daftar kurikulum (filter prodi, semester). */
+/** GET /curricula — daftar kurikulum (filter prodi, semester). */
 export async function getAcademicCurricula(params?: {
   prodiId?: number;
   semesterId?: number;
@@ -542,7 +542,7 @@ export async function getAcademicCurricula(params?: {
       prodi_name: string;
       semester_id: number;
     }>;
-  }>(`/academic/curricula${qs ? `?${qs}` : ''}`);
+  }>(`/curricula${qs ? `?${qs}` : ''}`);
 }
 
 /** GET /finance/my-payment — mahasiswa lihat tagihan sendiri. */

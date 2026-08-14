@@ -22,12 +22,21 @@ const CURRICULA = {
     items: [
       {
         id: 1,
-        course_code: 'IF101',
-        course_name: 'Pemrograman',
+        course_code: 'TI101',
+        course_name: 'Pemrograman Dasar',
         credits: 3,
         semester_number: 1,
         prodi_name: 'Teknik Informatika',
-        semester_id: 5,
+        semester_id: 3,
+      },
+      {
+        id: 2,
+        course_code: 'TI103',
+        course_name: 'Algoritma dan Pemrograman',
+        credits: 3,
+        semester_number: 1,
+        prodi_name: 'Teknik Informatika',
+        semester_id: 3,
       },
     ],
   },
@@ -39,7 +48,7 @@ const CLASSES = {
     items: [
       {
         id: 10,
-        class_code: 'IF101-A',
+        class_code: 'TI101-A',
         day_of_week: 2,
         start_time: '08:00',
         end_time: '09:40',
@@ -56,13 +65,13 @@ const CLASSES = {
 const SCHEDULES = {
   success: true,
   data: {
-    class: { id: 10, class_code: 'IF101-A' },
+    class: { id: 10, class_code: 'TI101-A' },
     schedules: [
       {
         id: 1,
         meeting_number: 1,
         scheduled_date: '2026-02-02',
-        topic: 'Pengantar',
+        topic: 'Pemrograman Dasar',
         is_completed: false,
       },
     ],
@@ -70,7 +79,7 @@ const SCHEDULES = {
 };
 
 function baseFetch(url: string) {
-  if (url.includes('/academic/curricula')) {
+  if (url.includes('/curricula')) {
     return Promise.resolve(jsonResponse(CURRICULA));
   }
   if (url.includes('/academic/classes')) {
@@ -92,7 +101,7 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     render(<AdminSchedulePage />);
 
     // Kurikulum ter-load
-    expect(await screen.findByText(/Teknik Informatika — IF101/)).toBeInTheDocument();
+    expect(await screen.findByText(/Teknik Informatika — TI101/)).toBeInTheDocument();
 
     // Pilih kurikulum pertama
     const curriculumSelect = (await screen.findAllByRole('combobox'))[0] as HTMLSelectElement;
@@ -100,7 +109,7 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     curriculumSelect.dispatchEvent(new Event('change', { bubbles: true }));
 
     // Kelas ter-load
-    expect(await screen.findByText(/IF101-A/)).toBeInTheDocument();
+    expect(await screen.findByText(/TI101-A/)).toBeInTheDocument();
 
     // Pilih kelas
     const classSelect = (await screen.findAllByRole('combobox'))[1] as HTMLSelectElement;
@@ -109,7 +118,7 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
 
     // Jadwal tampil (normalisasi snake→camel)
     expect(await screen.findByText('1')).toBeInTheDocument(); // meeting number
-    expect(screen.getByText('Pengantar')).toBeInTheDocument();
+    expect(await screen.findByRole('cell', { name: /Pemrograman Dasar/ })).toBeInTheDocument();
     expect(screen.getByText('Terjadwal')).toBeInTheDocument(); // is_completed=false
   });
 
@@ -200,16 +209,16 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     render(<AdminSchedulePage />);
 
     // Pilih kurikulum + kelas → jadwal tampil
-    expect(await screen.findByText(/Teknik Informatika — IF101/)).toBeInTheDocument();
+    expect(await screen.findByText(/Teknik Informatika — TI101/)).toBeInTheDocument();
     const curriculumSelect = (await screen.findAllByRole('combobox'))[0] as HTMLSelectElement;
     curriculumSelect.value = '1';
     curriculumSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    expect(await screen.findByText(/IF101-A/)).toBeInTheDocument();
+    expect(await screen.findByText(/TI101-A/)).toBeInTheDocument();
     const classSelect = (await screen.findAllByRole('combobox'))[1] as HTMLSelectElement;
     classSelect.value = '10';
     classSelect.dispatchEvent(new Event('change', { bubbles: true }));
 
-    expect(await screen.findByText('Pengantar')).toBeInTheDocument();
+    expect(await screen.findByRole('cell', { name: /Pemrograman Dasar/ })).toBeInTheDocument();
     // Klik Edit
     const editBtn = await screen.findByRole('button', { name: /^Edit$/i });
     editBtn.click();
@@ -250,16 +259,16 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     );
     render(<AdminSchedulePage />);
 
-    expect(await screen.findByText(/Teknik Informatika — IF101/)).toBeInTheDocument();
+    expect(await screen.findByText(/Teknik Informatika — TI101/)).toBeInTheDocument();
     const curriculumSelect = (await screen.findAllByRole('combobox'))[0] as HTMLSelectElement;
     curriculumSelect.value = '1';
     curriculumSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    expect(await screen.findByText(/IF101-A/)).toBeInTheDocument();
+    expect(await screen.findByText(/TI101-A/)).toBeInTheDocument();
     const classSelect = (await screen.findAllByRole('combobox'))[1] as HTMLSelectElement;
     classSelect.value = '10';
     classSelect.dispatchEvent(new Event('change', { bubbles: true }));
 
-    expect(await screen.findByText('Pengantar')).toBeInTheDocument();
+    expect(await screen.findByRole('cell', { name: /Pemrograman Dasar/ })).toBeInTheDocument();
     const deleteBtn = await screen.findByRole('button', { name: /^Hapus$/i });
     deleteBtn.click();
 
