@@ -39,26 +39,22 @@ interface MyClassSummary {
 
 export function DosenDashboardPage() {
   const { tab } = useParams<{ tab?: string }>();
-  // Jika tab valid → render sub-komponen langsung (tanpa header dashboard)
-  if (tab && TABS.some((t) => t.id === tab)) {
-    const ActiveComponent = TABS.find((t) => t.id === tab)!.component;
-    return <ActiveComponent />;
-  }
+  const isSubTab = tab && TABS.some((t) => t.id === tab);
 
-  // Root `/dosen` (tanpa tab) → tampilkan dashboard overview dengan header
-  // const activeTab: TabId = 'pilih-mk'; // default fallback jika tab tidak dikenal (unused)
-  // const ActiveComponent = TABS.find((t) => t.id === activeTab)!.component; // unused
-
-  // Fetch ringkasan kelas untuk dashboard overview
+  // Fetch ringkasan kelas untuk dashboard overview (hanya dipakai di root)
   const [myClasses, setMyClasses] = useState<MyClassSummary[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
 
   useEffect(() => {
-    getMyClasses()
-      .then((res) => setMyClasses(res.items))
-      .catch(() => setMyClasses([]))
-      .finally(() => setLoadingClasses(false));
-  }, []);
+    if (!isSubTab) {
+      getMyClasses()
+        .then((res) => setMyClasses(res.items))
+        .catch(() => setMyClasses([]))
+        .finally(() => setLoadingClasses(false));
+    } else {
+      setLoadingClasses(false);
+    }
+  }, [isSubTab]);
 
   const totalClasses = myClasses.length;
   const totalMeetings = myClasses.reduce((sum, c) => sum + c.schedules.length, 0);
@@ -68,6 +64,13 @@ export function DosenDashboardPage() {
   );
   const upcomingMeetings = totalMeetings - completedMeetings;
 
+  // Sub-tab → render langsung komponen tanpa header/dashboard
+  if (isSubTab) {
+    const ActiveComponent = TABS.find((t) => t.id === tab)!.component;
+    return <ActiveComponent />;
+  }
+
+  // Root `/dosen` (tanpa tab) → tampilkan dashboard overview dengan header
   return (
     <div className="space-y-6">
       {/* Header Dashboard — hanya di root `/dosen` */}
