@@ -101,4 +101,24 @@ describe('ProfilePage (keluhan #26 — Edit Profil)', () => {
 
     expect(await screen.findByText('Email sudah digunakan')).toBeInTheDocument();
   });
+
+  it('email kosong → undefined (tidak dikirim)', async () => {
+    mockedApi.updateMyContact.mockResolvedValue({
+      id: 7,
+      email: 'budi@kampus.ac.id',
+      fullName: 'Budi Santoso',
+      message: 'Kontak berhasil diperbarui',
+    });
+    render(<ProfilePage />);
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan Perubahan' }));
+
+    await waitFor(() => {
+      expect(mockedApi.updateMyContact).toHaveBeenCalledWith({
+        fullName: 'Budi Santoso',
+        email: undefined,
+      });
+    });
+  });
 });

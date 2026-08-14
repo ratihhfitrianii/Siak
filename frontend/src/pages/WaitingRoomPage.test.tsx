@@ -109,6 +109,10 @@ describe('WaitingRoomPage (T1.13)', () => {
       expect(screen.getByText('HOME-DASHBOARD')).toBeInTheDocument();
     });
     expect(sessionStorage.getItem(WAITING_TOKEN_KEY)).toBeNull();
-    expect(socket.disconnect).toHaveBeenCalled();
+
+    // Tunggu cleanup useEffect (disconnect dipanggil saat unmount)
+    await waitFor(() => {
+      expect(socket.disconnect).toHaveBeenCalled();
+    });
   });
 });
