@@ -722,14 +722,14 @@ import type {
 /** GET /dosen/courses/available?semesterId= — daftar MK tersedia untuk dosen. */
 function normalizeCourseAvailable(r: Record<string, unknown>): LecturerCourseAvailable {
   return {
-    curriculumId: Number(r.curriculum_id),
-    courseCode: String(r.course_code),
-    courseName: String(r.course_name),
+    curriculum_id: Number(r.curriculum_id),
+    course_code: String(r.course_code),
+    course_name: String(r.course_name),
     credits: Number(r.credits),
-    semesterNumber: Number(r.semester_number),
-    isMandatory: Boolean(r.is_mandatory),
-    availableClasses: Number(r.available_classes),
-    selectionStatus: String(r.selection_status) as LecturerCourseAvailable['selectionStatus'],
+    semester_number: Number(r.semester_number),
+    is_mandatory: Boolean(r.is_mandatory),
+    available_classes: Number(r.available_classes),
+    selection_status: String(r.selection_status) as LecturerCourseAvailable['selection_status'],
     priority: r.priority !== null ? Number(r.priority) : null,
     notes: r.notes ? String(r.notes) : null,
   };
