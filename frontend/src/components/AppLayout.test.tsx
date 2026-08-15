@@ -67,6 +67,22 @@ const ADMIN_KEUANGAN = {
   menu: ['payment.update'],
 };
 
+// Admin Akademik punya transcript.view_own (warisan matriks) tapi menu Transkrip
+// sengaja disembunyikan untuk role ini (permintaan: hapus menu Transkrip di admin akademik).
+const ADMIN_AKADEMIK = {
+  id: 3,
+  email: 'akademik@kampus.ac.id',
+  fullName: 'Akademik',
+  role: 'admin_akademik',
+  roleName: 'Admin Akademik',
+  isWali: false,
+  isActive: true,
+  mustChangePassword: false,
+  studentId: null,
+  createdAt: '2026-01-01T00:00:00Z',
+  menu: ['schedule.manage', 'transcript.view_own', 'user.edit_contact'],
+};
+
 // Dosen punya transcript.view_own (matriks §6.1) tapi menu Transkrip sengaja disembunyikan
 // (keluhan lama: "menu yang tidak tersedia tidak perlu ditampilkan").
 // Submenu dosen (Pilih MK, Jadwal, dll) tampil di sidebar (keluhan #5) — butuh permission tsb.
@@ -237,6 +253,17 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.queryByRole('link', { name: 'User' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Pembayaran' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Tagihan' })).not.toBeInTheDocument();
+  });
+
+  it('admin akademik → Transkrip disembunyikan meski punya transcript.view_own', () => {
+    mockUser = ADMIN_AKADEMIK;
+    renderLayout();
+
+    // role admin_akademik → menu Transkrip di-sembunyikan per role (HIDDEN_MENU_BY_ROLE)
+    expect(screen.queryByRole('link', { name: 'Transkrip' })).not.toBeInTheDocument();
+    // menu domainnya tetap tampil
+    expect(screen.getByRole('link', { name: 'Jadwal' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
   });
 
   it('keluhan #5 — submenu dosen pindah ke sidebar (Pilih MK, Jadwal, Absensi, Bimbingan, Substitute, Nilai)', () => {

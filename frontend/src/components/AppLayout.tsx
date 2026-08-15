@@ -176,6 +176,7 @@ const ROLE_LABEL: Record<string, string> = {
 const HIDDEN_MENU_BY_ROLE: Record<string, string[]> = {
   dosen: ['/transkrip'],
   admin_keuangan: ['/transkrip'],
+  admin_akademik: ['/transkrip'],
 };
 
 function MenuIcon({ path }: { path: string }) {

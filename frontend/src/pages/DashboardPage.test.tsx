@@ -57,6 +57,20 @@ const ADMIN = {
   menu: ['user.manage'],
 };
 
+const ADMIN_AKADEMIK = {
+  id: 2,
+  email: 'akademik@kampus.ac.id',
+  fullName: 'Akademik',
+  role: 'admin_akademik',
+  roleName: 'Admin Akademik',
+  isWali: false,
+  isActive: true,
+  mustChangePassword: false,
+  studentId: null,
+  createdAt: '2026-01-01T00:00:00Z',
+  menu: ['krs.approve', 'krs.view_classes', 'schedule.manage'],
+};
+
 const OPEN_PERIOD = {
   id: 3,
   semesterId: 5,
@@ -197,5 +211,17 @@ describe('DashboardPage (T1.11b + keluhan #27 info terkini)', () => {
     expect(await screen.findByText('Info Penting')).toBeInTheDocument();
     expect(screen.queryByText('Periode Pengisian KRS')).not.toBeInTheDocument();
     expect(mockedApi.getKrsPeriod).not.toHaveBeenCalled();
+  });
+
+  it('admin akademik (krs.approve) → kartu Periode KRS tampil TANPA link Isi KRS', async () => {
+    mockUser = ADMIN_AKADEMIK;
+    renderDashboard();
+
+    expect(await screen.findByText('Periode Pengisian KRS')).toBeInTheDocument();
+    expect(screen.getByText('Buka')).toBeInTheDocument();
+    expect(screen.getByText('2025/2026-1')).toBeInTheDocument();
+    // Link "Isi KRS sekarang" HANYA untuk mahasiswa → tidak tampil
+    expect(screen.queryByRole('link', { name: /Isi KRS sekarang/ })).not.toBeInTheDocument();
+    expect(mockedApi.getKrsPeriod).toHaveBeenCalledTimes(1);
   });
 });

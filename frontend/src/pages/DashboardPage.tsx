@@ -126,12 +126,14 @@ export function DashboardPage() {
                 {period.isRevision && (
                   <p className="mt-1 text-xs font-medium text-amber-600">Periode revisi</p>
                 )}
-                <Link
-                  to="/krs"
-                  className="mt-3 inline-block text-sm font-semibold text-primary-600 hover:text-primary-700"
-                >
-                  Isi KRS sekarang →
-                </Link>
+                {user.role === 'mahasiswa' && (
+                  <Link
+                    to="/krs"
+                    className="mt-3 inline-block text-sm font-semibold text-primary-600 hover:text-primary-700"
+                  >
+                    Isi KRS sekarang →
+                  </Link>
+                )}
               </div>
             )}
           </div>
