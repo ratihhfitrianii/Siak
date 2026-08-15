@@ -297,4 +297,67 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
     const labelSpan = card!.querySelector('label span');
     expect(labelSpan?.textContent).toContain('Dipilih');
   });
+
+  it('toggle tampilan grid/list — tombol ikon mengubah layout', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url).includes('/dosen/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
+      }
+      return Promise.resolve(jsonResponse(COURSES_RESPONSE));
+    });
+
+    render(<DosenSelectMK />);
+    await screen.findByText('Dasar-Dasar Pemrograman');
+
+    // Default grid: ada 2 kolom (grid-cols-2 md:grid-cols-2)
+    const gridContainer = screen.getByText('Dasar-Dasar Pemrograman').closest('.grid');
+    expect(gridContainer).not.toBeNull();
+
+    // Klik tombol list (ikon)
+    const listBtn = screen.getByRole('button', { name: 'Tampilan list' });
+    expect(listBtn).toBeInTheDocument();
+    await user.click(listBtn);
+    expect(listBtn).toHaveAttribute('aria-pressed', 'true');
+
+    // Setelah list: kartu tidak lagi di dalam container .grid
+    const afterGrid = screen.getByText('Dasar-Dasar Pemrograman').closest('.grid');
+    expect(afterGrid).toBeNull();
+
+    // Kembali ke grid
+    const gridBtn = screen.getByRole('button', { name: 'Tampilan grid' });
+    await user.click(gridBtn);
+    expect(screen.getByText('Dasar-Dasar Pemrograman').closest('.grid')).not.toBeNull();
+  });
+
+  it('MK dengan status disetujui/diajukan → checkbox disabled + label "Sudah diajukan"', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url).includes('/dosen/semesters')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
+      }
+      return Promise.resolve(jsonResponse(COURSES_RESPONSE));
+    });
+
+    render(<DosenSelectMK />);
+    await screen.findByText('Dasar-Dasar Pemrograman');
+
+    // TI102 (disetujui) muncul HANYA di section "Sudah Diajukan" (tidak di grid selectable)
+    expect(screen.getAllByText('Struktur Data')).toHaveLength(1);
+
+    // Grid selectable tetap berisi MK belum_diajukan dengan 1 checkbox
+    const checkboxes = screen.getAllByRole('checkbox');
+    expect(checkboxes).toHaveLength(1); // hanya Dasar-Dasar Pemrograman yang selectable
+
+    // Muncul di section "Mata Kuliah Sudah Diajukan" dengan badge disetujui
+    const submittedHeading = screen.getByText(/Mata Kuliah Sudah Diajukan \(1\)/);
+    expect(submittedHeading).toBeInTheDocument();
+    const submittedSection = submittedHeading.closest('div.border-t') as HTMLElement;
+    expect(submittedSection.textContent).toContain('Struktur Data');
+    expect(submittedSection.textContent).toContain('disetujui');
+    // Tidak ada checkbox di section submitted (sudah tidak bisa dipilih)
+    expect(submittedSection.querySelector('input[type="checkbox"]')).toBeNull();
+
+    // Tombol submit tetap disabled karena belum ada yang dipilih
+    expect(screen.getByRole('button', { name: /Ajukan 0 MK/ })).toBeDisabled();
+  });
 });
