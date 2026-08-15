@@ -38,7 +38,7 @@ const listQuerySchema = z.object({
 export function createAnnouncementRouter(): Router {
   const router = Router();
 
-  // GET /announcements — list announcements
+  // GET / — list announcements
   // Admin sistem: semua announcement (filter activeOnly)
   // Mahasiswa/Dosen: hanya yang isActive, publishedAt <= now, (expiresAt IS NULL OR expiresAt > now), targetRoles contains their role OR empty
   router.get(
@@ -101,9 +101,9 @@ export function createAnnouncementRouter(): Router {
     },
   );
 
-  // GET /announcements/:id — detail
+  // GET /:id — detail
   router.get(
-    '/announcements/:id',
+    '/:id',
     authenticate,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -150,9 +150,9 @@ export function createAnnouncementRouter(): Router {
     },
   );
 
-  // POST /announcements — buat announcement (admin_sistem)
+  // POST / — buat announcement (admin_sistem)
   router.post(
-    '/announcements',
+    '/',
     authenticate,
     authorize('user.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
@@ -193,9 +193,9 @@ export function createAnnouncementRouter(): Router {
     },
   );
 
-  // PUT /announcements/:id — update announcement (admin_sistem)
+  // PUT /:id — update announcement (admin_sistem)
   router.put(
-    '/announcements/:id',
+    '/:id',
     authenticate,
     authorize('user.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
@@ -279,9 +279,9 @@ export function createAnnouncementRouter(): Router {
     },
   );
 
-  // DELETE /announcements/:id — hapus announcement (soft delete: is_active=false)
+  // DELETE /:id — hapus announcement (soft delete: is_active=false)
   router.delete(
-    '/announcements/:id',
+    '/:id',
     authenticate,
     authorize('user.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
