@@ -99,7 +99,7 @@ describe('DosenSubstitute (T3.8)', () => {
     fetchMock.mockImplementation((url: string) => {
       const u = String(url);
       if (u.includes('/substitute?limit=100')) {
-        return Promise.resolve(jsonResponse({ data: REQUESTS_RAW }));
+        return Promise.resolve(jsonResponse({ data: { items: REQUESTS_RAW } }));
       }
       if (u.includes('/dosen/lecturers')) {
         return Promise.resolve(jsonResponse({ data: LECTURERS }));
@@ -182,7 +182,7 @@ describe('DosenSubstitute (T3.8)', () => {
         );
       }
       if (u.includes('/substitute?limit=100')) {
-        return Promise.resolve(jsonResponse({ data: REQUESTS_RAW }));
+        return Promise.resolve(jsonResponse({ data: { items: REQUESTS_RAW } }));
       }
       if (u.includes('/dosen/lecturers')) {
         return Promise.resolve(jsonResponse({ data: LECTURERS }));
@@ -226,7 +226,7 @@ describe('DosenSubstitute (T3.8)', () => {
         );
       }
       if (u.includes('/substitute?limit=100')) {
-        return Promise.resolve(jsonResponse({ data: [] }));
+        return Promise.resolve(jsonResponse({ data: { items: [] } }));
       }
       if (u.includes('/dosen/lecturers')) {
         return Promise.resolve(jsonResponse({ data: LECTURERS }));
@@ -237,7 +237,8 @@ describe('DosenSubstitute (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: [] }));
     });
     render(<DosenSubstitute />);
-    await screen.findByRole('button', { name: 'Ajukan Substitute' });
+    // Tunggu opsi dosen pengganti muncul (menjamin lecturers + my-classes selesai load)
+    await screen.findByRole('option', { name: 'Dosen Dua (TI)' });
 
     await user.selectOptions(controlFor('Dosen Pengganti', 'select'), '2');
     await user.selectOptions(controlFor('Kelas', 'select'), '1');
@@ -262,7 +263,7 @@ describe('DosenSubstitute (T3.8)', () => {
         );
       }
       if (u.includes('/substitute?limit=100')) {
-        return Promise.resolve(jsonResponse({ data: REQUESTS_RAW }));
+        return Promise.resolve(jsonResponse({ data: { items: REQUESTS_RAW } }));
       }
       if (u.includes('/dosen/lecturers')) {
         return Promise.resolve(jsonResponse({ data: LECTURERS }));

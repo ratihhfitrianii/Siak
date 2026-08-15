@@ -1147,8 +1147,8 @@ function normalizeSubstitute(r: SubstituteRow): SubstituteRequest {
 
 /** GET /substitute?limit=100 — daftar substitute (ownership otomatis: original ATAU pengganti). */
 export async function getSubstituteRequests(): Promise<SubstituteRequestResponse> {
-  const rows = await apiRequest<SubstituteRow[]>('/substitute?limit=100');
-  return { items: rows.map(normalizeSubstitute) };
+  const res = await apiRequest<{ items: SubstituteRow[] }>('/substitute?limit=100');
+  return { items: res.items.map(normalizeSubstitute) };
 }
 
 /** POST /substitute — ajukan substitute teaching (langsung aktif). */
