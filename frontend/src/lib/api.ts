@@ -31,6 +31,15 @@ import type {
   ClassSchedule,
   ClaimableClass,
   ClaimableClassResponse,
+  Faculty,
+  Prodi,
+  CreateFacultyInput,
+  UpdateFacultyInput,
+  CreateProdiInput,
+  UpdateProdiInput,
+  Announcement,
+  AnnouncementsResponse,
+  CreateAnnouncementInput,
 } from './types';
 
 export class ApiError extends Error {
@@ -689,6 +698,42 @@ export async function markAllNotificationsRead(): Promise<number> {
   return data.marked;
 }
 
+/* ==== Announcements (Informasi Penting) ==== */
+
+export async function getAnnouncements(page = 1, limit = 20): Promise<AnnouncementsResponse> {
+  const qs = `?page=${page}&limit=${limit}`;
+  const data = await apiRequest<AnnouncementsResponse>(`/announcements${qs}`);
+  return data;
+}
+
+export async function getAnnouncement(id: number): Promise<Announcement> {
+  const data = await apiRequest<Announcement>(`/announcements/${id}`);
+  return data;
+}
+
+export async function createAnnouncement(input: CreateAnnouncementInput): Promise<Announcement> {
+  const data = await apiRequest<Announcement>('/announcements', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return data;
+}
+
+export async function updateAnnouncement(id: number, input: Partial<CreateAnnouncementInput>): Promise<Announcement> {
+  const data = await apiRequest<Announcement>(`/announcements/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+  return data;
+}
+
+export async function deleteAnnouncement(id: number): Promise<{ message: string }> {
+  const data = await apiRequest<{ message: string }>(`/announcements/${id}`, {
+    method: 'DELETE',
+  });
+  return data;
+}
+
 /* ==== T3.8 — Dosen API (diselaraskan dengan kontrak backend nyata) ==== */
 
 import type {
@@ -1240,6 +1285,56 @@ export async function createMasterLecturer(
   return apiRequest<{ id: number; nidn: string; message: string }>('/admin-master/lecturers', {
     method: 'POST',
     body: input,
+  });
+}
+
+/* ==== #16 Admin Master Data — Fakultas & Prodi ==== */
+
+export async function listFaculties(): Promise<Faculty[]> {
+  return apiRequest<Faculty[]>('/admin-master/faculties');
+}
+
+export async function createFaculty(input: CreateFacultyInput): Promise<Faculty> {
+  return apiRequest<Faculty>('/admin-master/faculties', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function updateFaculty(id: number, input: UpdateFacultyInput): Promise<Faculty> {
+  return apiRequest<Faculty>(`/admin-master/faculties/${id}`, {
+    method: 'PUT',
+    body: input,
+  });
+}
+
+export async function deleteFaculty(id: number): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/admin-master/faculties/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function listProdis(): Promise<Prodi[]> {
+  return apiRequest<Prodi[]>('/admin-master/prodis');
+}
+
+export async function createProdi(input: CreateProdiInput): Promise<Prodi> {
+  return apiRequest<Prodi>('/admin-master/prodis', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function updateProdi(id: number, input: UpdateProdiInput): Promise<Prodi> {
+  return apiRequest<Prodi>(`/admin-master/prodis/${id}`, {
+    method: 'PUT',
+    body: input,
+  });
+}
+
+export async function deleteProdi(id: number): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/admin-master/prodis/${id}`, {
+    method: 'DELETE',
   });
 }
 

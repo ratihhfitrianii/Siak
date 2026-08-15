@@ -1,238 +1,236 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AdminMasterPage } from './AdminMasterPage';
 import * as api from '../lib/api';
 
-// Mock module API — hindari fetch asli di test
+// Mock module API
 vi.mock('../lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/api')>();
   return {
     ...actual,
-    listMasterStudents: vi.fn(),
-    listMasterLecturers: vi.fn(),
-    createMasterStudent: vi.fn(),
-    createMasterLecturer: vi.fn(),
-    importMasterCsv: vi.fn(),
+    listFaculties: vi.fn(),
+    createFaculty: vi.fn(),
+    updateFaculty: vi.fn(),
+    deleteFaculty: vi.fn(),
+    listProdis: vi.fn(),
+    createProdi: vi.fn(),
+    updateProdi: vi.fn(),
+    deleteProdi: vi.fn(),
   };
 });
 
 const mockedApi = vi.mocked(api);
 
-const STUDENTS = [
+const FACULTIES = [
+  { id: 1, code: 'FT', name: 'Fakultas Teknik', isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+  { id: 2, code: 'FE', name: 'Fakultas Ekonomi', isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+];
+
+const PRODIS = [
   {
     id: 1,
-    nim: '2412345678',
-    fullName: 'Budi Santoso',
-    email: 'budi@student.siak.local',
-    userActive: true,
-    prodiCode: 'TI',
-    prodiName: 'Teknik Informatika',
-    angkatan: '2024/2025',
-    status: 'aktif',
+    code: 'TI',
+    name: 'Teknik Informatika',
+    facultyId: 1,
+    facultyCode: 'FT',
+    facultyName: 'Fakultas Teknik',
+    degree: 'S1',
+    accreditation: 'A',
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
   },
   {
     id: 2,
-    nim: '2412345679',
-    fullName: 'Siti Aminah',
-    email: 'siti@student.siak.local',
-    userActive: true,
-    prodiCode: 'SI',
-    prodiName: 'Sistem Informasi',
-    angkatan: '2024/2025',
-    status: 'aktif',
+    code: 'SI',
+    name: 'Sistem Informasi',
+    facultyId: 1,
+    facultyCode: 'FT',
+    facultyName: 'Fakultas Teknik',
+    degree: 'S1',
+    accreditation: 'B',
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
   },
 ];
 
-const LECTURERS = [
-  {
-    id: 1,
-    nidn: '1234567890',
-    fullName: 'Dr. Ahmad',
-    email: 'ahmad@siak.local',
-    userActive: true,
-    isWali: true,
-    prodiCode: 'TI',
-    prodiName: 'Teknik Informatika',
-    employmentType: 'tetap',
-  },
-];
-
-function studentListResponse(items = STUDENTS, total = items.length) {
-  return { items, pagination: { page: 1, limit: 10, total } };
+function facultyResponse(items = FACULTIES) {
+  return items;
 }
 
-function lecturerListResponse(items = LECTURERS, total = items.length) {
-  return { items, pagination: { page: 1, limit: 10, total } };
+function prodiResponse(items = PRODIS) {
+  return items;
 }
 
-describe('AdminMasterPage (keluhan #16)', () => {
-  beforeAll(() => {
-    // Polyfill fetch untuk dropdown prodi (dipakai langsung via fetch, bukan api.*)
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            items: [
-              { code: 'TI', name: 'Teknik Informatika' },
-              { code: 'SI', name: 'Sistem Informasi' },
-            ],
-          },
-        }),
-      }),
-    );
-  });
-
+describe('AdminMasterPage (Fakultas & Prodi)', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('menampilkan list master mahasiswa (tab default) dengan NIM, prodi, angkatan', async () => {
-    mockedApi.listMasterStudents.mockResolvedValue(studentListResponse());
+  it('menampilkan tab Fakultas sebagai default + daftar fakultas', async () => {
+    mockedApi.listFaculties.mockResolvedValue(facultyResponse());
+    mockedApi.listProdis.mockResolvedValue(prodiResponse());
+
     render(<AdminMasterPage />);
 
     expect(await screen.findByText('Master Data')).toBeInTheDocument();
-    expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
-    expect(screen.getByText('2412345678')).toBeInTheDocument();
-    // "TI — Teknik Informatika" muncul di tabel (dan dropdown prodi) → gunakan getAllByText
-    expect(screen.getAllByText('TI — Teknik Informatika').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('2024/2025').length).toBeGreaterThan(0);
-    expect(mockedApi.listMasterStudents).toHaveBeenCalledWith(
-      expect.objectContaining({ page: 1, limit: 10 }),
-    );
+    expect(await screen.findByText('Fakultas Teknik')).toBeInTheDocument();
+    expect(screen.getByText('FT')).toBeInTheDocument();
+    // "Aktif" appears in status badges — use container to scope
+    expect(screen.getAllByText('Aktif').length).toBeGreaterThanOrEqual(2); // 2 faculties
+    expect(mockedApi.listFaculties).toHaveBeenCalled();
+    expect(mockedApi.listProdis).toHaveBeenCalled();
   });
 
-  it('ganti tab ke Master Dosen → list dosen (NIDN, wali)', async () => {
-    mockedApi.listMasterStudents.mockResolvedValue(studentListResponse());
-    mockedApi.listMasterLecturers.mockResolvedValue(lecturerListResponse());
+  it('ganti tab ke Program Studi → daftar prodi', async () => {
+    mockedApi.listFaculties.mockResolvedValue(facultyResponse());
+    mockedApi.listProdis.mockResolvedValue(prodiResponse());
+
     render(<AdminMasterPage />);
 
-    await screen.findByText('Budi Santoso');
-    fireEvent.click(screen.getByRole('tab', { name: 'Master Dosen' }));
+    await screen.findByText('Fakultas Teknik');
+    fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
 
-    expect(await screen.findByText('Dr. Ahmad')).toBeInTheDocument();
-    expect(screen.getByText('1234567890')).toBeInTheDocument();
-    expect(screen.getByText('Ya')).toBeInTheDocument();
-    expect(mockedApi.listMasterLecturers).toHaveBeenCalled();
+    expect(await screen.findByText('Teknik Informatika')).toBeInTheDocument();
+    expect(screen.getByText('TI')).toBeInTheDocument();
+    // S1 appears in dropdown options too — check table cell specifically
+    expect(screen.getAllByText('S1').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('A')).toBeInTheDocument();
   });
 
-  it('search → memanggil list dengan parameter search (debounce 300ms)', async () => {
-    mockedApi.listMasterStudents.mockResolvedValue(studentListResponse());
+  it('tambah fakultas baru → createFaculty dipanggil + list refresh', async () => {
+    mockedApi.listFaculties.mockResolvedValue(facultyResponse());
+    mockedApi.listProdis.mockResolvedValue(prodiResponse());
+    mockedApi.createFaculty.mockResolvedValue({ id: 3, code: 'FH', name: 'Fakultas Hukum', isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' });
+
     render(<AdminMasterPage />);
 
-    await screen.findByText('Budi Santoso');
-    const searchBox = screen.getByLabelText('Cari master data');
-    fireEvent.change(searchBox, { target: { value: 'budi' } });
+    await screen.findByText('Fakultas Teknik');
 
-    await waitFor(
-      () => {
-        expect(mockedApi.listMasterStudents).toHaveBeenLastCalledWith(
-          expect.objectContaining({ search: 'budi' }),
-        );
-      },
-      { timeout: 2000 },
-    );
+    // Klik Tambah Fakultas
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah Fakultas' }));
+
+    // Isi form - use label text (with asterisk)
+    fireEvent.change(screen.getByLabelText('Kode Fakultas *'), { target: { value: 'FH' } });
+    fireEvent.change(screen.getByLabelText('Nama Fakultas *'), { target: { value: 'Fakultas Hukum' } });
+
+    // Submit
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan Fakultas' }));
+
+    await waitFor(() => {
+      expect(mockedApi.createFaculty).toHaveBeenCalledWith({
+        code: 'FH',
+        name: 'Fakultas Hukum',
+        isActive: true,
+      });
+    });
+
+    expect(await screen.findByText(/Fakultas berhasil dibuat/)).toBeInTheDocument();
+    expect(mockedApi.listFaculties).toHaveBeenCalledTimes(2); // initial + after create
   });
 
-  it('tambah mahasiswa manual → modal + submit → createMasterStudent dipanggil + sukses', async () => {
-    mockedApi.listMasterStudents.mockResolvedValue(studentListResponse());
-    mockedApi.createMasterStudent.mockResolvedValue({
+  it('edit fakultas → updateFaculty dipanggil', async () => {
+    mockedApi.listFaculties.mockResolvedValue(facultyResponse());
+    mockedApi.listProdis.mockResolvedValue(prodiResponse());
+    mockedApi.updateFaculty.mockResolvedValue({ id: 1, code: 'FT', name: 'Fakultas Teknik Baru', isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' });
+
+    render(<AdminMasterPage />);
+
+    await screen.findByText('Fakultas Teknik');
+
+    // Klik Edit pada fakultas pertama
+    fireEvent.click(screen.getAllByText('Edit')[0]);
+
+    // Nama berubah di form
+    expect(screen.getByDisplayValue('Fakultas Teknik')).toBeInTheDocument();
+
+    // Ubah nama
+    fireEvent.change(screen.getByLabelText('Nama Fakultas *'), { target: { value: 'Fakultas Teknik Baru' } });
+
+    // Submit
+    fireEvent.click(screen.getByRole('button', { name: 'Update Fakultas' }));
+
+    await waitFor(() => {
+      expect(mockedApi.updateFaculty).toHaveBeenCalledWith(1, {
+        code: 'FT',
+        name: 'Fakultas Teknik Baru',
+        isActive: true,
+      });
+    });
+
+    expect(await screen.findByText(/Fakultas berhasil diupdate/)).toBeInTheDocument();
+  });
+
+  it('nonaktifkan fakultas → deleteFaculty dipanggil', async () => {
+    mockedApi.listFaculties.mockResolvedValue(facultyResponse());
+    mockedApi.listProdis.mockResolvedValue(prodiResponse());
+    mockedApi.deleteFaculty.mockResolvedValue({ message: 'Fakultas dinonaktifkan' });
+
+    // Stub window.confirm
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
+
+    render(<AdminMasterPage />);
+
+    await screen.findByText('Fakultas Teknik');
+
+    // Klik Nonaktifkan pada baris pertama (FT)
+    fireEvent.click(screen.getAllByText('Nonaktifkan')[0]);
+
+    await waitFor(() => {
+      expect(mockedApi.deleteFaculty).toHaveBeenCalledWith(1);
+    });
+
+    expect(await screen.findByText(/Fakultas dinonaktifkan/)).toBeInTheDocument();
+  });
+
+  it('tambah prodi baru → createProdi dipanggil', async () => {
+    mockedApi.listFaculties.mockResolvedValue(facultyResponse());
+    mockedApi.listProdis.mockResolvedValue(prodiResponse());
+    mockedApi.createProdi.mockResolvedValue({
       id: 3,
-      nim: '2412345699',
-      message: 'Mahasiswa berhasil dibuat',
+      code: 'TK',
+      name: 'Teknik Kimia',
+      facultyId: 1,
+      facultyCode: 'FT',
+      facultyName: 'Fakultas Teknik',
+      degree: 'S1',
+      accreditation: '',
+      isActive: true,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
     });
+
     render(<AdminMasterPage />);
 
-    await screen.findByText('Budi Santoso');
-    fireEvent.click(screen.getByRole('button', { name: '+ Tambah Manual' }));
+    await screen.findByText('Fakultas Teknik');
+    fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
 
-    const dialog = await screen.findByRole('dialog', { name: 'Tambah mahasiswa' });
-    fireEvent.change(within(dialog).getByLabelText('NIM'), {
-      target: { value: '2412345699' },
-    });
-    fireEvent.change(within(dialog).getByLabelText('Nama Lengkap'), {
-      target: { value: 'Andi Baru' },
-    });
-    fireEvent.change(within(dialog).getByLabelText('Prodi'), { target: { value: 'TI' } });
-    fireEvent.change(within(dialog).getByLabelText('Angkatan'), {
-      target: { value: '2024/2025' },
-    });
+    await screen.findByText('Teknik Informatika');
 
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan' }));
+    // Klik Tambah Prodi
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah Prodi' }));
+
+    // Isi form - use label text (with asterisk)
+    fireEvent.change(screen.getByLabelText('Kode Prodi *'), { target: { value: 'TK' } });
+    fireEvent.change(screen.getByLabelText('Nama Prodi *'), { target: { value: 'Teknik Kimia' } });
+    fireEvent.change(screen.getByLabelText('Fakultas *'), { target: { value: 'FT' } });
+    fireEvent.change(screen.getByLabelText('Jenjang *'), { target: { value: 'S1' } });
+
+    // Submit
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan Prodi' }));
 
     await waitFor(() => {
-      expect(mockedApi.createMasterStudent).toHaveBeenCalledWith({
-        nim: '2412345699',
-        fullName: 'Andi Baru',
-        prodiCode: 'TI',
-        angkatan: '2024/2025',
-        email: undefined,
+      expect(mockedApi.createProdi).toHaveBeenCalledWith({
+        code: 'TK',
+        name: 'Teknik Kimia',
+        facultyCode: 'FT',
+        degree: 'S1',
+        accreditation: undefined,
+        isActive: true,
       });
     });
-    expect(await screen.findByText(/Mahasiswa 2412345699 berhasil dibuat/)).toBeInTheDocument();
-  });
 
-  it('tambah dosen manual di tab dosen → createMasterLecturer dipanggil', async () => {
-    mockedApi.listMasterStudents.mockResolvedValue(studentListResponse());
-    mockedApi.listMasterLecturers.mockResolvedValue(lecturerListResponse());
-    mockedApi.createMasterLecturer.mockResolvedValue({
-      id: 2,
-      nidn: '9876543210',
-      message: 'Dosen berhasil dibuat',
-    });
-    render(<AdminMasterPage />);
-
-    await screen.findByText('Budi Santoso');
-    fireEvent.click(screen.getByRole('tab', { name: 'Master Dosen' }));
-    await screen.findByText('Dr. Ahmad');
-
-    fireEvent.click(screen.getByRole('button', { name: '+ Tambah Manual' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Tambah dosen' });
-    fireEvent.change(within(dialog).getByLabelText('NIDN'), {
-      target: { value: '9876543210' },
-    });
-    fireEvent.change(within(dialog).getByLabelText('Nama Lengkap'), {
-      target: { value: 'Dr. Baru' },
-    });
-    fireEvent.change(within(dialog).getByLabelText('Prodi'), { target: { value: 'TI' } });
-
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan' }));
-
-    await waitFor(() => {
-      expect(mockedApi.createMasterLecturer).toHaveBeenCalledWith({
-        nidn: '9876543210',
-        fullName: 'Dr. Baru',
-        prodiCode: 'TI',
-        email: undefined,
-      });
-    });
-  });
-
-  it('import CSV → importMasterCsv dipanggil + ringkasan hasil ditampilkan', async () => {
-    mockedApi.listMasterStudents.mockResolvedValue(studentListResponse());
-    mockedApi.importMasterCsv.mockResolvedValue({
-      filename: 'mahasiswa.csv',
-      total: 2,
-      inserted: 2,
-      updated: 0,
-      failed: [{ row: 3, reason: 'NIM duplikat' }],
-    });
-    render(<AdminMasterPage />);
-
-    await screen.findByText('Budi Santoso');
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(fileInput).not.toBeNull();
-    const file = new File(['nim,nama\n123,Test'], 'mahasiswa.csv', { type: 'text/csv' });
-    Object.defineProperty(fileInput, 'files', { value: [file] });
-    fireEvent.change(fileInput);
-
-    await waitFor(() => {
-      expect(mockedApi.importMasterCsv).toHaveBeenCalledWith('students', file);
-    });
-    expect(await screen.findByText(/Import mahasiswa.csv selesai/)).toBeInTheDocument();
-    expect(screen.getByText(/1 baris gagal diproses/)).toBeInTheDocument();
+    expect(await screen.findByText(/Prodi berhasil dibuat/)).toBeInTheDocument();
   });
 });

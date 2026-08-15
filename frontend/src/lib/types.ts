@@ -218,6 +218,61 @@ export interface CreateMasterLecturerInput {
   email?: string;
 }
 
+/* ==== #16 Master Data — Fakultas & Prodi (admin_sistem) ==== */
+
+export interface Faculty {
+  id: number;
+  code: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Prodi {
+  id: number;
+  code: string;
+  name: string;
+  facultyId: number;
+  facultyCode: string;
+  facultyName: string;
+  degree: string;
+  accreditation: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateFacultyInput {
+  code: string;
+  name: string;
+  isActive?: boolean;
+}
+
+export interface UpdateFacultyInput {
+  code?: string;
+  name?: string;
+  isActive?: boolean;
+}
+
+export interface CreateProdiInput {
+  code: string;
+  name: string;
+  facultyCode: string;
+  degree: 'S1' | 'S2' | 'S3' | 'D3' | 'D4';
+  accreditation?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateProdiInput {
+  code?: string;
+  name?: string;
+  facultyCode?: string;
+  degree?: 'S1' | 'S2' | 'S3' | 'D3' | 'D4';
+  accreditation?: string;
+  isActive?: boolean;
+}
+
 export interface ImportResult {
   filename: string;
   total: number;
@@ -330,6 +385,43 @@ export interface NotificationsResponse {
     totalPages: number;
     hasMore: boolean;
   };
+}
+
+/* ==== Announcements (Informasi Penting) ==== */
+
+export interface Announcement {
+  id: number;
+  title: string;
+  message: string;
+  targetRoles: string[];
+  priority: number;
+  isActive: boolean;
+  publishedAt: string | null;
+  expiresAt: string | null;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AnnouncementsResponse {
+  items: Announcement[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+}
+
+export interface CreateAnnouncementInput {
+  title: string;
+  message: string;
+  targetRoles?: string[];
+  priority?: number;
+  isActive?: boolean;
+  publishedAt?: string | null;
+  expiresAt?: string | null;
 }
 
 /* ==== T3.8 — Dosen API Types (diselaraskan dengan kontrak backend nyata) ==== */

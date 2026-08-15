@@ -339,5 +339,366 @@ export function createAdminMasterRouter(): Router {
     },
   );
 
+  // ===== FAKULTAS (FACULTIES) =====
+  const facultySchema = z.object({
+    code: z.string().min(1).max(10),
+    name: z.string().min(2).max(100),
+    isActive: z.boolean().default(true),
+  });
+
+  // GET /admin-master/faculties — list fakultas
+  router.get(
+    '/faculties',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const result = await pgPool.query(
+          'SELECT id, code, name, is_active AS "isActive", created_at AS "createdAt", updated_at AS "updatedAt" FROM faculties ORDER BY code',
+        );
+        res.json({
+          success: true,
+          data: result.rows.map((r) => ({ ...r, id: Number(r.id) })),
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /admin-master/faculties — buat fakultas
+  router.post(
+    '/faculties',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const parsed = facultySchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data fakultas tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const { code, name, isActive } = parsed.data;
+
+        const dup = await pgPool.query('SELECT id FROM faculties WHERE code = $1', [code]);
+        if ((dup.rowCount ?? 0) > 0) {
+          throw new AppError('VALIDATION_ERROR', `Kode fakultas "${code}" sudah terdaftar`, 409);
+        }
+
+        const result = await pgPool.query(
+          'INSERT INTO faculties (code, name, is_active) VALUES ($1, $2, $3) RETURNING id, code, name, is_active, created_at, updated_at',
+          [code, name, isActive],
+        );
+        res.status(201).json({
+          success: true,
+          data: { ...result.rows[0], id: Number(result.rows[0].id) },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // PUT /admin-master/faculties/:id — update fakultas
+  router.put(
+    '/faculties/:id',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+          throw new AppError('VALIDATION_ERROR', 'ID fakultas tidak valid', 400);
+        }
+        const parsed = facultySchema.partial().safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data fakultas tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const { code, name, isActive } = parsed.data;
+
+        // cek apakah ada
+        const exists = await pgPool.query('SELECT id FROM faculties WHERE id = $1', [id]);
+        if (exists.rowCount === 0) {
+          throw new AppError('NOT_FOUND', 'Fakultas tidak ditemukan', 404);
+        }
+
+        // cek unique code jika diubah
+        if (code) {
+          const dup = await pgPool.query('SELECT id FROM faculties WHERE code = $1 AND id != $2', [
+            code,
+            id,
+          ]);
+          if ((dup.rowCount ?? 0) > 0) {
+            throw new AppError('VALIDATION_ERROR', `Kode fakultas "${code}" sudah terdaftar`, 409);
+          }
+        }
+
+        const updates: string[] = [];
+        const params: unknown[] = [id];
+        if (code !== undefined) {
+          params.push(code);
+          updates.push(`code = $${params.length}`);
+        }
+        if (name !== undefined) {
+          params.push(name);
+          updates.push(`name = $${params.length}`);
+        }
+        if (isActive !== undefined) {
+          params.push(isActive);
+          updates.push(`is_active = $${params.length}`);
+        }
+        if (updates.length === 0) {
+          throw new AppError('VALIDATION_ERROR', 'Tidak ada field yang diupdate', 400);
+        }
+        updates.push('updated_at = now()');
+
+        const result = await pgPool.query(
+          `UPDATE faculties SET ${updates.join(', ')} WHERE id = $1 RETURNING id, code, name, is_active, created_at, updated_at`,
+          params,
+        );
+        res.json({
+          success: true,
+          data: { ...result.rows[0], id: Number(result.rows[0].id) },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // DELETE /admin-master/faculties/:id — hapus fakultas (soft delete: is_active=false)
+  router.delete(
+    '/faculties/:id',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+          throw new AppError('VALIDATION_ERROR', 'ID fakultas tidak valid', 400);
+        }
+
+        // cek referensi prodi
+        const ref = await pgPool.query('SELECT id FROM prodis WHERE faculty_id = $1 AND is_active', [
+          id,
+        ]);
+        if ((ref.rowCount ?? 0) > 0) {
+          throw new AppError(
+            'VALIDATION_ERROR',
+            'Fakultas masih memiliki prodi aktif. Nonaktifkan prodi terlebih dahulu.',
+            409,
+          );
+        }
+
+        await pgPool.query('UPDATE faculties SET is_active = false, updated_at = now() WHERE id = $1', [
+          id,
+        ]);
+        res.json({ success: true, data: { message: 'Fakultas dinonaktifkan' } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // ===== PRODI (PROGRAM STUDI) =====
+  const prodiSchema = z.object({
+    code: z.string().min(1).max(10),
+    name: z.string().min(2).max(100),
+    facultyCode: z.string().min(1).max(10),
+    degree: z.enum(['S1', 'S2', 'S3', 'D3', 'D4']),
+    accreditation: z.string().max(20).optional(),
+    isActive: z.boolean().default(true),
+  });
+
+  // GET /admin-master/prodis — list prodi (dengan nama fakultas)
+  router.get(
+    '/prodis',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const result = await pgPool.query(
+          `SELECT p.id, p.code, p.name, p.faculty_id, f.code AS "facultyCode", f.name AS "facultyName",
+                  p.degree, p.accreditation, p.is_active AS "isActive", p.created_at AS "createdAt", p.updated_at AS "updatedAt"
+           FROM prodis p
+           JOIN faculties f ON f.id = p.faculty_id
+           ORDER BY f.code, p.code`,
+        );
+        res.json({
+          success: true,
+          data: result.rows.map((r) => ({ ...r, id: Number(r.id), facultyId: Number(r.faculty_id) })),
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /admin-master/prodis — buat prodi
+  router.post(
+    '/prodis',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const parsed = prodiSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data prodi tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const { code, name, facultyCode, degree, accreditation, isActive } = parsed.data;
+
+        // resolve faculty
+        const fac = await pgPool.query('SELECT id FROM faculties WHERE code = $1 AND is_active', [
+          facultyCode,
+        ]);
+        if (fac.rowCount === 0) {
+          throw new AppError('VALIDATION_ERROR', `Fakultas "${facultyCode}" tidak ditemukan atau nonaktif`, 400);
+        }
+        const facultyId = fac.rows[0].id;
+
+        const dup = await pgPool.query('SELECT id FROM prodis WHERE code = $1', [code]);
+        if ((dup.rowCount ?? 0) > 0) {
+          throw new AppError('VALIDATION_ERROR', `Kode prodi "${code}" sudah terdaftar`, 409);
+        }
+
+        const result = await pgPool.query(
+          `INSERT INTO prodis (code, name, faculty_id, degree, accreditation, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id, code, name, faculty_id, degree, accreditation, is_active, created_at, updated_at`,
+          [code, name, facultyId, degree, accreditation ?? null, isActive],
+        );
+        res.status(201).json({
+          success: true,
+          data: { ...result.rows[0], id: Number(result.rows[0].id), facultyId: Number(result.rows[0].faculty_id) },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // PUT /admin-master/prodis/:id — update prodi
+  router.put(
+    '/prodis/:id',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+          throw new AppError('VALIDATION_ERROR', 'ID prodi tidak valid', 400);
+        }
+        const parsed = prodiSchema.partial().safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data prodi tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const { code, name, facultyCode, degree, accreditation, isActive } = parsed.data;
+
+        const exists = await pgPool.query('SELECT id FROM prodis WHERE id = $1', [id]);
+        if (exists.rowCount === 0) {
+          throw new AppError('NOT_FOUND', 'Prodi tidak ditemukan', 404);
+        }
+
+        let facultyId: number | undefined;
+        if (facultyCode !== undefined) {
+          const fac = await pgPool.query('SELECT id FROM faculties WHERE code = $1 AND is_active', [
+            facultyCode,
+          ]);
+          if (fac.rowCount === 0) {
+            throw new AppError('VALIDATION_ERROR', `Fakultas "${facultyCode}" tidak ditemukan atau nonaktif`, 400);
+          }
+          facultyId = fac.rows[0].id;
+        }
+
+        if (code !== undefined) {
+          const dup = await pgPool.query('SELECT id FROM prodis WHERE code = $1 AND id != $2', [code, id]);
+          if ((dup.rowCount ?? 0) > 0) {
+            throw new AppError('VALIDATION_ERROR', `Kode prodi "${code}" sudah terdaftar`, 409);
+          }
+        }
+
+        const updates: string[] = [];
+        const params: unknown[] = [id];
+        if (code !== undefined) {
+          params.push(code);
+          updates.push(`code = $${params.length}`);
+        }
+        if (name !== undefined) {
+          params.push(name);
+          updates.push(`name = $${params.length}`);
+        }
+        if (facultyId !== undefined) {
+          params.push(facultyId);
+          updates.push(`faculty_id = $${params.length}`);
+        }
+        if (degree !== undefined) {
+          params.push(degree);
+          updates.push(`degree = $${params.length}`);
+        }
+        if (accreditation !== undefined) {
+          params.push(accreditation);
+          updates.push(`accreditation = $${params.length}`);
+        }
+        if (isActive !== undefined) {
+          params.push(isActive);
+          updates.push(`is_active = $${params.length}`);
+        }
+        if (updates.length === 0) {
+          throw new AppError('VALIDATION_ERROR', 'Tidak ada field yang diupdate', 400);
+        }
+        updates.push('updated_at = now()');
+
+        const result = await pgPool.query(
+          `UPDATE prodis SET ${updates.join(', ')} WHERE id = $1 RETURNING id, code, name, faculty_id, degree, accreditation, is_active, created_at, updated_at`,
+          params,
+        );
+        res.json({
+          success: true,
+          data: { ...result.rows[0], id: Number(result.rows[0].id), facultyId: Number(result.rows[0].faculty_id) },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // DELETE /admin-master/prodis/:id — hapus prodi (soft delete)
+  router.delete(
+    '/prodis/:id',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+          throw new AppError('VALIDATION_ERROR', 'ID prodi tidak valid', 400);
+        }
+
+        // cek referensi students/lecturers
+        const refS = await pgPool.query('SELECT id FROM students WHERE prodi_id = $1 AND is_active', [id]);
+        const refL = await pgPool.query('SELECT id FROM lecturers WHERE prodi_id = $1 AND is_active', [id]);
+        if ((refS.rowCount ?? 0) > 0 || (refL.rowCount ?? 0) > 0) {
+          throw new AppError(
+            'VALIDATION_ERROR',
+            'Prodi masih memiliki mahasiswa/dosen aktif. Nonaktifkan data terkait terlebih dahulu.',
+            409,
+          );
+        }
+
+        await pgPool.query('UPDATE prodis SET is_active = false, updated_at = now() WHERE id = $1', [id]);
+        res.json({ success: true, data: { message: 'Prodi dinonaktifkan' } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   return router;
 }

@@ -220,16 +220,25 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.getByTitle('Dashboard')).toBeInTheDocument();
   });
 
-  it('admin_sistem → hanya menu User & Master (Nilai/Audit ComingSoon disembunyikan)', () => {
+  it('admin_sistem → hanya menu User, Master & Informasi Penting (Dashboard tidak di-menu)', () => {
     mockUser = ADMIN_SISTEM;
     renderLayout();
 
     expect(screen.getByRole('link', { name: 'User' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Master' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Informasi Penting' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Audit' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'KRS' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Transkrip' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pembayaran' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Tagihan' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Jadwal' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pilih MK' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Absensi' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Bimbingan' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Substitute' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
   });
 
   it('admin keuangan → menu Tagihan, bukan Pembayaran (T5.3)', () => {
@@ -264,6 +273,21 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     // menu domainnya tetap tampil
     expect(screen.getByRole('link', { name: 'Jadwal' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
+  });
+
+  it('admin akademik → menu Jadwal tampil (schedule.manage), tanpa menu dosen/admin_sistem', () => {
+    mockUser = ADMIN_AKADEMIK;
+    renderLayout();
+
+    expect(screen.getByRole('link', { name: 'Jadwal' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'User' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Master' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Informasi Penting' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pilih MK' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Absensi' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Bimbingan' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Substitute' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
   });
 
   it('keluhan #5 — submenu dosen pindah ke sidebar (Pilih MK, Jadwal, Absensi, Bimbingan, Substitute, Nilai)', () => {

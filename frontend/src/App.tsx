@@ -43,6 +43,9 @@ const UsersPage = lazy(() => import('./pages/UsersPage').then((m) => ({ default:
 const AdminMasterPage = lazy(() =>
   import('./pages/AdminMasterPage').then((m) => ({ default: m.AdminMasterPage })),
 );
+const AnnouncementPage = lazy(() =>
+  import('./pages/AnnouncementPage').then((m) => ({ default: m.AnnouncementPage })),
+);
 const ProfilePage = lazy(() =>
   import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage })),
 );
@@ -192,6 +195,17 @@ export default function App() {
               <ProtectedRoute perm="schedule.manage">
                 <AppLayout>
                   <AdminSchedulePage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Admin Sistem: Informasi Penting (Announcements) */}
+          <Route
+            path="/admin/informasi-penting"
+            element={
+              <ProtectedRoute perm="user.manage">
+                <AppLayout>
+                  <AnnouncementPage />
                 </AppLayout>
               </ProtectedRoute>
             }

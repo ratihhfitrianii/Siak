@@ -113,14 +113,23 @@ const MENU_ITEMS: {
     icon: 'calendar',
     description: 'Lihat jadwal mengajar',
   },
-  // ---- Admin Sistem: Jadwal Pengajar (keluhan #5 + T3.2) ----
+  // ---- Admin Akademik: Jadwal Pengajar (T3.2, perm schedule.manage) ----
   {
     permissions: ['schedule.manage'],
-    roles: ['admin_sistem', 'admin_akademik'],
+    roles: ['admin_akademik'],
     label: 'Jadwal',
     path: '/admin/jadwal',
     icon: 'calendar',
     description: 'Kelola jadwal pengajar per kelas',
+  },
+  // ---- Admin Sistem: Informasi Penting (Announcements) ----
+  {
+    permissions: ['user.manage'],
+    roles: ['admin_sistem'],
+    label: 'Informasi Penting',
+    path: '/admin/informasi-penting',
+    icon: 'clipboard',
+    description: 'Kelola informasi penting untuk mahasiswa & dosen',
   },
   {
     permissions: ['attendance.input'],
@@ -177,6 +186,22 @@ const HIDDEN_MENU_BY_ROLE: Record<string, string[]> = {
   dosen: ['/transkrip'],
   admin_keuangan: ['/transkrip'],
   admin_akademik: ['/transkrip'],
+  // admin_sistem: hanya tampilkan Dashboard, User, Master, Informasi Penting
+  // Sembunyikan: KRS, Transkrip, Pembayaran, Tagihan, Jadwal (admin_akademik), 
+  // Absensi, Bimbingan, Substitute, Nilai (semua dosen)
+  admin_sistem: [
+    '/krs',
+    '/transkrip',
+    '/pembayaran',
+    '/keuangan/tagihan',
+    '/admin/jadwal',
+    '/dosen/absensi',
+    '/dosen/bimbingan',
+    '/dosen/substitute',
+    '/dosen/nilai',
+    '/dosen/pilih-mk',
+    '/dosen/jadwal',
+  ],
 };
 
 function MenuIcon({ path }: { path: string }) {

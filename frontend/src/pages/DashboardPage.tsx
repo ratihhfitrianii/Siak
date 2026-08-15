@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
-import { getKrsPeriod, getMyNotifications } from '../lib/api';
-import type { KrsPeriod, AppNotification } from '../lib/types';
+import { getKrsPeriod, getMyNotifications, getAnnouncements } from '../lib/api';
+import type { KrsPeriod, AppNotification, Announcement } from '../lib/types';
 
 const ROLE_LABEL: Record<string, string> = {
   mahasiswa: 'Mahasiswa',
@@ -37,7 +37,8 @@ export function DashboardPage() {
   const [period, setPeriod] = useState<KrsPeriod | null>(null);
   const [periodError, setPeriodError] = useState(false);
   const [notifs, setNotifs] = useState<AppNotification[]>([]);
-  const [notifError, setNotifError] = useState(false);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [annError, setAnnError] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -60,11 +61,22 @@ export function DashboardPage() {
       .then((res) => {
         if (!cancelled) {
           setNotifs(res.items);
-          setNotifError(false);
         }
       })
       .catch(() => {
-        if (!cancelled) setNotifError(true);
+        // notif error handled by annError + empty state
+      });
+
+    // Fetch announcements for all roles (mahasiswa, dosen, admin_akademik, admin_keuangan, admin_sistem)
+    getAnnouncements(1, 5)
+      .then((res) => {
+        if (!cancelled) {
+          setAnnouncements(res.items);
+          setAnnError(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAnnError(true);
       });
 
     return () => {
@@ -154,12 +166,26 @@ export function DashboardPage() {
             </Link>
           </div>
 
-          {notifError ? (
-            <p className="mt-3 text-sm text-slate-500">Info penting tidak dapat dimuat.</p>
-          ) : notifs.length === 0 ? (
+          {annError ? (
+            <p className="mt-3 text-sm text-slate-500">Informasi penting tidak dapat dimuat.</p>
+          ) : announcements.length === 0 && notifs.length === 0 ? (
             <p className="mt-3 text-sm text-slate-400">Belum ada informasi penting.</p>
           ) : (
             <ul className="mt-3 divide-y divide-slate-100">
+              {/* Announcements dari admin sistem (prioritas tinggi, tampil atas) */}
+              {announcements.map((a) => (
+                <li key={`ann-${a.id}`} className="flex items-start gap-3 py-2.5 border-l-4 border-primary-500 bg-primary-50">
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary-500" aria-label="Announcement" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">{a.title}</p>
+                    <p className="truncate text-xs text-slate-600">{a.message}</p>
+                    <p className="mt-0.5 text-xs text-slate-400">
+                      {a.publishedAt ? new Date(a.publishedAt).toLocaleDateString('id-ID') : 'Segera'} · Prioritas {a.priority}
+                    </p>
+                  </div>
+                </li>
+              ))}
+              {/* Notifikasi user biasa */}
               {notifs.map((n) => (
                 <li key={n.id} className="flex items-start gap-3 py-2.5">
                   <span

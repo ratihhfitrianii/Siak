@@ -24,7 +24,7 @@ vi.mock('../auth/AuthContext', () => ({
 
 vi.mock('../lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/api')>();
-  return { ...actual, getKrsPeriod: vi.fn(), getMyNotifications: vi.fn() };
+  return { ...actual, getKrsPeriod: vi.fn(), getMyNotifications: vi.fn(), getAnnouncements: vi.fn() };
 });
 
 const mockedApi = vi.mocked(api);
@@ -116,6 +116,10 @@ describe('DashboardPage (T1.11b + keluhan #27 info terkini)', () => {
       items: NOTIFS,
       pagination: { page: 1, limit: 3, total: 2, totalPages: 1, hasMore: false },
     });
+    mockedApi.getAnnouncements.mockResolvedValue({
+      items: [],
+      pagination: { page: 1, limit: 5, total: 0, totalPages: 0, hasMore: false },
+    });
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -196,11 +200,12 @@ describe('DashboardPage (T1.11b + keluhan #27 info terkini)', () => {
   it('fetch gagal → dashboard tetap render dengan pesan fallback (tidak crash)', async () => {
     mockedApi.getKrsPeriod.mockRejectedValue(new Error('network'));
     mockedApi.getMyNotifications.mockRejectedValue(new Error('network'));
+    mockedApi.getAnnouncements.mockRejectedValue(new Error('network'));
     mockUser = MAHASISWA;
     renderDashboard();
 
     expect(await screen.findByText(/Info periode tidak dapat dimuat/)).toBeInTheDocument();
-    expect(screen.getByText(/Info penting tidak dapat dimuat/)).toBeInTheDocument();
+    expect(screen.getByText(/Informasi penting tidak dapat dimuat/)).toBeInTheDocument();
     expect(screen.getByText('Selamat datang, Budi')).toBeInTheDocument();
   });
 
