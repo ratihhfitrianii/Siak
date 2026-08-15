@@ -39,6 +39,7 @@ const sessionUpdateSchema = z
 
 const SESSION_SELECT = `
   SELECT g.id, g.student_id, s.nim, u_s.full_name AS student_name,
+         u_s.email AS student_email, p.code AS prodi_code,
          g.lecturer_id, u_l.full_name AS lecturer_name,
          to_char(g.session_date, 'YYYY-MM-DD') AS session_date,
          g.notes, g.progress, g.is_visible_to_student,
@@ -46,6 +47,7 @@ const SESSION_SELECT = `
   FROM guidance_sessions g
   JOIN students s ON s.id = g.student_id
   JOIN users u_s ON u_s.id = s.user_id
+  JOIN prodis p ON p.id = s.prodi_id
   JOIN lecturers l ON l.id = g.lecturer_id
   JOIN users u_l ON u_l.id = l.user_id
 `;

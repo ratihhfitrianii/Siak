@@ -1032,6 +1032,8 @@ interface GuidanceSessionRow {
   student_id: number;
   nim: string;
   student_name: string;
+  student_email: string;
+  prodi_code: string;
   lecturer_id: number;
   lecturer_name: string;
   session_date: string;
@@ -1048,6 +1050,8 @@ function normalizeGuidanceSession(r: GuidanceSessionRow): GuidanceSession {
     studentId: Number(r.student_id),
     nim: r.nim,
     studentName: r.student_name,
+    studentEmail: r.student_email,
+    prodiCode: r.prodi_code,
     lecturerId: Number(r.lecturer_id),
     lecturerName: r.lecturer_name,
     sessionDate: r.session_date,

@@ -554,6 +554,8 @@ export interface GuidanceSession {
   studentId: number;
   nim: string;
   studentName: string;
+  studentEmail: string;
+  prodiCode: string;
   lecturerId: number;
   lecturerName: string;
   sessionDate: string;

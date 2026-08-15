@@ -42,6 +42,8 @@ const SESSIONS_RAW = [
     student_id: 1,
     nim: '2023110001',
     student_name: 'Budi Santoso',
+    student_email: 'budi@example.id',
+    prodi_code: 'TI',
     lecturer_id: 4,
     lecturer_name: 'Dosen Satu',
     session_date: '2026-08-01',
