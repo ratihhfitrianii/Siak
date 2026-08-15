@@ -781,9 +781,7 @@ export async function getMyCourseSelections(
   semesterId?: number,
 ): Promise<MyCourseSelectionsResponse> {
   const qs = semesterId ? `?semesterId=${semesterId}` : '';
-  const res = await apiRequest<{ items: Array<Record<string, unknown>> }>(
-    `/dosen/courses/my${qs}`,
-  );
+  const res = await apiRequest<{ items: Array<Record<string, unknown>> }>(`/dosen/courses/my${qs}`);
   return { items: res.items.map(normalizeMyCourseSelection) };
 }
 
