@@ -82,7 +82,7 @@ function baseFetch(url: string) {
   if (url.includes('/curricula')) {
     return Promise.resolve(jsonResponse(CURRICULA));
   }
-  if (url.includes('/academic/classes')) {
+  if (url.includes('/classes')) {
     return Promise.resolve(jsonResponse(CLASSES));
   }
   if (url.includes('/schedule/class/')) {

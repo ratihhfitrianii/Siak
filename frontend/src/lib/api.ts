@@ -484,7 +484,7 @@ export async function generateFinancePayments(semester_id: number): Promise<{ me
   });
 }
 
-/** GET /academic/classes?curriculum_id=N — daftar kelas aktif dalam satu kurikulum. */
+/** GET /classes?curriculum_id=N — daftar kelas aktif dalam satu kurikulum. */
 export async function getAcademicClasses(curriculumId: number): Promise<{
   items: Array<{
     id: number;
@@ -510,7 +510,7 @@ export async function getAcademicClasses(curriculumId: number): Promise<{
       current_enrolled: number;
       is_active: boolean;
     }>;
-  }>(`/academic/classes?curriculum_id=${curriculumId}`);
+  }>(`/classes?curriculum_id=${curriculumId}`);
 }
 
 /** GET /curricula — daftar kurikulum (filter prodi, semester). */
