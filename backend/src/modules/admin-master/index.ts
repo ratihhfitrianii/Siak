@@ -482,9 +482,10 @@ export function createAdminMasterRouter(): Router {
         }
 
         // cek referensi prodi
-        const ref = await pgPool.query('SELECT id FROM prodis WHERE faculty_id = $1 AND is_active', [
-          id,
-        ]);
+        const ref = await pgPool.query(
+          'SELECT id FROM prodis WHERE faculty_id = $1 AND is_active',
+          [id],
+        );
         if ((ref.rowCount ?? 0) > 0) {
           throw new AppError(
             'VALIDATION_ERROR',
@@ -493,9 +494,10 @@ export function createAdminMasterRouter(): Router {
           );
         }
 
-        await pgPool.query('UPDATE faculties SET is_active = false, updated_at = now() WHERE id = $1', [
-          id,
-        ]);
+        await pgPool.query(
+          'UPDATE faculties SET is_active = false, updated_at = now() WHERE id = $1',
+          [id],
+        );
         res.json({ success: true, data: { message: 'Fakultas dinonaktifkan' } });
       } catch (err) {
         next(err);
@@ -529,7 +531,11 @@ export function createAdminMasterRouter(): Router {
         );
         res.json({
           success: true,
-          data: result.rows.map((r) => ({ ...r, id: Number(r.id), facultyId: Number(r.faculty_id) })),
+          data: result.rows.map((r) => ({
+            ...r,
+            id: Number(r.id),
+            facultyId: Number(r.faculty_id),
+          })),
         });
       } catch (err) {
         next(err);
@@ -557,7 +563,11 @@ export function createAdminMasterRouter(): Router {
           facultyCode,
         ]);
         if (fac.rowCount === 0) {
-          throw new AppError('VALIDATION_ERROR', `Fakultas "${facultyCode}" tidak ditemukan atau nonaktif`, 400);
+          throw new AppError(
+            'VALIDATION_ERROR',
+            `Fakultas "${facultyCode}" tidak ditemukan atau nonaktif`,
+            400,
+          );
         }
         const facultyId = fac.rows[0].id;
 
@@ -574,7 +584,11 @@ export function createAdminMasterRouter(): Router {
         );
         res.status(201).json({
           success: true,
-          data: { ...result.rows[0], id: Number(result.rows[0].id), facultyId: Number(result.rows[0].faculty_id) },
+          data: {
+            ...result.rows[0],
+            id: Number(result.rows[0].id),
+            facultyId: Number(result.rows[0].faculty_id),
+          },
         });
       } catch (err) {
         next(err);
@@ -612,13 +626,20 @@ export function createAdminMasterRouter(): Router {
             facultyCode,
           ]);
           if (fac.rowCount === 0) {
-            throw new AppError('VALIDATION_ERROR', `Fakultas "${facultyCode}" tidak ditemukan atau nonaktif`, 400);
+            throw new AppError(
+              'VALIDATION_ERROR',
+              `Fakultas "${facultyCode}" tidak ditemukan atau nonaktif`,
+              400,
+            );
           }
           facultyId = fac.rows[0].id;
         }
 
         if (code !== undefined) {
-          const dup = await pgPool.query('SELECT id FROM prodis WHERE code = $1 AND id != $2', [code, id]);
+          const dup = await pgPool.query('SELECT id FROM prodis WHERE code = $1 AND id != $2', [
+            code,
+            id,
+          ]);
           if ((dup.rowCount ?? 0) > 0) {
             throw new AppError('VALIDATION_ERROR', `Kode prodi "${code}" sudah terdaftar`, 409);
           }
@@ -661,7 +682,11 @@ export function createAdminMasterRouter(): Router {
         );
         res.json({
           success: true,
-          data: { ...result.rows[0], id: Number(result.rows[0].id), facultyId: Number(result.rows[0].faculty_id) },
+          data: {
+            ...result.rows[0],
+            id: Number(result.rows[0].id),
+            facultyId: Number(result.rows[0].faculty_id),
+          },
         });
       } catch (err) {
         next(err);
@@ -682,8 +707,14 @@ export function createAdminMasterRouter(): Router {
         }
 
         // cek referensi students/lecturers
-        const refS = await pgPool.query('SELECT id FROM students WHERE prodi_id = $1 AND is_active', [id]);
-        const refL = await pgPool.query('SELECT id FROM lecturers WHERE prodi_id = $1 AND is_active', [id]);
+        const refS = await pgPool.query(
+          'SELECT id FROM students WHERE prodi_id = $1 AND is_active',
+          [id],
+        );
+        const refL = await pgPool.query(
+          'SELECT id FROM lecturers WHERE prodi_id = $1 AND is_active',
+          [id],
+        );
         if ((refS.rowCount ?? 0) > 0 || (refL.rowCount ?? 0) > 0) {
           throw new AppError(
             'VALIDATION_ERROR',
@@ -692,7 +723,10 @@ export function createAdminMasterRouter(): Router {
           );
         }
 
-        await pgPool.query('UPDATE prodis SET is_active = false, updated_at = now() WHERE id = $1', [id]);
+        await pgPool.query(
+          'UPDATE prodis SET is_active = false, updated_at = now() WHERE id = $1',
+          [id],
+        );
         res.json({ success: true, data: { message: 'Prodi dinonaktifkan' } });
       } catch (err) {
         next(err);

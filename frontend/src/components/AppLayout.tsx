@@ -187,7 +187,7 @@ const HIDDEN_MENU_BY_ROLE: Record<string, string[]> = {
   admin_keuangan: ['/transkrip'],
   admin_akademik: ['/transkrip'],
   // admin_sistem: hanya tampilkan Dashboard, User, Master, Informasi Penting
-  // Sembunyikan: KRS, Transkrip, Pembayaran, Tagihan, Jadwal (admin_akademik), 
+  // Sembunyikan: KRS, Transkrip, Pembayaran, Tagihan, Jadwal (admin_akademik),
   // Absensi, Bimbingan, Substitute, Nilai (semua dosen)
   admin_sistem: [
     '/krs',

@@ -24,7 +24,12 @@ vi.mock('../auth/AuthContext', () => ({
 
 vi.mock('../lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/api')>();
-  return { ...actual, getKrsPeriod: vi.fn(), getMyNotifications: vi.fn(), getAnnouncements: vi.fn() };
+  return {
+    ...actual,
+    getKrsPeriod: vi.fn(),
+    getMyNotifications: vi.fn(),
+    getAnnouncements: vi.fn(),
+  };
 });
 
 const mockedApi = vi.mocked(api);

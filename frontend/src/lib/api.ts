@@ -719,7 +719,10 @@ export async function createAnnouncement(input: CreateAnnouncementInput): Promis
   return data;
 }
 
-export async function updateAnnouncement(id: number, input: Partial<CreateAnnouncementInput>): Promise<Announcement> {
+export async function updateAnnouncement(
+  id: number,
+  input: Partial<CreateAnnouncementInput>,
+): Promise<Announcement> {
   const data = await apiRequest<Announcement>(`/announcements/${id}`, {
     method: 'PUT',
     body: JSON.stringify(input),

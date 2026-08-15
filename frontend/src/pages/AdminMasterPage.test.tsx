@@ -22,8 +22,22 @@ vi.mock('../lib/api', async (importOriginal) => {
 const mockedApi = vi.mocked(api);
 
 const FACULTIES = [
-  { id: 1, code: 'FT', name: 'Fakultas Teknik', isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
-  { id: 2, code: 'FE', name: 'Fakultas Ekonomi', isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+  {
+    id: 1,
+    code: 'FT',
+    name: 'Fakultas Teknik',
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  },
+  {
+    id: 2,
+    code: 'FE',
+    name: 'Fakultas Ekonomi',
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  },
 ];
 
 const PRODIS = [
@@ -102,7 +116,14 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
   it('tambah fakultas baru → createFaculty dipanggil + list refresh', async () => {
     mockedApi.listFaculties.mockResolvedValue(facultyResponse());
     mockedApi.listProdis.mockResolvedValue(prodiResponse());
-    mockedApi.createFaculty.mockResolvedValue({ id: 3, code: 'FH', name: 'Fakultas Hukum', isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' });
+    mockedApi.createFaculty.mockResolvedValue({
+      id: 3,
+      code: 'FH',
+      name: 'Fakultas Hukum',
+      isActive: true,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+    });
 
     render(<AdminMasterPage />);
 
@@ -113,7 +134,9 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     // Isi form - use label text (with asterisk)
     fireEvent.change(screen.getByLabelText('Kode Fakultas *'), { target: { value: 'FH' } });
-    fireEvent.change(screen.getByLabelText('Nama Fakultas *'), { target: { value: 'Fakultas Hukum' } });
+    fireEvent.change(screen.getByLabelText('Nama Fakultas *'), {
+      target: { value: 'Fakultas Hukum' },
+    });
 
     // Submit
     fireEvent.click(screen.getByRole('button', { name: 'Simpan Fakultas' }));
@@ -133,7 +156,14 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
   it('edit fakultas → updateFaculty dipanggil', async () => {
     mockedApi.listFaculties.mockResolvedValue(facultyResponse());
     mockedApi.listProdis.mockResolvedValue(prodiResponse());
-    mockedApi.updateFaculty.mockResolvedValue({ id: 1, code: 'FT', name: 'Fakultas Teknik Baru', isActive: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' });
+    mockedApi.updateFaculty.mockResolvedValue({
+      id: 1,
+      code: 'FT',
+      name: 'Fakultas Teknik Baru',
+      isActive: true,
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+    });
 
     render(<AdminMasterPage />);
 
@@ -146,7 +176,9 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     expect(screen.getByDisplayValue('Fakultas Teknik')).toBeInTheDocument();
 
     // Ubah nama
-    fireEvent.change(screen.getByLabelText('Nama Fakultas *'), { target: { value: 'Fakultas Teknik Baru' } });
+    fireEvent.change(screen.getByLabelText('Nama Fakultas *'), {
+      target: { value: 'Fakultas Teknik Baru' },
+    });
 
     // Submit
     fireEvent.click(screen.getByRole('button', { name: 'Update Fakultas' }));

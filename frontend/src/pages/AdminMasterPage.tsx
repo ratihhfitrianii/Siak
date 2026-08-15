@@ -22,7 +22,11 @@ export function AdminMasterPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Form Faculty
-  const [facultyForm, setFacultyForm] = useState<CreateFacultyInput>({ code: '', name: '', isActive: true });
+  const [facultyForm, setFacultyForm] = useState<CreateFacultyInput>({
+    code: '',
+    name: '',
+    isActive: true,
+  });
   const [editingFacultyId, setEditingFacultyId] = useState<number | null>(null);
 
   // Form Prodi
@@ -120,7 +124,14 @@ export function AdminMasterPage() {
         await createProdi(payload);
         setSuccess('Prodi berhasil dibuat');
       }
-      setProdiForm({ code: '', name: '', facultyCode: '', degree: 'S1', accreditation: '', isActive: true });
+      setProdiForm({
+        code: '',
+        name: '',
+        facultyCode: '',
+        degree: 'S1',
+        accreditation: '',
+        isActive: true,
+      });
       setEditingProdiId(null);
       await loadProdis();
     } catch (err: unknown) {
@@ -156,7 +167,14 @@ export function AdminMasterPage() {
   };
 
   const handleProdiCancel = () => {
-    setProdiForm({ code: '', name: '', facultyCode: '', degree: 'S1', accreditation: '', isActive: true });
+    setProdiForm({
+      code: '',
+      name: '',
+      facultyCode: '',
+      degree: 'S1',
+      accreditation: '',
+      isActive: true,
+    });
     setEditingProdiId(null);
   };
 
@@ -167,7 +185,8 @@ export function AdminMasterPage() {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold text-slate-900 mb-4">Master Data</h2>
         <p className="text-slate-600">
-          Kelola data master Fakultas dan Program Studi. Hanya Admin Sistem yang dapat mengakses halaman ini.
+          Kelola data master Fakultas dan Program Studi. Hanya Admin Sistem yang dapat mengakses
+          halaman ini.
         </p>
       </div>
 
@@ -203,7 +222,10 @@ export function AdminMasterPage() {
 
       {error && <FormAlert>{error}</FormAlert>}
       {success && (
-        <p role="status" className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+        <p
+          role="status"
+          className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800"
+        >
           {success}
         </p>
       )}
@@ -222,27 +244,40 @@ export function AdminMasterPage() {
           </div>
 
           {/* Form Fakultas */}
-          <form onSubmit={handleFacultySubmit} className="mb-6 p-4 bg-slate-50 rounded-lg space-y-4">
+          <form
+            onSubmit={handleFacultySubmit}
+            className="mb-6 p-4 bg-slate-50 rounded-lg space-y-4"
+          >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label htmlFor="faculty-code" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="faculty-code"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Kode Fakultas *
                 </label>
                 <input
                   id="faculty-code"
                   type="text"
                   value={facultyForm.code}
-                  onChange={(e) => setFacultyForm({ ...facultyForm, code: e.target.value.toUpperCase() })}
+                  onChange={(e) =>
+                    setFacultyForm({ ...facultyForm, code: e.target.value.toUpperCase() })
+                  }
                   placeholder="Contoh: FT, FE, FH"
                   maxLength={10}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                   disabled={!!editingFacultyId}
                 />
-                {editingFacultyId && <p className="mt-1 text-xs text-slate-500">Kode tidak bisa diubah saat edit</p>}
+                {editingFacultyId && (
+                  <p className="mt-1 text-xs text-slate-500">Kode tidak bisa diubah saat edit</p>
+                )}
               </div>
               <div>
-                <label htmlFor="faculty-name" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="faculty-name"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Nama Fakultas *
                 </label>
                 <input
@@ -306,7 +341,9 @@ export function AdminMasterPage() {
                       <td className="py-3">
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            f.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'
+                            f.isActive
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-slate-100 text-slate-700'
                           }`}
                         >
                           {f.isActive ? 'Aktif' : 'Nonaktif'}
@@ -355,24 +392,34 @@ export function AdminMasterPage() {
           <form onSubmit={handleProdiSubmit} className="mb-6 p-4 bg-slate-50 rounded-lg space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label htmlFor="prodi-code" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="prodi-code"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Kode Prodi *
                 </label>
                 <input
                   id="prodi-code"
                   type="text"
                   value={prodiForm.code}
-                  onChange={(e) => setProdiForm({ ...prodiForm, code: e.target.value.toUpperCase() })}
+                  onChange={(e) =>
+                    setProdiForm({ ...prodiForm, code: e.target.value.toUpperCase() })
+                  }
                   placeholder="Contoh: TI, SI, TK"
                   maxLength={10}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                   disabled={!!editingProdiId}
                 />
-                {editingProdiId && <p className="mt-1 text-xs text-slate-500">Kode tidak bisa diubah saat edit</p>}
+                {editingProdiId && (
+                  <p className="mt-1 text-xs text-slate-500">Kode tidak bisa diubah saat edit</p>
+                )}
               </div>
               <div>
-                <label htmlFor="prodi-name" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="prodi-name"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Nama Prodi *
                 </label>
                 <input
@@ -387,7 +434,10 @@ export function AdminMasterPage() {
                 />
               </div>
               <div>
-                <label htmlFor="prodi-faculty" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="prodi-faculty"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Fakultas *
                 </label>
                 <select
@@ -398,21 +448,31 @@ export function AdminMasterPage() {
                   required
                 >
                   <option value="">Pilih Fakultas</option>
-                  {faculties.filter((f) => f.isActive).map((f) => (
-                    <option key={f.code} value={f.code}>
-                      {f.code} - {f.name}
-                    </option>
-                  ))}
+                  {faculties
+                    .filter((f) => f.isActive)
+                    .map((f) => (
+                      <option key={f.code} value={f.code}>
+                        {f.code} - {f.name}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div>
-                <label htmlFor="prodi-degree" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="prodi-degree"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Jenjang *
                 </label>
                 <select
                   id="prodi-degree"
                   value={prodiForm.degree}
-                  onChange={(e) => setProdiForm({ ...prodiForm, degree: e.target.value as CreateProdiInput['degree'] })}
+                  onChange={(e) =>
+                    setProdiForm({
+                      ...prodiForm,
+                      degree: e.target.value as CreateProdiInput['degree'],
+                    })
+                  }
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   required
                 >
@@ -426,7 +486,10 @@ export function AdminMasterPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
-                <label htmlFor="prodi-accreditation" className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="prodi-accreditation"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Akrreditasi
                 </label>
                 <input
@@ -488,7 +551,9 @@ export function AdminMasterPage() {
                     <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-3 font-mono text-slate-900">{p.code}</td>
                       <td className="py-3 text-slate-900">{p.name}</td>
-                      <td className="py-3 text-slate-700">{p.facultyCode} - {p.facultyName}</td>
+                      <td className="py-3 text-slate-700">
+                        {p.facultyCode} - {p.facultyName}
+                      </td>
                       <td className="py-3">
                         <span className="inline-flex px-2 py-0.5 text-xs font-medium bg-primary-100 text-primary-700 rounded">
                           {p.degree}
@@ -498,7 +563,9 @@ export function AdminMasterPage() {
                       <td className="py-3">
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            p.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'
+                            p.isActive
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-slate-100 text-slate-700'
                           }`}
                         >
                           {p.isActive ? 'Aktif' : 'Nonaktif'}

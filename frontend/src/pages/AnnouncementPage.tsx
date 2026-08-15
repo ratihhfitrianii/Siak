@@ -127,14 +127,17 @@ export function AnnouncementPage() {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold text-slate-900 mb-4">Informasi Penting</h2>
         <p className="text-slate-600">
-          Kelola informasi penting yang akan ditampilkan di dashboard mahasiswa dan dosen.
-          Pilih target role (kosong = semua role). Priority lebih tinggi ditampilkan lebih atas.
+          Kelola informasi penting yang akan ditampilkan di dashboard mahasiswa dan dosen. Pilih
+          target role (kosong = semua role). Priority lebih tinggi ditampilkan lebih atas.
         </p>
       </div>
 
       {error && <FormAlert>{error}</FormAlert>}
       {success && (
-        <p role="status" className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+        <p
+          role="status"
+          className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800"
+        >
           {success}
         </p>
       )}
@@ -182,7 +185,9 @@ export function AnnouncementPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Target Role (kosong = semua)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Target Role (kosong = semua)
+              </label>
               <div className="flex flex-wrap gap-2">
                 {ROLE_OPTIONS.map((r) => (
                   <label key={r.code} className="inline-flex items-center gap-2 cursor-pointer">
@@ -206,7 +211,9 @@ export function AnnouncementPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Prioritas (0-100)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Prioritas (0-100)
+              </label>
               <input
                 type="number"
                 value={form.priority}
@@ -231,22 +238,36 @@ export function AnnouncementPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Publikasi (opsional)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Tanggal Publikasi (opsional)
+              </label>
               <input
                 type="datetime-local"
                 value={form.publishedAt ? form.publishedAt.slice(0, 16) : ''}
-                onChange={(e) => setForm({ ...form, publishedAt: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    publishedAt: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  })
+                }
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               <p className="mt-1 text-xs text-slate-500">Kosong = segera (sebelum sekarang)</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Berakhir (opsional)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Tanggal Berakhir (opsional)
+              </label>
               <input
                 type="datetime-local"
                 value={form.expiresAt ? form.expiresAt.slice(0, 16) : ''}
-                onChange={(e) => setForm({ ...form, expiresAt: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    expiresAt: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  })
+                }
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
               <p className="mt-1 text-xs text-slate-500">Kosong = tidak kedaluwarsa</p>
@@ -324,10 +345,14 @@ export function AnnouncementPage() {
                       </span>
                     </td>
                     <td className="py-3 text-slate-600">
-                      {a.publishedAt ? new Date(a.publishedAt).toLocaleDateString('id-ID') : 'Segera'}
+                      {a.publishedAt
+                        ? new Date(a.publishedAt).toLocaleDateString('id-ID')
+                        : 'Segera'}
                     </td>
                     <td className="py-3 text-slate-600">
-                      {a.expiresAt ? new Date(a.expiresAt).toLocaleDateString('id-ID') : 'Tidak ada'}
+                      {a.expiresAt
+                        ? new Date(a.expiresAt).toLocaleDateString('id-ID')
+                        : 'Tidak ada'}
                     </td>
                     <td className="py-3">
                       <div className="flex items-center gap-2">

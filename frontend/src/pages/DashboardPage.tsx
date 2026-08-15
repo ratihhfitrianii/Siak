@@ -174,13 +174,22 @@ export function DashboardPage() {
             <ul className="mt-3 divide-y divide-slate-100">
               {/* Announcements dari admin sistem (prioritas tinggi, tampil atas) */}
               {announcements.map((a) => (
-                <li key={`ann-${a.id}`} className="flex items-start gap-3 py-2.5 border-l-4 border-primary-500 bg-primary-50">
-                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary-500" aria-label="Announcement" />
+                <li
+                  key={`ann-${a.id}`}
+                  className="flex items-start gap-3 py-2.5 border-l-4 border-primary-500 bg-primary-50"
+                >
+                  <span
+                    className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary-500"
+                    aria-label="Announcement"
+                  />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-slate-900">{a.title}</p>
                     <p className="truncate text-xs text-slate-600">{a.message}</p>
                     <p className="mt-0.5 text-xs text-slate-400">
-                      {a.publishedAt ? new Date(a.publishedAt).toLocaleDateString('id-ID') : 'Segera'} · Prioritas {a.priority}
+                      {a.publishedAt
+                        ? new Date(a.publishedAt).toLocaleDateString('id-ID')
+                        : 'Segera'}{' '}
+                      · Prioritas {a.priority}
                     </p>
                   </div>
                 </li>
