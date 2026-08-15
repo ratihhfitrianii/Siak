@@ -42,7 +42,7 @@ export function createAnnouncementRouter(): Router {
   // Admin sistem: semua announcement (filter activeOnly)
   // Mahasiswa/Dosen: hanya yang isActive, publishedAt <= now, (expiresAt IS NULL OR expiresAt > now), targetRoles contains their role OR empty
   router.get(
-    '/announcements',
+    '/',
     authenticate,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
