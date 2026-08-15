@@ -101,6 +101,38 @@ export function createAnnouncementRouter(): Router {
     },
   );
 
+  // GET /active — active announcements for dashboard (public for authenticated users)
+  // Returns announcements that are: active, published, not expired, target role matches
+  router.get(
+    '/active',
+    authenticate,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userRole = req.user!.roleCode;
+
+        const result = await pgPool.query(
+          `SELECT a.id, a.title, a.message, a.target_roles AS "targetRoles", a.priority,
+                  a.is_active AS "isActive", a.published_at AS "publishedAt", a.expires_at AS "expiresAt",
+                  a.created_by AS "createdBy", a.created_at AS "createdAt", a.updated_at AS "updatedAt"
+           FROM announcements a
+           WHERE a.is_active
+             AND (a.published_at IS NULL OR a.published_at <= now())
+             AND (a.expires_at IS NULL OR a.expires_at > now())
+             AND (a.target_roles = '{}' OR $1 = ANY(a.target_roles))
+           ORDER BY a.priority DESC, a.published_at DESC NULLS LAST, a.created_at DESC`,
+          [userRole],
+        );
+
+        res.json({
+          success: true,
+          data: result.rows.map((r) => ({ ...r, id: Number(r.id), createdBy: Number(r.createdBy) })),
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // GET /:id — detail
   router.get(
     '/:id',
