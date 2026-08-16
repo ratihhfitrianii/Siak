@@ -318,12 +318,11 @@ export function createDosenRouter(): Router {
         query += ` ORDER BY s.code, p.name, u.full_name, cur.semester_number, c.code`;
 
         // Count total
-        const countQuery = query
-          .replace(
-            `SELECT 
+        const selectClause = `SELECT 
             lcs.*,
             u.full_name as lecturer_name,
             l.nidn,
+            l.nik,
             c.code as course_code,
             c.name as course_name,
             c.credits,
@@ -332,10 +331,8 @@ export function createDosenRouter(): Router {
             s.code as semester_code,
             s.name as semester_name,
             p.name as prodi_name,
-            ru.full_name as reviewed_by_name`,
-            'SELECT COUNT(*)',
-          )
-          .replace(/ORDER BY.*$/, '');
+            ru.full_name as reviewed_by_name`;
+        const countQuery = query.replace(selectClause, 'SELECT COUNT(*)').replace(/ORDER BY.*$/, '');
         const countRes = await pgPool.query(countQuery, params);
         const total = Number(countRes.rows[0].count);
 
