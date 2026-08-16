@@ -1429,7 +1429,13 @@ export async function listProdis(params?: {
   if (params?.page) qs.set('page', String(params.page));
   if (params?.limit) qs.set('limit', String(params.limit));
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
-  return apiRequest<MasterListResponse<Prodi>>(`/admin-master/prodis${suffix}`);
+  // Use academic module's /prodis endpoint (requires academic.manage which admin_akademik has)
+  // Note: academic module returns { items: [...] } without pagination
+  const res = await apiRequest<{ items: Prodi[] }>(`/prodis${suffix}`);
+  return {
+    items: res.items,
+    pagination: { page: 1, limit: res.items.length, total: res.items.length },
+  };
 }
 
 export async function createProdi(input: CreateProdiInput): Promise<Prodi> {

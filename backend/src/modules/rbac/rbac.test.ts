@@ -172,7 +172,7 @@ const EXPECTED_MATRIX: Record<Permission, Record<RoleCode, boolean>> = {
   'user.manage': {
     mahasiswa: false,
     dosen: false,
-    admin_akademik: true,
+    admin_akademik: false,
     admin_keuangan: false,
     admin_sistem: true,
   },
