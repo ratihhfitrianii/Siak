@@ -209,9 +209,7 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
 
     render(<AdminCourseReviewPage />);
 
-    expect(
-      await screen.findByText((text) => text.includes('Basis Data')),
-    ).toBeInTheDocument();
+    expect(await screen.findByText((text) => text.includes('Basis Data'))).toBeInTheDocument();
     expect(screen.queryByText('Setujui')).not.toBeInTheDocument();
     expect(screen.getByText('Selesai')).toBeInTheDocument();
   });
