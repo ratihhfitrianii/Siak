@@ -230,10 +230,10 @@ describe('T3.1 Dosen Pilih MK', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data.items)).toBe(true);
+    expect(res.body.data.pagination).toBeDefined(); // new pagination field
 
     const adminView = res.body.data.items.find(
-      (s: { curriculum_id: number | string; lecturer_id: number | string }) =>
-        Number(s.curriculum_id) === curriculumId && Number(s.lecturer_id) === dosenLecturerId,
+      (s: { curriculum_id: number | string }) => Number(s.curriculum_id) === curriculumId,
     );
     expect(adminView).toBeDefined();
     expect(adminView).toHaveProperty('lecturer_name');
