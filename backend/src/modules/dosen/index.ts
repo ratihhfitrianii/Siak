@@ -266,7 +266,10 @@ export function createDosenRouter(): Router {
     authorize('kurikulum.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { semesterId, prodiId, status } = req.query;
+        const { semesterId, prodiId, status, page = '1', limit = '10' } = req.query;
+
+        const pageNum = Math.max(1, Number(page));
+        const limitNum = Math.min(100, Math.max(1, Number(limit)));
 
         let query = `
           SELECT 
@@ -313,8 +316,42 @@ export function createDosenRouter(): Router {
 
         query += ` ORDER BY s.code, p.name, u.full_name, cur.semester_number, c.code`;
 
+        // Count total
+        const countQuery = query
+          .replace(
+            `SELECT 
+            lcs.*,
+            u.full_name as lecturer_name,
+            l.nidn,
+            c.code as course_code,
+            c.name as course_name,
+            c.credits,
+            cur.semester_number,
+            cur.is_mandatory,
+            s.code as semester_code,
+            s.name as semester_name,
+            p.name as prodi_name,
+            ru.full_name as reviewed_by_name`,
+            'SELECT COUNT(*)',
+          )
+          .replace(/ORDER BY.*$/, '');
+        const countRes = await pgPool.query(countQuery, params);
+        const total = Number(countRes.rows[0].count);
+
+        // Pagination
+        const offset = (pageNum - 1) * limitNum;
+        params.push(limitNum, offset);
+        query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
+
         const result = await pgPool.query(query, params);
-        res.json({ success: true, data: { items: result.rows } });
+
+        res.json({
+          success: true,
+          data: {
+            items: result.rows,
+            pagination: { page: pageNum, limit: limitNum, total },
+          },
+        });
       } catch (err) {
         next(err);
       }

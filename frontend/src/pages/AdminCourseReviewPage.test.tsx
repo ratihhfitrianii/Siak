@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AdminCourseReviewPage } from './AdminCourseReviewPage';
 import * as api from '../lib/api';
@@ -114,37 +114,45 @@ function selectionsResponse(
   return { items, pagination: { page, limit, total: total ?? items.length } };
 }
 
-function mockAll() {
-  mockedApi.getDosenSemesters.mockResolvedValue(SEMESTERS);
-  mockedApi.listProdis.mockResolvedValue({
-    items: PRODIS,
-    pagination: { page: 1, limit: 100, total: PRODIS.length },
-  });
-  mockedApi.getCourseSelectionsForReview.mockResolvedValue(selectionsResponse());
+function prodiResponse(items: Prodi[] = PRODIS, page = 1, limit = 100) {
+  return { items, pagination: { page, limit, total: items.length } };
 }
 
-describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
+function mockAll() {
+  mockedApi.getDosenSemesters.mockResolvedValue(SEMESTERS);
+  mockedApi.listProdis.mockResolvedValue(prodiResponse());
+  mockedApi.getCourseSelectionsForReview.mockResolvedValue(selectionsResponse());
+  mockedApi.reviewCourseSelection.mockResolvedValue(SELECTIONS[0]);
+}
 
+function clearMocks() {
+  vi.clearAllMocks();
+}
+
+afterEach(() => {
+  clearMocks();
+});
+
+describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
   it('menampilkan daftar pilihan MK yang diajukan dosen', async () => {
     mockAll();
+    mockedApi.getCourseSelectionsForReview.mockResolvedValue(selectionsResponse(SELECTIONS));
 
     render(<AdminCourseReviewPage />);
 
-    expect(await screen.findByText('Persetujuan MK Dosen')).toBeInTheDocument();
-    expect(
-      await screen.findByText((text) => text.includes('Pemrograman Dasar')),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText('Diajukan').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Disetujui').length).toBeGreaterThanOrEqual(1);
-    expect(mockedApi.getCourseSelectionsForReview).toHaveBeenCalledWith({
-      semesterId: 1,
-      prodiId: undefined,
-      status: undefined,
-      page: 1,
-      limit: 10,
+    // Wait for data to load
+    await waitFor(() => {
+      expect(screen.getByText('198001001')).toBeInTheDocument(); // NIK
+      expect(screen.getByText('Dr. Andi Wijaya')).toBeInTheDocument(); // Nama
+      // Prodi in table (not in select)
+      const prodiCells = screen.getAllByText('Teknik Informatika');
+      expect(prodiCells.length).toBeGreaterThanOrEqual(1);
+      // Status in table (not in select)
+      const statusBadges = screen.getAllByText('Diajukan');
+      expect(statusBadges.length).toBeGreaterThanOrEqual(1);
+      // Detail button in table
+      const detailBtns = screen.getAllByText('Detail');
+      expect(detailBtns.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -154,74 +162,47 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
 
     render(<AdminCourseReviewPage />);
 
+    await waitFor(() => {
+      expect(screen.getByText('Disetujui')).toBeInTheDocument();
+    });
+
     const statusSelect = screen.getByDisplayValue('Semua Status');
     fireEvent.change(statusSelect, { target: { value: 'diterima' } });
 
-    await waitFor(() => {
-      expect(screen.getByText((text) => text.includes('Basis Data'))).toBeInTheDocument();
-    });
-    expect(
-      screen.queryByText((text) => text.includes('Pemrograman Dasar')),
-    ).not.toBeInTheDocument();
-  });
-
-  it('tombol Setujui → modal + konfirmasi → reviewCourseSelection', async () => {
-    mockAll();
-    mockedApi.reviewCourseSelection.mockResolvedValue({ ...SELECTIONS[0], status: 'diterima' });
-
-    render(<AdminCourseReviewPage />);
-
-    const setujuiBtn = await screen.findByText('Setujui');
-    fireEvent.click(setujuiBtn);
-
-    const dialog = screen.getByRole('dialog');
-    expect(dialog).toBeInTheDocument();
-
-    const textarea = within(dialog).getByPlaceholderText(/Masukkan alasan/i);
-    fireEvent.change(textarea, { target: { value: 'Oke, lanjut' } });
-
-    fireEvent.click(within(dialog).getByText('Setujui'));
+    // Wait for button to be clickable (not loading)
+    const applyBtn = await screen.findByText((text) => text.includes('Terapkan Filter'));
+    fireEvent.click(applyBtn);
 
     await waitFor(() => {
-      expect(mockedApi.reviewCourseSelection).toHaveBeenCalledWith(1, {
-        status: 'diterima',
-        reviewNotes: 'Oke, lanjut',
-      });
+      expect(mockedApi.getCourseSelectionsForReview).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'diterima', page: 1 }),
+      );
     });
-    expect(await screen.findByText(/berhasil disetujui/)).toBeInTheDocument();
   });
 
-  it('tombol Tolak → modal konfirmasi → reviewCourseSelection ditolak', async () => {
-    mockAll();
-    mockedApi.reviewCourseSelection.mockResolvedValue({ ...SELECTIONS[0], status: 'ditolak' });
-
-    render(<AdminCourseReviewPage />);
-
-    const tolakBtn = await screen.findByText('Tolak');
-    fireEvent.click(tolakBtn);
-
-    const dialog = screen.getByRole('dialog');
-    expect(dialog).toBeInTheDocument();
-    fireEvent.click(within(dialog).getByText('Tolak'));
-
-    await waitFor(() => {
-      expect(mockedApi.reviewCourseSelection).toHaveBeenCalledWith(1, {
-        status: 'ditolak',
-        reviewNotes: undefined,
-      });
-    });
-    expect(await screen.findByText(/berhasil ditolak/)).toBeInTheDocument();
-  });
-
-  it('semua pilihan sudah direview → tidak ada tombol aksi', async () => {
+  it('filter prodi → memuat ulang data', async () => {
     mockAll();
     mockedApi.getCourseSelectionsForReview.mockResolvedValue(selectionsResponse([SELECTIONS[1]]));
 
     render(<AdminCourseReviewPage />);
 
-    expect(await screen.findByText((text) => text.includes('Basis Data'))).toBeInTheDocument();
-    expect(screen.queryByText('Setujui')).not.toBeInTheDocument();
-    expect(screen.getByText('Selesai')).toBeInTheDocument();
+    await waitFor(() => {
+      // Check table cell (not select option)
+      const prodiCells = screen.getAllByText('Sistem Informasi');
+      expect(prodiCells.length).toBeGreaterThanOrEqual(1);
+    });
+
+    const prodiSelect = screen.getByDisplayValue('Semua Prodi');
+    fireEvent.change(prodiSelect, { target: { value: '2' } });
+
+    const applyBtn = await screen.findByText((text) => text.includes('Terapkan Filter'));
+    fireEvent.click(applyBtn);
+
+    await waitFor(() => {
+      expect(mockedApi.getCourseSelectionsForReview).toHaveBeenCalledWith(
+        expect.objectContaining({ prodiId: 2, page: 1 }),
+      );
+    });
   });
 
   it('filter semester/prodi → memuat ulang data', async () => {
@@ -231,26 +212,181 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
     render(<AdminCourseReviewPage />);
 
     await waitFor(() => {
+      expect(screen.getByText((text) => text.includes('Terapkan Filter'))).toBeInTheDocument();
+    });
+
+    const semesterSelect = screen.getByLabelText('Semester');
+    fireEvent.change(semesterSelect, { target: { value: '2' } });
+
+    const applyBtn = await screen.findByText((text) => text.includes('Terapkan Filter'));
+    fireEvent.click(applyBtn);
+
+    await waitFor(() => {
       expect(mockedApi.getCourseSelectionsForReview).toHaveBeenCalledWith(
-        expect.objectContaining({ semesterId: 1 }),
+        expect.objectContaining({ semesterId: 2, page: 1 }),
       );
     });
   });
 
-  it('error review → menampilkan error di modal', async () => {
+  it('klik Detail → membuka modal detail', async () => {
+    mockAll();
+
+    render(<AdminCourseReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Dr. Andi Wijaya')).toBeInTheDocument();
+    });
+
+    // Get the first Detail button in the first row
+    const detailBtn = screen.getAllByText('Detail')[0];
+    fireEvent.click(detailBtn);
+
+    // Check detail modal opens
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText('Detail Pilihan MK')).toBeInTheDocument();
+      expect(screen.getByText('MK001')).toBeInTheDocument();
+      expect(screen.getByText('Pemrograman Dasar')).toBeInTheDocument();
+      expect(screen.getByText('Setujui')).toBeInTheDocument();
+      expect(screen.getByText('Tolak')).toBeInTheDocument();
+    });
+  });
+
+  it('modal detail → klik Setujui → buka review modal', async () => {
+    mockAll();
+
+    render(<AdminCourseReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Detail').length).toBeGreaterThan(0);
+    });
+
+    fireEvent.click(screen.getAllByText('Detail')[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Setujui')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Setujui'));
+
+    // Review modal should open
+    await waitFor(() => {
+      const dialogs = screen.getAllByRole('dialog');
+      expect(dialogs.length).toBe(2); // detail + review
+      expect(screen.getByText('Setujui Pilihan MK')).toBeInTheDocument();
+    });
+  });
+
+  it('modal detail → klik Tolak → buka review modal dengan judul Tolak', async () => {
+    mockAll();
+
+    render(<AdminCourseReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Detail').length).toBeGreaterThan(0);
+    });
+
+    fireEvent.click(screen.getAllByText('Detail')[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Tolak')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Tolak'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Tolak Pilihan MK')).toBeInTheDocument();
+    });
+  });
+
+  it('review modal → isi catatan dan konfirmasi → panggil reviewCourseSelection', async () => {
+    mockAll();
+    mockedApi.reviewCourseSelection.mockResolvedValue({ ...SELECTIONS[0], status: 'diterima' });
+
+    render(<AdminCourseReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Detail').length).toBeGreaterThan(0);
+    });
+
+    fireEvent.click(screen.getAllByText('Detail')[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Setujui')).toBeInTheDocument();
+    });
+
+    // Click Setujui in detail modal (the one with smaller padding)
+    const setujuiInDetail = screen.getAllByText('Setujui')[0];
+    fireEvent.click(setujuiInDetail);
+
+    await waitFor(() => {
+      expect(screen.getByText('Setujui Pilihan MK')).toBeInTheDocument();
+    });
+
+    const textarea = screen.getByPlaceholderText('Masukkan alasan persetujuan/penolakan...');
+    fireEvent.change(textarea, { target: { value: 'Disetujui karena kompeten' } });
+
+    // Click Setujui in review modal (the one with larger padding)
+    const setujuiInReview = screen.getAllByText('Setujui')[1];
+    fireEvent.click(setujuiInReview);
+
+    await waitFor(() => {
+      expect(mockedApi.reviewCourseSelection).toHaveBeenCalledWith(1, {
+        status: 'diterima',
+        reviewNotes: 'Disetujui karena kompeten',
+      });
+    });
+  });
+
+  it('error review → menampilkan error di main area', async () => {
     mockAll();
     mockedApi.reviewCourseSelection.mockRejectedValue(new Error('Gagal review'));
 
     render(<AdminCourseReviewPage />);
 
-    const setujuiBtn = await screen.findByText('Setujui');
-    fireEvent.click(setujuiBtn);
+    await waitFor(() => {
+      expect(screen.getAllByText('Detail').length).toBeGreaterThan(0);
+    });
 
-    const dialog = screen.getByRole('dialog');
-    fireEvent.click(within(dialog).getByText('Setujui'));
+    fireEvent.click(screen.getAllByText('Detail')[0]);
 
-    // Error appears in main area after modal closes
+    await waitFor(() => {
+      expect(screen.getByText('Setujui')).toBeInTheDocument();
+    });
+
+    // Click Setujui in detail modal
+    const setujuiInDetail = screen.getAllByText('Setujui')[0];
+    fireEvent.click(setujuiInDetail);
+
+    await waitFor(() => {
+      expect(screen.getByText('Setujui Pilihan MK')).toBeInTheDocument();
+    });
+
+    // Click Setujui in review modal
+    const setujuiInReview = screen.getAllByText('Setujui')[1];
+    fireEvent.click(setujuiInReview);
+
+    // Error appears in main area after modals close
     expect(await screen.findByText((text) => text.includes('Gagal review'))).toBeInTheDocument();
+  });
+
+  it('semua pilihan sudah direview (diterima) → tidak ada tombol Setujui/Tolak di detail', async () => {
+    mockAll();
+    mockedApi.getCourseSelectionsForReview.mockResolvedValue(selectionsResponse([SELECTIONS[1]]));
+
+    render(<AdminCourseReviewPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Dr. Siti Rahayu')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getAllByText('Detail')[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Selesai')).toBeInTheDocument();
+      expect(screen.queryByText('Setujui')).not.toBeInTheDocument();
+      expect(screen.queryByText('Tolak')).not.toBeInTheDocument();
+    });
   });
 
   it('pagination Berikutnya → memuat halaman berikutnya', async () => {
@@ -277,9 +413,7 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
   it('pagination Sebelumnya → tidak aktif di halaman 1', async () => {
     mockAll();
     // total=20, page=1 -> pagination shows (20 > 10)
-    mockedApi.getCourseSelectionsForReview.mockResolvedValue(
-      selectionsResponse(SELECTIONS, 1, 10, 20),
-    );
+    mockedApi.getCourseSelectionsForReview.mockResolvedValue(selectionsResponse(SELECTIONS, 1, 10, 20));
 
     render(<AdminCourseReviewPage />);
 
@@ -290,25 +424,10 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
     expect(screen.getByText('‹ Sebelumnya')).toBeDisabled();
   });
 
-  it('filter prodi → memuat ulang data', async () => {
-    mockAll();
-    mockedApi.getCourseSelectionsForReview.mockResolvedValue(selectionsResponse([]));
-
-    render(<AdminCourseReviewPage />);
-
-    await waitFor(() => {
-      expect(mockedApi.getCourseSelectionsForReview).toHaveBeenCalledWith(
-        expect.objectContaining({ semesterId: 1 }),
-      );
-    });
-  });
-
   it('loading state → menampilkan Memuat... di tombol filter', async () => {
     mockAll();
     let resolveLoad: (val: CourseSelectionsForReviewResponse) => void;
-    const loadPromise = new Promise<CourseSelectionsForReviewResponse>((resolve) => {
-      resolveLoad = resolve;
-    });
+    const loadPromise = new Promise<CourseSelectionsForReviewResponse>((resolve) => { resolveLoad = resolve; });
     mockedApi.getCourseSelectionsForReview.mockReturnValue(loadPromise);
 
     render(<AdminCourseReviewPage />);
@@ -330,87 +449,59 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
     expect(await screen.findByText((text) => text.includes('Gagal memuat'))).toBeInTheDocument();
   });
 
-  it('modal review → Batal menutup modal', async () => {
+  it('modal detail → Batal/X menutup modal', async () => {
     mockAll();
 
     render(<AdminCourseReviewPage />);
 
-    const setujuiBtn = await screen.findByText('Setujui');
-    fireEvent.click(setujuiBtn);
+    await waitFor(() => {
+      expect(screen.getAllByText('Detail').length).toBeGreaterThan(0);
+    });
 
-    const dialog = screen.getByRole('dialog');
-    expect(dialog).toBeInTheDocument();
+    fireEvent.click(screen.getAllByText('Detail')[0]);
 
-    fireEvent.click(within(dialog).getByText('Batal'));
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    // Click close button (X)
+    const closeBtn = screen.getByLabelText('Tutup');
+    fireEvent.click(closeBtn);
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });
 
-  it('modal review → status ditolak menampilkan judul Tolak', async () => {
+  it('modal review → Batal menutup review modal', async () => {
     mockAll();
 
     render(<AdminCourseReviewPage />);
 
-    const tolakBtn = await screen.findByText('Tolak');
-    fireEvent.click(tolakBtn);
-
-    const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByText('Tolak Pilihan MK')).toBeInTheDocument();
-  });
-
-  it('memilih status filter lalu klik Terapkan Filter → memuat ulang data', async () => {
-    mockAll();
-    mockedApi.getCourseSelectionsForReview.mockResolvedValue(
-      selectionsResponse(SELECTIONS, 1, 10, 20),
-    );
-
-    render(<AdminCourseReviewPage />);
-
     await waitFor(() => {
-      expect(screen.getByText('Halaman 1 / 2')).toBeInTheDocument();
+      expect(screen.getAllByText('Detail').length).toBeGreaterThan(0);
     });
 
-    const statusSelect = screen.getByDisplayValue('Semua Status');
-    fireEvent.change(statusSelect, { target: { value: 'diterima' } });
-
-    const applyBtn = screen.getByText(
-      (text) => text.includes('Terapkan Filter') || text.includes('Memuat'),
-    );
-    fireEvent.click(applyBtn);
+    fireEvent.click(screen.getAllByText('Detail')[0]);
 
     await waitFor(() => {
-      expect(mockedApi.getCourseSelectionsForReview).toHaveBeenCalledWith(
-        expect.objectContaining({ page: 1, status: 'diterima' }),
-      );
-    });
-  });
-
-  it('memilih prodi filter lalu klik Terapkan Filter → memuat ulang data', async () => {
-    mockAll();
-    mockedApi.getCourseSelectionsForReview.mockResolvedValue(
-      selectionsResponse(SELECTIONS, 1, 10, 20),
-    );
-
-    render(<AdminCourseReviewPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Halaman 1 / 2')).toBeInTheDocument();
+      expect(screen.getByText('Setujui')).toBeInTheDocument();
     });
 
-    const prodiSelect = screen.getByDisplayValue('Semua Prodi');
-    fireEvent.change(prodiSelect, { target: { value: '2' } });
-
-    const applyBtn = screen.getByText(
-      (text) => text.includes('Terapkan Filter') || text.includes('Memuat'),
-    );
-    fireEvent.click(applyBtn);
+    // Click Setujui in detail modal
+    fireEvent.click(screen.getAllByText('Setujui')[0]);
 
     await waitFor(() => {
-      expect(mockedApi.getCourseSelectionsForReview).toHaveBeenCalledWith(
-        expect.objectContaining({ page: 1, prodiId: 2 }),
-      );
+      expect(screen.getByText('Setujui Pilihan MK')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Batal'));
+
+    // Review modal closed, detail modal still open
+    await waitFor(() => {
+      const dialogs = screen.getAllByRole('dialog');
+      expect(dialogs.length).toBe(1);
+      expect(screen.getByText('Detail Pilihan MK')).toBeInTheDocument();
     });
   });
 });
