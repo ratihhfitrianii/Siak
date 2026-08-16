@@ -499,6 +499,42 @@ export interface MyCourseSelectionsResponse {
   items: MyCourseSelection[];
 }
 
+/* ==== Admin Akademik: Persetujuan MK Dosen ==== */
+
+export interface CourseSelectionForReview {
+  id: number;
+  lecturerId: number;
+  lecturerName: string;
+  nidn: string;
+  curriculumId: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  semesterNumber: number;
+  isMandatory: boolean;
+  semesterCode: string;
+  semesterName: string;
+  prodiName: string;
+  status: 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak';
+  priority: number;
+  notes: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  reviewedByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourseSelectionsForReviewResponse {
+  items: CourseSelectionForReview[];
+  pagination: { page: number; limit: number; total: number };
+}
+
+export interface ReviewCourseSelectionInput {
+  status: 'disetujui' | 'ditolak';
+  reviewNotes?: string;
+}
+
 // --- Jadwal & Ketersediaan (GET /schedule/availability?date=YYYY-MM-DD) ---
 export interface BusySlot {
   id: number; // schedule id — dipakai create sesi absensi / substitute

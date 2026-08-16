@@ -122,6 +122,15 @@ const MENU_ITEMS: {
     icon: 'calendar',
     description: 'Kelola jadwal pengajar per kelas',
   },
+  // ---- Admin Akademik: Persetujuan MK Dosen (kurikulum.manage) ----
+  {
+    permissions: ['kurikulum.manage'],
+    roles: ['admin_akademik'],
+    label: 'Persetujuan MK',
+    path: '/admin/persetujuan-mk',
+    icon: 'clipboard',
+    description: 'Review & setujui/tolak pilihan MK dosen',
+  },
   // ---- Admin Sistem: Informasi Penting (Announcements) ----
   {
     permissions: ['user.manage'],

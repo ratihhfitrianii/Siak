@@ -867,6 +867,69 @@ export async function getDosenAvailableClasses(): Promise<ClaimableClassResponse
   return { items: res.items.map(normalizeClaimableClass) };
 }
 
+/* ==== #?? Admin Akademik: Persetujuan MK Dosen ==== */
+
+export interface CourseSelectionForReview {
+  id: number;
+  lecturerId: number;
+  lecturerName: string;
+  nidn: string;
+  curriculumId: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  semesterNumber: number;
+  isMandatory: boolean;
+  semesterCode: string;
+  semesterName: string;
+  prodiName: string;
+  status: 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak';
+  priority: number;
+  notes: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  reviewedByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourseSelectionsForReviewResponse {
+  items: CourseSelectionForReview[];
+  pagination: { page: number; limit: number; total: number };
+}
+
+export async function getCourseSelectionsForReview(params?: {
+  semesterId?: number;
+  prodiId?: number;
+  status?: 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak';
+  page?: number;
+  limit?: number;
+}): Promise<CourseSelectionsForReviewResponse> {
+  const qs = new URLSearchParams();
+  if (params?.semesterId) qs.set('semesterId', String(params.semesterId));
+  if (params?.prodiId) qs.set('prodiId', String(params.prodiId));
+  if (params?.status) qs.set('status', params.status);
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.limit) qs.set('limit', String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return apiRequest<CourseSelectionsForReviewResponse>(`/dosen/courses/all${suffix}`);
+}
+
+export interface ReviewCourseSelectionInput {
+  status: 'diterima' | 'ditolak';
+  reviewNotes?: string;
+}
+
+export async function reviewCourseSelection(
+  id: number,
+  input: ReviewCourseSelectionInput,
+): Promise<CourseSelectionForReview> {
+  return apiRequest<CourseSelectionForReview>(`/dosen/courses/${id}/review`, {
+    method: 'PUT',
+    body: input,
+  });
+}
+
 /** POST /dosen/claim-class — dosen klaim kelas (set lecturer_id) (T3.9, F-21). */
 export async function claimClass(classId: number): Promise<{ message: string }> {
   return apiRequest<{ message: string }>('/dosen/claim-class', {

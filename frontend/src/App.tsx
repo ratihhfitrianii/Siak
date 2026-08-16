@@ -56,6 +56,10 @@ const AdminSchedulePage = lazy(() =>
   import('./pages/AdminSchedulePage').then((m) => ({ default: m.AdminSchedulePage })),
 );
 
+const AdminCourseReviewPage = lazy(() =>
+  import('./pages/AdminCourseReviewPage').then((m) => ({ default: m.AdminCourseReviewPage })),
+);
+
 /** Fallback saat chunk halaman di-download (T5.6) — spinner konsisten dengan pola loading existing. */
 function PageFallback() {
   return (
@@ -195,6 +199,17 @@ export default function App() {
               <ProtectedRoute perm="schedule.manage">
                 <AppLayout>
                   <AdminSchedulePage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Admin Akademik: Persetujuan MK Dosen (kurikulum.manage) */}
+          <Route
+            path="/admin/persetujuan-mk"
+            element={
+              <ProtectedRoute perm="kurikulum.manage">
+                <AppLayout>
+                  <AdminCourseReviewPage />
                 </AppLayout>
               </ProtectedRoute>
             }
