@@ -2,7 +2,12 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AdminCourseReviewPage } from './AdminCourseReviewPage';
 import * as api from '../lib/api';
-import type { CourseSelectionForReview, CourseSelectionsForReviewResponse, SemesterOption, Prodi } from '../lib/types';
+import type {
+  CourseSelectionForReview,
+  CourseSelectionsForReviewResponse,
+  SemesterOption,
+  Prodi,
+} from '../lib/types';
 
 vi.mock('../lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/api')>();
@@ -100,7 +105,12 @@ const SELECTIONS: CourseSelectionForReview[] = [
   },
 ];
 
-function selectionsResponse(items: CourseSelectionForReview[] = SELECTIONS, page = 1, limit = 10, total?: number) {
+function selectionsResponse(
+  items: CourseSelectionForReview[] = SELECTIONS,
+  page = 1,
+  limit = 10,
+  total?: number,
+) {
   return { items, pagination: { page, limit, total: total ?? items.length } };
 }
 
@@ -267,7 +277,9 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
   it('pagination Sebelumnya → tidak aktif di halaman 1', async () => {
     mockAll();
     // total=20, page=1 -> pagination shows (20 > 10)
-    mockedApi.getCourseSelectionsForReview.mockResolvedValue(selectionsResponse(SELECTIONS, 1, 10, 20));
+    mockedApi.getCourseSelectionsForReview.mockResolvedValue(
+      selectionsResponse(SELECTIONS, 1, 10, 20),
+    );
 
     render(<AdminCourseReviewPage />);
 
@@ -294,7 +306,9 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
   it('loading state → menampilkan Memuat... di tombol filter', async () => {
     mockAll();
     let resolveLoad: (val: CourseSelectionsForReviewResponse) => void;
-    const loadPromise = new Promise<CourseSelectionsForReviewResponse>((resolve) => { resolveLoad = resolve; });
+    const loadPromise = new Promise<CourseSelectionsForReviewResponse>((resolve) => {
+      resolveLoad = resolve;
+    });
     mockedApi.getCourseSelectionsForReview.mockReturnValue(loadPromise);
 
     render(<AdminCourseReviewPage />);
@@ -348,7 +362,9 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
 
   it('memilih status filter lalu klik Terapkan Filter → memuat ulang data', async () => {
     mockAll();
-    mockedApi.getCourseSelectionsForReview.mockResolvedValue(selectionsResponse(SELECTIONS, 1, 10, 20));
+    mockedApi.getCourseSelectionsForReview.mockResolvedValue(
+      selectionsResponse(SELECTIONS, 1, 10, 20),
+    );
 
     render(<AdminCourseReviewPage />);
 
@@ -359,7 +375,9 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
     const statusSelect = screen.getByDisplayValue('Semua Status');
     fireEvent.change(statusSelect, { target: { value: 'diterima' } });
 
-    const applyBtn = screen.getByText((text) => text.includes('Terapkan Filter') || text.includes('Memuat'));
+    const applyBtn = screen.getByText(
+      (text) => text.includes('Terapkan Filter') || text.includes('Memuat'),
+    );
     fireEvent.click(applyBtn);
 
     await waitFor(() => {
@@ -371,7 +389,9 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
 
   it('memilih prodi filter lalu klik Terapkan Filter → memuat ulang data', async () => {
     mockAll();
-    mockedApi.getCourseSelectionsForReview.mockResolvedValue(selectionsResponse(SELECTIONS, 1, 10, 20));
+    mockedApi.getCourseSelectionsForReview.mockResolvedValue(
+      selectionsResponse(SELECTIONS, 1, 10, 20),
+    );
 
     render(<AdminCourseReviewPage />);
 
@@ -382,7 +402,9 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
     const prodiSelect = screen.getByDisplayValue('Semua Prodi');
     fireEvent.change(prodiSelect, { target: { value: '2' } });
 
-    const applyBtn = screen.getByText((text) => text.includes('Terapkan Filter') || text.includes('Memuat'));
+    const applyBtn = screen.getByText(
+      (text) => text.includes('Terapkan Filter') || text.includes('Memuat'),
+    );
     fireEvent.click(applyBtn);
 
     await waitFor(() => {
