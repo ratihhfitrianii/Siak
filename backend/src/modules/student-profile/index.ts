@@ -152,40 +152,6 @@ export function createStudentProfileRouter(): Router {
         }
 
         // Ambil data transkrip (reuse logic dari transcript module)
-        const gradesRes = await pgPool.query(
-          `SELECT
-            g.grade_point,
-            g.grade_letter,
-            cl.credits,
-            s.id as semester_id,
-            s.code as semester_code,
-            s.name as semester_name
-          FROM grades g
-          JOIN krs_items ki ON ki.id = g.krs_item_id
-          JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
-          JOIN krs_periods kp ON kp.id = ks.krs_period_id
-          JOIN semesters s ON s.id = kp.semester_id
-          JOIN classes c ON c.id = ki.class_id
-          JOIN curricula cur ON cur.id = c.curriculum_id
-          JOIN courses cl ON cl.id = cur.course_id
-          WHERE ks.student_id = $1
-          ORDER BY kp.start_date DESC, cl.code`,
-          [user.studentId],
-        );
-
-        const rows = gradesRes.rows as Array<{
-          grade_point: string | null;
-          grade_letter: string | null;
-          credits: string;
-          semester_id: string;
-          semester_code: string;
-          semester_name: string;
-        }>;
-
-        // Nilai terbaik per course_code (untuk handling matkul diulang)
-        const bestByCourse = new Map<string, { gradeId: number; point: number }>();
-
-        // We need to fetch with course_code to handle repeated courses
         const gradesWithCourseRes = await pgPool.query(
           `SELECT
             g.id,
@@ -217,6 +183,9 @@ export function createStudentProfileRouter(): Router {
           semester_code: string;
           semester_name: string;
         }>;
+
+        // Nilai terbaik per course_code (untuk handling matkul diulang)
+        const bestByCourse = new Map<string, { gradeId: number; point: number }>();
 
         for (const row of rowsWithCourse) {
           const point = row.grade_point !== null ? Number(row.grade_point) : 0;
