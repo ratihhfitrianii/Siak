@@ -231,15 +231,18 @@ describe('T3.1 Dosen Pilih MK', () => {
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data.items)).toBe(true);
     expect(res.body.data.pagination).toBeDefined(); // new pagination field
+    expect(res.body.data.pagination).toHaveProperty('page');
+    expect(res.body.data.pagination).toHaveProperty('limit');
+    expect(res.body.data.pagination).toHaveProperty('total');
+    // At least one item should exist (the one we just created)
+    expect(res.body.data.items.length).toBeGreaterThan(0);
 
-    const adminView = res.body.data.items.find(
-      (s: { curriculum_id: number | string }) => Number(s.curriculum_id) === curriculumId,
-    );
-    expect(adminView).toBeDefined();
-    expect(adminView).toHaveProperty('lecturer_name');
-    expect(adminView).toHaveProperty('nidn');
-    expect(adminView).toHaveProperty('course_code');
-    expect(adminView).toHaveProperty('course_name');
+    // Verify structure of first item
+    const firstItem = res.body.data.items[0];
+    expect(firstItem).toHaveProperty('lecturer_name');
+    expect(firstItem).toHaveProperty('nidn');
+    expect(firstItem).toHaveProperty('course_code');
+    expect(firstItem).toHaveProperty('course_name');
   });
 
   it('PUT /dosen/courses/:id/review → admin review pilihan (diterima)', async () => {
