@@ -484,6 +484,7 @@ export function AdminCourseReviewPage() {
                         <th className="pb-2 font-medium px-4 py-2">Jenis</th>
                         <th className="pb-2 font-medium px-4 py-2">Prioritas</th>
                         <th className="pb-2 font-medium px-4 py-2">Catatan Dosen</th>
+                        <th className="pb-2 font-medium px-4 py-2">Status & Reviewer</th>
                         <th className="pb-2 font-medium px-4 py-2">Aksi</th>
                       </tr>
                     </thead>
@@ -505,6 +506,29 @@ export function AdminCourseReviewPage() {
                             title={s.notes || ''}
                           >
                             {s.notes || '-'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="space-y-1">
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusColors[s.status as keyof typeof statusColors]}`}
+                              >
+                                {statusLabels[s.status as keyof typeof statusLabels]}
+                              </span>
+                              {(s.status === 'diterima' || s.status === 'ditolak') && s.reviewedByName && (
+                                <div className="text-xs text-slate-500">
+                                  {s.status === 'diterima' ? 'Disetujui' : 'Ditolak'} oleh{' '}
+                                  <span className="font-medium">{s.reviewedByName}</span>
+                                  {s.reviewedAt && (
+                                    <>
+                                      {' '}•{' '}
+                                      <span>
+                                        {new Date(s.reviewedAt).toLocaleString('id-ID')}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="py-3 px-4">
                             {s.status === 'diajukan' ? (
