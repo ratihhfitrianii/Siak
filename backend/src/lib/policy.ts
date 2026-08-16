@@ -46,6 +46,7 @@ export const PERMISSIONS = [
   'kurikulum.manage', // Kurikulum per prodi/semester CRUD
   'course.manage', // Mata Kuliah CRUD (global)
   'schedule.manage', // Jadwal Kelas CRUD
+  'student.profile', // Profil Mahasiswa (foto, detail, IP per semester)
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -64,6 +65,7 @@ const ROLE_PERMISSIONS: Record<RoleCode, ReadonlySet<Permission>> = {
     'krs.fill',
     'krs.view_classes',
     'guidance.manage',
+    'student.profile',
   ]),
   dosen: new Set([
     'auth.profile',

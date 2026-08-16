@@ -47,7 +47,7 @@ const AnnouncementPage = lazy(() =>
   import('./pages/AnnouncementPage').then((m) => ({ default: m.AnnouncementPage })),
 );
 const ProfilePage = lazy(() =>
-  import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage })),
+  import('./pages/ProfilePage').then((m) => ({ default: m.default })),
 );
 const WaitingRoomPage = lazy(() =>
   import('./pages/WaitingRoomPage').then((m) => ({ default: m.WaitingRoomPage })),
@@ -225,11 +225,11 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          {/* Keluhan #26: Edit Profil (mahasiswa & admin_sistem — permission user.edit_contact) */}
+          {/* Student Profile (mahasiswa — permission student.profile) */}
           <Route
             path="/profil"
             element={
-              <ProtectedRoute perm="user.edit_contact">
+              <ProtectedRoute perm="student.profile">
                 <AppLayout>
                   <ProfilePage />
                 </AppLayout>

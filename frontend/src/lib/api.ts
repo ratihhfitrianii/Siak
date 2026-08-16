@@ -44,6 +44,8 @@ import type {
   CreateAnnouncementInput,
   CourseSelectionForReview,
   CourseSelectionsForReviewResponse,
+  StudentProfile,
+  SemesterIps,
 } from './types';
 
 export class ApiError extends Error {
@@ -1512,4 +1514,14 @@ export async function updateMyContact(
     '/users/me/contact',
     { method: 'PUT', body: input },
   );
+}
+
+/** GET /students/me — profil mahasiswa lengkap (untuk halaman Profile). */
+export async function getMyStudentProfile(): Promise<StudentProfile> {
+  return apiRequest<StudentProfile>('/students/me');
+}
+
+/** GET /students/me/ips — IP per semester untuk grafik. */
+export async function getMySemesterIps(): Promise<SemesterIps[]> {
+  return apiRequest<SemesterIps[]>('/students/me/ips');
 }

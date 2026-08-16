@@ -15,6 +15,36 @@ export interface UserMe {
   menu: string[];
 }
 
+/** Mahasiswa Profile — detail mahasiswa untuk halaman Profile */
+export interface StudentProfile {
+  id: number;
+  nim: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  personalEmail: string | null;
+  photoUrl: string | null;
+  prodiCode: string;
+  prodiName: string;
+  facultyCode: string;
+  facultyName: string;
+  academicYearCode: string;
+  entryType: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** IP per semester untuk grafik */
+export interface SemesterIps {
+  semesterId: number;
+  semesterCode: string;
+  semesterName: string;
+  ips: number;
+  sksLulus: number;
+  sksDiambil: number;
+}
+
 export interface KrsPeriod {
   id: number;
   semesterId: number;
