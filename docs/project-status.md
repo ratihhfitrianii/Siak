@@ -1,6 +1,6 @@
 # Project Status — Siak (Sistem Informasi Akademik)
 
-> **Diperbarui:** 2026-08-09 (Iterasi 5 tuntas — T5.1 s.d. T5.7 + penutupan keluhan lama)
+> **Diperbarui:** 2026-08-16 (Iterasi 6 tuntas — produksi PaaS + polish + master data)
 > **Sumber:** Tugas #1 Coordinator + Analyst + Developer + Reviewer → **Tugas #2 Coordinator (CLI)**
 
 ---
@@ -44,7 +44,26 @@ Detail lengkap: `docs/03-execution-plan.md`.
 || **Iterasi 4 — Skala & Integrasi** | T4.1–T4.7 | Waiting room production, payment gateway, PDDikti, payroll detail, security audit | ~23 hari | 🟢 **T4.1–T4.7 SELESAI** (2026-08-08 s.d. 2026-08-09): T4.1 Waiting Room Hardening (Lua atomic threshold) ✅; T4.2 Payment Gateway Adapter (Midtrans/Xendit mock + webhook idempotent) ✅; T4.3 PDDikti Sync (scheduled job, upsert, idempotent) ✅; T4.4 Payroll Detail (Honor Tetap + Sesi + Substitute + Bimbingan) ✅; T4.5 Load Test Production (5.5k users, 1.8k kelas, queue mode verified) ✅; T4.6 Monitoring Dashboards (Prometheus metrics + 5 Grafana dashboards) ✅; T4.7 Security Audit (node-pg-migrate 7.9.0 vuln fix, lint clean, npm audit prod 0) ✅ |
 || **Iterasi 5 — UX & Polish** | T5.1–T5.7 | Login andal, error inline, RBAC UI, aksesibilitas, E2E | ~16 hari | 🟢 **T5.1–T5.7 SELESAI** (2026-08-09): T5.1 Login Reliability (NetworkError, timeout, retry transien, session recovery) ✅; T5.2 Error Inline Standardization (FormAlert/FieldError di 10 halaman) ✅; T5.3 RBAC UI Consistency (menu disaring dari permission — fix 403 admin keuangan, sembunyikan dead-end, hapus route duplikat) ✅; T5.4 UI/UX Polish (normalisasi palet gray→slate/blue→primary, komponen Spinner bersama) ✅; T5.5 Accessibility Audit (**Lighthouse accessibility 100/100**, 14 button type, aria-describedby) ✅; T5.6 Performance Polish (code splitting 13 chunk, bundle 92.8 kB gzip <200 kB) ✅; T5.7 E2E Playwright (**9 test: login + bayar + KRS+PDF + transkrip + absensi/nilai dosen, CI gate**) ✅. Plus penutupan keluhan lama: notifikasi "tandai baca semua" + KRS PDF download. |
 
-**Total:** ~24 minggu (buffer 30%), asumsi 1 developer full-time.
+| **Total:** ~24 minggu (buffer 30%), asumsi 1 developer full-time.
+
+---
+
+## Iterasi 6 — Produksi PaaS, Polish & Master Data (2026-08-10 s.d. 2026-08-16)
+
+| Area | Status | Keterangan |
+|------|--------|------------|
+| Hosting produksi | ✅ **DIPUTUSKAN & LIVE** | FE **Vercel** (`https://siak-vercel.vercel.app`), BE **Render** (`https://siak-backend.onrender.com`), **Neon** PostgreSQL (pooled, 18 migrasi), **Upstash** Redis (DL-35). Runbook: `docs/deployment-paas-free.md`. Backend perlu manual deploy ulang setelah env diubah; FE deploy via `vercel --prod --yes` dari root repo. |
+| Admin Sistem menu | ✅ **SELESAI** | Menu dibatasi 4 item: **Dashboard, User, Master Data, Informasi Penting** (DL-36). |
+| CRUD Fakultas & Prodi | ✅ **SELESAI** | `GET/POST/PUT/DELETE /admin-master/faculties` & `/prodis` + tab di halaman Master Data (Admin Sistem). |
+| Modul Announcements (Informasi Penting) | ✅ **SELESAI** | Migration `V20260815_018__create_announcements.sql`; CRUD + `GET /active` (route sebelum `/:id`); kartu announcement di Dashboard semua role; halaman `AnnouncementPage` + 6 test (DL-36). |
+| **Master Data Mahasiswa & Dosen** | ✅ **SELESAI** | Tab **Mahasiswa** & **Dosen** di `AdminMasterPage` (sebelumnya hanya Fakultas/Prodi — tab hilang karena FE belum diimplementasikan, backend sudah ada). List `GET /admin-master/students\|lecturers` (limit 100, filter prodi/search), create manual (password default NIM/NIDN); edit/nonaktifkan via UI disabled karena backend PUT belum ada (DL-40). 13 test. |
+| Pilih MK (Dosen) | ✅ **SELESAI** | Toggle **grid/list** + MK berstatus `selection_status !== 'belum_diajukan'` dibuat **non-selectable** & tampil di section "Mata Kuliah Sudah Diajukan". |
+| Fix "Gagal memuat data" | ✅ **SELESAI** | `getAvailableCourses` & `getSubstituteRequests` double-unwrap `{items:[]}` → `rows.map is not a function`; `getAcademicClasses` path `/academic/classes` → `/classes` (DL-37). |
+| RBAC Admin Akademik | ✅ **SELESAI** | Link "Isi KRS" hanya untuk role `mahasiswa`; menu Transkrip disembunyikan dari Admin Akademik (`HIDDEN_MENU_BY_ROLE`). |
+| Bimbingan searchable | ✅ **SELESAI** | Dropdown "Pilih Mahasiswa Binaan" searchable (NIM/nama/email/prodi) + filter catatan 8 kolom; backend `SESSION_SELECT` join `users`(email) & `prodis`(code). |
+| Login NIM/NIK | ✅ **SELESAI** | Resolver UNION ALL prioritas email > NIM > NIK > NIDN + LIMIT 1 (deterministik); mahasiswa=NIM, dosen=NIK, password default NIM/NIK + `must_change_password` (DL-39). |
+| Migrasi Neon | ✅ **SELESAI (18)** | Migration `V018` announcements dijalankan manual ke Neon produksi via `node-pg-migrate up` dari lokal (DATABASE_URL pooled). |
+| CI/CD | ✅ **HIJAU** | GitHub Actions Node 24; lint max-warnings 0, prettier, typecheck, build, coverage FE branch ≥80% (exclude `App.tsx` + `api.ts`, DL-38), BE lines/branches ≥75%. |
 
 ---
 
