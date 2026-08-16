@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ApiError,
   apiRequest,
+  createAnnouncement,
   enterWaitingRoom,
   getAccessToken,
   getMyPayments,
@@ -11,6 +12,7 @@ import {
   NetworkError,
   setTokens,
   tryRefresh,
+  updateAnnouncement,
   WAITING_TOKEN_KEY,
   WR_TOKEN_HEADER,
 } from './api';
@@ -316,5 +318,65 @@ describe('getMyPayments — normalisasi snake→camel (T2.6 + fix E2E)', () => {
     expect(p.totalAmount).toBe(970000);
     expect(p.status).toBe('lunas');
     expect(p.items[0]!.isMandatory).toBe(true);
+  });
+});
+
+describe('createAnnouncement/updateAnnouncement — body JSON tidak double-stringify (fix produksi 2026-08-16)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  it('createAnnouncement mengirim body object (bukan string) ke apiRequest', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          success: true,
+          data: { id: 1, title: 'Test', message: 'M', targetRoles: ['mahasiswa'] },
+        }),
+      ),
+    );
+
+    await createAnnouncement({
+      title: 'Pengumuman UTS',
+      message: 'Jadwal menyusul',
+      targetRoles: ['mahasiswa'],
+      priority: 5,
+      isActive: true,
+      publishedAt: null,
+      expiresAt: null,
+    });
+
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sentBody = JSON.parse(String(init.body));
+    // Jika body double-stringify, JSON.parse akan menghasilkan string (bukan object)
+    expect(typeof sentBody).toBe('object');
+    expect(sentBody.title).toBe('Pengumuman UTS');
+    expect(sentBody.targetRoles).toEqual(['mahasiswa']);
+    expect(sentBody.priority).toBe(5);
+  });
+
+  it('updateAnnouncement mengirim body object dengan id di URL', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse({ success: true, data: { id: 3, title: 'Update', message: 'M' } }),
+        ),
+    );
+
+    await updateAnnouncement(3, { title: 'Update', isActive: false });
+
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/v1/announcements/3');
+    expect(init.method).toBe('PUT');
+    const sentBody = JSON.parse(String(init.body));
+    expect(typeof sentBody).toBe('object');
+    expect(sentBody.title).toBe('Update');
+    expect(sentBody.isActive).toBe(false);
   });
 });

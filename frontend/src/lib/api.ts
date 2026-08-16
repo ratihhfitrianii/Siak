@@ -714,7 +714,7 @@ export async function getAnnouncement(id: number): Promise<Announcement> {
 export async function createAnnouncement(input: CreateAnnouncementInput): Promise<Announcement> {
   const data = await apiRequest<Announcement>('/announcements', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: input,
   });
   return data;
 }
@@ -725,7 +725,7 @@ export async function updateAnnouncement(
 ): Promise<Announcement> {
   const data = await apiRequest<Announcement>(`/announcements/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(input),
+    body: input,
   });
   return data;
 }
