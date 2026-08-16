@@ -211,11 +211,26 @@ export interface CreateMasterStudentInput {
   email?: string;
 }
 
+export interface UpdateMasterStudentInput {
+  fullName?: string;
+  prodiCode?: string;
+  angkatan?: string;
+  email?: string;
+  isActive?: boolean;
+}
+
 export interface CreateMasterLecturerInput {
   nidn: string;
   fullName: string;
   prodiCode: string;
   email?: string;
+}
+
+export interface UpdateMasterLecturerInput {
+  fullName?: string;
+  prodiCode?: string;
+  email?: string;
+  isActive?: boolean;
 }
 
 /* ==== #16 Master Data — Fakultas & Prodi (admin_sistem) ==== */

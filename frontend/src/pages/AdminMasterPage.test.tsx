@@ -20,6 +20,8 @@ vi.mock('../lib/api', async (importOriginal) => {
     listMasterLecturers: vi.fn(),
     createMasterStudent: vi.fn(),
     createMasterLecturer: vi.fn(),
+    updateMasterStudent: vi.fn(),
+    updateMasterLecturer: vi.fn(),
   };
 });
 
@@ -566,9 +568,127 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.listMasterLecturers.mockResolvedValue(lecturersResponse());
 
     render(<AdminMasterPage />);
-
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
     expect(await screen.findByText('Belum ada data program studi.')).toBeInTheDocument();
+  });
+
+  it('klik Tambah Mahasiswa → popup modal muncul dengan judul + form kosong', async () => {
+    mockAllLists();
+
+    render(<AdminMasterPage />);
+    await screen.findByText('Fakultas Teknik');
+    fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
+    await screen.findByText('Budi Santoso');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah Mahasiswa' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('Tambah Mahasiswa')).toBeInTheDocument();
+    expect(screen.getByLabelText('NIM *')).toHaveValue('');
+  });
+
+  it('klik Edit mahasiswa → modal "Edit Mahasiswa" terisi data + updateMasterStudent dipanggil', async () => {
+    mockAllLists();
+    mockedApi.updateMasterStudent.mockResolvedValue({
+      id: 1,
+      nim: '20240001',
+      message: 'Mahasiswa berhasil diupdate',
+    });
+
+    render(<AdminMasterPage />);
+    await screen.findByText('Fakultas Teknik');
+    fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
+    await screen.findByText('Budi Santoso');
+
+    fireEvent.click(screen.getAllByText('Edit')[0]);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Edit Mahasiswa')).toBeInTheDocument();
+    expect(screen.getByLabelText('NIM *')).toHaveValue('20240001');
+    expect(screen.getByDisplayValue('Budi Santoso')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Nama Lengkap *'), {
+      target: { value: 'Budi Santoso Baru' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Update Mahasiswa' }));
+
+    await waitFor(() => {
+      expect(mockedApi.updateMasterStudent).toHaveBeenCalledWith(1, {
+        fullName: 'Budi Santoso Baru',
+        prodiCode: 'TI',
+        angkatan: '2024/2025',
+        email: 'budi@student.siak.local',
+      });
+    });
+
+    expect(await screen.findByText(/Mahasiswa berhasil diupdate/)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('klik Edit dosen → modal "Edit Dosen" terisi + updateMasterLecturer dipanggil', async () => {
+    mockAllLists();
+    mockedApi.updateMasterLecturer.mockResolvedValue({
+      id: 1,
+      nidn: '198001001',
+      message: 'Dosen berhasil diupdate',
+    });
+
+    render(<AdminMasterPage />);
+    await screen.findByText('Fakultas Teknik');
+    fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
+    await screen.findByText('Dr. Andi Wijaya');
+
+    fireEvent.click(screen.getAllByText('Edit')[0]);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Edit Dosen')).toBeInTheDocument();
+    expect(screen.getByLabelText('NIDN *')).toHaveValue('198001001');
+
+    fireEvent.change(screen.getByLabelText('Nama Lengkap *'), {
+      target: { value: 'Dr. Andi Wijaya M.Kom' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Update Dosen' }));
+
+    await waitFor(() => {
+      expect(mockedApi.updateMasterLecturer).toHaveBeenCalledWith(1, {
+        fullName: 'Dr. Andi Wijaya M.Kom',
+        prodiCode: 'TI',
+        email: 'andi@siak.local',
+      });
+    });
+
+    expect(await screen.findByText(/Dosen berhasil diupdate/)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('tombol Batal menutup modal tanpa menyimpan', async () => {
+    mockAllLists();
+
+    render(<AdminMasterPage />);
+    await screen.findByText('Fakultas Teknik');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah Fakultas' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockedApi.createFaculty).not.toHaveBeenCalled();
+  });
+
+  it('tombol Tutup (X) menutup modal', async () => {
+    mockAllLists();
+
+    render(<AdminMasterPage />);
+    await screen.findByText('Fakultas Teknik');
+    fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
+    await screen.findByText('Dr. Andi Wijaya');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tambah Dosen' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tutup' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

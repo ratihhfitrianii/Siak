@@ -339,6 +339,236 @@ export function createAdminMasterRouter(): Router {
     },
   );
 
+  // PUT /admin-master/students/:id — update mahasiswa (fullName, prodi, angkatan, email, status)
+  router.put(
+    '/students/:id',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+          throw new AppError('VALIDATION_ERROR', 'ID mahasiswa tidak valid', 400);
+        }
+        const parsed = studentCreateSchema.omit({ nim: true }).partial().safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data mahasiswa tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const { fullName, prodiCode, angkatan, email } = parsed.data;
+
+        const exists = await pgPool.query(
+          `SELECT s.id, s.user_id, s.nim, u.email AS current_email
+           FROM students s JOIN users u ON u.id = s.user_id
+           WHERE s.id = $1`,
+          [id],
+        );
+        if (exists.rowCount === 0) {
+          throw new AppError('NOT_FOUND', 'Mahasiswa tidak ditemukan', 404);
+        }
+        const student = exists.rows[0];
+
+        let prodiId: number | undefined;
+        if (prodiCode !== undefined) {
+          const prodi = await pgPool.query('SELECT id FROM prodis WHERE code = $1 AND is_active', [
+            prodiCode,
+          ]);
+          if (prodi.rowCount === 0) {
+            throw new AppError('VALIDATION_ERROR', `Prodi "${prodiCode}" tidak ditemukan`, 400);
+          }
+          prodiId = Number(prodi.rows[0].id);
+        }
+
+        let ayId: number | undefined;
+        if (angkatan !== undefined) {
+          const ay = await pgPool.query(
+            'SELECT id FROM academic_years WHERE code = $1 AND is_active',
+            [angkatan],
+          );
+          if (ay.rowCount === 0) {
+            throw new AppError('VALIDATION_ERROR', `Angkatan "${angkatan}" tidak ditemukan`, 400);
+          }
+          ayId = Number(ay.rows[0].id);
+        }
+
+        const mail = email !== undefined ? email.toLowerCase() : undefined;
+        if (mail !== undefined && mail !== student.current_email) {
+          const dupMail = await pgPool.query('SELECT id FROM users WHERE email = $1', [mail]);
+          if ((dupMail.rowCount ?? 0) > 0) {
+            throw new AppError('VALIDATION_ERROR', `Email ${mail} sudah digunakan`, 409);
+          }
+        }
+
+        const client = await pgPool.connect();
+        try {
+          await client.query('BEGIN');
+          if (fullName !== undefined || mail !== undefined) {
+            const uUpdates: string[] = [];
+            const uParams: unknown[] = [student.user_id];
+            if (fullName !== undefined) {
+              uParams.push(fullName);
+              uUpdates.push(`full_name = $${uParams.length}`);
+            }
+            if (mail !== undefined) {
+              uParams.push(mail);
+              uUpdates.push(`email = $${uParams.length}`);
+            }
+            uUpdates.push('updated_at = now()');
+            await client.query(`UPDATE users SET ${uUpdates.join(', ')} WHERE id = $1`, uParams);
+          }
+          const sUpdates: string[] = [];
+          const sParams: unknown[] = [id];
+          if (prodiId !== undefined) {
+            sParams.push(prodiId);
+            sUpdates.push(`prodi_id = $${sParams.length}`);
+          }
+          if (ayId !== undefined) {
+            sParams.push(ayId);
+            sUpdates.push(`academic_year_id = $${sParams.length}`);
+          }
+          if (sUpdates.length > 0) {
+            sUpdates.push('updated_at = now()');
+            await client.query(`UPDATE students SET ${sUpdates.join(', ')} WHERE id = $1`, sParams);
+          }
+          await auditFromRequest(
+            req.user!,
+            req,
+            {
+              tableName: 'students',
+              recordId: id,
+              action: 'UPDATE',
+              newValues: { fullName, prodiCode, angkatan, email: mail },
+            },
+            client,
+          );
+          await client.query('COMMIT');
+          res.json({
+            success: true,
+            data: {
+              id,
+              nim: student.nim,
+              fullName: fullName ?? student.full_name,
+              message: 'Mahasiswa berhasil diupdate',
+            },
+          });
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // PUT /admin-master/lecturers/:id — update dosen (fullName, prodi, email, status)
+  router.put(
+    '/lecturers/:id',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+          throw new AppError('VALIDATION_ERROR', 'ID dosen tidak valid', 400);
+        }
+        const parsed = lecturerCreateSchema.omit({ nidn: true }).partial().safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data dosen tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const { fullName, prodiCode, email } = parsed.data;
+
+        const exists = await pgPool.query(
+          `SELECT l.id, l.user_id, l.nidn, u.email AS current_email
+           FROM lecturers l JOIN users u ON u.id = l.user_id
+           WHERE l.id = $1`,
+          [id],
+        );
+        if (exists.rowCount === 0) {
+          throw new AppError('NOT_FOUND', 'Dosen tidak ditemukan', 404);
+        }
+        const lecturer = exists.rows[0];
+
+        let prodiId: number | undefined;
+        if (prodiCode !== undefined) {
+          const prodi = await pgPool.query('SELECT id FROM prodis WHERE code = $1 AND is_active', [
+            prodiCode,
+          ]);
+          if (prodi.rowCount === 0) {
+            throw new AppError('VALIDATION_ERROR', `Prodi "${prodiCode}" tidak ditemukan`, 400);
+          }
+          prodiId = Number(prodi.rows[0].id);
+        }
+
+        const mail = email !== undefined ? email.toLowerCase() : undefined;
+        if (mail !== undefined && mail !== lecturer.current_email) {
+          const dupMail = await pgPool.query('SELECT id FROM users WHERE email = $1', [mail]);
+          if ((dupMail.rowCount ?? 0) > 0) {
+            throw new AppError('VALIDATION_ERROR', `Email ${mail} sudah digunakan`, 409);
+          }
+        }
+
+        const client = await pgPool.connect();
+        try {
+          await client.query('BEGIN');
+          if (fullName !== undefined || mail !== undefined) {
+            const uUpdates: string[] = [];
+            const uParams: unknown[] = [lecturer.user_id];
+            if (fullName !== undefined) {
+              uParams.push(fullName);
+              uUpdates.push(`full_name = $${uParams.length}`);
+            }
+            if (mail !== undefined) {
+              uParams.push(mail);
+              uUpdates.push(`email = $${uParams.length}`);
+            }
+            uUpdates.push('updated_at = now()');
+            await client.query(`UPDATE users SET ${uUpdates.join(', ')} WHERE id = $1`, uParams);
+          }
+          if (prodiId !== undefined) {
+            await client.query(
+              'UPDATE lecturers SET prodi_id = $1, updated_at = now() WHERE id = $2',
+              [prodiId, id],
+            );
+          }
+          await auditFromRequest(
+            req.user!,
+            req,
+            {
+              tableName: 'lecturers',
+              recordId: id,
+              action: 'UPDATE',
+              newValues: { fullName, prodiCode, email: mail },
+            },
+            client,
+          );
+          await client.query('COMMIT');
+          res.json({
+            success: true,
+            data: {
+              id,
+              nidn: lecturer.nidn,
+              fullName: fullName ?? lecturer.full_name,
+              message: 'Dosen berhasil diupdate',
+            },
+          });
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // ===== FAKULTAS (FACULTIES) =====
   const facultySchema = z.object({
     code: z.string().min(1).max(10),

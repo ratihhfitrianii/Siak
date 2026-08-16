@@ -11,7 +11,9 @@ import {
   listMasterStudents,
   listMasterLecturers,
   createMasterStudent,
+  updateMasterStudent,
   createMasterLecturer,
+  updateMasterLecturer,
 } from '../lib/api';
 import type {
   Faculty,
@@ -25,6 +27,8 @@ import type {
 } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
+type ModalTab = 'faculties' | 'prodis' | 'students' | 'lecturers' | null;
+
 /** Halaman Master Data (Admin Sistem) — Fakultas, Prodi, Mahasiswa, Dosen. */
 export function AdminMasterPage() {
   const [activeTab, setActiveTab] = useState<'faculties' | 'prodis' | 'students' | 'lecturers'>(
@@ -37,6 +41,8 @@ export function AdminMasterPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [modalTab, setModalTab] = useState<ModalTab>(null);
+  const [saving, setSaving] = useState(false);
 
   // Form Faculty
   const [facultyForm, setFacultyForm] = useState<CreateFacultyInput>({
@@ -120,31 +126,46 @@ export function AdminMasterPage() {
     );
   }, [loadFaculties, loadProdis, loadStudents, loadLecturers]);
 
-  // Faculty handlers
+  // ===== Fakultas =====
+  const openFacultyModal = (f?: Faculty) => {
+    setError(null);
+    setSuccess(null);
+    if (f) {
+      setFacultyForm({ code: f.code, name: f.name, isActive: f.isActive });
+      setEditingFacultyId(f.id);
+    } else {
+      setFacultyForm({ code: '', name: '', isActive: true });
+      setEditingFacultyId(null);
+    }
+    setModalTab('faculties');
+  };
+
   const handleFacultySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setSaving(true);
     try {
       if (editingFacultyId) {
-        await updateFaculty(editingFacultyId, facultyForm);
+        await updateFaculty(editingFacultyId, {
+          code: facultyForm.code,
+          name: facultyForm.name,
+          isActive: facultyForm.isActive,
+        });
         setSuccess('Fakultas berhasil diupdate');
       } else {
         await createFaculty(facultyForm);
         setSuccess('Fakultas berhasil dibuat');
       }
-      setFacultyForm({ code: '', name: '', isActive: true });
+      setModalTab(null);
       setEditingFacultyId(null);
       await loadFaculties();
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
       setError(apiError.message ?? 'Gagal menyimpan fakultas');
+    } finally {
+      setSaving(false);
     }
-  };
-
-  const handleFacultyEdit = (f: Faculty) => {
-    setFacultyForm({ code: f.code, name: f.name, isActive: f.isActive });
-    setEditingFacultyId(f.id);
   };
 
   const handleFacultyDelete = async (id: number) => {
@@ -161,72 +182,39 @@ export function AdminMasterPage() {
     }
   };
 
-  const handleFacultyCancel = () => {
-    setFacultyForm({ code: '', name: '', isActive: true });
-    setEditingFacultyId(null);
-  };
-
-  // Student handlers
-  const handleStudentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ===== Prodi =====
+  const openProdiModal = (p?: Prodi) => {
     setError(null);
     setSuccess(null);
-    try {
-      if (editingStudentId) {
-        // Note: backend doesn't have PUT for students yet, so we don't allow editing
-        setError('Edit mahasiswa belum didukung');
-        return;
-      } else {
-        await createMasterStudent(studentForm);
-        setSuccess('Mahasiswa berhasil dibuat');
-      }
-      setStudentForm({ nim: '', fullName: '', prodiCode: '', angkatan: '', email: '' });
-      setEditingStudentId(null);
-      await loadStudents();
-    } catch (err: unknown) {
-      const apiError = err as { code?: string; message?: string };
-      setError(apiError.message ?? 'Gagal menyimpan mahasiswa');
+    if (p) {
+      setProdiForm({
+        code: p.code,
+        name: p.name,
+        facultyCode: p.facultyCode,
+        degree: p.degree as CreateProdiInput['degree'],
+        accreditation: p.accreditation ?? '',
+        isActive: p.isActive,
+      });
+      setEditingProdiId(p.id);
+    } else {
+      setProdiForm({
+        code: '',
+        name: '',
+        facultyCode: '',
+        degree: 'S1',
+        accreditation: '',
+        isActive: true,
+      });
+      setEditingProdiId(null);
     }
+    setModalTab('prodis');
   };
 
-  const handleStudentCancel = () => {
-    setStudentForm({ nim: '', fullName: '', prodiCode: '', angkatan: '', email: '' });
-    setEditingStudentId(null);
-  };
-
-  // Lecturer handlers
-  const handleLecturerSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    try {
-      if (editingLecturerId) {
-        // Note: backend doesn't have PUT for lecturers yet, so we don't allow editing
-        setError('Edit dosen belum didukung');
-        return;
-      } else {
-        await createMasterLecturer(lecturerForm);
-        setSuccess('Dosen berhasil dibuat');
-      }
-      setLecturerForm({ nidn: '', fullName: '', prodiCode: '', email: '' });
-      setEditingLecturerId(null);
-      await loadLecturers();
-    } catch (err: unknown) {
-      const apiError = err as { code?: string; message?: string };
-      setError(apiError.message ?? 'Gagal menyimpan dosen');
-    }
-  };
-
-  const handleLecturerCancel = () => {
-    setLecturerForm({ nidn: '', fullName: '', prodiCode: '', email: '' });
-    setEditingLecturerId(null);
-  };
-
-  // Prodi handlers
   const handleProdiSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setSaving(true);
     try {
       const payload = { ...prodiForm, accreditation: prodiForm.accreditation || undefined };
       if (editingProdiId) {
@@ -245,23 +233,14 @@ export function AdminMasterPage() {
         isActive: true,
       });
       setEditingProdiId(null);
+      setModalTab(null);
       await loadProdis();
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
       setError(apiError.message ?? 'Gagal menyimpan prodi');
+    } finally {
+      setSaving(false);
     }
-  };
-
-  const handleProdiEdit = (p: Prodi) => {
-    setProdiForm({
-      code: p.code,
-      name: p.name,
-      facultyCode: p.facultyCode,
-      degree: p.degree as CreateProdiInput['degree'],
-      accreditation: p.accreditation ?? '',
-      isActive: p.isActive,
-    });
-    setEditingProdiId(p.id);
   };
 
   const handleProdiDelete = async (id: number) => {
@@ -278,27 +257,124 @@ export function AdminMasterPage() {
     }
   };
 
-  const handleProdiCancel = () => {
-    setProdiForm({
-      code: '',
-      name: '',
-      facultyCode: '',
-      degree: 'S1',
-      accreditation: '',
-      isActive: true,
-    });
-    setEditingProdiId(null);
+  // ===== Mahasiswa =====
+  const openStudentModal = (s?: MasterStudent) => {
+    setError(null);
+    setSuccess(null);
+    if (s) {
+      setStudentForm({
+        nim: s.nim,
+        fullName: s.fullName,
+        prodiCode: s.prodiCode,
+        angkatan: s.angkatan,
+        email: s.email,
+      });
+      setEditingStudentId(s.id);
+    } else {
+      setStudentForm({ nim: '', fullName: '', prodiCode: '', angkatan: '', email: '' });
+      setEditingStudentId(null);
+    }
+    setModalTab('students');
+  };
+
+  const handleStudentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setSaving(true);
+    try {
+      if (editingStudentId) {
+        await updateMasterStudent(editingStudentId, {
+          fullName: studentForm.fullName,
+          prodiCode: studentForm.prodiCode,
+          angkatan: studentForm.angkatan,
+          email: studentForm.email || undefined,
+        });
+        setSuccess('Mahasiswa berhasil diupdate');
+      } else {
+        await createMasterStudent(studentForm);
+        setSuccess('Mahasiswa berhasil dibuat');
+      }
+      setStudentForm({ nim: '', fullName: '', prodiCode: '', angkatan: '', email: '' });
+      setEditingStudentId(null);
+      setModalTab(null);
+      await loadStudents();
+    } catch (err: unknown) {
+      const apiError = err as { code?: string; message?: string };
+      setError(apiError.message ?? 'Gagal menyimpan mahasiswa');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ===== Dosen =====
+  const openLecturerModal = (l?: MasterLecturer) => {
+    setError(null);
+    setSuccess(null);
+    if (l) {
+      setLecturerForm({
+        nidn: l.nidn,
+        fullName: l.fullName,
+        prodiCode: l.prodiCode,
+        email: l.email,
+      });
+      setEditingLecturerId(l.id);
+    } else {
+      setLecturerForm({ nidn: '', fullName: '', prodiCode: '', email: '' });
+      setEditingLecturerId(null);
+    }
+    setModalTab('lecturers');
+  };
+
+  const handleLecturerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setSaving(true);
+    try {
+      if (editingLecturerId) {
+        await updateMasterLecturer(editingLecturerId, {
+          fullName: lecturerForm.fullName,
+          prodiCode: lecturerForm.prodiCode,
+          email: lecturerForm.email || undefined,
+        });
+        setSuccess('Dosen berhasil diupdate');
+      } else {
+        await createMasterLecturer(lecturerForm);
+        setSuccess('Dosen berhasil dibuat');
+      }
+      setLecturerForm({ nidn: '', fullName: '', prodiCode: '', email: '' });
+      setEditingLecturerId(null);
+      setModalTab(null);
+      await loadLecturers();
+    } catch (err: unknown) {
+      const apiError = err as { code?: string; message?: string };
+      setError(apiError.message ?? 'Gagal menyimpan dosen');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) return <div className="p-6 text-center text-slate-500">Memuat data master...</div>;
+
+  const closeModal = () => {
+    setModalTab(null);
+    setEditingFacultyId(null);
+    setEditingProdiId(null);
+    setEditingStudentId(null);
+    setEditingLecturerId(null);
+  };
+
+  const inputCls =
+    'w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500';
 
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold text-slate-900 mb-4">Master Data</h2>
         <p className="text-slate-600">
-          Kelola data master Fakultas dan Program Studi. Hanya Admin Sistem yang dapat mengakses
-          halaman ini.
+          Kelola data master Fakultas, Program Studi, Mahasiswa, dan Dosen. Hanya Admin Sistem yang
+          dapat mengakses halaman ini.
         </p>
       </div>
 
@@ -372,83 +448,12 @@ export function AdminMasterPage() {
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-medium text-slate-900">Daftar Fakultas</h3>
             <button
-              onClick={handleFacultyCancel}
+              onClick={() => openFacultyModal()}
               className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
             >
-              {editingFacultyId ? 'Batal Edit' : 'Tambah Fakultas'}
+              Tambah Fakultas
             </button>
           </div>
-
-          {/* Form Fakultas */}
-          <form
-            onSubmit={handleFacultySubmit}
-            className="mb-6 p-4 bg-slate-50 rounded-lg space-y-4"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label
-                  htmlFor="faculty-code"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Kode Fakultas *
-                </label>
-                <input
-                  id="faculty-code"
-                  type="text"
-                  value={facultyForm.code}
-                  onChange={(e) =>
-                    setFacultyForm({ ...facultyForm, code: e.target.value.toUpperCase() })
-                  }
-                  placeholder="Contoh: FT, FE, FH"
-                  maxLength={10}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                  disabled={!!editingFacultyId}
-                />
-                {editingFacultyId && (
-                  <p className="mt-1 text-xs text-slate-500">Kode tidak bisa diubah saat edit</p>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor="faculty-name"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Nama Fakultas *
-                </label>
-                <input
-                  id="faculty-name"
-                  type="text"
-                  value={facultyForm.name}
-                  onChange={(e) => setFacultyForm({ ...facultyForm, name: e.target.value })}
-                  placeholder="Contoh: Fakultas Teknik"
-                  maxLength={100}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                />
-              </div>
-              <div className="flex items-end">
-                <label htmlFor="faculty-active" className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    id="faculty-active"
-                    type="checkbox"
-                    checked={facultyForm.isActive}
-                    onChange={(e) => setFacultyForm({ ...facultyForm, isActive: e.target.checked })}
-                    className="h-4 w-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500"
-                  />
-                  <span className="text-sm text-slate-700">Aktif</span>
-                </label>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-              >
-                {editingFacultyId ? 'Update Fakultas' : 'Simpan Fakultas'}
-              </button>
-            </div>
-          </form>
 
           {/* Table Fakultas */}
           <div className="overflow-x-auto">
@@ -489,7 +494,7 @@ export function AdminMasterPage() {
                       <td className="py-3">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleFacultyEdit(f)}
+                            onClick={() => openFacultyModal(f)}
                             className="px-2 py-1 text-xs text-primary-600 hover:text-primary-700 underline"
                           >
                             Edit
@@ -517,149 +522,12 @@ export function AdminMasterPage() {
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-medium text-slate-900">Daftar Program Studi</h3>
             <button
-              onClick={handleProdiCancel}
+              onClick={() => openProdiModal()}
               className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
             >
-              {editingProdiId ? 'Batal Edit' : 'Tambah Prodi'}
+              Tambah Prodi
             </button>
           </div>
-
-          {/* Form Prodi */}
-          <form onSubmit={handleProdiSubmit} className="mb-6 p-4 bg-slate-50 rounded-lg space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label
-                  htmlFor="prodi-code"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Kode Prodi *
-                </label>
-                <input
-                  id="prodi-code"
-                  type="text"
-                  value={prodiForm.code}
-                  onChange={(e) =>
-                    setProdiForm({ ...prodiForm, code: e.target.value.toUpperCase() })
-                  }
-                  placeholder="Contoh: TI, SI, TK"
-                  maxLength={10}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                  disabled={!!editingProdiId}
-                />
-                {editingProdiId && (
-                  <p className="mt-1 text-xs text-slate-500">Kode tidak bisa diubah saat edit</p>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor="prodi-name"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Nama Prodi *
-                </label>
-                <input
-                  id="prodi-name"
-                  type="text"
-                  value={prodiForm.name}
-                  onChange={(e) => setProdiForm({ ...prodiForm, name: e.target.value })}
-                  placeholder="Contoh: Teknik Informatika"
-                  maxLength={100}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="prodi-faculty"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Fakultas *
-                </label>
-                <select
-                  id="prodi-faculty"
-                  value={prodiForm.facultyCode}
-                  onChange={(e) => setProdiForm({ ...prodiForm, facultyCode: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                >
-                  <option value="">Pilih Fakultas</option>
-                  {faculties
-                    .filter((f) => f.isActive)
-                    .map((f) => (
-                      <option key={f.code} value={f.code}>
-                        {f.code} - {f.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="prodi-degree"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Jenjang *
-                </label>
-                <select
-                  id="prodi-degree"
-                  value={prodiForm.degree}
-                  onChange={(e) =>
-                    setProdiForm({
-                      ...prodiForm,
-                      degree: e.target.value as CreateProdiInput['degree'],
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                >
-                  <option value="S1">S1</option>
-                  <option value="S2">S2</option>
-                  <option value="S3">S3</option>
-                  <option value="D3">D3</option>
-                  <option value="D4">D4</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
-                <label
-                  htmlFor="prodi-accreditation"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Akrreditasi
-                </label>
-                <input
-                  id="prodi-accreditation"
-                  type="text"
-                  value={prodiForm.accreditation}
-                  onChange={(e) => setProdiForm({ ...prodiForm, accreditation: e.target.value })}
-                  placeholder="Contoh: A, B, Unggul"
-                  maxLength={20}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <div className="flex items-end">
-                <label htmlFor="prodi-active" className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    id="prodi-active"
-                    type="checkbox"
-                    checked={prodiForm.isActive}
-                    onChange={(e) => setProdiForm({ ...prodiForm, isActive: e.target.checked })}
-                    className="h-4 w-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500"
-                  />
-                  <span className="text-sm text-slate-700">Aktif</span>
-                </label>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-              >
-                {editingProdiId ? 'Update Prodi' : 'Simpan Prodi'}
-              </button>
-            </div>
-          </form>
 
           {/* Table Prodi */}
           <div className="overflow-x-auto">
@@ -690,12 +558,8 @@ export function AdminMasterPage() {
                       <td className="py-3 text-slate-700">
                         {p.facultyCode} - {p.facultyName}
                       </td>
-                      <td className="py-3">
-                        <span className="inline-flex px-2 py-0.5 text-xs font-medium bg-primary-100 text-primary-700 rounded">
-                          {p.degree}
-                        </span>
-                      </td>
-                      <td className="py-3 text-slate-600">{p.accreditation ?? '-'}</td>
+                      <td className="py-3 text-slate-600">{p.degree}</td>
+                      <td className="py-3 text-slate-600">{p.accreditation || '-'}</td>
                       <td className="py-3">
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
@@ -710,7 +574,7 @@ export function AdminMasterPage() {
                       <td className="py-3">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleProdiEdit(p)}
+                            onClick={() => openProdiModal(p)}
                             className="px-2 py-1 text-xs text-primary-600 hover:text-primary-700 underline"
                           >
                             Edit
@@ -738,134 +602,12 @@ export function AdminMasterPage() {
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-medium text-slate-900">Daftar Mahasiswa</h3>
             <button
-              onClick={handleStudentCancel}
+              onClick={() => openStudentModal()}
               className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
             >
-              {editingStudentId ? 'Batal Edit' : 'Tambah Mahasiswa'}
+              Tambah Mahasiswa
             </button>
           </div>
-
-          {/* Form Mahasiswa */}
-          <form
-            onSubmit={handleStudentSubmit}
-            className="mb-6 p-4 bg-slate-50 rounded-lg space-y-4"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label
-                  htmlFor="student-nim"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  NIM *
-                </label>
-                <input
-                  id="student-nim"
-                  type="text"
-                  value={studentForm.nim}
-                  onChange={(e) =>
-                    setStudentForm({ ...studentForm, nim: e.target.value.toUpperCase() })
-                  }
-                  placeholder="Contoh: 20240001"
-                  maxLength={20}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                  disabled={!!editingStudentId}
-                />
-                {editingStudentId && (
-                  <p className="mt-1 text-xs text-slate-500">NIM tidak bisa diubah saat edit</p>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor="student-name"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Nama Lengkap *
-                </label>
-                <input
-                  id="student-name"
-                  type="text"
-                  value={studentForm.fullName}
-                  onChange={(e) => setStudentForm({ ...studentForm, fullName: e.target.value })}
-                  placeholder="Contoh: Budi Santoso"
-                  maxLength={150}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="student-prodi"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Program Studi *
-                </label>
-                <select
-                  id="student-prodi"
-                  value={studentForm.prodiCode}
-                  onChange={(e) => setStudentForm({ ...studentForm, prodiCode: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                >
-                  <option value="">Pilih Prodi</option>
-                  {prodis
-                    .filter((p) => p.isActive)
-                    .map((p) => (
-                      <option key={p.code} value={p.code}>
-                        {p.code} - {p.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label
-                  htmlFor="student-angkatan"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Angkatan *
-                </label>
-                <select
-                  id="student-angkatan"
-                  value={studentForm.angkatan}
-                  onChange={(e) => setStudentForm({ ...studentForm, angkatan: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                >
-                  <option value="">Pilih Angkatan</option>
-                  <option value="2023/2024">2023/2024</option>
-                  <option value="2024/2025">2024/2025</option>
-                  <option value="2025/2026">2025/2026</option>
-                </select>
-              </div>
-              <div className="md:col-span-2">
-                <label
-                  htmlFor="student-email"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Email
-                </label>
-                <input
-                  id="student-email"
-                  type="email"
-                  value={studentForm.email}
-                  onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })}
-                  placeholder="Kosongkan untuk auto-generate (nim@student.siak.local)"
-                  maxLength={255}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-              >
-                {editingStudentId ? 'Update Mahasiswa' : 'Simpan Mahasiswa'}
-              </button>
-            </div>
-          </form>
 
           {/* Table Mahasiswa */}
           <div className="overflow-x-auto">
@@ -912,16 +654,10 @@ export function AdminMasterPage() {
                       <td className="py-3">
                         <div className="flex items-center gap-2">
                           <button
-                            disabled
-                            className="px-2 py-1 text-xs text-slate-400 cursor-not-allowed"
+                            onClick={() => openStudentModal(s)}
+                            className="px-2 py-1 text-xs text-primary-600 hover:text-primary-700 underline"
                           >
                             Edit
-                          </button>
-                          <button
-                            disabled
-                            className="px-2 py-1 text-xs text-slate-400 cursor-not-allowed"
-                          >
-                            Nonaktifkan
                           </button>
                         </div>
                       </td>
@@ -940,114 +676,12 @@ export function AdminMasterPage() {
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-medium text-slate-900">Daftar Dosen</h3>
             <button
-              onClick={handleLecturerCancel}
+              onClick={() => openLecturerModal()}
               className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
             >
-              {editingLecturerId ? 'Batal Edit' : 'Tambah Dosen'}
+              Tambah Dosen
             </button>
           </div>
-
-          {/* Form Dosen */}
-          <form
-            onSubmit={handleLecturerSubmit}
-            className="mb-6 p-4 bg-slate-50 rounded-lg space-y-4"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label
-                  htmlFor="lecturer-nidn"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  NIDN *
-                </label>
-                <input
-                  id="lecturer-nidn"
-                  type="text"
-                  value={lecturerForm.nidn}
-                  onChange={(e) =>
-                    setLecturerForm({ ...lecturerForm, nidn: e.target.value.toUpperCase() })
-                  }
-                  placeholder="Contoh: 198001001"
-                  maxLength={20}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                  disabled={!!editingLecturerId}
-                />
-                {editingLecturerId && (
-                  <p className="mt-1 text-xs text-slate-500">NIDN tidak bisa diubah saat edit</p>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor="lecturer-name"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Nama Lengkap *
-                </label>
-                <input
-                  id="lecturer-name"
-                  type="text"
-                  value={lecturerForm.fullName}
-                  onChange={(e) => setLecturerForm({ ...lecturerForm, fullName: e.target.value })}
-                  placeholder="Contoh: Dr. Siti Rahayu"
-                  maxLength={150}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="lecturer-prodi"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Program Studi *
-                </label>
-                <select
-                  id="lecturer-prodi"
-                  value={lecturerForm.prodiCode}
-                  onChange={(e) => setLecturerForm({ ...lecturerForm, prodiCode: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  required
-                >
-                  <option value="">Pilih Prodi</option>
-                  {prodis
-                    .filter((p) => p.isActive)
-                    .map((p) => (
-                      <option key={p.code} value={p.code}>
-                        {p.code} - {p.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
-                <label
-                  htmlFor="lecturer-email"
-                  className="block text-sm font-medium text-slate-700 mb-1"
-                >
-                  Email
-                </label>
-                <input
-                  id="lecturer-email"
-                  type="email"
-                  value={lecturerForm.email}
-                  onChange={(e) => setLecturerForm({ ...lecturerForm, email: e.target.value })}
-                  placeholder="Kosongkan untuk auto-generate (nidn@siak.local)"
-                  maxLength={255}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-              >
-                {editingLecturerId ? 'Update Dosen' : 'Simpan Dosen'}
-              </button>
-            </div>
-          </form>
 
           {/* Table Dosen */}
           <div className="overflow-x-auto">
@@ -1104,16 +738,10 @@ export function AdminMasterPage() {
                       <td className="py-3">
                         <div className="flex items-center gap-2">
                           <button
-                            disabled
-                            className="px-2 py-1 text-xs text-slate-400 cursor-not-allowed"
+                            onClick={() => openLecturerModal(l)}
+                            className="px-2 py-1 text-xs text-primary-600 hover:text-primary-700 underline"
                           >
                             Edit
-                          </button>
-                          <button
-                            disabled
-                            className="px-2 py-1 text-xs text-slate-400 cursor-not-allowed"
-                          >
-                            Nonaktifkan
                           </button>
                         </div>
                       </td>
@@ -1122,6 +750,548 @@ export function AdminMasterPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Modal Tambah/Edit ===== */}
+      {modalTab && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={
+            modalTab === 'faculties'
+              ? editingFacultyId
+                ? 'Edit fakultas'
+                : 'Tambah fakultas'
+              : modalTab === 'prodis'
+                ? editingProdiId
+                  ? 'Edit prodi'
+                  : 'Tambah prodi'
+                : modalTab === 'students'
+                  ? editingStudentId
+                    ? 'Edit mahasiswa'
+                    : 'Tambah mahasiswa'
+                  : editingLecturerId
+                    ? 'Edit dosen'
+                    : 'Tambah dosen'
+          }
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-slate-900">
+                {modalTab === 'faculties' &&
+                  (editingFacultyId ? 'Edit Fakultas' : 'Tambah Fakultas')}
+                {modalTab === 'prodis' && (editingProdiId ? 'Edit Prodi' : 'Tambah Prodi')}
+                {modalTab === 'students' &&
+                  (editingStudentId ? 'Edit Mahasiswa' : 'Tambah Mahasiswa')}
+                {modalTab === 'lecturers' && (editingLecturerId ? 'Edit Dosen' : 'Tambah Dosen')}
+              </h3>
+              <button
+                onClick={closeModal}
+                aria-label="Tutup"
+                className="p-1 text-slate-400 hover:text-slate-600"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Form Fakultas */}
+            {modalTab === 'faculties' && (
+              <form onSubmit={handleFacultySubmit} className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="faculty-code"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
+                    Kode Fakultas *
+                  </label>
+                  <input
+                    id="faculty-code"
+                    type="text"
+                    value={facultyForm.code}
+                    onChange={(e) =>
+                      setFacultyForm({ ...facultyForm, code: e.target.value.toUpperCase() })
+                    }
+                    placeholder="Contoh: FT, FE, FH"
+                    maxLength={10}
+                    className={inputCls}
+                    required
+                    disabled={!!editingFacultyId}
+                  />
+                  {editingFacultyId && (
+                    <p className="mt-1 text-xs text-slate-500">Kode tidak bisa diubah saat edit</p>
+                  )}
+                </div>
+                <div>
+                  <label
+                    htmlFor="faculty-name"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
+                    Nama Fakultas *
+                  </label>
+                  <input
+                    id="faculty-name"
+                    type="text"
+                    value={facultyForm.name}
+                    onChange={(e) => setFacultyForm({ ...facultyForm, name: e.target.value })}
+                    placeholder="Contoh: Fakultas Teknik"
+                    maxLength={100}
+                    className={inputCls}
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="faculty-active"
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <input
+                      id="faculty-active"
+                      type="checkbox"
+                      checked={facultyForm.isActive}
+                      onChange={(e) =>
+                        setFacultyForm({ ...facultyForm, isActive: e.target.checked })
+                      }
+                      className="h-4 w-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-slate-700">Aktif</span>
+                  </label>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                  >
+                    {saving
+                      ? 'Menyimpan...'
+                      : editingFacultyId
+                        ? 'Update Fakultas'
+                        : 'Simpan Fakultas'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Form Prodi */}
+            {modalTab === 'prodis' && (
+              <form onSubmit={handleProdiSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="prodi-code"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Kode Prodi *
+                    </label>
+                    <input
+                      id="prodi-code"
+                      type="text"
+                      value={prodiForm.code}
+                      onChange={(e) =>
+                        setProdiForm({ ...prodiForm, code: e.target.value.toUpperCase() })
+                      }
+                      placeholder="Contoh: TI, SI, AKT"
+                      maxLength={10}
+                      className={inputCls}
+                      required
+                      disabled={!!editingProdiId}
+                    />
+                    {editingProdiId && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Kode tidak bisa diubah saat edit
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="prodi-name"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Nama Prodi *
+                    </label>
+                    <input
+                      id="prodi-name"
+                      type="text"
+                      value={prodiForm.name}
+                      onChange={(e) => setProdiForm({ ...prodiForm, name: e.target.value })}
+                      placeholder="Contoh: Teknik Informatika"
+                      maxLength={100}
+                      className={inputCls}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="prodi-faculty"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Fakultas *
+                    </label>
+                    <select
+                      id="prodi-faculty"
+                      value={prodiForm.facultyCode}
+                      onChange={(e) => setProdiForm({ ...prodiForm, facultyCode: e.target.value })}
+                      className={inputCls}
+                      required
+                    >
+                      <option value="">Pilih Fakultas</option>
+                      {faculties
+                        .filter((f) => f.isActive)
+                        .map((f) => (
+                          <option key={f.code} value={f.code}>
+                            {f.code} - {f.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="prodi-degree"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Jenjang *
+                    </label>
+                    <select
+                      id="prodi-degree"
+                      value={prodiForm.degree}
+                      onChange={(e) =>
+                        setProdiForm({
+                          ...prodiForm,
+                          degree: e.target.value as CreateProdiInput['degree'],
+                        })
+                      }
+                      className={inputCls}
+                      required
+                    >
+                      <option value="S1">S1</option>
+                      <option value="S2">S2</option>
+                      <option value="S3">S3</option>
+                      <option value="D3">D3</option>
+                      <option value="D4">D4</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="prodi-accreditation"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Akreditasi
+                    </label>
+                    <input
+                      id="prodi-accreditation"
+                      type="text"
+                      value={prodiForm.accreditation}
+                      onChange={(e) =>
+                        setProdiForm({ ...prodiForm, accreditation: e.target.value })
+                      }
+                      placeholder="Contoh: A, B, Unggul"
+                      maxLength={20}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <label
+                      htmlFor="prodi-active"
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <input
+                        id="prodi-active"
+                        type="checkbox"
+                        checked={prodiForm.isActive}
+                        onChange={(e) => setProdiForm({ ...prodiForm, isActive: e.target.checked })}
+                        className="h-4 w-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-slate-700">Aktif</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                  >
+                    {saving ? 'Menyimpan...' : editingProdiId ? 'Update Prodi' : 'Simpan Prodi'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Form Mahasiswa */}
+            {modalTab === 'students' && (
+              <form onSubmit={handleStudentSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="student-nim"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      NIM *
+                    </label>
+                    <input
+                      id="student-nim"
+                      type="text"
+                      value={studentForm.nim}
+                      onChange={(e) =>
+                        setStudentForm({ ...studentForm, nim: e.target.value.toUpperCase() })
+                      }
+                      placeholder="Contoh: 20240001"
+                      maxLength={20}
+                      className={inputCls}
+                      required
+                      disabled={!!editingStudentId}
+                    />
+                    {editingStudentId && (
+                      <p className="mt-1 text-xs text-slate-500">NIM tidak bisa diubah saat edit</p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="student-name"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Nama Lengkap *
+                    </label>
+                    <input
+                      id="student-name"
+                      type="text"
+                      value={studentForm.fullName}
+                      onChange={(e) => setStudentForm({ ...studentForm, fullName: e.target.value })}
+                      placeholder="Contoh: Budi Santoso"
+                      maxLength={150}
+                      className={inputCls}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="student-prodi"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Program Studi *
+                    </label>
+                    <select
+                      id="student-prodi"
+                      value={studentForm.prodiCode}
+                      onChange={(e) =>
+                        setStudentForm({ ...studentForm, prodiCode: e.target.value })
+                      }
+                      className={inputCls}
+                      required
+                    >
+                      <option value="">Pilih Prodi</option>
+                      {prodis
+                        .filter((p) => p.isActive)
+                        .map((p) => (
+                          <option key={p.code} value={p.code}>
+                            {p.code} - {p.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="student-angkatan"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Angkatan *
+                    </label>
+                    <select
+                      id="student-angkatan"
+                      value={studentForm.angkatan}
+                      onChange={(e) => setStudentForm({ ...studentForm, angkatan: e.target.value })}
+                      className={inputCls}
+                      required
+                    >
+                      <option value="">Pilih Angkatan</option>
+                      <option value="2023/2024">2023/2024</option>
+                      <option value="2024/2025">2024/2025</option>
+                      <option value="2025/2026">2025/2026</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label
+                    htmlFor="student-email"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="student-email"
+                    type="email"
+                    value={studentForm.email}
+                    onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })}
+                    placeholder="Kosongkan untuk auto-generate (nim@student.siak.local)"
+                    maxLength={255}
+                    className={inputCls}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                  >
+                    {saving
+                      ? 'Menyimpan...'
+                      : editingStudentId
+                        ? 'Update Mahasiswa'
+                        : 'Simpan Mahasiswa'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Form Dosen */}
+            {modalTab === 'lecturers' && (
+              <form onSubmit={handleLecturerSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="lecturer-nidn"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      NIDN *
+                    </label>
+                    <input
+                      id="lecturer-nidn"
+                      type="text"
+                      value={lecturerForm.nidn}
+                      onChange={(e) =>
+                        setLecturerForm({ ...lecturerForm, nidn: e.target.value.toUpperCase() })
+                      }
+                      placeholder="Contoh: 198001001"
+                      maxLength={20}
+                      className={inputCls}
+                      required
+                      disabled={!!editingLecturerId}
+                    />
+                    {editingLecturerId && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        NIDN tidak bisa diubah saat edit
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="lecturer-name"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Nama Lengkap *
+                    </label>
+                    <input
+                      id="lecturer-name"
+                      type="text"
+                      value={lecturerForm.fullName}
+                      onChange={(e) =>
+                        setLecturerForm({ ...lecturerForm, fullName: e.target.value })
+                      }
+                      placeholder="Contoh: Dr. Siti Rahayu"
+                      maxLength={150}
+                      className={inputCls}
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label
+                    htmlFor="lecturer-prodi"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
+                    Program Studi *
+                  </label>
+                  <select
+                    id="lecturer-prodi"
+                    value={lecturerForm.prodiCode}
+                    onChange={(e) =>
+                      setLecturerForm({ ...lecturerForm, prodiCode: e.target.value })
+                    }
+                    className={inputCls}
+                    required
+                  >
+                    <option value="">Pilih Prodi</option>
+                    {prodis
+                      .filter((p) => p.isActive)
+                      .map((p) => (
+                        <option key={p.code} value={p.code}>
+                          {p.code} - {p.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label
+                    htmlFor="lecturer-email"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="lecturer-email"
+                    type="email"
+                    value={lecturerForm.email}
+                    onChange={(e) => setLecturerForm({ ...lecturerForm, email: e.target.value })}
+                    placeholder="Kosongkan untuk auto-generate (nidn@siak.local)"
+                    maxLength={255}
+                    className={inputCls}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                  >
+                    {saving ? 'Menyimpan...' : editingLecturerId ? 'Update Dosen' : 'Simpan Dosen'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

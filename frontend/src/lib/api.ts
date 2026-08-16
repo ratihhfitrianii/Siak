@@ -26,6 +26,8 @@ import type {
   MasterLecturer,
   CreateMasterStudentInput,
   CreateMasterLecturerInput,
+  UpdateMasterStudentInput,
+  UpdateMasterLecturerInput,
   ImportResult,
   UpdateContactInput,
   ClassSchedule,
@@ -1289,6 +1291,31 @@ export async function createMasterLecturer(
     method: 'POST',
     body: input,
   });
+}
+
+/** PUT /admin-master/students/:id — update mahasiswa (nama/prodi/angkatan/email). */
+export async function updateMasterStudent(
+  id: number,
+  input: UpdateMasterStudentInput,
+): Promise<{ id: number; nim: string; message: string }> {
+  return apiRequest<{ id: number; nim: string; message: string }>(`/admin-master/students/${id}`, {
+    method: 'PUT',
+    body: input,
+  });
+}
+
+/** PUT /admin-master/lecturers/:id — update dosen (nama/prodi/email). */
+export async function updateMasterLecturer(
+  id: number,
+  input: UpdateMasterLecturerInput,
+): Promise<{ id: number; nidn: string; message: string }> {
+  return apiRequest<{ id: number; nidn: string; message: string }>(
+    `/admin-master/lecturers/${id}`,
+    {
+      method: 'PUT',
+      body: input,
+    },
+  );
 }
 
 /* ==== #16 Admin Master Data — Fakultas & Prodi ==== */

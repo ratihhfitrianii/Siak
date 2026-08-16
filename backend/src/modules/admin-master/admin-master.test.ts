@@ -611,4 +611,164 @@ describe('Modul Admin Master Data (#16)', () => {
         .expect(400);
     });
   });
+
+  describe('PUT /admin-master/students/:id', () => {
+    const nim = `am${ts}77`;
+    let studentId = 0;
+
+    beforeAll(async () => {
+      // Buat mahasiswa test via POST (biar alur lengkap)
+      const res = await request(app)
+        .post('/api/v1/admin-master/students')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ nim, fullName: 'Mahasiswa PUT Test', prodiCode, angkatan: angkatanCode })
+        .expect(201);
+      studentId = Number(res.body.data.id);
+      createdEmails.push(`${nim}@student.siak.local`);
+    });
+
+    afterAll(async () => {
+      await pgPool.query(`DELETE FROM students WHERE nim = $1`, [nim]);
+      await pgPool.query(`DELETE FROM users WHERE email IN ($1, $2)`, [
+        `${nim}@student.siak.local`,
+        `am-put-${ts}@siak.local`,
+      ]);
+    });
+
+    it('valid (nama + email) → 200, users ikut terupdate', async () => {
+      const res = await request(app)
+        .put(`/api/v1/admin-master/students/${studentId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ fullName: 'Mahasiswa PUT Updated', email: `am-put-${ts}@siak.local` })
+        .expect(200);
+      expect(res.body.data.message).toContain('diupdate');
+      expect(res.body.data.fullName).toBe('Mahasiswa PUT Updated');
+
+      const user = await pgPool.query(
+        `SELECT u.full_name, u.email FROM users u
+         JOIN students s ON s.user_id = u.id WHERE s.nim = $1`,
+        [nim],
+      );
+      expect(user.rows[0].full_name).toBe('Mahasiswa PUT Updated');
+      expect(user.rows[0].email).toBe(`am-put-${ts}@siak.local`);
+    });
+
+    it('ganti prodi valid → 200', async () => {
+      // Cari prodi aktif kedua (beda dari prodiCode)
+      const prodiRes = await pgPool.query(
+        `SELECT code FROM prodis WHERE is_active AND code != $1 ORDER BY id LIMIT 1`,
+        [prodiCode],
+      );
+      if (prodiRes.rows.length > 0) {
+        const newProdi = prodiRes.rows[0].code as string;
+        const res = await request(app)
+          .put(`/api/v1/admin-master/students/${studentId}`)
+          .set('Authorization', `Bearer ${token}`)
+          .send({ prodiCode: newProdi })
+          .expect(200);
+        expect(res.body.data.message).toContain('diupdate');
+      }
+    });
+
+    it('prodi tidak ditemukan → 400', async () => {
+      await request(app)
+        .put(`/api/v1/admin-master/students/${studentId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ prodiCode: 'ZZZ' })
+        .expect(400);
+    });
+
+    it('angkatan tidak ditemukan → 400', async () => {
+      await request(app)
+        .put(`/api/v1/admin-master/students/${studentId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ angkatan: '2099/2100' })
+        .expect(400);
+    });
+
+    it('id tidak ditemukan → 404', async () => {
+      await request(app)
+        .put('/api/v1/admin-master/students/32767')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ fullName: 'Tidak Ada' })
+        .expect(404);
+    });
+
+    it('tanpa field → 400', async () => {
+      await request(app)
+        .put(`/api/v1/admin-master/students/${studentId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400);
+    });
+
+    it('id invalid → 400', async () => {
+      await request(app)
+        .put('/api/v1/admin-master/students/abc')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ fullName: 'X' })
+        .expect(400);
+    });
+  });
+
+  describe('PUT /admin-master/lecturers/:id', () => {
+    const nidn = `am${ts}88`;
+    let lecturerId = 0;
+
+    beforeAll(async () => {
+      const res = await request(app)
+        .post('/api/v1/admin-master/lecturers')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ nidn, fullName: 'Dosen PUT Test', prodiCode })
+        .expect(201);
+      lecturerId = Number(res.body.data.id);
+      createdEmails.push(`${nidn}@siak.local`);
+    });
+
+    afterAll(async () => {
+      await pgPool.query(`DELETE FROM lecturers WHERE nidn = $1`, [nidn]);
+      await pgPool.query(`DELETE FROM users WHERE email IN ($1, $2)`, [
+        `${nidn}@siak.local`,
+        `am-put-dsn-${ts}@siak.local`,
+      ]);
+    });
+
+    it('valid (nama + email + prodi) → 200, users ikut terupdate', async () => {
+      const res = await request(app)
+        .put(`/api/v1/admin-master/lecturers/${lecturerId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          fullName: 'Dosen PUT Updated',
+          email: `am-put-dsn-${ts}@siak.local`,
+          prodiCode,
+        })
+        .expect(200);
+      expect(res.body.data.message).toContain('diupdate');
+      expect(res.body.data.fullName).toBe('Dosen PUT Updated');
+
+      const user = await pgPool.query(
+        `SELECT u.full_name, u.email FROM users u
+         JOIN lecturers l ON l.user_id = u.id WHERE l.nidn = $1`,
+        [nidn],
+      );
+      expect(user.rows[0].full_name).toBe('Dosen PUT Updated');
+      expect(user.rows[0].email).toBe(`am-put-dsn-${ts}@siak.local`);
+    });
+
+    it('id tidak ditemukan → 404', async () => {
+      await request(app)
+        .put('/api/v1/admin-master/lecturers/32767')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ fullName: 'Tidak Ada' })
+        .expect(404);
+    });
+
+    it('tanpa field → 400', async () => {
+      await request(app)
+        .put(`/api/v1/admin-master/lecturers/${lecturerId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400);
+    });
+  });
 });
