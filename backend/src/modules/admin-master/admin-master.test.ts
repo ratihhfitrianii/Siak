@@ -298,4 +298,317 @@ describe('Modul Admin Master Data (#16)', () => {
         .expect(400);
     });
   });
+
+  describe('CRUD /admin-master/faculties', () => {
+    const facCode = `am${ts}F`;
+    const facCode2 = `am${ts}G`;
+
+    afterAll(async () => {
+      await pgPool.query(`DELETE FROM prodis WHERE code LIKE 'am${ts}%'`);
+      await pgPool.query(`DELETE FROM faculties WHERE code LIKE 'am${ts}%'`);
+    });
+
+    it('GET → 200 dengan data fakultas (join prodi count)', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin-master/faculties')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data.length).toBeGreaterThan(0);
+      expect(res.body.data[0]).toHaveProperty('code');
+      expect(res.body.data[0]).toHaveProperty('name');
+    });
+
+    it('POST valid → 201', async () => {
+      const res = await request(app)
+        .post('/api/v1/admin-master/faculties')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code: facCode, name: 'Fakultas Test AM', isActive: true })
+        .expect(201);
+      expect(res.body.data.code).toBe(facCode);
+    });
+
+    it('POST duplikat → 409', async () => {
+      const res = await request(app)
+        .post('/api/v1/admin-master/faculties')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code: facCode, name: 'Duplikat' })
+        .expect(409);
+      expect(res.body.error.message).toContain('sudah terdaftar');
+    });
+
+    it('POST body invalid → 400', async () => {
+      await request(app)
+        .post('/api/v1/admin-master/faculties')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code: '', name: 'x' })
+        .expect(400);
+    });
+
+    it('PUT id non-numeric (kode) → 400', async () => {
+      const res = await request(app)
+        .put(`/api/v1/admin-master/faculties/${facCode}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Fakultas Test AM Update', isActive: false })
+        .expect(400);
+      // id harus numeric — kode bukan id valid
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('PUT valid dengan id numeric → 200', async () => {
+      const created = await pgPool.query('SELECT id FROM faculties WHERE code = $1', [facCode]);
+      const facId = Number(created.rows[0].id);
+      const res = await request(app)
+        .put(`/api/v1/admin-master/faculties/${facId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Fakultas Test AM Update', isActive: false })
+        .expect(200);
+      expect(res.body.data.name).toBe('Fakultas Test AM Update');
+      expect(res.body.data.isActive).toBe(false);
+    });
+
+    it('PUT duplikat code → 409', async () => {
+      // Buat fakultas kedua
+      await request(app)
+        .post('/api/v1/admin-master/faculties')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code: facCode2, name: 'Fakultas Test AM 2' })
+        .expect(201);
+
+      const created = await pgPool.query('SELECT id FROM faculties WHERE code = $1', [facCode2]);
+      const facId2 = Number(created.rows[0].id);
+      const res = await request(app)
+        .put(`/api/v1/admin-master/faculties/${facId2}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code: facCode })
+        .expect(409);
+      expect(res.body.error.message).toContain('sudah terdaftar');
+    });
+
+    it('PUT tidak ditemukan → 404', async () => {
+      await request(app)
+        .put('/api/v1/admin-master/faculties/999999999')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'X' })
+        .expect(404);
+    });
+
+    it('PUT tanpa field → 400', async () => {
+      const created = await pgPool.query('SELECT id FROM faculties WHERE code = $1', [facCode]);
+      const facId = Number(created.rows[0].id);
+      await request(app)
+        .put(`/api/v1/admin-master/faculties/${facId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400);
+    });
+
+    it('DELETE dengan prodi aktif → 409', async () => {
+      // Pakai fakultas seed yang punya prodi aktif
+      const res = await pgPool.query(
+        `SELECT f.id FROM faculties f
+         JOIN prodis p ON p.faculty_id = f.id AND p.is_active
+         LIMIT 1`,
+      );
+      const facId = Number(res.rows[0].id);
+      await request(app)
+        .delete(`/api/v1/admin-master/faculties/${facId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(409);
+    });
+
+    it('DELETE valid (tanpa prodi aktif) → soft delete', async () => {
+      const created = await pgPool.query('SELECT id FROM faculties WHERE code = $1', [facCode2]);
+      const facId = Number(created.rows[0].id);
+      const res = await request(app)
+        .delete(`/api/v1/admin-master/faculties/${facId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(res.body.data.message).toContain('dinonaktifkan');
+
+      const row = await pgPool.query('SELECT is_active FROM faculties WHERE id = $1', [facId]);
+      expect(row.rows[0].is_active).toBe(false);
+    });
+
+    it('DELETE id invalid → 400', async () => {
+      await request(app)
+        .delete('/api/v1/admin-master/faculties/abc')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(400);
+    });
+  });
+
+  describe('CRUD /admin-master/prodis', () => {
+    const prodiCode = `am${ts}P`;
+    const prodiCode2 = `am${ts}Q`;
+    let prodiId = 0;
+    let prodiId2 = 0;
+
+    afterAll(async () => {
+      await pgPool.query(`DELETE FROM prodis WHERE code LIKE 'am${ts}%'`);
+      await pgPool.query(`DELETE FROM faculties WHERE code LIKE 'am${ts}%'`);
+    });
+
+    it('GET → 200 dengan data prodi', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin-master/prodis')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data.length).toBeGreaterThan(0);
+      expect(res.body.data[0]).toHaveProperty('facultyCode');
+    });
+
+    it('POST valid → 201', async () => {
+      // Cari fakultas aktif dari seed
+      const facRes = await pgPool.query(
+        'SELECT code FROM faculties WHERE is_active ORDER BY id LIMIT 1',
+      );
+      const facCode = facRes.rows[0].code as string;
+      const res = await request(app)
+        .post('/api/v1/admin-master/prodis')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          code: prodiCode,
+          name: 'Prodi Test AM',
+          facultyCode: facCode,
+          degree: 'S1',
+          accreditation: 'A',
+        })
+        .expect(201);
+      expect(res.body.data.code).toBe(prodiCode);
+      prodiId = Number(res.body.data.id);
+    });
+
+    it('POST fakultas tidak ditemukan → 400', async () => {
+      await request(app)
+        .post('/api/v1/admin-master/prodis')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          code: prodiCode2,
+          name: 'Prodi Salah',
+          facultyCode: 'ZZZ',
+          degree: 'S1',
+        })
+        .expect(400);
+    });
+
+    it('POST duplikat → 409', async () => {
+      const facRes = await pgPool.query(
+        'SELECT code FROM faculties WHERE is_active ORDER BY id LIMIT 1',
+      );
+      const facCode = facRes.rows[0].code as string;
+      const res = await request(app)
+        .post('/api/v1/admin-master/prodis')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code: prodiCode, name: 'Duplikat', facultyCode: facCode, degree: 'S1' })
+        .expect(409);
+      expect(res.body.error.message).toContain('sudah terdaftar');
+    });
+
+    it('POST body invalid → 400', async () => {
+      await request(app)
+        .post('/api/v1/admin-master/prodis')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code: '', name: '', facultyCode: '', degree: 'S9' })
+        .expect(400);
+    });
+
+    it('PUT valid → 200 (update name, degree, accreditation, isActive)', async () => {
+      const res = await request(app)
+        .put(`/api/v1/admin-master/prodis/${prodiId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          name: 'Prodi Test AM Update',
+          degree: 'S2',
+          accreditation: 'B',
+          isActive: false,
+        })
+        .expect(200);
+      expect(res.body.data.name).toBe('Prodi Test AM Update');
+      expect(res.body.data.degree).toBe('S2');
+      expect(res.body.data.isActive).toBe(false);
+    });
+
+    it('PUT fakultas tidak ditemukan → 400', async () => {
+      await request(app)
+        .put(`/api/v1/admin-master/prodis/${prodiId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ facultyCode: 'ZZZ' })
+        .expect(400);
+    });
+
+    it('PUT duplikat code → 409', async () => {
+      // Buat prodi kedua
+      const facRes = await pgPool.query(
+        'SELECT code FROM faculties WHERE is_active ORDER BY id LIMIT 1',
+      );
+      const facCode = facRes.rows[0].code as string;
+      const created = await request(app)
+        .post('/api/v1/admin-master/prodis')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code: prodiCode2, name: 'Prodi Test AM 2', facultyCode: facCode, degree: 'S1' })
+        .expect(201);
+      prodiId2 = Number(created.body.data.id);
+
+      const res = await request(app)
+        .put(`/api/v1/admin-master/prodis/${prodiId2}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code: prodiCode })
+        .expect(409);
+      expect(res.body.error.message).toContain('sudah terdaftar');
+    });
+
+    it('PUT tidak ditemukan → 404', async () => {
+      await request(app)
+        .put('/api/v1/admin-master/prodis/999999999')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'X' })
+        .expect(404);
+    });
+
+    it('PUT tanpa field → 400', async () => {
+      await request(app)
+        .put(`/api/v1/admin-master/prodis/${prodiId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400);
+    });
+
+    it('DELETE dengan mahasiswa/dosen aktif → 409', async () => {
+      // Pakai prodi seed yang punya mahasiswa aktif
+      const res = await pgPool.query(
+        `SELECT p.id FROM prodis p
+         JOIN students s ON s.prodi_id = p.id AND s.is_active
+         LIMIT 1`,
+      );
+      if (res.rows.length > 0) {
+        const seedProdiId = Number(res.rows[0].id);
+        await request(app)
+          .delete(`/api/v1/admin-master/prodis/${seedProdiId}`)
+          .set('Authorization', `Bearer ${token}`)
+          .expect(409);
+      }
+    });
+
+    it('DELETE valid (tanpa referensi) → soft delete', async () => {
+      const res = await request(app)
+        .delete(`/api/v1/admin-master/prodis/${prodiId2}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(res.body.data.message).toContain('dinonaktifkan');
+
+      const row = await pgPool.query('SELECT is_active FROM prodis WHERE id = $1', [prodiId2]);
+      expect(row.rows[0].is_active).toBe(false);
+    });
+
+    it('DELETE id invalid → 400', async () => {
+      await request(app)
+        .delete('/api/v1/admin-master/prodis/abc')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(400);
+    });
+  });
 });
