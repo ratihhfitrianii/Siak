@@ -490,22 +490,16 @@ export function AdminCourseReviewPage() {
                     <tbody>
                       {detailGroup.courses.map((s) => (
                         <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="py-3 px-4 font-mono text-slate-700">
-                            {s.courseCode}
-                          </td>
+                          <td className="py-3 px-4 font-mono text-slate-700">{s.courseCode}</td>
                           <td className="py-3 px-4 text-slate-900">{s.courseName}</td>
-                          <td className="py-3 px-4 text-center text-slate-700">
-                            {s.credits}
-                          </td>
+                          <td className="py-3 px-4 text-center text-slate-700">{s.credits}</td>
                           <td className="py-3 px-4 text-slate-700">
                             {s.semesterCode} (Sem {s.semesterNumber})
                           </td>
                           <td className="py-3 px-4 text-center text-slate-700">
                             {s.isMandatory ? 'Wajib' : 'Pilihan'}
                           </td>
-                          <td className="py-3 px-4 text-center text-slate-700">
-                            {s.priority}
-                          </td>
+                          <td className="py-3 px-4 text-center text-slate-700">{s.priority}</td>
                           <td
                             className="py-3 px-4 text-slate-600 max-w-xs truncate"
                             title={s.notes || ''}
