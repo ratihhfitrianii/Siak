@@ -332,7 +332,9 @@ export function createDosenRouter(): Router {
             s.name as semester_name,
             p.name as prodi_name,
             ru.full_name as reviewed_by_name`;
-        const countQuery = query.replace(selectClause, 'SELECT COUNT(*)').replace(/ORDER BY.*$/, '');
+        const countQuery = query
+          .replace(selectClause, 'SELECT COUNT(*)')
+          .replace(/ORDER BY.*$/, '');
         const countRes = await pgPool.query(countQuery, params);
         const total = Number(countRes.rows[0].count);
 
