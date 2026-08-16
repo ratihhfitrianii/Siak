@@ -358,6 +358,15 @@ export function createAdminMasterRouter(): Router {
         }
         const { fullName, prodiCode, angkatan, email } = parsed.data;
 
+        if (
+          fullName === undefined &&
+          prodiCode === undefined &&
+          angkatan === undefined &&
+          email === undefined
+        ) {
+          throw new AppError('VALIDATION_ERROR', 'Tidak ada field yang diupdate', 400);
+        }
+
         const exists = await pgPool.query(
           `SELECT s.id, s.user_id, s.nim, u.email AS current_email
            FROM students s JOIN users u ON u.id = s.user_id
@@ -482,6 +491,10 @@ export function createAdminMasterRouter(): Router {
           });
         }
         const { fullName, prodiCode, email } = parsed.data;
+
+        if (fullName === undefined && prodiCode === undefined && email === undefined) {
+          throw new AppError('VALIDATION_ERROR', 'Tidak ada field yang diupdate', 400);
+        }
 
         const exists = await pgPool.query(
           `SELECT l.id, l.user_id, l.nidn, u.email AS current_email
