@@ -413,7 +413,9 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
   it('pagination Sebelumnya → tidak aktif di halaman 1', async () => {
     mockAll();
     // total=20, page=1 -> pagination shows (20 > 10)
-    mockedApi.getCourseSelectionsForReview.mockResolvedValue(selectionsResponse(SELECTIONS, 1, 10, 20));
+    mockedApi.getCourseSelectionsForReview.mockResolvedValue(
+      selectionsResponse(SELECTIONS, 1, 10, 20),
+    );
 
     render(<AdminCourseReviewPage />);
 
@@ -427,7 +429,9 @@ describe('AdminCourseReviewPage — Persetujuan MK Dosen', () => {
   it('loading state → menampilkan Memuat... di tombol filter', async () => {
     mockAll();
     let resolveLoad: (val: CourseSelectionsForReviewResponse) => void;
-    const loadPromise = new Promise<CourseSelectionsForReviewResponse>((resolve) => { resolveLoad = resolve; });
+    const loadPromise = new Promise<CourseSelectionsForReviewResponse>((resolve) => {
+      resolveLoad = resolve;
+    });
     mockedApi.getCourseSelectionsForReview.mockReturnValue(loadPromise);
 
     render(<AdminCourseReviewPage />);

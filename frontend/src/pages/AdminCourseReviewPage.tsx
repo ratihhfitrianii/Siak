@@ -167,7 +167,12 @@ export function AdminCourseReviewPage() {
           <span>{error}</span>
           <button onClick={clearMessages} className="text-red-700 hover:text-red-900">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -180,7 +185,12 @@ export function AdminCourseReviewPage() {
           <span>{success}</span>
           <button onClick={clearMessages} className="text-green-700 hover:text-green-900">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -190,13 +200,18 @@ export function AdminCourseReviewPage() {
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
         <div className="flex flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[200px]">
-            <label htmlFor="filter-semester" className="block text-sm font-medium text-slate-700 mb-1">
+            <label
+              htmlFor="filter-semester"
+              className="block text-sm font-medium text-slate-700 mb-1"
+            >
               Semester
             </label>
             <select
               id="filter-semester"
               value={filters.semesterId ?? ''}
-              onChange={(e) => handleFilterChange('semesterId', e.target.value ? Number(e.target.value) : null)}
+              onChange={(e) =>
+                handleFilterChange('semesterId', e.target.value ? Number(e.target.value) : null)
+              }
               className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="">Semua Semester</option>
@@ -214,7 +229,9 @@ export function AdminCourseReviewPage() {
             <select
               id="filter-prodi"
               value={filters.prodiId ?? ''}
-              onChange={(e) => handleFilterChange('prodiId', e.target.value ? Number(e.target.value) : null)}
+              onChange={(e) =>
+                handleFilterChange('prodiId', e.target.value ? Number(e.target.value) : null)
+              }
               className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="">Semua Prodi</option>
@@ -226,13 +243,21 @@ export function AdminCourseReviewPage() {
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label htmlFor="filter-status" className="block text-sm font-medium text-slate-700 mb-1">
+            <label
+              htmlFor="filter-status"
+              className="block text-sm font-medium text-slate-700 mb-1"
+            >
               Status
             </label>
             <select
               id="filter-status"
               value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value as '' | 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak')}
+              onChange={(e) =>
+                handleFilterChange(
+                  'status',
+                  e.target.value as '' | 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak',
+                )
+              }
               className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="">Semua Status</option>
@@ -361,7 +386,12 @@ export function AdminCourseReviewPage() {
                 aria-label="Tutup"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -416,17 +446,26 @@ export function AdminCourseReviewPage() {
                     <tbody>
                       {/* Show only this selection's course */}
                       <tr className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-3 px-4 font-mono text-slate-700">{detailSelection.courseCode}</td>
+                        <td className="py-3 px-4 font-mono text-slate-700">
+                          {detailSelection.courseCode}
+                        </td>
                         <td className="py-3 px-4 text-slate-900">{detailSelection.courseName}</td>
-                        <td className="py-3 px-4 text-center text-slate-700">{detailSelection.credits}</td>
+                        <td className="py-3 px-4 text-center text-slate-700">
+                          {detailSelection.credits}
+                        </td>
                         <td className="py-3 px-4 text-slate-700">
                           {detailSelection.semesterCode} (Sem {detailSelection.semesterNumber})
                         </td>
                         <td className="py-3 px-4 text-center text-slate-700">
                           {detailSelection.isMandatory ? 'Wajib' : 'Pilihan'}
                         </td>
-                        <td className="py-3 px-4 text-center text-slate-700">{detailSelection.priority}</td>
-                        <td className="py-3 px-4 text-slate-600 max-w-xs truncate" title={detailSelection.notes || ''}>
+                        <td className="py-3 px-4 text-center text-slate-700">
+                          {detailSelection.priority}
+                        </td>
+                        <td
+                          className="py-3 px-4 text-slate-600 max-w-xs truncate"
+                          title={detailSelection.notes || ''}
+                        >
                           {detailSelection.notes || '-'}
                         </td>
                         <td className="py-3 px-4">
