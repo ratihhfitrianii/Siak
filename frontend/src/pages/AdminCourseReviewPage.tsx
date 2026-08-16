@@ -514,20 +514,22 @@ export function AdminCourseReviewPage() {
                               >
                                 {statusLabels[s.status as keyof typeof statusLabels]}
                               </span>
-                              {(s.status === 'diterima' || s.status === 'ditolak') && s.reviewedByName && (
-                                <div className="text-xs text-slate-500">
-                                  {s.status === 'diterima' ? 'Disetujui' : 'Ditolak'} oleh{' '}
-                                  <span className="font-medium">{s.reviewedByName}</span>
-                                  {s.reviewedAt && (
-                                    <>
-                                      {' '}•{' '}
-                                      <span>
-                                        {new Date(s.reviewedAt).toLocaleString('id-ID')}
-                                      </span>
-                                    </>
-                                  )}
-                                </div>
-                              )}
+                              {(s.status === 'diterima' || s.status === 'ditolak') &&
+                                s.reviewedByName && (
+                                  <div className="text-xs text-slate-500">
+                                    {s.status === 'diterima' ? 'Disetujui' : 'Ditolak'} oleh{' '}
+                                    <span className="font-medium">{s.reviewedByName}</span>
+                                    {s.reviewedAt && (
+                                      <>
+                                        {' '}
+                                        •{' '}
+                                        <span>
+                                          {new Date(s.reviewedAt).toLocaleString('id-ID')}
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
                             </div>
                           </td>
                           <td className="py-3 px-4">
