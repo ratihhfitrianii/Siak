@@ -388,7 +388,7 @@ describe('Modul Admin Master Data (#16)', () => {
 
     it('PUT tidak ditemukan → 404', async () => {
       await request(app)
-        .put('/api/v1/admin-master/faculties/999999999')
+        .put('/api/v1/admin-master/faculties/32767')
         .set('Authorization', `Bearer ${token}`)
         .send({ name: 'Fakultas Tidak Ada' })
         .expect(404);
@@ -563,7 +563,7 @@ describe('Modul Admin Master Data (#16)', () => {
 
     it('PUT tidak ditemukan → 404', async () => {
       await request(app)
-        .put('/api/v1/admin-master/prodis/999999999')
+        .put('/api/v1/admin-master/prodis/32767')
         .set('Authorization', `Bearer ${token}`)
         .send({ name: 'Prodi Tidak Ada' })
         .expect(404);
