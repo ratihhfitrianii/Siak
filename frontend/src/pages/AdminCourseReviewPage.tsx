@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   getCourseSelectionsForReview,
   reviewCourseSelection,
@@ -23,10 +23,51 @@ const statusLabels: Record<string, string> = {
 
 const PAGE_SIZE = 10;
 
+// Type for grouped lecturer data
+interface LecturerGroup {
+  lecturerId: number;
+  nik: string;
+  lecturerName: string;
+  prodiName: string;
+  status: 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak'; // overall status (highest priority: diajukan > diterima > ditolak > belum_diajukan)
+  reviewedByName: string | null;
+  reviewedAt: string | null;
+  courses: CourseSelectionForReview[];
+}
+
+function groupByLecturer(selections: CourseSelectionForReview[]): LecturerGroup[] {
+  const map = new Map<number, LecturerGroup>();
+  for (const s of selections) {
+    const existing = map.get(s.lecturerId);
+    if (!existing) {
+      map.set(s.lecturerId, {
+        lecturerId: s.lecturerId,
+        nik: s.nik,
+        lecturerName: s.lecturerName,
+        prodiName: s.prodiName,
+        status: s.status,
+        reviewedByName: s.reviewedByName,
+        reviewedAt: s.reviewedAt,
+        courses: [s],
+      });
+    } else {
+      existing.courses.push(s);
+      // Update overall status: diajukan > diterima > ditolak > belum_diajukan
+      const priority = { diajukan: 3, diterima: 2, ditolak: 1, belum_diajukan: 0 };
+      if (priority[s.status] > priority[existing.status]) {
+        existing.status = s.status;
+        existing.reviewedByName = s.reviewedByName;
+        existing.reviewedAt = s.reviewedAt;
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
 export function AdminCourseReviewPage() {
   const [semesterOptions, setSemesterOptions] = useState<SemesterOption[]>([]);
   const [prodiOptions, setProdiOptions] = useState<Prodi[]>([]);
-  const [selections, setSelections] = useState<CourseSelectionForReview[]>([]);
+  const [rawSelections, setRawSelections] = useState<CourseSelectionForReview[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -38,7 +79,7 @@ export function AdminCourseReviewPage() {
     status: '' as '' | 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak',
   });
   // Detail modal state
-  const [detailSelection, setDetailSelection] = useState<CourseSelectionForReview | null>(null);
+  const [detailGroup, setDetailGroup] = useState<LecturerGroup | null>(null);
   // Review modal state (within detail modal)
   const [reviewingId, setReviewingId] = useState<number | null>(null);
   const [reviewStatus, setReviewStatus] = useState<'diterima' | 'ditolak'>('diterima');
@@ -70,7 +111,7 @@ export function AdminCourseReviewPage() {
           page: p,
           limit: PAGE_SIZE,
         });
-        setSelections(res.items);
+        setRawSelections(res.items);
         setTotal(res.pagination.total);
         setPage(p);
       } catch (err: unknown) {
@@ -82,6 +123,9 @@ export function AdminCourseReviewPage() {
     },
     [filters],
   );
+
+  // Group selections by lecturer
+  const groupedSelections = useMemo(() => groupByLecturer(rawSelections), [rawSelections]);
 
   // Load when filters change (reset to page 1)
   useEffect(() => {
@@ -108,12 +152,12 @@ export function AdminCourseReviewPage() {
     setPage(newPage);
   };
 
-  const handleDetail = (s: CourseSelectionForReview) => {
-    setDetailSelection(s);
+  const handleDetail = (group: LecturerGroup) => {
+    setDetailGroup(group);
   };
 
   const closeDetail = () => {
-    setDetailSelection(null);
+    setDetailGroup(null);
   };
 
   const handleReview = (selectionId: number, status: 'diterima' | 'ditolak') => {
@@ -281,9 +325,9 @@ export function AdminCourseReviewPage() {
 
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-        {loading && selections.length === 0 ? (
+        {loading && groupedSelections.length === 0 ? (
           <div className="p-8 text-center text-slate-500">Memuat data...</div>
-        ) : selections.length === 0 ? (
+        ) : groupedSelections.length === 0 ? (
           <div className="p-8 text-center text-slate-500">Belum ada data pilihan MK</div>
         ) : (
           <>
@@ -300,24 +344,24 @@ export function AdminCourseReviewPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {selections.map((s) => (
-                    <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-3 px-4 font-mono text-slate-700">{s.nik}</td>
-                      <td className="py-3 px-4 font-medium text-slate-900">{s.lecturerName}</td>
-                      <td className="py-3 px-4 text-slate-700">{s.prodiName}</td>
+                  {groupedSelections.map((g) => (
+                    <tr key={g.lecturerId} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="py-3 px-4 font-mono text-slate-700">{g.nik}</td>
+                      <td className="py-3 px-4 font-medium text-slate-900">{g.lecturerName}</td>
+                      <td className="py-3 px-4 text-slate-700">{g.prodiName}</td>
                       <td className="py-3 px-4">
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusColors[s.status as keyof typeof statusColors]}`}
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusColors[g.status as keyof typeof statusColors]}`}
                         >
-                          {statusLabels[s.status as keyof typeof statusLabels]}
+                          {statusLabels[g.status as keyof typeof statusLabels]}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-slate-600">
-                        {s.reviewedByName ? (
+                        {g.reviewedByName ? (
                           <>
-                            <div className="font-medium">{s.reviewedByName}</div>
+                            <div className="font-medium">{g.reviewedByName}</div>
                             <div className="text-xs text-slate-500">
-                              {s.reviewedAt ? new Date(s.reviewedAt).toLocaleString('id-ID') : '-'}
+                              {g.reviewedAt ? new Date(g.reviewedAt).toLocaleString('id-ID') : '-'}
                             </div>
                           </>
                         ) : (
@@ -326,7 +370,7 @@ export function AdminCourseReviewPage() {
                       </td>
                       <td className="py-3 px-4">
                         <button
-                          onClick={() => handleDetail(s)}
+                          onClick={() => handleDetail(g)}
                           className="px-3 py-1 text-xs text-primary-500 hover:text-primary-700 underline"
                         >
                           Detail
@@ -371,13 +415,13 @@ export function AdminCourseReviewPage() {
       </div>
 
       {/* Detail Modal */}
-      {detailSelection && (
+      {detailGroup && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           role="dialog"
           aria-modal="true"
         >
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-900">Detail Pilihan MK</h2>
               <button
@@ -403,23 +447,23 @@ export function AdminCourseReviewPage() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-slate-500">NIK:</span>
-                    <span className="font-mono ml-2">{detailSelection.nidn}</span>
+                    <span className="font-mono ml-2">{detailGroup.nik}</span>
                   </div>
                   <div>
                     <span className="text-slate-500">Nama:</span>
-                    <span className="ml-2">{detailSelection.lecturerName}</span>
+                    <span className="ml-2">{detailGroup.lecturerName}</span>
                   </div>
                   <div>
                     <span className="text-slate-500">Prodi:</span>
-                    <span className="ml-2">{detailSelection.prodiName}</span>
+                    <span className="ml-2">{detailGroup.prodiName}</span>
                   </div>
                   <div>
                     <span className="text-slate-500">Status:</span>
                     <span className="ml-2">
                       <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusColors[detailSelection.status as keyof typeof statusColors]}`}
+                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusColors[detailGroup.status as keyof typeof statusColors]}`}
                       >
-                        {statusLabels[detailSelection.status as keyof typeof statusLabels]}
+                        {statusLabels[detailGroup.status as keyof typeof statusLabels]}
                       </span>
                     </span>
                   </div>
@@ -444,51 +488,52 @@ export function AdminCourseReviewPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {/* Show only this selection's course */}
-                      <tr className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="py-3 px-4 font-mono text-slate-700">
-                          {detailSelection.courseCode}
-                        </td>
-                        <td className="py-3 px-4 text-slate-900">{detailSelection.courseName}</td>
-                        <td className="py-3 px-4 text-center text-slate-700">
-                          {detailSelection.credits}
-                        </td>
-                        <td className="py-3 px-4 text-slate-700">
-                          {detailSelection.semesterCode} (Sem {detailSelection.semesterNumber})
-                        </td>
-                        <td className="py-3 px-4 text-center text-slate-700">
-                          {detailSelection.isMandatory ? 'Wajib' : 'Pilihan'}
-                        </td>
-                        <td className="py-3 px-4 text-center text-slate-700">
-                          {detailSelection.priority}
-                        </td>
-                        <td
-                          className="py-3 px-4 text-slate-600 max-w-xs truncate"
-                          title={detailSelection.notes || ''}
-                        >
-                          {detailSelection.notes || '-'}
-                        </td>
-                        <td className="py-3 px-4">
-                          {detailSelection.status === 'diajukan' ? (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleReview(detailSelection.id, 'diterima')}
-                                className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
-                              >
-                                Setujui
-                              </button>
-                              <button
-                                onClick={() => handleReview(detailSelection.id, 'ditolak')}
-                                className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                              >
-                                Tolak
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-500">Selesai</span>
-                          )}
-                        </td>
-                      </tr>
+                      {detailGroup.courses.map((s) => (
+                        <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4 font-mono text-slate-700">
+                            {s.courseCode}
+                          </td>
+                          <td className="py-3 px-4 text-slate-900">{s.courseName}</td>
+                          <td className="py-3 px-4 text-center text-slate-700">
+                            {s.credits}
+                          </td>
+                          <td className="py-3 px-4 text-slate-700">
+                            {s.semesterCode} (Sem {s.semesterNumber})
+                          </td>
+                          <td className="py-3 px-4 text-center text-slate-700">
+                            {s.isMandatory ? 'Wajib' : 'Pilihan'}
+                          </td>
+                          <td className="py-3 px-4 text-center text-slate-700">
+                            {s.priority}
+                          </td>
+                          <td
+                            className="py-3 px-4 text-slate-600 max-w-xs truncate"
+                            title={s.notes || ''}
+                          >
+                            {s.notes || '-'}
+                          </td>
+                          <td className="py-3 px-4">
+                            {s.status === 'diajukan' ? (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleReview(s.id, 'diterima')}
+                                  className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                                >
+                                  Setujui
+                                </button>
+                                <button
+                                  onClick={() => handleReview(s.id, 'ditolak')}
+                                  className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                                >
+                                  Tolak
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-500">Selesai</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
