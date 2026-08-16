@@ -196,14 +196,17 @@ export function createStudentProfileRouter(): Router {
         }
 
         // Group by semester
-        const semesterMap = new Map<number, {
-          semesterId: number;
-          semesterCode: string;
-          semesterName: string;
-          ips: number;
-          sksLulus: number;
-          sksDiambil: number;
-        }>();
+        const semesterMap = new Map<
+          number,
+          {
+            semesterId: number;
+            semesterCode: string;
+            semesterName: string;
+            ips: number;
+            sksLulus: number;
+            sksDiambil: number;
+          }
+        >();
 
         for (const row of rowsWithCourse) {
           const semId = Number(row.semester_id);
