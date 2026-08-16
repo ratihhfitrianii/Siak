@@ -912,7 +912,10 @@ export async function getCourseSelectionsForReview(params?: {
   if (params?.page) qs.set('page', String(params.page));
   if (params?.limit) qs.set('limit', String(params.limit));
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
-  const res = await apiRequest<{ items: Record<string, unknown>[]; pagination: { page: number; limit: number; total: number } }>(`/dosen/courses/all${suffix}`);
+  const res = await apiRequest<{
+    items: Record<string, unknown>[];
+    pagination: { page: number; limit: number; total: number };
+  }>(`/dosen/courses/all${suffix}`);
   return {
     items: res.items.map(normalizeCourseSelectionForReview),
     pagination: res.pagination,
