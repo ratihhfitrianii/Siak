@@ -68,7 +68,8 @@ export function createAnnouncementRouter(): Router {
         }
       }
 
-      where += ' ORDER BY a.priority DESC, a.published_at DESC NULLS LAST, a.created_at DESC';
+      const orderBy =
+        ' ORDER BY a.priority DESC, a.published_at DESC NULLS LAST, a.created_at DESC';
 
       const countResult = await pgPool.query(
         `SELECT count(*)::int AS total FROM announcements a ${where}`,
@@ -80,7 +81,7 @@ export function createAnnouncementRouter(): Router {
                   a.is_active AS "isActive", a.published_at AS "publishedAt", a.expires_at AS "expiresAt",
                   a.created_by AS "createdBy", a.created_at AS "createdAt", a.updated_at AS "updatedAt"
            FROM announcements a
-           ${where}
+           ${where}${orderBy}
            LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, limit, offset],
       );

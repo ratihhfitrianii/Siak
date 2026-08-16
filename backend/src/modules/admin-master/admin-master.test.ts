@@ -365,7 +365,7 @@ describe('Modul Admin Master Data (#16)', () => {
         .send({ name: 'Fakultas Test AM Update', isActive: false })
         .expect(200);
       expect(res.body.data.name).toBe('Fakultas Test AM Update');
-      expect(res.body.data.isActive).toBe(false);
+      expect(res.body.data.is_active).toBe(false);
     });
 
     it('PUT duplikat code → 409', async () => {
@@ -390,7 +390,7 @@ describe('Modul Admin Master Data (#16)', () => {
       await request(app)
         .put('/api/v1/admin-master/faculties/999999999')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'X' })
+        .send({ name: 'Fakultas Tidak Ada' })
         .expect(404);
     });
 
@@ -529,7 +529,7 @@ describe('Modul Admin Master Data (#16)', () => {
         .expect(200);
       expect(res.body.data.name).toBe('Prodi Test AM Update');
       expect(res.body.data.degree).toBe('S2');
-      expect(res.body.data.isActive).toBe(false);
+      expect(res.body.data.is_active).toBe(false);
     });
 
     it('PUT fakultas tidak ditemukan → 400', async () => {
@@ -565,7 +565,7 @@ describe('Modul Admin Master Data (#16)', () => {
       await request(app)
         .put('/api/v1/admin-master/prodis/999999999')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'X' })
+        .send({ name: 'Prodi Tidak Ada' })
         .expect(404);
     });
 

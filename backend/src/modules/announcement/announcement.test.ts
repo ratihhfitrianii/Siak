@@ -253,7 +253,7 @@ describe('Modul Announcements (Informasi Penting)', () => {
         .expect(201);
       expect(res.body.success).toBe(true);
       expect(res.body.data.title).toBe(`Test ${ts} buat`);
-      expect(res.body.data.targetRoles).toEqual(['mahasiswa', 'dosen']);
+      expect(res.body.data.target_roles).toEqual(['mahasiswa', 'dosen']);
 
       const id = Number(res.body.data.id);
       createdAnnouncementIds.push(id);
@@ -319,7 +319,7 @@ describe('Modul Announcements (Informasi Penting)', () => {
         .send({ title: `Test ${ts} update v2`, isActive: false })
         .expect(200);
       expect(res.body.data.title).toBe(`Test ${ts} update v2`);
-      expect(res.body.data.isActive).toBe(false);
+      expect(res.body.data.is_active).toBe(false);
 
       const audit = await pgPool.query(
         'SELECT count(*)::int AS n FROM audit_logs WHERE table_name = $1 AND record_id = $2 AND action = $3',
@@ -341,10 +341,10 @@ describe('Modul Announcements (Informasi Penting)', () => {
         })
         .expect(200);
       expect(res.body.data.message).toBe('Pesan v3');
-      expect(res.body.data.targetRoles).toEqual(['dosen']);
+      expect(res.body.data.target_roles).toEqual(['dosen']);
       expect(res.body.data.priority).toBe(7);
-      expect(res.body.data.publishedAt).not.toBeNull();
-      expect(res.body.data.expiresAt).not.toBeNull();
+      expect(res.body.data.published_at).not.toBeNull();
+      expect(res.body.data.expires_at).not.toBeNull();
     });
   });
 
