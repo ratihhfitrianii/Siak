@@ -113,14 +113,17 @@ export default function ProfilePage() {
         body[key] = value as string;
       });
 
-      const res = await apiRequest<{ success: boolean; data: StudentProfile }>('/api/v1/students/me', {
-        method: 'PUT',
-        body: JSON.stringify({
-          phone: body.phone || null,
-          personalEmail: body.personalEmail || null,
-          photoUrl: photoPreview !== profile.photoUrl ? photoPreview : undefined,
-        }),
-      });
+      const res = await apiRequest<{ success: boolean; data: StudentProfile }>(
+        '/api/v1/students/me',
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            phone: body.phone || null,
+            personalEmail: body.personalEmail || null,
+            photoUrl: photoPreview !== profile.photoUrl ? photoPreview : undefined,
+          }),
+        },
+      );
 
       if (res.success) {
         setProfile(res.data);
@@ -171,8 +174,8 @@ export default function ProfilePage() {
     ctx.clearRect(0, 0, width, height);
 
     // Find max IPS for scaling
-    const maxIPS = Math.max(4, Math.max(...ipsData.map(s => s.ips), 4));
-    const minIPS = Math.min(0, Math.min(...ipsData.map(s => s.ips)));
+    const maxIPS = Math.max(4, Math.max(...ipsData.map((s) => s.ips), 4));
+    const minIPS = Math.min(0, Math.min(...ipsData.map((s) => s.ips)));
 
     // Draw grid lines
     ctx.strokeStyle = '#e2e8f0';
@@ -248,7 +251,6 @@ export default function ProfilePage() {
     ctx.font = 'bold 12px system-ui';
     ctx.textAlign = 'left';
     ctx.fillText(`IPK: ${ipk.toFixed(2)}`, padding + 5, ipkY - 5);
-
   }, [ipsData, ipk]);
 
   if (loading && !profile) {
@@ -283,7 +285,9 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Profil Mahasiswa</h1>
-          <p className="text-slate-500 mt-1">Kelola informasi profil dan lihat riwayat IP per semester</p>
+          <p className="text-slate-500 mt-1">
+            Kelola informasi profil dan lihat riwayat IP per semester
+          </p>
         </div>
       </div>
 
@@ -294,15 +298,31 @@ export default function ProfilePage() {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center">
             <div className="relative inline-block mb-4">
               <img
-                src={photoPreview || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile.fullName) + '&background=random&size=150'}
+                src={
+                  photoPreview ||
+                  'https://ui-avatars.com/api/?name=' +
+                    encodeURIComponent(profile.fullName) +
+                    '&background=random&size=150'
+                }
                 alt="Foto Profil"
                 className="w-32 h-32 rounded-full object-cover border-4 border-slate-200"
               />
               <label className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
                 </svg>
-                <input type="file" accept="image/*" onChange={handlePhotoChange} className="sr-only" id="photo-upload" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="sr-only"
+                  id="photo-upload"
+                />
               </label>
             </div>
             <p className="text-sm text-slate-500 mb-4">Foto ini akan digunakan untuk Ijazah</p>
@@ -332,7 +352,9 @@ export default function ProfilePage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="p-3 bg-slate-50 rounded-lg">
                 <div className="text-slate-500">Total SKS Lulus</div>
-                <div className="font-semibold text-slate-900">{ipsData.reduce((a, b) => a + b.sksLulus, 0)}</div>
+                <div className="font-semibold text-slate-900">
+                  {ipsData.reduce((a, b) => a + b.sksLulus, 0)}
+                </div>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">
                 <div className="text-slate-500">Semester Aktif</div>
@@ -351,7 +373,9 @@ export default function ProfilePage() {
               {/* Read-only fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Nama Lengkap
+                  </label>
                   <input
                     type="text"
                     value={profile.fullName}
@@ -360,7 +384,9 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Email Kampus</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Email Kampus
+                  </label>
                   <input
                     type="email"
                     value={profile.email}
@@ -387,7 +413,9 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Program Studi</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Program Studi
+                  </label>
                   <input
                     type="text"
                     value={`${profile.prodiCode} - ${profile.prodiName}`}
@@ -396,7 +424,9 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Tahun Akademik Masuk</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Tahun Akademik Masuk
+                  </label>
                   <input
                     type="text"
                     value={profile.academicYearCode}
@@ -411,7 +441,12 @@ export default function ProfilePage() {
                 <h4 className="font-medium text-slate-900 mb-3">Informasi Kontak (Dapat Diubah)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-slate-700 mb-1">No. HP</label>
+                    <label
+                      htmlFor="phone"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      No. HP
+                    </label>
                     <input
                       type="tel"
                       id="phone"
@@ -422,7 +457,12 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="personalEmail" className="block text-sm font-medium text-slate-700 mb-1">Email Pribadi</label>
+                    <label
+                      htmlFor="personalEmail"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Email Pribadi
+                    </label>
                     <input
                       type="email"
                       id="personalEmail"
@@ -460,15 +500,31 @@ export default function ProfilePage() {
             <h3 className="font-semibold text-slate-900 mb-4">Grafik IP per Semester</h3>
             {ipsData.length === 0 ? (
               <div className="text-center py-12 text-slate-500">
-                <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <svg
+                  className="w-12 h-12 mx-auto mb-3 opacity-50"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
                 </svg>
                 <p>Belum ada data IP semester</p>
                 <p className="text-sm mt-1">Data akan muncul setelah ada nilai yang lulus</p>
               </div>
             ) : (
               <div className="h-80 relative">
-                <canvas ref={chartRef} width={800} height={400} className="w-full h-full" data-testid="ips-chart" />
+                <canvas
+                  ref={chartRef}
+                  width={800}
+                  height={400}
+                  className="w-full h-full"
+                  data-testid="ips-chart"
+                />
               </div>
             )}
           </div>

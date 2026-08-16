@@ -221,7 +221,6 @@ export function createStudentProfileRouter(): Router {
           const point = row.grade_point !== null ? Number(row.grade_point) : 0;
           const best = bestByCourse.get(row.course_code)!;
           const isBest = best.gradeId === Number(row.id);
-          const isRepeated = !isBest;
 
           if (isBest) {
             sem.sksDiambil += Number(row.credits);
@@ -229,8 +228,6 @@ export function createStudentProfileRouter(): Router {
           }
         }
 
-        let totalBobot = 0;
-        let totalSksLulusAll = 0;
         const semesters: Array<{
           semesterId: number;
           semesterCode: string;
@@ -256,8 +253,6 @@ export function createStudentProfileRouter(): Router {
           }
           sem.ips = sem.sksLulus > 0 ? Math.round((bobotSem / sem.sksLulus) * 100) / 100 : 0;
 
-          totalBobot += bobotSem;
-          totalSksLulusAll += sem.sksLulus;
           semesters.push(sem);
         }
 

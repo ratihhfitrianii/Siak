@@ -46,9 +46,7 @@ const AdminMasterPage = lazy(() =>
 const AnnouncementPage = lazy(() =>
   import('./pages/AnnouncementPage').then((m) => ({ default: m.AnnouncementPage })),
 );
-const ProfilePage = lazy(() =>
-  import('./pages/ProfilePage').then((m) => ({ default: m.default })),
-);
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then((m) => ({ default: m.default })));
 const WaitingRoomPage = lazy(() =>
   import('./pages/WaitingRoomPage').then((m) => ({ default: m.WaitingRoomPage })),
 );

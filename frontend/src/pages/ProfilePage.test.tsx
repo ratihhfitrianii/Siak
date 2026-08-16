@@ -56,7 +56,7 @@ const mockIPS = [
     semesterId: 1,
     semesterCode: '20211',
     semesterName: 'Ganjil 2021/2022',
-    ips: 3.50,
+    ips: 3.5,
     sksLulus: 18,
     sksDiambil: 20,
   },
@@ -107,12 +107,15 @@ describe('ProfilePage (Student Profile)', () => {
     mockedApi.apiRequest
       .mockResolvedValueOnce({ success: true, data: mockProfile })
       .mockResolvedValueOnce({ success: true, data: mockIPS })
-      .mockResolvedValueOnce({ success: true, data: { ...mockProfile, phone: '08987654321', personalEmail: 'baru@email.com' } });
+      .mockResolvedValueOnce({
+        success: true,
+        data: { ...mockProfile, phone: '08987654321', personalEmail: 'baru@email.com' },
+      });
 
     render(<ProfilePage />);
 
     await waitFor(() => expect(screen.getByLabelText(/No\. HP/i)).toBeInTheDocument());
-    
+
     const phoneInput = screen.getByLabelText(/No\. HP/i);
     const emailInput = screen.getByLabelText(/Email Pribadi/i);
 
@@ -122,7 +125,7 @@ describe('ProfilePage (Student Profile)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Simpan Perubahan/i }));
 
     await waitFor(() => {
-      const putCalls = mockedApi.apiRequest.mock.calls.filter(call => call[1]?.method === 'PUT');
+      const putCalls = mockedApi.apiRequest.mock.calls.filter((call) => call[1]?.method === 'PUT');
       expect(putCalls.length).toBeGreaterThan(0);
     });
   });
