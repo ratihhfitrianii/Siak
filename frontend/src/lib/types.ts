@@ -506,6 +506,7 @@ export interface CourseSelectionForReview {
   lecturerId: number;
   lecturerName: string;
   nidn: string;
+  nik: string;
   curriculumId: number;
   courseCode: string;
   courseName: string;

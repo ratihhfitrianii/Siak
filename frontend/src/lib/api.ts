@@ -42,6 +42,8 @@ import type {
   Announcement,
   AnnouncementsResponse,
   CreateAnnouncementInput,
+  CourseSelectionForReview,
+  CourseSelectionsForReviewResponse,
 } from './types';
 
 export class ApiError extends Error {
@@ -869,33 +871,31 @@ export async function getDosenAvailableClasses(): Promise<ClaimableClassResponse
 
 /* ==== #?? Admin Akademik: Persetujuan MK Dosen ==== */
 
-export interface CourseSelectionForReview {
-  id: number;
-  lecturerId: number;
-  lecturerName: string;
-  nidn: string;
-  curriculumId: number;
-  courseCode: string;
-  courseName: string;
-  credits: number;
-  semesterNumber: number;
-  isMandatory: boolean;
-  semesterCode: string;
-  semesterName: string;
-  prodiName: string;
-  status: 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak';
-  priority: number;
-  notes: string | null;
-  reviewedBy: string | null;
-  reviewedAt: string | null;
-  reviewedByName: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CourseSelectionsForReviewResponse {
-  items: CourseSelectionForReview[];
-  pagination: { page: number; limit: number; total: number };
+function normalizeCourseSelectionForReview(r: Record<string, unknown>): CourseSelectionForReview {
+  return {
+    id: Number(r.id),
+    lecturerId: Number(r.lecturer_id),
+    lecturerName: String(r.lecturer_name),
+    nidn: String(r.nidn),
+    nik: String(r.nik ?? ''),
+    curriculumId: Number(r.curriculum_id),
+    courseCode: String(r.course_code),
+    courseName: String(r.course_name),
+    credits: Number(r.credits),
+    semesterNumber: Number(r.semester_number),
+    isMandatory: Boolean(r.is_mandatory),
+    semesterCode: String(r.semester_code),
+    semesterName: String(r.semester_name),
+    prodiName: String(r.prodi_name),
+    status: String(r.status) as 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak',
+    priority: Number(r.priority),
+    notes: r.notes == null ? null : String(r.notes),
+    reviewedBy: r.reviewed_by == null ? null : String(r.reviewed_by),
+    reviewedAt: r.reviewed_at == null ? null : String(r.reviewed_at),
+    reviewedByName: r.reviewed_by_name == null ? null : String(r.reviewed_by_name),
+    createdAt: String(r.created_at),
+    updatedAt: String(r.updated_at),
+  };
 }
 
 export async function getCourseSelectionsForReview(params?: {
@@ -912,7 +912,11 @@ export async function getCourseSelectionsForReview(params?: {
   if (params?.page) qs.set('page', String(params.page));
   if (params?.limit) qs.set('limit', String(params.limit));
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
-  return apiRequest<CourseSelectionsForReviewResponse>(`/dosen/courses/all${suffix}`);
+  const res = await apiRequest<{ items: Record<string, unknown>[]; pagination: { page: number; limit: number; total: number } }>(`/dosen/courses/all${suffix}`);
+  return {
+    items: res.items.map(normalizeCourseSelectionForReview),
+    pagination: res.pagination,
+  };
 }
 
 export interface ReviewCourseSelectionInput {

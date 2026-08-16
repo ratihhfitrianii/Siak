@@ -302,7 +302,7 @@ export function AdminCourseReviewPage() {
                 <tbody>
                   {selections.map((s) => (
                     <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-3 px-4 font-mono text-slate-700">{s.nidn}</td>
+                      <td className="py-3 px-4 font-mono text-slate-700">{s.nik}</td>
                       <td className="py-3 px-4 font-medium text-slate-900">{s.lecturerName}</td>
                       <td className="py-3 px-4 text-slate-700">{s.prodiName}</td>
                       <td className="py-3 px-4">

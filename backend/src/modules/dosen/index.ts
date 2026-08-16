@@ -276,6 +276,7 @@ export function createDosenRouter(): Router {
             lcs.*,
             u.full_name as lecturer_name,
             l.nidn,
+            l.nik,
             c.code as course_code,
             c.name as course_name,
             c.credits,

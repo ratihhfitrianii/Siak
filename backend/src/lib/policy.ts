@@ -95,6 +95,7 @@ const ROLE_PERMISSIONS: Record<RoleCode, ReadonlySet<Permission>> = {
     'kurikulum.manage',
     'course.manage',
     'schedule.manage',
+    'lecturer.select_course',
   ]),
   admin_keuangan: new Set([
     'auth.profile',
