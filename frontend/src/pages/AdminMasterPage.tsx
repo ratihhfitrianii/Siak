@@ -29,6 +29,49 @@ import { FormAlert } from '../components/ErrorInline';
 
 type ModalTab = 'faculties' | 'prodis' | 'students' | 'lecturers' | null;
 
+const PAGE_SIZE = 10;
+
+function PaginationBar({
+  page,
+  total,
+  onPageChange,
+}: {
+  page: number;
+  total: number;
+  onPageChange: (p: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (total <= PAGE_SIZE) return null;
+  const from = (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, total);
+  return (
+    <div className="flex items-center justify-between pt-4">
+      <p className="text-sm text-slate-500">
+        Menampilkan {from}-{to} dari {total} data
+      </p>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1}
+          className="px-3 py-1 text-sm rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          ‹ Sebelumnya
+        </button>
+        <span className="text-sm text-slate-600">
+          Halaman {page} / {totalPages}
+        </span>
+        <button
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= totalPages}
+          className="px-3 py-1 text-sm rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Berikutnya ›
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** Halaman Master Data (Admin Sistem) — Fakultas, Prodi, Mahasiswa, Dosen. */
 export function AdminMasterPage() {
   const [activeTab, setActiveTab] = useState<'faculties' | 'prodis' | 'students' | 'lecturers'>(
@@ -38,6 +81,14 @@ export function AdminMasterPage() {
   const [prodis, setProdis] = useState<Prodi[]>([]);
   const [students, setStudents] = useState<MasterStudent[]>([]);
   const [lecturers, setLecturers] = useState<MasterLecturer[]>([]);
+  const [facultyPage, setFacultyPage] = useState(1);
+  const [prodiPage, setProdiPage] = useState(1);
+  const [studentPage, setStudentPage] = useState(1);
+  const [lecturerPage, setLecturerPage] = useState(1);
+  const [facultyTotal, setFacultyTotal] = useState(0);
+  const [prodiTotal, setProdiTotal] = useState(0);
+  const [studentTotal, setStudentTotal] = useState(0);
+  const [lecturerTotal, setLecturerTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -82,37 +133,45 @@ export function AdminMasterPage() {
   });
   const [editingLecturerId, setEditingLecturerId] = useState<number | null>(null);
 
-  const loadFaculties = useCallback(async () => {
+  const loadFaculties = useCallback(async (page = 1) => {
     try {
-      const data = await listFaculties();
-      setFaculties(data);
+      const data = await listFaculties({ page, limit: PAGE_SIZE });
+      setFaculties(data.items);
+      setFacultyTotal(data.pagination.total);
+      setFacultyPage(page);
     } catch {
       setError('Gagal memuat data fakultas');
     }
   }, []);
 
-  const loadProdis = useCallback(async () => {
+  const loadProdis = useCallback(async (page = 1) => {
     try {
-      const data = await listProdis();
-      setProdis(data);
+      const data = await listProdis({ page, limit: PAGE_SIZE });
+      setProdis(data.items);
+      setProdiTotal(data.pagination.total);
+      setProdiPage(page);
     } catch {
       setError('Gagal memuat data prodi');
     }
   }, []);
 
-  const loadStudents = useCallback(async () => {
+  const loadStudents = useCallback(async (page = 1) => {
     try {
-      const response = await listMasterStudents({ limit: 100 });
+      const response = await listMasterStudents({ page, limit: PAGE_SIZE });
       setStudents(response.items);
+      setStudentTotal(response.pagination.total);
+      setStudentPage(page);
     } catch {
       setError('Gagal memuat data mahasiswa');
     }
   }, []);
 
-  const loadLecturers = useCallback(async () => {
+  const loadLecturers = useCallback(async (page = 1) => {
     try {
-      const response = await listMasterLecturers({ limit: 100 });
+      const response = await listMasterLecturers({ page, limit: PAGE_SIZE });
       setLecturers(response.items);
+      setLecturerTotal(response.pagination.total);
+      setLecturerPage(page);
     } catch {
       setError('Gagal memuat data dosen');
     }
@@ -159,7 +218,7 @@ export function AdminMasterPage() {
       }
       setModalTab(null);
       setEditingFacultyId(null);
-      await loadFaculties();
+      await loadFaculties(facultyPage);
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
       setError(apiError.message ?? 'Gagal menyimpan fakultas');
@@ -175,7 +234,11 @@ export function AdminMasterPage() {
     try {
       await deleteFaculty(id);
       setSuccess('Fakultas dinonaktifkan');
-      await loadFaculties();
+      if (faculties.length === 1 && facultyPage > 1) {
+        await loadFaculties(facultyPage - 1);
+      } else {
+        await loadFaculties(facultyPage);
+      }
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
       setError(apiError.message ?? 'Gagal menonaktifkan fakultas');
@@ -234,7 +297,7 @@ export function AdminMasterPage() {
       });
       setEditingProdiId(null);
       setModalTab(null);
-      await loadProdis();
+      await loadProdis(prodiPage);
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
       setError(apiError.message ?? 'Gagal menyimpan prodi');
@@ -250,7 +313,11 @@ export function AdminMasterPage() {
     try {
       await deleteProdi(id);
       setSuccess('Prodi dinonaktifkan');
-      await loadProdis();
+      if (prodis.length === 1 && prodiPage > 1) {
+        await loadProdis(prodiPage - 1);
+      } else {
+        await loadProdis(prodiPage);
+      }
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
       setError(apiError.message ?? 'Gagal menonaktifkan prodi');
@@ -298,7 +365,7 @@ export function AdminMasterPage() {
       setStudentForm({ nim: '', fullName: '', prodiCode: '', angkatan: '', email: '' });
       setEditingStudentId(null);
       setModalTab(null);
-      await loadStudents();
+      await loadStudents(studentPage);
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
       setError(apiError.message ?? 'Gagal menyimpan mahasiswa');
@@ -346,7 +413,7 @@ export function AdminMasterPage() {
       setLecturerForm({ nidn: '', fullName: '', prodiCode: '', email: '' });
       setEditingLecturerId(null);
       setModalTab(null);
-      await loadLecturers();
+      await loadLecturers(lecturerPage);
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
       setError(apiError.message ?? 'Gagal menyimpan dosen');
@@ -513,6 +580,11 @@ export function AdminMasterPage() {
               </tbody>
             </table>
           </div>
+          <PaginationBar
+            page={facultyPage}
+            total={facultyTotal}
+            onPageChange={(p) => loadFaculties(p)}
+          />
         </div>
       )}
 
@@ -593,6 +665,7 @@ export function AdminMasterPage() {
               </tbody>
             </table>
           </div>
+          <PaginationBar page={prodiPage} total={prodiTotal} onPageChange={(p) => loadProdis(p)} />
         </div>
       )}
 
@@ -667,6 +740,11 @@ export function AdminMasterPage() {
               </tbody>
             </table>
           </div>
+          <PaginationBar
+            page={studentPage}
+            total={studentTotal}
+            onPageChange={(p) => loadStudents(p)}
+          />
         </div>
       )}
 
@@ -751,6 +829,11 @@ export function AdminMasterPage() {
               </tbody>
             </table>
           </div>
+          <PaginationBar
+            page={lecturerPage}
+            total={lecturerTotal}
+            onPageChange={(p) => loadLecturers(p)}
+          />
         </div>
       )}
 

@@ -308,16 +308,36 @@ describe('Modul Admin Master Data (#16)', () => {
       await pgPool.query(`DELETE FROM faculties WHERE code LIKE 'am${ts}%'`);
     });
 
-    it('GET → 200 dengan data fakultas (join prodi count)', async () => {
+    it('GET → 200 dengan data fakultas (pagination)', async () => {
       const res = await request(app)
         .get('/api/v1/admin-master/faculties')
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
       expect(res.body.success).toBe(true);
-      expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data.length).toBeGreaterThan(0);
-      expect(res.body.data[0]).toHaveProperty('code');
-      expect(res.body.data[0]).toHaveProperty('name');
+      expect(Array.isArray(res.body.data.items)).toBe(true);
+      expect(res.body.data.items.length).toBeGreaterThan(0);
+      expect(res.body.data.pagination).toHaveProperty('total');
+      expect(res.body.data.items[0]).toHaveProperty('code');
+      expect(res.body.data.items[0]).toHaveProperty('name');
+    });
+
+    it('GET ?limit=1 → hanya 1 item + total tetap', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin-master/faculties?limit=1&page=1')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(res.body.data.items).toHaveLength(1);
+      expect(res.body.data.pagination.limit).toBe(1);
+      expect(res.body.data.pagination.total).toBeGreaterThanOrEqual(1);
+    });
+
+    it('GET ?page=999 → items kosong', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin-master/faculties?page=999&limit=10')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(res.body.data.items).toHaveLength(0);
+      expect(res.body.data.pagination.page).toBe(999);
     });
 
     it('POST valid → 201', async () => {
@@ -450,15 +470,25 @@ describe('Modul Admin Master Data (#16)', () => {
       await pgPool.query(`DELETE FROM faculties WHERE code LIKE 'am${ts}%'`);
     });
 
-    it('GET → 200 dengan data prodi', async () => {
+    it('GET → 200 dengan data prodi (pagination)', async () => {
       const res = await request(app)
         .get('/api/v1/admin-master/prodis')
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
       expect(res.body.success).toBe(true);
-      expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data.length).toBeGreaterThan(0);
-      expect(res.body.data[0]).toHaveProperty('facultyCode');
+      expect(Array.isArray(res.body.data.items)).toBe(true);
+      expect(res.body.data.items.length).toBeGreaterThan(0);
+      expect(res.body.data.pagination).toHaveProperty('total');
+      expect(res.body.data.items[0]).toHaveProperty('facultyCode');
+    });
+
+    it('GET ?limit=1 → hanya 1 prodi + total tetap', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin-master/prodis?limit=1&page=1')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(res.body.data.items).toHaveLength(1);
+      expect(res.body.data.pagination.total).toBeGreaterThanOrEqual(1);
     });
 
     it('POST valid → 201', async () => {

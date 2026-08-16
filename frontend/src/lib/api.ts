@@ -1320,8 +1320,15 @@ export async function updateMasterLecturer(
 
 /* ==== #16 Admin Master Data — Fakultas & Prodi ==== */
 
-export async function listFaculties(): Promise<Faculty[]> {
-  return apiRequest<Faculty[]>('/admin-master/faculties');
+export async function listFaculties(params?: {
+  page?: number;
+  limit?: number;
+}): Promise<MasterListResponse<Faculty>> {
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.limit) qs.set('limit', String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return apiRequest<MasterListResponse<Faculty>>(`/admin-master/faculties${suffix}`);
 }
 
 export async function createFaculty(input: CreateFacultyInput): Promise<Faculty> {
@@ -1344,8 +1351,15 @@ export async function deleteFaculty(id: number): Promise<{ message: string }> {
   });
 }
 
-export async function listProdis(): Promise<Prodi[]> {
-  return apiRequest<Prodi[]>('/admin-master/prodis');
+export async function listProdis(params?: {
+  page?: number;
+  limit?: number;
+}): Promise<MasterListResponse<Prodi>> {
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.limit) qs.set('limit', String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return apiRequest<MasterListResponse<Prodi>>(`/admin-master/prodis${suffix}`);
 }
 
 export async function createProdi(input: CreateProdiInput): Promise<Prodi> {

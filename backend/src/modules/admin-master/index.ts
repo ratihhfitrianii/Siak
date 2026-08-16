@@ -46,6 +46,8 @@ const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+const pageQuerySchema = listQuerySchema.pick({ page: true, limit: true });
+
 export function createAdminMasterRouter(): Router {
   const router = Router();
 
@@ -589,19 +591,31 @@ export function createAdminMasterRouter(): Router {
     isActive: z.boolean().default(true),
   });
 
-  // GET /admin-master/faculties — list fakultas
+  // GET /admin-master/faculties — list fakultas (pagination)
   router.get(
     '/faculties',
     authenticate,
     authorize('user.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const result = await pgPool.query(
-          'SELECT id, code, name, is_active AS "isActive", created_at AS "createdAt", updated_at AS "updatedAt" FROM faculties ORDER BY code',
+        const q = pageQuerySchema.safeParse(req.query);
+        if (!q.success) {
+          throw new AppError('VALIDATION_ERROR', 'Parameter tidak valid', 400);
+        }
+        const { page, limit } = q.data;
+        const offset = (page - 1) * limit;
+
+        const countResult = await pgPool.query('SELECT count(*)::int AS total FROM faculties');
+        const listResult = await pgPool.query(
+          'SELECT id, code, name, is_active AS "isActive", created_at AS "createdAt", updated_at AS "updatedAt" FROM faculties ORDER BY code LIMIT $1 OFFSET $2',
+          [limit, offset],
         );
         res.json({
           success: true,
-          data: result.rows.map((r) => ({ ...r, id: Number(r.id) })),
+          data: {
+            items: listResult.rows.map((r) => ({ ...r, id: Number(r.id) })),
+            pagination: { page, limit, total: countResult.rows[0].total },
+          },
         });
       } catch (err) {
         next(err);
@@ -758,27 +772,40 @@ export function createAdminMasterRouter(): Router {
     isActive: z.boolean().default(true),
   });
 
-  // GET /admin-master/prodis — list prodi (dengan nama fakultas)
+  // GET /admin-master/prodis — list prodi (pagination)
   router.get(
     '/prodis',
     authenticate,
     authorize('user.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const result = await pgPool.query(
+        const q = pageQuerySchema.safeParse(req.query);
+        if (!q.success) {
+          throw new AppError('VALIDATION_ERROR', 'Parameter tidak valid', 400);
+        }
+        const { page, limit } = q.data;
+        const offset = (page - 1) * limit;
+
+        const countResult = await pgPool.query('SELECT count(*)::int AS total FROM prodis');
+        const listResult = await pgPool.query(
           `SELECT p.id, p.code, p.name, p.faculty_id, f.code AS "facultyCode", f.name AS "facultyName",
                   p.degree, p.accreditation, p.is_active AS "isActive", p.created_at AS "createdAt", p.updated_at AS "updatedAt"
            FROM prodis p
            JOIN faculties f ON f.id = p.faculty_id
-           ORDER BY f.code, p.code`,
+           ORDER BY f.code, p.code
+           LIMIT $1 OFFSET $2`,
+          [limit, offset],
         );
         res.json({
           success: true,
-          data: result.rows.map((r) => ({
-            ...r,
-            id: Number(r.id),
-            facultyId: Number(r.faculty_id),
-          })),
+          data: {
+            items: listResult.rows.map((r) => ({
+              ...r,
+              id: Number(r.id),
+              facultyId: Number(r.faculty_id),
+            })),
+            pagination: { page, limit, total: countResult.rows[0].total },
+          },
         });
       } catch (err) {
         next(err);
