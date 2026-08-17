@@ -136,7 +136,7 @@ export function createFinanceRouter(): Router {
     authorize('payment.update'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { search, status, prodi_id, page = '1', limit = '20' } = req.query;
+        const { search, prodi_id, page = '1', limit = '20' } = req.query;
         const p = Math.max(1, parseInt(page as string, 10));
         const l = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
         const offset = (p - 1) * l;

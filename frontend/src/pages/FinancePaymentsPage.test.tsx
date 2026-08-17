@@ -24,7 +24,7 @@ const MOCK_GROUPS = [
     nim: '2021001',
     fullName: 'Budi Santoso',
     prodiId: 1,
-    prodiName: 'Teknik Informatika',
+    prodiName: 'TI',
     totalSemesters: 2,
     totalPaid: 5000000,
     totalTagihan: 10000000,
@@ -35,7 +35,7 @@ const MOCK_GROUPS = [
     nim: '2021002',
     fullName: 'Ani Wijaya',
     prodiId: 1,
-    prodiName: 'Teknik Informatika',
+    prodiName: 'TI',
     totalSemesters: 2,
     totalPaid: 10000000,
     totalTagihan: 10000000,
@@ -43,20 +43,20 @@ const MOCK_GROUPS = [
   },
 ];
 
-const MOCK_PAYMENTS = [
+const MOCK_PAYMENTS: Payment[] = [
   {
     id: 1,
     studentId: 1,
     nim: '2021001',
     fullName: 'Budi Santoso',
     prodiId: 1,
-    prodiName: 'Teknik Informatika',
+    prodiName: 'TI',
     semesterId: 1,
     semesterCode: '20211',
     semesterName: 'Ganjil 2021/2022',
     totalAmount: 5000000,
     paidAmount: 5000000,
-    status: 'lunas' as const,
+    status: 'lunas',
     dueDate: '2021-09-01T00:00:00Z',
     isWaived: false,
     waivedReason: null,
@@ -71,13 +71,13 @@ const MOCK_PAYMENTS = [
     nim: '2021001',
     fullName: 'Budi Santoso',
     prodiId: 1,
-    prodiName: 'Teknik Informatika',
+    prodiName: 'TI',
     semesterId: 2,
     semesterCode: '20212',
     semesterName: 'Genap 2021/2022',
     totalAmount: 5000000,
     paidAmount: 0,
-    status: 'belum_lunas' as const,
+    status: 'belum_lunas',
     dueDate: '2022-02-01T00:00:00Z',
     isWaived: false,
     waivedReason: null,
@@ -91,6 +91,7 @@ const MOCK_PAYMENTS = [
 describe('FinancePaymentsPage (grouped)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(window, 'alert').mockImplementation(() => {});
     mockedApi.getFinancePaymentsGrouped.mockResolvedValue({
       items: MOCK_GROUPS,
       pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
@@ -114,45 +115,54 @@ describe('FinancePaymentsPage (grouped)', () => {
   });
 
   it('klik Detail → buka modal dengan daftar tagihan per semester', async () => {
-    mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS as Payment[]);
+    mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS);
     render(<FinancePaymentsPage />);
     await screen.findByText('2021001');
-
-    const detailBtns = screen.getAllByText('Detail');
-    fireEvent.click(detailBtns[0]);
-
+    fireEvent.click(screen.getAllByText('Detail')[0]);
     await waitFor(() => expect(mockedApi.getStudentPayments).toHaveBeenCalledWith(1));
     expect(await screen.findByText('Ganjil 2021/2022')).toBeInTheDocument();
     expect(screen.getByText('Genap 2021/2022')).toBeInTheDocument();
   });
 
   it('tombol Update muncul untuk tagihan belum lunas', async () => {
-    mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS as Payment[]);
+    mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS);
     render(<FinancePaymentsPage />);
     await screen.findByText('2021001');
-
-    const detailBtns = screen.getAllByText('Detail');
-    fireEvent.click(detailBtns[0]);
+    fireEvent.click(screen.getAllByText('Detail')[0]);
     await screen.findByText('Genap 2021/2022');
-
     expect(screen.getByText('✓ Lunas')).toBeInTheDocument();
-    const updateBtns = screen.getAllByText('Update');
-    expect(updateBtns.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Update').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('search filter memanggil API dengan parameter', async () => {
+  it('search filter memanggil API', async () => {
     render(<FinancePaymentsPage />);
     await screen.findByText('2021001');
-
     fireEvent.change(screen.getByPlaceholderText('Cari NIM/Nama...'), {
       target: { value: 'Budi' },
     });
-
     await waitFor(() => {
       expect(mockedApi.getFinancePaymentsGrouped).toHaveBeenCalledWith(
         expect.objectContaining({ search: 'Budi' }),
       );
     });
+  });
+
+  it('klik Detail → gagal memuat → alert', async () => {
+    mockedApi.getStudentPayments.mockRejectedValue(new Error('Network error'));
+    render(<FinancePaymentsPage />);
+    await screen.findByText('2021001');
+    fireEvent.click(screen.getAllByText('Detail')[0]);
+    await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Gagal memuat detail tagihan'));
+  });
+
+  it('Generate Tagihan → panggil API', async () => {
+    mockedApi.getFinanceSemesters.mockResolvedValue([{ id: 1, code: '20211', name: 'Ganjil' }]);
+    mockedApi.generateFinancePayments.mockResolvedValue(undefined);
+    render(<FinancePaymentsPage />);
+    await screen.findByText('2021001');
+    fireEvent.click(screen.getByText('Generate Tagihan'));
+    await waitFor(() => expect(mockedApi.generateFinancePayments).toHaveBeenCalled());
+    expect(window.alert).toHaveBeenCalledWith('Tagihan berhasil di-generate');
   });
 
   it('error → tampilkan pesan error', async () => {
@@ -168,5 +178,39 @@ describe('FinancePaymentsPage (grouped)', () => {
     });
     render(<FinancePaymentsPage />);
     expect(await screen.findByText('Tidak ada data tagihan')).toBeInTheDocument();
+  });
+
+  it('klik Update → buka modal → Simpan → refresh', async () => {
+    mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS);
+    mockedApi.updateFinancePayment.mockResolvedValue(undefined);
+    render(<FinancePaymentsPage />);
+    await screen.findByText('2021001');
+    fireEvent.click(screen.getAllByText('Detail')[0]);
+    await screen.findByText('Genap 2021/2022');
+    fireEvent.click(screen.getAllByText('Update')[0]);
+    await waitFor(() => expect(screen.getByText('Update Pembayaran')).toBeInTheDocument());
+
+    // Fill amount and click Simpan
+    const amountInput = screen.getByPlaceholderText('Masukkan jumlah');
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      'value',
+    )!.set!;
+    nativeSetter.call(amountInput, '3000000');
+    amountInput.dispatchEvent(new Event('input', { bubbles: true }));
+    amountInput.dispatchEvent(new Event('change', { bubbles: true }));
+    fireEvent.click(screen.getByText('Simpan'));
+
+    await waitFor(() => expect(mockedApi.updateFinancePayment).toHaveBeenCalled());
+  });
+
+  it('klik Tutup di detail modal → tutup', async () => {
+    mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS);
+    render(<FinancePaymentsPage />);
+    await screen.findByText('2021001');
+    fireEvent.click(screen.getAllByText('Detail')[0]);
+    await screen.findByText('Ganjil 2021/2022');
+    fireEvent.click(screen.getByText('Tutup'));
+    await waitFor(() => expect(screen.queryByText('Ganjil 2021/2022')).not.toBeInTheDocument());
   });
 });
