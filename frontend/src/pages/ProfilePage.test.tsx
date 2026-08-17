@@ -85,21 +85,15 @@ describe('ProfilePage (Student Profile)', () => {
   it('menampilkan loading state kemudian profil', async () => {
     render(<ProfilePage />);
 
-    await waitFor(() =>
-      expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
     expect(screen.getByText(/Profil Mahasiswa/i)).toBeInTheDocument();
   });
 
   it('menampilkan ringkasan IPK', async () => {
     render(<ProfilePage />);
 
-    await waitFor(() =>
-      expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument(),
-    );
-    await waitFor(() =>
-      expect(screen.getByText(/3\.63/i)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/3\.63/i)).toBeInTheDocument());
     expect(screen.getByText(/IP Kumulatif \(IPK\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Total SKS Lulus/i)).toBeInTheDocument();
     expect(screen.getByText(/Semester Aktif/i)).toBeInTheDocument();
@@ -117,12 +111,8 @@ describe('ProfilePage (Student Profile)', () => {
 
     render(<ProfilePage />);
 
-    await waitFor(() =>
-      expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument(),
-    );
-    await waitFor(() =>
-      expect(screen.getByLabelText(/No\. HP/i)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText(/No\. HP/i)).toBeInTheDocument());
 
     const phoneInput = screen.getByLabelText(/No\. HP/i);
     const emailInput = screen.getByLabelText(/Email Pribadi/i);
@@ -132,14 +122,10 @@ describe('ProfilePage (Student Profile)', () => {
       target: { value: 'baru@email.com' },
     });
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /Simpan Perubahan/i }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /Simpan Perubahan/i }));
 
     await waitFor(() => {
-      const putCalls = mockedApi.apiRequest.mock.calls.filter(
-        (call) => call[1]?.method === 'PUT',
-      );
+      const putCalls = mockedApi.apiRequest.mock.calls.filter((call) => call[1]?.method === 'PUT');
       expect(putCalls.length).toBeGreaterThan(0);
     });
   });
@@ -147,14 +133,8 @@ describe('ProfilePage (Student Profile)', () => {
   it('menampilkan grafik IP per semester', async () => {
     render(<ProfilePage />);
 
-    await waitFor(() =>
-      expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument(),
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByText(/Grafik IP per Semester/i),
-      ).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Grafik IP per Semester/i)).toBeInTheDocument());
     expect(screen.getByTestId('ips-chart')).toBeInTheDocument();
   });
 
@@ -165,11 +145,7 @@ describe('ProfilePage (Student Profile)', () => {
 
     render(<ProfilePage />);
 
-    await waitFor(() =>
-      expect(screen.getByText(/Gagal memuat profil/i)).toBeInTheDocument(),
-    );
-    await waitFor(() =>
-      expect(screen.getByText(/Network error/i)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText(/Gagal memuat profil/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Network error/i)).toBeInTheDocument());
   });
 });

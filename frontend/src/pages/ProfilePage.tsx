@@ -288,7 +288,10 @@ export default function ProfilePage() {
                 alt="Foto Profil"
                 className="w-32 h-32 rounded-full object-cover border-4 border-slate-200"
               />
-              <label htmlFor="photo-upload" className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
+              <label
+                htmlFor="photo-upload"
+                className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
