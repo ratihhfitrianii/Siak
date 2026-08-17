@@ -608,7 +608,30 @@ export async function getMyPayments(semester_id?: number): Promise<MyPayment[]> 
 
 /** GET /finance/krs-access — cek apakah mahasiswa bisa akses KRS (sudah lunas). */
 export async function getKrsAccess(semester_id: number): Promise<KrsAccessResult> {
-  return apiRequest<KrsAccessResult>(`/finance/krs-access?semester_id=${semester_id}`);
+  const raw = await apiRequest<{
+    can_access: boolean;
+    payment: {
+      status: string;
+      total_amount: number;
+      paid_amount: number;
+      due_date: string;
+    } | null;
+  }>(`/finance/krs-access?semester_id=${semester_id}`);
+  return {
+    canAccess: Boolean(raw.can_access),
+    payment: raw.payment
+      ? {
+          status: String(raw.payment.status) as KrsAccessResult['payment'] extends infer P
+            ? P extends { status: infer S }
+              ? S
+              : never
+            : never,
+          totalAmount: Number(raw.payment.total_amount),
+          paidAmount: Number(raw.payment.paid_amount),
+          dueDate: String(raw.payment.due_date),
+        }
+      : null,
+  };
 }
 
 /* ==== T2.4 — Transkrip PDF ==== */
