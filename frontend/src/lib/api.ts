@@ -590,15 +590,15 @@ export async function getFinancePaymentsGrouped(params?: {
   }>(`/finance/payments/grouped${qs ? `?${qs}` : ''}`);
   return {
     items: res.items.map((r) => ({
-      studentId: Number(r.student_id),
+      studentId: Number(r.studentId),
       nim: String(r.nim),
-      fullName: String(r.full_name),
-      prodiId: Number(r.prodi_id),
-      prodiName: String(r.prodi_name),
-      totalSemesters: Number(r.total_semesters),
-      totalPaid: Number(r.total_paid),
-      totalTagihan: Number(r.total_tagihan),
-      allLunas: Boolean(r.all_lunas),
+      fullName: String(r.fullName),
+      prodiId: Number(r.prodiId),
+      prodiName: String(r.prodiName),
+      totalSemesters: Number(r.totalSemesters),
+      totalPaid: Number(r.totalPaid),
+      totalTagihan: Number(r.totalTagihan),
+      allLunas: Boolean(r.allLunas),
     })),
     pagination: res.pagination,
   };

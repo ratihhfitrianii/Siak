@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { FinancePaymentsPage } from './FinancePaymentsPage';
 import * as api from '../lib/api';
+import type { Payment } from '../lib/types';
 
 vi.mock('../lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/api')>();
@@ -113,7 +114,7 @@ describe('FinancePaymentsPage (grouped)', () => {
   });
 
   it('klik Detail → buka modal dengan daftar tagihan per semester', async () => {
-    mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS as any);
+    mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS as Payment[]);
     render(<FinancePaymentsPage />);
     await screen.findByText('2021001');
 
@@ -126,7 +127,7 @@ describe('FinancePaymentsPage (grouped)', () => {
   });
 
   it('tombol Update muncul untuk tagihan belum lunas', async () => {
-    mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS as any);
+    mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS as Payment[]);
     render(<FinancePaymentsPage />);
     await screen.findByText('2021001');
 
