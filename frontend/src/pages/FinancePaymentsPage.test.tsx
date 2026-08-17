@@ -182,7 +182,12 @@ describe('FinancePaymentsPage (grouped)', () => {
 
   it('klik Update → buka modal → Simpan → refresh', async () => {
     mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS);
-    mockedApi.updateFinancePayment.mockResolvedValue({ id: 1, total_amount: 5000000, paid_amount: 3000000, status: 'partial' });
+    mockedApi.updateFinancePayment.mockResolvedValue({
+      id: 1,
+      total_amount: 5000000,
+      paid_amount: 3000000,
+      status: 'partial',
+    });
     render(<FinancePaymentsPage />);
     await screen.findByText('2021001');
     fireEvent.click(screen.getAllByText('Detail')[0]);
