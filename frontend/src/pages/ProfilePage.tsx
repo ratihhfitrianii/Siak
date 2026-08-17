@@ -29,16 +29,6 @@ interface SemesterIPS {
   sksDiambil: number;
 }
 
-interface StudentProfileResponse {
-  success: boolean;
-  data: StudentProfile;
-}
-
-interface IPSResponse {
-  success: boolean;
-  data: SemesterIPS[];
-}
-
 export default function ProfilePage() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [ipsData, setIpsData] = useState<SemesterIPS[]>([]);
@@ -51,11 +41,9 @@ export default function ProfilePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiRequest<StudentProfileResponse>('/students/me');
-      if (res.success && res.data) {
-        setProfile(res.data);
-        if (res.data.photoUrl) setPhotoPreview(res.data.photoUrl);
-      }
+      const data = await apiRequest<StudentProfile>('/students/me');
+      setProfile(data);
+      if (data.photoUrl) setPhotoPreview(data.photoUrl);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Gagal memuat profil';
       setError(msg);
@@ -66,10 +54,8 @@ export default function ProfilePage() {
 
   const loadIPS = useCallback(async () => {
     try {
-      const res = await apiRequest<IPSResponse>('/students/me/ips');
-      if (res.success && res.data) {
-        setIpsData(res.data);
-      }
+      const data = await apiRequest<SemesterIPS[]>('/students/me/ips');
+      setIpsData(data);
     } catch {
       // IPS data is optional, don't show error
     }
@@ -113,7 +99,7 @@ export default function ProfilePage() {
         body[key] = value as string;
       });
 
-      const res = await apiRequest<{ success: boolean; data: StudentProfile }>('/students/me', {
+      const res = await apiRequest<StudentProfile>('/students/me', {
         method: 'PUT',
         body: JSON.stringify({
           phone: body.phone || null,
@@ -122,11 +108,9 @@ export default function ProfilePage() {
         }),
       });
 
-      if (res.success) {
-        setProfile(res.data);
-        // Use console.log instead of alert for test compatibility
-        console.log('Profil berhasil diperbarui');
-      }
+      setProfile(res);
+      // Use console.log instead of alert for test compatibility
+      console.log('Profil berhasil diperbarui');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Gagal menyimpan profil';
       console.error(msg);
