@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiRequest } from '../lib/api';
 
 interface StudentProfile {
@@ -136,103 +136,6 @@ export default function ProfilePage() {
   };
 
   const ipk = calculateIPK();
-
-  const chartRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    if (!chartRef.current || ipsData.length === 0) return;
-    const canvas = chartRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const width = canvas.width;
-    const height = canvas.height;
-    const padding = 60;
-    const chartWidth = width - padding * 2;
-    const chartHeight = height - padding * 2;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
-
-    // Find max IPS for scaling
-    const maxIPS = Math.max(4, Math.max(...ipsData.map((s) => s.ips), 4));
-    const minIPS = Math.min(0, Math.min(...ipsData.map((s) => s.ips)));
-
-    // Draw grid lines
-    ctx.strokeStyle = '#e2e8f0';
-    ctx.lineWidth = 1;
-    const gridLines = 5;
-    for (let i = 0; i <= gridLines; i++) {
-      const y = padding + (chartHeight / gridLines) * i;
-      ctx.beginPath();
-      ctx.moveTo(padding, y);
-      ctx.lineTo(width - padding, y);
-      ctx.stroke();
-
-      // Y-axis labels
-      const value = maxIPS - (maxIPS / gridLines) * i;
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '11px system-ui';
-      ctx.textAlign = 'right';
-      ctx.fillText(value.toFixed(1), padding - 8, y + 4);
-    }
-
-    // Draw X-axis labels (semester names)
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '11px system-ui';
-    ctx.textAlign = 'center';
-    ipsData.forEach((sem, idx) => {
-      const x = padding + (chartWidth / (ipsData.length - 1 || 1)) * idx;
-      ctx.fillText(sem.semesterName, x, height - padding + 20);
-    });
-
-    // Draw line
-    ctx.strokeStyle = '#2563eb';
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ipsData.forEach((sem, idx) => {
-      const x = padding + (chartWidth / (ipsData.length - 1 || 1)) * idx;
-      const y = padding + chartHeight - ((sem.ips - minIPS) / (maxIPS - minIPS || 1)) * chartHeight;
-      if (idx === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-
-    // Draw points
-    ctx.fillStyle = '#2563eb';
-    ipsData.forEach((sem, idx) => {
-      const x = padding + (chartWidth / (ipsData.length - 1 || 1)) * idx;
-      const y = padding + chartHeight - ((sem.ips - minIPS) / (maxIPS - minIPS || 1)) * chartHeight;
-      ctx.beginPath();
-      ctx.arc(x, y, 6, 0, Math.PI * 2);
-      ctx.fill();
-      // White inner circle
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#2563eb';
-    });
-
-    // Draw IPK line
-    const ipkY = padding + chartHeight - ((ipk - minIPS) / (maxIPS - minIPS || 1)) * chartHeight;
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath();
-    ctx.moveTo(padding, ipkY);
-    ctx.lineTo(width - padding, ipkY);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // IPK label
-    ctx.fillStyle = '#f59e0b';
-    ctx.font = 'bold 12px system-ui';
-    ctx.textAlign = 'left';
-    ctx.fillText(`IPK: ${ipk.toFixed(2)}`, padding + 5, ipkY - 5);
-  }, [ipsData, ipk]);
 
   if (loading && !profile) {
     return (
@@ -503,14 +406,47 @@ export default function ProfilePage() {
                 <p className="text-sm mt-1">Data akan muncul setelah ada nilai yang lulus</p>
               </div>
             ) : (
-              <div className="h-80 relative">
-                <canvas
-                  ref={chartRef}
-                  width={800}
-                  height={400}
-                  className="w-full h-full"
-                  data-testid="ips-chart"
-                />
+              <div className="h-80 relative" data-testid="ips-chart">
+                <div className="flex items-end justify-around h-full pt-4 pb-8 px-4">
+                  {ipsData.map((sem, idx) => {
+                    const maxIPS = Math.max(4, ...ipsData.map((s) => s.ips));
+                    const barHeight = (sem.ips / maxIPS) * 100;
+                    const isAboveIPK = sem.ips >= ipk;
+                    return (
+                      <div
+                        key={idx}
+                        className="flex flex-col items-center gap-1 flex-1 max-w-[80px]"
+                      >
+                        <span className="text-xs font-medium text-slate-700">
+                          {sem.ips.toFixed(2)}
+                        </span>
+                        <div
+                          className={`w-full rounded-t-md transition-all ${isAboveIPK ? 'bg-primary-500' : 'bg-red-400'}`}
+                          style={{ height: `${barHeight}%`, minHeight: '4px' }}
+                        />
+                        <span className="text-[10px] text-slate-500 text-center leading-tight mt-1">
+                          {sem.semesterName}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* IPK reference line */}
+                {ipsData.length > 0 &&
+                  (() => {
+                    const maxIPS = Math.max(4, ...ipsData.map((s) => s.ips));
+                    const ipkPercent = (ipk / maxIPS) * 100;
+                    return (
+                      <div
+                        className="absolute left-4 right-4 border-t-2 border-dashed border-amber-400"
+                        style={{ bottom: `calc(${ipkPercent}% + 2rem)` }}
+                      >
+                        <span className="absolute right-0 -top-5 text-xs font-bold text-amber-500">
+                          IPK: {ipk.toFixed(2)}
+                        </span>
+                      </div>
+                    );
+                  })()}
               </div>
             )}
           </div>

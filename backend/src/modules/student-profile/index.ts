@@ -17,7 +17,7 @@ import { authenticate, authorize } from '../../lib/auth-middleware';
 const updateStudentProfileSchema = z.object({
   phone: z.string().max(20).optional().nullable(),
   personalEmail: z.string().email('Email pribadi tidak valid').optional().nullable(),
-  photoUrl: z.string().max(100000).optional().nullable(), // terima data URLs untuk upload
+  photoUrl: z.string().max(10000000).optional().nullable(), // terima data URLs untuk upload
 });
 
 export function createStudentProfileRouter(): Router {

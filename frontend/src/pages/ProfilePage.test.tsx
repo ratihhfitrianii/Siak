@@ -92,7 +92,7 @@ describe('ProfilePage (Student Profile)', () => {
     render(<ProfilePage />);
 
     await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText(/3\.63/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText(/3\.63/i).length).toBeGreaterThan(0));
     expect(screen.getByText(/IP Kumulatif \(IPK\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Total SKS Lulus/i)).toBeInTheDocument();
     expect(screen.getByText(/Semester Aktif/i)).toBeInTheDocument();

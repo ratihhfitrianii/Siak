@@ -59,7 +59,7 @@ export function createApp(healthDeps: HealthDependencies = {}, options: AppOptio
       credentials: true,
     }),
   );
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({ limit: '5mb' }));
   app.use(pinoHttp({ autoLogging: false }));
 
   // Prometheus metrics

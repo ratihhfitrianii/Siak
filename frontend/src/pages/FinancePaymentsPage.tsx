@@ -5,9 +5,16 @@ import {
   updateFinancePayment,
   generateFinancePayments,
   getFinanceSemesters,
+  listProdis,
   ApiError,
 } from '../lib/api';
-import type { Payment, PaymentStatus, SemesterOption, StudentPaymentGroup } from '../lib/types';
+import type {
+  Payment,
+  PaymentStatus,
+  SemesterOption,
+  StudentPaymentGroup,
+  Prodi,
+} from '../lib/types';
 
 /** Halaman Kelola Tagihan — Admin Keuangan
  * Tabel grouped by NIM, detail per-semester + update.
@@ -19,6 +26,7 @@ export function FinancePaymentsPage() {
   const [updating, setUpdating] = useState<Set<number>>(new Set());
   const [generating, setGenerating] = useState(false);
   const [semesters, setSemesters] = useState<SemesterOption[]>([]);
+  const [prodis, setProdis] = useState<Prodi[]>([]);
 
   const [filters, setFilters] = useState({
     search: '',
@@ -72,6 +80,11 @@ export function FinancePaymentsPage() {
     getFinanceSemesters()
       .then((list) => {
         if (!cancelled) setSemesters(list);
+      })
+      .catch(() => {});
+    listProdis()
+      .then((res) => {
+        if (!cancelled) setProdis(res.items);
       })
       .catch(() => {});
     return () => {
@@ -184,7 +197,11 @@ export function FinancePaymentsPage() {
             className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           >
             <option value="">Semua Prodi</option>
-            {[...new Set(semesters.map(() => 'prodi'))].length > 0 && []}
+            {prodis.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
           </select>
           <input
             type="text"
