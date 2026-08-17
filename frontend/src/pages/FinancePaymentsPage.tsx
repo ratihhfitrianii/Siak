@@ -24,6 +24,7 @@ export function FinancePaymentsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<Set<number>>(new Set());
+  const [payingAll, setPayingAll] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [semesters, setSemesters] = useState<SemesterOption[]>([]);
   const [prodis, setProdis] = useState<Prodi[]>([]);
@@ -149,6 +150,28 @@ export function FinancePaymentsPage() {
       alert(msg);
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function handlePayAll() {
+    if (!detailStudent) return;
+    setPayingAll(true);
+    try {
+      const unpaidPayments = detailPayments.filter((p) => p.status !== 'lunas');
+      for (const p of unpaidPayments) {
+        await updateFinancePayment(p.id, { paidAmount: p.totalAmount, proofUrl: null });
+      }
+      alert('Semua tagihan berhasil dilunasi');
+      // Refresh detail + list
+      const payments = await getStudentPayments(detailStudent.studentId);
+      setDetailPayments(payments);
+      await loadGroups();
+      setDetailStudent(null);
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'Gagal melunasi semua tagihan';
+      alert(msg);
+    } finally {
+      setPayingAll(false);
     }
   }
 
@@ -389,6 +412,18 @@ export function FinancePaymentsPage() {
                         </p>
                       </div>
                     </div>
+                    {detailStudent.totalTagihan > detailStudent.totalPaid && (
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={handlePayAll}
+                          disabled={payingAll}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
+                        >
+                          {payingAll ? 'Memproses...' : 'Bayar Semua'}
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Payments Table */}
