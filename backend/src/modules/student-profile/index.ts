@@ -240,7 +240,7 @@ export function createStudentProfileRouter(): Router {
           sksDiambil: number;
         }> = [];
 
-        for (const sem of semesterMap.values()) {
+        for (const sem of Array.from(semesterMap.values())) {
           let bobotSem = 0;
           // Need to get courses for this semester to calculate bobot
           // For simplicity, recalculate from rows
