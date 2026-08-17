@@ -50,6 +50,14 @@ const MENU_ITEMS: {
   description: string;
   roles?: string[];
 }[] = [
+  // Profil mahasiswa — di bawah Dashboard di sidebar
+  {
+    permissions: ['student.profile'],
+    label: 'Profil',
+    path: '/profil',
+    icon: 'user',
+    description: 'Lihat & edit profil mahasiswa',
+  },
   {
     permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
     label: 'KRS',
@@ -63,13 +71,6 @@ const MENU_ITEMS: {
     path: '/transkrip',
     icon: 'clipboard',
     description: 'Lihat transkrip nilai',
-  },
-  {
-    permissions: ['student.profile'],
-    label: 'Profil',
-    path: '/profil',
-    icon: 'user',
-    description: 'Lihat & edit profil mahasiswa',
   },
   {
     permissions: ['user.manage'],

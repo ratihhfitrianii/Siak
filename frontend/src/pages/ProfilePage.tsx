@@ -51,7 +51,7 @@ export default function ProfilePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiRequest<StudentProfileResponse>('/api/v1/students/me');
+      const res = await apiRequest<StudentProfileResponse>('/students/me');
       if (res.success && res.data) {
         setProfile(res.data);
         if (res.data.photoUrl) setPhotoPreview(res.data.photoUrl);
@@ -66,7 +66,7 @@ export default function ProfilePage() {
 
   const loadIPS = useCallback(async () => {
     try {
-      const res = await apiRequest<IPSResponse>('/api/v1/students/me/ips');
+      const res = await apiRequest<IPSResponse>('/students/me/ips');
       if (res.success && res.data) {
         setIpsData(res.data);
       }
@@ -113,17 +113,14 @@ export default function ProfilePage() {
         body[key] = value as string;
       });
 
-      const res = await apiRequest<{ success: boolean; data: StudentProfile }>(
-        '/api/v1/students/me',
-        {
-          method: 'PUT',
-          body: JSON.stringify({
-            phone: body.phone || null,
-            personalEmail: body.personalEmail || null,
-            photoUrl: photoPreview !== profile.photoUrl ? photoPreview : undefined,
-          }),
-        },
-      );
+      const res = await apiRequest<{ success: boolean; data: StudentProfile }>('/students/me', {
+        method: 'PUT',
+        body: JSON.stringify({
+          phone: body.phone || null,
+          personalEmail: body.personalEmail || null,
+          photoUrl: photoPreview !== profile.photoUrl ? photoPreview : undefined,
+        }),
+      });
 
       if (res.success) {
         setProfile(res.data);
