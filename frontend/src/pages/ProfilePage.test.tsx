@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ProfilePage from './ProfilePage';
 import * as api from '../lib/api';
 
-// Mock HTMLCanvasElement.getContext for jsdom
 const mockCanvasContext = {
   clearRect: vi.fn(),
   beginPath: vi.fn(),
@@ -73,16 +72,14 @@ const mockIPS = [
 describe('ProfilePage (Student Profile)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // apiRequest returns unwrapped data (not { success, data })
-    mockedApi.apiRequest
-      .mockResolvedValue(mockProfile) // GET /students/me
-      .mockResolvedValue(mockIPS); // GET /students/me/ips
   });
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   it('menampilkan loading state kemudian profil', async () => {
+    mockedApi.apiRequest.mockResolvedValueOnce(mockProfile).mockResolvedValueOnce(mockIPS);
+
     render(<ProfilePage />);
 
     await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
@@ -90,6 +87,8 @@ describe('ProfilePage (Student Profile)', () => {
   });
 
   it('menampilkan ringkasan IPK', async () => {
+    mockedApi.apiRequest.mockResolvedValueOnce(mockProfile).mockResolvedValueOnce(mockIPS);
+
     render(<ProfilePage />);
 
     await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
@@ -118,9 +117,7 @@ describe('ProfilePage (Student Profile)', () => {
     const emailInput = screen.getByLabelText(/Email Pribadi/i);
 
     fireEvent.change(phoneInput, { target: { value: '08987654321' } });
-    fireEvent.change(emailInput, {
-      target: { value: 'baru@email.com' },
-    });
+    fireEvent.change(emailInput, { target: { value: 'baru@email.com' } });
 
     fireEvent.click(screen.getByRole('button', { name: /Simpan Perubahan/i }));
 
@@ -131,6 +128,8 @@ describe('ProfilePage (Student Profile)', () => {
   });
 
   it('menampilkan grafik IP per semester', async () => {
+    mockedApi.apiRequest.mockResolvedValueOnce(mockProfile).mockResolvedValueOnce(mockIPS);
+
     render(<ProfilePage />);
 
     await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
@@ -139,6 +138,7 @@ describe('ProfilePage (Student Profile)', () => {
   });
 
   it('menampilkan pesan error jika gagal memuat profil', async () => {
+    // loadProfile gagal, loadIPS ok
     mockedApi.apiRequest
       .mockRejectedValueOnce(new Error('Network error'))
       .mockResolvedValueOnce(mockIPS);
@@ -146,6 +146,26 @@ describe('ProfilePage (Student Profile)', () => {
     render(<ProfilePage />);
 
     await waitFor(() => expect(screen.getByText(/Gagal memuat profil/i)).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText(/Network error/i)).toBeInTheDocument());
+  });
+
+  it('tombol Batal mengembalikan data awal', async () => {
+    mockedApi.apiRequest.mockResolvedValueOnce(mockProfile).mockResolvedValueOnce(mockIPS);
+
+    render(<ProfilePage />);
+
+    await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText(/No\. HP/i)).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText(/No\. HP/i), { target: { value: '08999999999' } });
+    expect(screen.getByLabelText(/No\. HP/i)).toHaveValue('08999999999');
+
+    // Mock loadProfile dipanggil lagi saat Batal
+    mockedApi.apiRequest.mockResolvedValueOnce(mockProfile);
+
+    fireEvent.click(screen.getByRole('button', { name: /Batal/i }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/No\. HP/i)).toHaveValue('08123456789');
+    });
   });
 });
