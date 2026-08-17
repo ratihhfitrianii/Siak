@@ -13,3 +13,5 @@ mhs.TI_20232024_1@siak.local				Mhs123!				Mahasiswa
 e2e.mahasiswa@siak.local					E2ePass123!			Mahasiswa E2E (payment lunas, KRS approved, 2 grades)
 20240001									Mhs1234!
 20240108									Mhs1234!
+
+test.mahasiswa@siak.local (TEST25001)		password123

@@ -157,12 +157,12 @@ function toSnake(p: MyPayment): Record<string, unknown> {
 
 const PAYMENTS_SNAKE = PAYMENTS.map(toSnake);
 
-describe('MyPaymentPage (T2.6)', () => {
+describe('MyPaymentPage (T2.6) - All semesters table', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('menampilkan tagihan mahasiswa + rincian items', async () => {
+  it('menampilkan semua tagihan dalam tabel (tanpa tab semester)', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
@@ -178,10 +178,14 @@ describe('MyPaymentPage (T2.6)', () => {
     render(<MyPaymentPage />);
 
     expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
-    // Tab semester
+    // Semua semester ditampilkan dalam satu tabel
     expect(screen.getByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
     expect(screen.getByText('Genap 2023/2024 (2023/2024-2)')).toBeInTheDocument();
-    expect(screen.getAllByText(/4\.000\.000/).length).toBeGreaterThan(0);
+    // Kolom Status ada - cek di tabel
+    expect(screen.getAllByText('Belum Lunas').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Lunas').length).toBeGreaterThan(0);
+    // Tidak ada tab semester (versi lama pakai nav button)
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
   it('menampilkan status belum lunas & indikator KRS diblokir', async () => {
@@ -213,28 +217,6 @@ describe('MyPaymentPage (T2.6)', () => {
 
     expect(await screen.findByText('Belum Lunas')).toBeInTheDocument();
     expect(screen.getByText(/KRS DIBLOKIR/)).toBeInTheDocument();
-  });
-
-  it('progress bar untuk status partial', async () => {
-    const partial = [
-      { ...PAYMENTS[0]!, status: 'partial' as const, paidAmount: 1000000 },
-      ...PAYMENTS.slice(1),
-    ];
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/krs/period')) {
-          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_OPEN }));
-        }
-        if (url.includes('/krs-access'))
-          return Promise.resolve(jsonResponse({ success: true, data: KRS_OK }));
-        return Promise.resolve(jsonResponse({ success: true, data: partial.map(toSnake) }));
-      }),
-    );
-    render(<MyPaymentPage />);
-
-    expect(await screen.findByText('Cicil')).toBeInTheDocument();
-    expect(screen.getByText(/Terbayar:/)).toBeInTheDocument();
   });
 
   it('tidak ada tagihan → empty state', async () => {

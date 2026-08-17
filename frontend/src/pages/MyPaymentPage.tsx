@@ -3,19 +3,14 @@ import { getMyPayments, getKrsAccess, getKrsPeriod, ApiError } from '../lib/api'
 import type { MyPayment, KrsAccessResult, KrsPeriod } from '../lib/types';
 
 /** Halaman Pembayaran Mahasiswa — T2.6
- * Menampilkan tagihan per semester (SPP, Gedung, Tes) + status + detail items.
+ * Menampilkan semua tagihan setiap semester + status + detail items.
  */
 export function MyPaymentPage() {
   const [payments, setPayments] = useState<MyPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeSemesterId, setActiveSemesterId] = useState<number | null>(null);
   const [krsAccess, setKrsAccess] = useState<KrsAccessResult | null>(null);
 
-  // Keluhan "menu pembayaran berkedip": periode KRS disimpan di ref, BUKAN state.
-  // loadPayments memakai krsPeriod (via closure) — jika state, tiap fetch mengubah
-  // referensi → loadPayments dibuat ulang → effect jalan lagi → loop fetch tak hingga
-  // → halaman flicker antara spinner dan konten. Ref tidak memicu re-render.
   const krsPeriodRef = useRef<KrsPeriod | null>(null);
 
   const checkKrsAccess = useCallback(async (semesterId: number) => {
@@ -49,10 +44,8 @@ export function MyPaymentPage() {
       await loadKrsPeriod();
 
       if (data.length > 0) {
-        const latest = data[0];
-        setActiveSemesterId(latest.semesterId);
         // Check KRS access for the active KRS period semester (if any), otherwise for latest payment semester
-        const krsSemesterId = krsPeriodRef.current?.semesterId ?? latest.semesterId;
+        const krsSemesterId = krsPeriodRef.current?.semesterId ?? data[0].semesterId;
         await checkKrsAccess(krsSemesterId);
       }
     } catch (e) {
@@ -75,14 +68,6 @@ export function MyPaymentPage() {
     }).format(n);
   }
 
-  function formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
-  }
-
   function getStatusBadge(status: MyPayment['status']) {
     const map: Record<string, { label: string; class: string }> = {
       lunas: { label: 'Lunas', class: 'bg-green-100 text-green-800' },
@@ -94,8 +79,6 @@ export function MyPaymentPage() {
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${m.class}`}>{m.label}</span>
     );
   }
-
-  const payment = activeSemesterId ? payments.find((p) => p.semesterId === activeSemesterId) : null;
 
   if (loading) {
     return (
@@ -118,175 +101,100 @@ export function MyPaymentPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Tagihan Saya</h1>
-        <p className="text-slate-600 mt-1">Lihat detail pembayaran per semester</p>
+        <p className="text-slate-600 mt-1">Lihat detail pembayaran semua semester</p>
       </div>
 
-      {/* Semester Tabs */}
-      {payments.length > 0 && (
-        <div className="border-b border-slate-200">
-          <nav className="-mb-px flex space-x-8" aria-label="Semester tabs">
-            {payments.map((p) => (
-              <button
-                type="button"
-                key={p.id}
-                onClick={() => setActiveSemesterId(p.semesterId)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeSemesterId === p.semesterId
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                {p.semesterName} ({p.semesterCode})
-              </button>
-            ))}
-          </nav>
+      {/* KRS Access Indicator */}
+      {krsAccess && (
+        <div
+          className={`p-3 rounded-lg border ${krsAccess.canAccess ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}
+        >
+          <div className="flex items-center gap-2">
+            <span className={krsAccess.canAccess ? 'text-green-600' : 'text-red-600'}>
+              {krsAccess.canAccess ? '✓' : '✕'}
+            </span>
+            <span className="font-medium text-slate-800">
+              {krsAccess.canAccess
+                ? 'Anda dapat mengisi KRS (pembayaran lunas)'
+                : 'KRS DIBLOKIR — Silakan lunasi tagihan terlebih dahulu'}
+            </span>
+          </div>
         </div>
       )}
 
-      {/* Payment Detail */}
-      {payment && (
-        <div className="space-y-6">
-          {/* Summary Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="md:col-span-2">
-                <h2 className="text-lg font-semibold text-slate-900">{payment.semesterName}</h2>
-                <p className="text-slate-500 text-sm mt-1">
-                  {payment.prodiName} · Jatuh tempo: {formatDate(payment.dueDate)}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-slate-500">Total Tagihan</p>
-                <p className="text-2xl font-bold text-slate-900">
-                  {formatRupiah(payment.totalAmount)}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-slate-500">Status</p>
-                <div className="mt-1">{getStatusBadge(payment.status)}</div>
-              </div>
-            </div>
-
-            {/* Progress bar untuk partial */}
-            {payment.status === 'partial' && payment.paidAmount > 0 && (
-              <div className="mt-4">
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-slate-500">
-                    Terbayar: {formatRupiah(payment.paidAmount)}
-                  </span>
-                  <span className="text-slate-500">
-                    Sisa: {formatRupiah(payment.totalAmount - payment.paidAmount)}
-                  </span>
-                </div>
-                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-yellow-500 transition-all duration-300"
-                    style={{ width: `${(payment.paidAmount / payment.totalAmount) * 100}%` }}
-                  />
-                </div>
-              </div>
-            )}
-            {/* Bukti Pembayaran — tampilkan jika status lunas */}
-            {payment.status === 'lunas' && payment.proofUrl && (
-              <div className="mt-4 p-3 rounded-lg bg-green-50 border border-green-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-green-600">✓</span>
-                  <span className="font-medium text-slate-800">Bukti Pembayaran</span>
-                </div>
-                <a
-                  href={payment.proofUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary-600 hover:underline text-sm"
-                >
-                  Lihat Bukti Pembayaran →
-                </a>
-              </div>
-            )}
-            {krsAccess && (
-              <div
-                className={`mt-4 p-3 rounded-lg ${krsAccess.canAccess ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'} border`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={krsAccess.canAccess ? 'text-green-600' : 'text-red-600'}>
-                    {krsAccess.canAccess ? '✓' : '✕'}
-                  </span>
-                  <span className="font-medium text-slate-800">
-                    {krsAccess.canAccess
-                      ? 'Anda dapat mengisi KRS (pembayaran lunas)'
-                      : 'KRS DIBLOKIR — Silakan lunasi tagihan terlebih dahulu'}
-                  </span>
-                </div>
-              </div>
-            )}
+      {/* All Payments Table */}
+      {payments.length > 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <h3 className="font-semibold text-slate-900">Semua Tagihan</h3>
           </div>
-
-          {/* Items Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200">
-              <h3 className="font-semibold text-slate-900">Rincian Tagihan</h3>
-            </div>
-            <table className="w-full">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Jenis
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Keterangan
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Jumlah
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Wajib
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {payment.items.map((item, idx) => (
-                  <tr key={item.id ?? idx} className="hover:bg-slate-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                      {item.type}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{item.description}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-900">
-                      {formatRupiah(item.amount)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500">
-                      {item.isMandatory ? '✓' : '—'}
-                    </td>
-                  </tr>
-                ))}
-                <tr className="bg-slate-50 font-semibold">
-                  <td colSpan={2} className="px-6 py-4 text-right text-sm text-slate-900">
-                    TOTAL
+          <table className="w-full">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Semester
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Total Tagihan
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Terbayar
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Bukti
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {payments.map((payment) => (
+                <tr key={payment.id} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                    {payment.semesterName} ({payment.semesterCode})
                   </td>
-                  <td className="px-6 py-4 text-right text-sm text-slate-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-900">
                     {formatRupiah(payment.totalAmount)}
                   </td>
-                  <td className="px-6 py-4 text-center"></td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-900">
+                    {formatRupiah(payment.paidAmount)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    {getStatusBadge(payment.status)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                    {payment.status === 'lunas' && payment.proofUrl ? (
+                      <a
+                        href={payment.proofUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary-600 hover:underline"
+                      >
+                        Lihat
+                      </a>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <button
+                      type="button"
+                      onClick={() => (window.location.href = `/pembayaran/${payment.semesterId}`)}
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-800 underline"
+                    >
+                      Detail
+                    </button>
+                  </td>
                 </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Info */}
-          <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
-            <h4 className="font-medium text-primary-800 mb-2">Informasi Pembayaran</h4>
-            <ul className="text-sm text-primary-700 space-y-1">
-              <li>• Pembayaran dilakukan manual di bagian keuangan kampus</li>
-              <li>• Simpan bukti pembayaran untuk verifikasi admin keuangan</li>
-              <li>• Status akan diperbarui maksimal 1×24 jam setelah verifikasi</li>
-              <li>
-                • KRS hanya bisa diisi setelah status <strong>Lunas</strong>
-              </li>
-            </ul>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
-
-      {payments.length === 0 && (
+      ) : (
         <div className="text-center py-12">
           <svg
             className="mx-auto h-12 w-12 text-slate-400"
@@ -307,6 +215,19 @@ export function MyPaymentPage() {
           </p>
         </div>
       )}
+
+      {/* Info */}
+      <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+        <h4 className="font-medium text-primary-800 mb-2">Informasi Pembayaran</h4>
+        <ul className="text-sm text-primary-700 space-y-1">
+          <li>• Pembayaran dilakukan manual di bagian keuangan kampus</li>
+          <li>• Simpan bukti pembayaran untuk verifikasi admin keuangan</li>
+          <li>• Status akan diperbarui maksimal 1×24 jam setelah verifikasi</li>
+          <li>
+            • KRS hanya bisa diisi setelah status <strong>Lunas</strong>
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }
