@@ -53,6 +53,7 @@ const MENU_ITEMS: {
   // Profil mahasiswa — di bawah Dashboard di sidebar
   {
     permissions: ['student.profile'],
+    roles: ['mahasiswa'],
     label: 'Profil',
     path: '/profil',
     icon: 'user',
