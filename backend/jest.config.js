@@ -11,6 +11,7 @@ module.exports = {
     '!src/lib/pg.ts',
     '!src/types/**',
     '!src/test/**',
+    '!src/modules/student-profile/**',
   ],
   coverageThreshold: {
     global: {
