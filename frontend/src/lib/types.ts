@@ -407,6 +407,18 @@ export interface KrsAccessResult {
   } | null;
 }
 
+export interface StudentPaymentGroup {
+  studentId: number;
+  nim: string;
+  fullName: string;
+  prodiId: number;
+  prodiName: string;
+  totalSemesters: number;
+  totalPaid: number;
+  totalTagihan: number;
+  allLunas: boolean;
+}
+
 export interface UpdatePaymentInput {
   paidAmount: number;
   proofUrl?: string | null;

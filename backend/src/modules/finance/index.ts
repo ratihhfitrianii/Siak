@@ -130,6 +130,130 @@ export function createFinanceRouter(): Router {
     },
   );
 
+  // ── GET /api/v1/finance/payments/grouped — Payments grouped by NIM ─────────────────
+  router.get(
+    '/payments/grouped',
+    authorize('payment.update'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { search, status, prodi_id, page = '1', limit = '20' } = req.query;
+        const p = Math.max(1, parseInt(page as string, 10));
+        const l = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
+        const offset = (p - 1) * l;
+
+        let where = 'WHERE 1=1';
+        const params: (string | number)[] = [];
+        let paramIdx = 1;
+
+        if (search) {
+          where += ` AND (s.nim ILIKE $${paramIdx} OR u.full_name ILIKE $${paramIdx})`;
+          params.push(`%${search}%`);
+          paramIdx++;
+        }
+        if (prodi_id) {
+          where += ` AND s.prodi_id = $${paramIdx++}`;
+          params.push(parseInt(prodi_id as string, 10));
+        }
+
+        // Count distinct students
+        const countSql = `
+          SELECT COUNT(DISTINCT s.id)
+          FROM payments p
+          JOIN students s ON s.id = p.student_id
+          JOIN users u ON u.id = s.user_id
+          ${where}
+        `;
+        const countRes = await pgPool.query(countSql, params);
+        const total = parseInt(countRes.rows[0].count, 10);
+
+        // Get grouped data using window function
+        const dataSql = `
+          SELECT DISTINCT ON (s.id)
+            s.id as student_id, s.nim, u.full_name,
+            s.prodi_id, pr.name as prodi_name,
+            COUNT(*) OVER (PARTITION BY s.id) as total_semesters,
+            SUM(p.paid_amount) OVER (PARTITION BY s.id) as total_paid,
+            SUM(p.total_amount) OVER (PARTITION BY s.id) as total_tagihan,
+            BOOL_AND(p.status = 'lunas') OVER (PARTITION BY s.id) as all_lunas
+          FROM payments p
+          JOIN students s ON s.id = p.student_id
+          JOIN users u ON u.id = s.user_id
+          JOIN prodis pr ON pr.id = s.prodi_id
+          ${where}
+          ORDER BY s.id, MIN(p.created_at) OVER (PARTITION BY s.id) DESC
+          LIMIT $${paramIdx++} OFFSET $${paramIdx}
+        `;
+        params.push(l, offset);
+
+        const dataRes = await pgPool.query(dataSql, params);
+
+        res.json({
+          success: true,
+          data: {
+            items: dataRes.rows.map((r) => ({
+              studentId: Number(r.student_id),
+              nim: r.nim,
+              fullName: r.full_name,
+              prodiId: Number(r.prodi_id),
+              prodiName: r.prodi_name,
+              totalSemesters: Number(r.total_semesters),
+              totalPaid: parseFloat(r.total_paid),
+              totalTagihan: parseFloat(r.total_tagihan),
+              allLunas: Boolean(r.all_lunas),
+            })),
+            pagination: { page: p, limit: l, total, totalPages: Math.ceil(total / l) },
+          },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // ── GET /api/v1/finance/payments/student/:studentId — All payments for a student ─────
+  router.get(
+    '/payments/student/:studentId',
+    authorize('payment.update'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const studentId = parseInt(req.params.studentId ?? '', 10);
+        if (isNaN(studentId)) throw new AppError('VALIDATION_ERROR', 'Invalid student ID', 400);
+
+        const sql = `
+          SELECT p.id, p.student_id, s.nim, u.full_name, s.prodi_id, pr.name as prodi_name,
+                 p.semester_id, sem.code as semester_code, sem.name as semester_name,
+                 p.total_amount, p.paid_amount, p.status, p.due_date, p.is_waived, p.proof_url,
+                 p.created_at, p.updated_at,
+                 json_agg(json_build_object(
+                   'id', pi.id, 'type', pi.type, 'description', pi.description, 'amount', pi.amount, 'is_mandatory', pi.is_mandatory
+                 )) FILTER (WHERE pi.id IS NOT NULL) as items
+          FROM payments p
+          JOIN students s ON s.id = p.student_id
+          JOIN users u ON u.id = s.user_id
+          JOIN prodis pr ON pr.id = s.prodi_id
+          JOIN semesters sem ON sem.id = p.semester_id
+          LEFT JOIN payment_items pi ON pi.payment_id = p.id
+          WHERE s.id = $1
+          GROUP BY p.id, s.nim, u.full_name, s.prodi_id, pr.name, sem.code, sem.name
+          ORDER BY sem.code DESC
+        `;
+        const result = await pgPool.query(sql, [studentId]);
+
+        res.json({
+          success: true,
+          data: result.rows.map((r) => ({
+            ...r,
+            total_amount: parseFloat(r.total_amount),
+            paid_amount: parseFloat(r.paid_amount),
+            items: r.items || [],
+          })),
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // ── GET /api/v1/finance/payments/:id — Payment detail ───────────────────────────────────
   router.get(
     '/payments/:id',

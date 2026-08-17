@@ -440,6 +440,7 @@ import type {
   KrsAccessResult,
   UpdatePaymentInput,
   SemesterOption,
+  StudentPaymentGroup,
 } from './types';
 
 /** GET /finance/payments — list tagihan (admin keuangan/sistem). */
@@ -565,6 +566,48 @@ export async function getAcademicCurricula(params?: {
       semester_id: number;
     }>;
   }>(`/curricula${qs ? `?${qs}` : ''}`);
+}
+
+/** GET /finance/payments/grouped — payments grouped by NIM (admin). */
+export async function getFinancePaymentsGrouped(params?: {
+  search?: string;
+  prodi_id?: number;
+  page?: number;
+  limit?: number;
+}): Promise<{
+  items: StudentPaymentGroup[];
+  pagination: PaymentsResponse['pagination'];
+}> {
+  const search = new URLSearchParams();
+  if (params?.search) search.set('search', params.search);
+  if (params?.prodi_id) search.set('prodi_id', String(params.prodi_id));
+  if (params?.page) search.set('page', String(params.page));
+  if (params?.limit) search.set('limit', String(params.limit));
+  const qs = search.toString();
+  const res = await apiRequest<{
+    items: Record<string, unknown>[];
+    pagination: PaymentsResponse['pagination'];
+  }>(`/finance/payments/grouped${qs ? `?${qs}` : ''}`);
+  return {
+    items: res.items.map((r) => ({
+      studentId: Number(r.student_id),
+      nim: String(r.nim),
+      fullName: String(r.full_name),
+      prodiId: Number(r.prodi_id),
+      prodiName: String(r.prodi_name),
+      totalSemesters: Number(r.total_semesters),
+      totalPaid: Number(r.total_paid),
+      totalTagihan: Number(r.total_tagihan),
+      allLunas: Boolean(r.all_lunas),
+    })),
+    pagination: res.pagination,
+  };
+}
+
+/** GET /finance/payments/student/:studentId — all payments for a student. */
+export async function getStudentPayments(studentId: number): Promise<Payment[]> {
+  const res = await apiRequest<Record<string, unknown>[]>(`/finance/payments/student/${studentId}`);
+  return res.map(normalizePayment);
 }
 
 /** GET /finance/my-payment — mahasiswa lihat tagihan sendiri. */
