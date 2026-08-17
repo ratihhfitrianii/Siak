@@ -334,7 +334,7 @@ export default function ProfilePage() {
               <div className="p-3 bg-slate-50 rounded-lg">
                 <div className="text-slate-500">Total SKS Lulus</div>
                 <div className="font-semibold text-slate-900">
-                  {ipsData.reduce((a, b) => a + b.sksLulus, 0)}
+                  {(Array.isArray(ipsData) ? ipsData : []).reduce((a, b) => a + b.sksLulus, 0)}
                 </div>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">

@@ -73,9 +73,10 @@ const mockIPS = [
 describe('ProfilePage (Student Profile)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // apiRequest returns unwrapped data (not { success, data })
     mockedApi.apiRequest
-      .mockResolvedValue({ success: true, data: mockProfile })
-      .mockResolvedValue({ success: true, data: mockIPS });
+      .mockResolvedValue(mockProfile) // GET /students/me
+      .mockResolvedValue(mockIPS); // GET /students/me/ips
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -84,17 +85,21 @@ describe('ProfilePage (Student Profile)', () => {
   it('menampilkan loading state kemudian profil', async () => {
     render(<ProfilePage />);
 
-    // Wait for loading to finish
-    await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
-    // Just verify the page renders without error
+    await waitFor(() =>
+      expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument(),
+    );
     expect(screen.getByText(/Profil Mahasiswa/i)).toBeInTheDocument();
   });
 
   it('menampilkan ringkasan IPK', async () => {
     render(<ProfilePage />);
 
-    await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText(/3\.63/i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/3\.63/i)).toBeInTheDocument(),
+    );
     expect(screen.getByText(/IP Kumulatif \(IPK\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Total SKS Lulus/i)).toBeInTheDocument();
     expect(screen.getByText(/Semester Aktif/i)).toBeInTheDocument();
@@ -102,28 +107,39 @@ describe('ProfilePage (Student Profile)', () => {
 
   it('form dapat mengedit No. HP dan Email Pribadi', async () => {
     mockedApi.apiRequest
-      .mockResolvedValueOnce({ success: true, data: mockProfile })
-      .mockResolvedValueOnce({ success: true, data: mockIPS })
+      .mockResolvedValueOnce(mockProfile)
+      .mockResolvedValueOnce(mockIPS)
       .mockResolvedValueOnce({
-        success: true,
-        data: { ...mockProfile, phone: '08987654321', personalEmail: 'baru@email.com' },
+        ...mockProfile,
+        phone: '08987654321',
+        personalEmail: 'baru@email.com',
       });
 
     render(<ProfilePage />);
 
-    await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
-    await waitFor(() => expect(screen.getByLabelText(/No\. HP/i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText(/No\. HP/i)).toBeInTheDocument(),
+    );
 
     const phoneInput = screen.getByLabelText(/No\. HP/i);
     const emailInput = screen.getByLabelText(/Email Pribadi/i);
 
     fireEvent.change(phoneInput, { target: { value: '08987654321' } });
-    fireEvent.change(emailInput, { target: { value: 'baru@email.com' } });
+    fireEvent.change(emailInput, {
+      target: { value: 'baru@email.com' },
+    });
 
-    fireEvent.click(screen.getByRole('button', { name: /Simpan Perubahan/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Simpan Perubahan/i }),
+    );
 
     await waitFor(() => {
-      const putCalls = mockedApi.apiRequest.mock.calls.filter((call) => call[1]?.method === 'PUT');
+      const putCalls = mockedApi.apiRequest.mock.calls.filter(
+        (call) => call[1]?.method === 'PUT',
+      );
       expect(putCalls.length).toBeGreaterThan(0);
     });
   });
@@ -131,20 +147,29 @@ describe('ProfilePage (Student Profile)', () => {
   it('menampilkan grafik IP per semester', async () => {
     render(<ProfilePage />);
 
-    await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText(/Grafik IP per Semester/i)).toBeInTheDocument());
-    // Canvas should exist
+    await waitFor(() =>
+      expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Grafik IP per Semester/i),
+      ).toBeInTheDocument(),
+    );
     expect(screen.getByTestId('ips-chart')).toBeInTheDocument();
   });
 
   it('menampilkan pesan error jika gagal memuat profil', async () => {
     mockedApi.apiRequest
       .mockRejectedValueOnce(new Error('Network error'))
-      .mockResolvedValueOnce({ success: true, data: mockIPS });
+      .mockResolvedValueOnce(mockIPS);
 
     render(<ProfilePage />);
 
-    await waitFor(() => expect(screen.getByText(/Gagal memuat profil/i)).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText(/Network error/i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/Gagal memuat profil/i)).toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/Network error/i)).toBeInTheDocument(),
+    );
   });
 });
