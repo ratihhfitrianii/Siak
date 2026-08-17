@@ -485,9 +485,16 @@ export async function updateFinancePayment(
   id: number,
   input: UpdatePaymentInput,
 ): Promise<{ id: number; total_amount: number; paid_amount: number; status: string }> {
+  // Kirim dalam snake_case karena backend expects paid_amount, proof_url
+  const body: Record<string, unknown> = {
+    paid_amount: input.paidAmount,
+  };
+  if (input.proofUrl !== undefined) {
+    body.proof_url = input.proofUrl;
+  }
   return apiRequest(`/finance/payments/${id}/update`, {
     method: 'POST',
-    body: input,
+    body,
   });
 }
 
@@ -578,6 +585,7 @@ function normalizePayment(r: Record<string, unknown>): MyPayment {
     dueDate: String(r.due_date),
     isWaived: Boolean(r.is_waived),
     waivedReason: r.waived_reason ? String(r.waived_reason) : null,
+    proofUrl: r.proof_url ? String(r.proof_url) : null,
     createdAt: String(r.created_at),
     updatedAt: String(r.updated_at),
     items: Array.isArray(r.items)

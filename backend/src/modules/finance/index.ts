@@ -184,7 +184,7 @@ export function createFinanceRouter(): Router {
         const paymentId = parseInt(req.params.id ?? '', 10);
         if (isNaN(paymentId)) throw new AppError('VALIDATION_ERROR', 'Invalid payment ID', 400);
 
-        const { paid_amount } = req.body;
+        const { paid_amount, proof_url } = req.body;
         if (paid_amount === undefined || paid_amount === null) {
           throw new AppError('VALIDATION_ERROR', 'paid_amount is required', 400);
         }
@@ -197,6 +197,14 @@ export function createFinanceRouter(): Router {
 
         // Call DB function
         await pgPool.query('SELECT update_payment_status($1, $2, $3)', [paymentId, paid, adminId]);
+
+        // Update proof_url if provided
+        if (proof_url !== undefined) {
+          await pgPool.query('UPDATE payments SET proof_url = $1 WHERE id = $2', [
+            proof_url || null,
+            paymentId,
+          ]);
+        }
 
         // Fetch updated
         const sql = `

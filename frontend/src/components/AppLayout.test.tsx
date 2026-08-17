@@ -317,7 +317,7 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
   });
 
-  it('keluhan #26 — header hanya ikon orang; klik → dropdown (nama, role, Edit Profil, Ganti Password, Keluar)', async () => {
+  it('keluhan #26 — header hanya ikon orang; klik → dropdown (nama, role, Ganti Password, Keluar)', async () => {
     const user = userEvent.setup();
     mockUser = MAHASISWA;
     renderLayout();
@@ -329,20 +329,18 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.getByRole('menu')).toBeInTheDocument();
     expect(screen.getByText('Budi')).toBeInTheDocument();
     expect(screen.getByText('Mahasiswa')).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Edit Profil' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Edit Profil' })).not.toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Ganti Password' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Keluar' })).toBeInTheDocument();
   });
 
-  it('keluhan #26 — dropdown avatar: Edit Profil → /profil', async () => {
+  it('keluhan #26 — dropdown avatar: tanpa menu Edit Profil', async () => {
     const user = userEvent.setup();
     mockUser = MAHASISWA;
     renderLayout();
 
     await user.click(screen.getByRole('button', { name: 'Menu pengguna' }));
-    await user.click(screen.getByRole('menuitem', { name: 'Edit Profil' }));
-
-    expect(await screen.findByText('HALAMAN_PROFIL')).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Edit Profil' })).not.toBeInTheDocument();
   });
 
   it('keluhan #26 — tanpa permission user.edit_contact (dosen) → Edit Profil tidak tampil', async () => {

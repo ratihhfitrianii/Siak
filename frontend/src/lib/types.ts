@@ -373,6 +373,7 @@ export interface Payment {
   dueDate: string;
   isWaived: boolean;
   waivedReason: string | null;
+  proofUrl: string | null;
   createdAt: string;
   updatedAt: string;
   items: PaymentItem[];
@@ -408,6 +409,7 @@ export interface KrsAccessResult {
 
 export interface UpdatePaymentInput {
   paidAmount: number;
+  proofUrl?: string | null;
 }
 
 /* ==== T2.5 — Notifikasi ==== */

@@ -1,0 +1,14 @@
+🔑 Akun untuk mengecek semua halaman (seed di DB Neon)
+Akun										Password			Peran
+admin@siak.local							Admin123! 			Admin Sistem (wajib ganti password saat login pertama)
+
+akademik@siak.local							Admin123!			Admin Akademik
+
+keuangan@siak.local							Admin123!			Admin Keuangan
+
+dosen.TI1@siak.local 						Dosen123!			Dosen (TI, SI, MNJ, AKT, HKM, KN)
+e2e.dosen@siak.local						E2ePass123!			Dosen E2E (kelas TI diampu)
+
+mhs.TI_20232024_1@siak.local				Mhs123!				Mahasiswa
+e2e.mahasiswa@siak.local					E2ePass123!			Mahasiswa E2E (payment lunas, KRS approved, 2 grades)
+20240001									Mhs1234!

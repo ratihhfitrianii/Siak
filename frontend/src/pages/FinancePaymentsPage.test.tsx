@@ -79,22 +79,34 @@ describe('FinancePaymentsPage (T2.6)', () => {
     ).toBeInTheDocument();
   });
 
-  it('update status bayar via prompt → POST + refresh', async () => {
+  it('update status bayar via modal → POST + refresh', async () => {
     const fetchCalls: string[] = [];
     const fetchSpy = vi.fn((url: string) => {
       fetchCalls.push(url);
       return fetchMock(url);
     });
     vi.stubGlobal('fetch', fetchSpy);
-    vi.stubGlobal(
-      'prompt',
-      vi.fn(() => '2000000'),
-    );
     vi.stubGlobal('alert', vi.fn());
     render(<FinancePaymentsPage />);
 
     const updateBtn = await screen.findByRole('button', { name: /Update/i });
     updateBtn.click();
+
+    // Modal terbuka — isi jumlah
+    await waitFor(() => expect(screen.getByText('Update Pembayaran')).toBeInTheDocument());
+    const amountInput = screen.getByPlaceholderText('Masukkan jumlah');
+    // Simulate user typing
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      'value',
+    )!.set!;
+    nativeInputValueSetter.call(amountInput, '2000000');
+    amountInput.dispatchEvent(new Event('input', { bubbles: true }));
+    amountInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // Click Simpan
+    const simpanBtn = screen.getByRole('button', { name: /Simpan/i });
+    simpanBtn.click();
 
     await waitFor(() => {
       expect(fetchCalls.some((u) => u.includes('/payments/1/update'))).toBe(true);
@@ -149,14 +161,25 @@ describe('FinancePaymentsPage (T2.6)', () => {
     vi.stubGlobal('fetch', vi.fn(fetchMock));
     const alertSpy = vi.fn();
     vi.stubGlobal('alert', alertSpy);
-    vi.stubGlobal(
-      'prompt',
-      vi.fn(() => 'abc'),
-    ); // bukan angka
     render(<FinancePaymentsPage />);
 
     const updateBtn = await screen.findByRole('button', { name: /Update/i });
     updateBtn.click();
+
+    // Modal terbuka — isi jumlah invalid
+    await waitFor(() => expect(screen.getByText('Update Pembayaran')).toBeInTheDocument());
+    const amountInput = screen.getByPlaceholderText('Masukkan jumlah');
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      'value',
+    )!.set!;
+    nativeInputValueSetter.call(amountInput, '-100');
+    amountInput.dispatchEvent(new Event('input', { bubbles: true }));
+    amountInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+    const simpanBtn = screen.getByRole('button', { name: /Simpan/i });
+    simpanBtn.click();
+
     expect(alertSpy).toHaveBeenCalledWith('Jumlah tidak valid');
   });
 

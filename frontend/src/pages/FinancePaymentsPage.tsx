@@ -17,6 +17,16 @@ export function FinancePaymentsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<Set<number>>(new Set());
+  const [updateModal, setUpdateModal] = useState<{
+    paymentId: number;
+    nim: string;
+    fullName: string;
+    currentPaid: number;
+    totalAmount: number;
+    existingProof: string | null;
+  } | null>(null);
+  const [updatePaidAmount, setUpdatePaidAmount] = useState('');
+  const [updateProofFile, setUpdateProofFile] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [semesters, setSemesters] = useState<SemesterOption[]>([]);
 
@@ -91,13 +101,17 @@ export function FinancePaymentsPage() {
     };
   }, []);
 
-  async function handleUpdateStatus(paymentId: number, paidAmount: number) {
+  async function handleUpdateStatus(
+    paymentId: number,
+    paidAmount: number,
+    proofUrl?: string | null,
+  ) {
     const newUpdating = new Set(updating);
     newUpdating.add(paymentId);
     setUpdating(newUpdating);
 
     try {
-      await updateFinancePayment(paymentId, { paidAmount });
+      await updateFinancePayment(paymentId, { paidAmount, proofUrl: proofUrl ?? null });
       // Refresh list
       await loadPayments();
     } catch (e) {
@@ -308,22 +322,16 @@ export function FinancePaymentsPage() {
                             alert('Tagihan sudah lunas');
                             return;
                           }
-                          const input = prompt(
-                            `Update pembayaran untuk ${payment.nim} - ${payment.fullName}\n` +
-                              `Total: ${formatRupiah(total)}\n` +
-                              `Sudah dibayar: ${formatRupiah(current)}\n` +
-                              `Sisa: ${formatRupiah(remaining)}\n\n` +
-                              `Masukkan jumlah yang sudah dibayar (0-${total}):`,
-                            String(current),
-                          );
-                          if (input !== null) {
-                            const val = parseFloat(input);
-                            if (!isNaN(val) && val >= 0 && val <= total) {
-                              handleUpdateStatus(payment.id, val);
-                            } else {
-                              alert('Jumlah tidak valid');
-                            }
-                          }
+                          setUpdateModal({
+                            paymentId: payment.id,
+                            nim: payment.nim,
+                            fullName: payment.fullName,
+                            currentPaid: current,
+                            totalAmount: total,
+                            existingProof: payment.proofUrl ?? null,
+                          });
+                          setUpdatePaidAmount(String(current));
+                          setUpdateProofFile(null);
                         }}
                         disabled={updating.has(payment.id) || payment.status === 'lunas'}
                         className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -470,6 +478,108 @@ export function FinancePaymentsPage() {
                   className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Payment Modal */}
+      {updateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Update Pembayaran</h3>
+            <div className="space-y-4">
+              <div className="bg-slate-50 rounded-lg p-4">
+                <div className="text-sm text-slate-600">
+                  {updateModal.nim} — {updateModal.fullName}
+                </div>
+                <div className="text-sm text-slate-600 mt-1">
+                  Total:{' '}
+                  <span className="font-medium">{formatRupiah(updateModal.totalAmount)}</span>
+                </div>
+                <div className="text-sm text-slate-600">
+                  Sudah dibayar:{' '}
+                  <span className="font-medium">{formatRupiah(updateModal.currentPaid)}</span>
+                </div>
+                <div className="text-sm text-slate-600">
+                  Sisa:{' '}
+                  <span className="font-medium">
+                    {formatRupiah(updateModal.totalAmount - updateModal.currentPaid)}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Jumlah yang dibayarkan (Rp)
+                </label>
+                <input
+                  type="number"
+                  value={updatePaidAmount}
+                  onChange={(e) => setUpdatePaidAmount(e.target.value)}
+                  min={0}
+                  max={updateModal.totalAmount}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Masukkan jumlah"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Bukti Pembayaran (opsional)
+                </label>
+                {updateModal.existingProof && !updateProofFile && (
+                  <div className="text-sm text-green-600 mb-2">
+                    ✓ Bukti sudah ada —{' '}
+                    <a
+                      href={updateModal.existingProof}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline"
+                    >
+                      Lihat
+                    </a>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => setUpdateProofFile(reader.result as string);
+                    reader.readAsDataURL(file);
+                  }}
+                  className="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setUpdateModal(null)}
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = parseFloat(updatePaidAmount);
+                    if (isNaN(val) || val < 0 || val > updateModal.totalAmount) {
+                      alert('Jumlah tidak valid');
+                      return;
+                    }
+                    handleUpdateStatus(updateModal.paymentId, val, updateProofFile);
+                    setUpdateModal(null);
+                  }}
+                  disabled={updating.has(updateModal.paymentId)}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                >
+                  {updating.has(updateModal.paymentId) ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>
             </div>
