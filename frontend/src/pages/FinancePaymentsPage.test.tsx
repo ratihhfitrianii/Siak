@@ -87,14 +87,6 @@ const MOCK_PAYMENTS = [
   },
 ];
 
-function jsonResponse(body: unknown, status = 200) {
-  return Promise.resolve({
-    ok: status >= 200 && status < 300,
-    status,
-    json: () => Promise.resolve(body),
-  } as Response);
-}
-
 describe('FinancePaymentsPage (grouped)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
