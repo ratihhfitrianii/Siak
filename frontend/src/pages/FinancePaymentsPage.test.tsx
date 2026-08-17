@@ -157,7 +157,7 @@ describe('FinancePaymentsPage (grouped)', () => {
 
   it('Generate Tagihan → panggil API', async () => {
     mockedApi.getFinanceSemesters.mockResolvedValue([{ id: 1, code: '20211', name: 'Ganjil' }]);
-    mockedApi.generateFinancePayments.mockResolvedValue(undefined);
+    mockedApi.generateFinancePayments.mockResolvedValue({ message: 'OK' });
     render(<FinancePaymentsPage />);
     await screen.findByText('2021001');
     fireEvent.click(screen.getByText('Generate Tagihan'));
@@ -182,7 +182,7 @@ describe('FinancePaymentsPage (grouped)', () => {
 
   it('klik Update → buka modal → Simpan → refresh', async () => {
     mockedApi.getStudentPayments.mockResolvedValue(MOCK_PAYMENTS);
-    mockedApi.updateFinancePayment.mockResolvedValue(undefined);
+    mockedApi.updateFinancePayment.mockResolvedValue({ id: 1, total_amount: 5000000, paid_amount: 3000000, status: 'partial' });
     render(<FinancePaymentsPage />);
     await screen.findByText('2021001');
     fireEvent.click(screen.getAllByText('Detail')[0]);
