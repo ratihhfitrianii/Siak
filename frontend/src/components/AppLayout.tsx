@@ -65,6 +65,13 @@ const MENU_ITEMS: {
     description: 'Lihat transkrip nilai',
   },
   {
+    permissions: ['student.profile'],
+    label: 'Profil',
+    path: '/profil',
+    icon: 'user',
+    description: 'Lihat & edit profil mahasiswa',
+  },
+  {
     permissions: ['user.manage'],
     label: 'User',
     path: '/users',
