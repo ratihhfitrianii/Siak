@@ -350,7 +350,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
       (!item.roles || item.roles.includes(user.role)) &&
       item.permissions.some((p) => user.menu.includes(p)),
   );
-  const canEditContact = user.menu.includes('user.edit_contact');
 
   async function handleLogout() {
     setMenuOpen(false);
@@ -600,16 +599,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       {ROLE_LABEL[user.role] ?? user.roleName}
                     </p>
                   </div>
-                  {canEditContact && (
-                    <NavLink
-                      to="/profil"
-                      role="menuitem"
-                      onClick={() => setMenuOpen(false)}
-                      className="block px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Edit Profil
-                    </NavLink>
-                  )}
                   <NavLink
                     to="/ganti-password"
                     role="menuitem"

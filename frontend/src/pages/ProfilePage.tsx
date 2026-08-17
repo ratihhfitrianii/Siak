@@ -288,7 +288,7 @@ export default function ProfilePage() {
                 alt="Foto Profil"
                 className="w-32 h-32 rounded-full object-cover border-4 border-slate-200"
               />
-              <label className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
+              <label htmlFor="photo-upload" className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -297,14 +297,14 @@ export default function ProfilePage() {
                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                   />
                 </svg>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="sr-only"
-                  id="photo-upload"
-                />
               </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="sr-only"
+                id="photo-upload"
+              />
             </div>
             <p className="text-sm text-slate-500 mb-4">Foto ini akan digunakan untuk Ijazah</p>
             <div className="space-y-2 text-left">
@@ -429,10 +429,11 @@ export default function ProfilePage() {
                       No. HP
                     </label>
                     <input
-                      type="tel"
+                      type="text"
                       id="phone"
                       name="phone"
                       value={profile.phone || ''}
+                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="08xxxxxxxxxx"
                     />
@@ -449,6 +450,7 @@ export default function ProfilePage() {
                       id="personalEmail"
                       name="personalEmail"
                       value={profile.personalEmail || ''}
+                      onChange={(e) => setProfile({ ...profile, personalEmail: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                       placeholder="nama@email.com"
                     />
