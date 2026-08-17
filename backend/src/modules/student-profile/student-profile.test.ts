@@ -14,9 +14,7 @@ const app = createApp({}, { waitingRoom: null });
 
 // Helper: login as student and get token
 async function loginStudent(email: string, password: string): Promise<string> {
-  const res = await request(app)
-    .post('/api/v1/auth/login')
-    .send({ identifier: email, password });
+  const res = await request(app).post('/api/v1/auth/login').send({ identifier: email, password });
   return res.body.data?.accessToken ?? '';
 }
 
@@ -55,8 +53,7 @@ describe('Student Profile Module', () => {
     });
 
     it('should return 401 without token', async () => {
-      const res = await request(app)
-        .get('/api/v1/students/me');
+      const res = await request(app).get('/api/v1/students/me');
 
       expect(res.status).toBe(401);
     });
@@ -88,9 +85,7 @@ describe('Student Profile Module', () => {
     });
 
     it('should return 401 without token', async () => {
-      const res = await request(app)
-        .put('/api/v1/students/me')
-        .send({ phone: '08123456789' });
+      const res = await request(app).put('/api/v1/students/me').send({ phone: '08123456789' });
 
       expect(res.status).toBe(401);
     });
@@ -110,8 +105,7 @@ describe('Student Profile Module', () => {
     });
 
     it('should return 401 without token', async () => {
-      const res = await request(app)
-        .get('/api/v1/students/me/ips');
+      const res = await request(app).get('/api/v1/students/me/ips');
 
       expect(res.status).toBe(401);
     });
