@@ -64,10 +64,6 @@ export function MyPaymentPage() {
   }, [checkKrsAccess, loadKrsPeriod]);
 
   useEffect(() => {
-    loadKrsPeriod();
-  }, [loadKrsPeriod]);
-
-  useEffect(() => {
     loadPayments();
   }, [loadPayments]);
 
@@ -133,10 +129,7 @@ export function MyPaymentPage() {
               <button
                 type="button"
                 key={p.id}
-                onClick={() => {
-                  setActiveSemesterId(p.semesterId);
-                  checkKrsAccess(p.semesterId);
-                }}
+                onClick={() => setActiveSemesterId(p.semesterId)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeSemesterId === p.semesterId
                     ? 'border-primary-500 text-primary-600'
