@@ -386,7 +386,7 @@ export default function ProfilePage() {
 
           {/* IP Chart */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h3 className="font-semibold text-slate-900 mb-4">Diagram Batang IP per Semester</h3>
+            <h3 className="font-semibold text-slate-900 mb-4">Indek Prestasi (IP)</h3>
             {ipsData.length === 0 ? (
               <div className="text-center py-12 text-slate-500">
                 <svg
@@ -407,17 +407,8 @@ export default function ProfilePage() {
               </div>
             ) : (
               (() => {
-                const ipsValues = ipsData.map((s) => s.ips).filter((v) => v > 0);
-                const dataMax = ipsValues.length > 0 ? Math.max(...ipsValues) : 4;
-                const dataMin = ipsValues.length > 0 ? Math.min(...ipsValues) : 0;
-                const yMax = Math.min(4.0, Math.ceil(dataMax * 10) / 10 + 0.1);
-                const yMin = Math.max(0, Math.floor(dataMin * 10) / 10 - 0.1);
-                const range = yMax - yMin || 1;
-                const yTicks = Array.from(
-                  { length: 5 },
-                  (_, i) => yMin + (range * i) / 4,
-                ).reverse();
-                const ipkPercent = ((ipk - yMin) / range) * 100;
+                const yTicks = [4, 3, 2, 1, 0];
+                const yMax = 4;
                 return (
                   <div className="relative" data-testid="ips-chart">
                     <div className="flex" style={{ height: '280px' }}>
@@ -430,90 +421,52 @@ export default function ProfilePage() {
                       {/* Chart area */}
                       <div className="flex-1 relative border-l border-b border-slate-200">
                         {/* Horizontal gridlines */}
-                        {yTicks.map((tick, i) => (
+                        {yTicks.map((tick) => (
                           <div
-                            key={`grid-${i}`}
+                            key={`grid-${tick}`}
                             className="absolute left-0 right-0 border-t border-slate-100"
-                            style={{ bottom: `${((tick - yMin) / range) * 100}%` }}
+                            style={{ bottom: `${(tick / yMax) * 100}%` }}
                           />
                         ))}
-                        {/* IPK reference line */}
-                        <div
-                          className="absolute left-0 right-0 border-t-2 border-dashed border-amber-400 z-10"
-                          style={{ bottom: `${ipkPercent}%` }}
-                        >
-                          <span className="absolute right-1 -top-5 text-[10px] font-bold text-amber-500 bg-white px-1.5 py-0.5 rounded shadow-sm border border-amber-200">
-                            IPK {ipk.toFixed(2)}
-                          </span>
-                        </div>
                         {/* Bars */}
-                        <div className="absolute inset-0 flex items-end justify-around px-3 pb-6">
+                        <div className="absolute inset-0 flex items-end justify-around px-4 pb-6">
                           {ipsData.map((sem, idx) => {
-                            const barPct = sem.ips > 0 ? ((sem.ips - yMin) / range) * 100 : 0;
+                            const barPct = (sem.ips / yMax) * 100;
                             return (
                               <div
                                 key={idx}
                                 className="flex flex-col items-center flex-1 max-w-[64px] mx-1"
                               >
-                                {/* Bar with value inside */}
                                 <div className="relative w-full flex justify-center">
                                   <div
-                                    className="w-11 rounded-t-lg transition-all"
+                                    className="w-12 rounded-t-lg transition-all"
                                     style={{
                                       height: `${barPct}%`,
                                       minHeight: sem.ips > 0 ? '24px' : '4px',
-                                      backgroundColor:
-                                        sem.ips === 0
-                                          ? '#e2e8f0'
-                                          : sem.ips >= ipk
-                                            ? '#3b82f6'
-                                            : '#60a5fa',
+                                      backgroundColor: sem.ips === 0 ? '#e2e8f0' : '#3b82f6',
                                     }}
                                   >
-                                    {/* Value inside bar */}
-                                    {sem.ips > 0 && barPct > 15 && (
-                                      <span className="absolute top-2 left-0 right-0 text-center text-[11px] font-bold text-white">
+                                    {sem.ips > 0 && (
+                                      <span className="absolute inset-x-0 top-2 text-center text-[11px] font-bold text-white">
                                         {sem.ips.toFixed(2)}
                                       </span>
                                     )}
                                   </div>
                                 </div>
-                                {/* Value above bar (for small bars) */}
-                                {sem.ips > 0 && barPct <= 15 && (
-                                  <span className="text-[10px] font-semibold text-slate-600 mt-1">
-                                    {sem.ips.toFixed(2)}
-                                  </span>
-                                )}
                               </div>
                             );
                           })}
                         </div>
                       </div>
                     </div>
-                    {/* X-axis labels */}
                     <div className="flex justify-around ml-10 mt-2">
                       {ipsData.map((sem, idx) => (
                         <div key={idx} className="flex-1 max-w-[64px] mx-1 text-center">
                           <span className="text-[10px] text-slate-500 leading-tight block">
-                            {sem.semesterCode.split('-')[0].replace('/', '\n')}
+                            {sem.semesterCode}
                           </span>
                         </div>
                       ))}
-                    </div>
-                    {/* Legend */}
-                    <div className="flex items-center justify-center gap-5 mt-4 text-xs text-slate-500">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded" style={{ backgroundColor: '#3b82f6' }} />≥
-                        IPK
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded" style={{ backgroundColor: '#60a5fa' }} />
-                        {'<'} IPK
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-4 border-t-2 border-dashed border-amber-400" />
-                        Garis IPK
-                      </span>
                     </div>
                   </div>
                 );
