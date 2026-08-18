@@ -407,38 +407,65 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="h-80 relative" data-testid="ips-chart">
-                <div className="flex items-end justify-around h-full pt-4 pb-8 px-4">
-                  {ipsData.map((sem, idx) => {
-                    const maxIPS = Math.max(4, ...ipsData.map((s) => s.ips));
-                    const barHeight = (sem.ips / maxIPS) * 100;
-                    const isAboveIPK = sem.ips >= ipk;
-                    return (
-                      <div
-                        key={idx}
-                        className="flex flex-col items-center gap-1 flex-1 max-w-[80px]"
-                      >
-                        <span className="text-xs font-medium text-slate-700">
-                          {sem.ips.toFixed(2)}
-                        </span>
-                        <div
-                          className={`w-full rounded-t-md transition-all ${isAboveIPK ? 'bg-primary-500' : 'bg-red-400'}`}
-                          style={{ height: `${barHeight}%`, minHeight: '4px' }}
-                        />
-                        <span className="text-[10px] text-slate-500 text-center leading-tight mt-1">
-                          {sem.semesterName}
-                        </span>
-                      </div>
+                {/* Y-axis labels */}
+                <div className="absolute left-0 top-4 bottom-8 flex flex-col justify-between text-[10px] text-slate-400 pr-2 w-8">
+                  {(() => {
+                    const ipsValues = ipsData.map((s) => s.ips).filter((v) => v > 0);
+                    if (ipsValues.length === 0) return null;
+                    const dataMax = Math.max(...ipsValues);
+                    const dataMin = Math.min(...ipsValues);
+                    const yMax = Math.min(4.0, Math.ceil(dataMax * 10) / 10 + 0.1);
+                    const yMin = Math.max(0, Math.floor(dataMin * 10) / 10 - 0.1);
+                    return [yMax, ((yMax + yMin) / 2).toFixed(1), yMin.toFixed(1)].map(
+                      (v, i) => <span key={i}>{v}</span>,
                     );
-                  })}
+                  })()}
+                </div>
+                <div className="flex items-end justify-around h-full pt-4 pb-8 px-4 ml-8">
+                  {(() => {
+                    const ipsValues = ipsData.map((s) => s.ips).filter((v) => v > 0);
+                    const dataMax = ipsValues.length > 0 ? Math.max(...ipsValues) : 4;
+                    const dataMin = ipsValues.length > 0 ? Math.min(...ipsValues) : 0;
+                    const yMax = Math.min(4.0, Math.ceil(dataMax * 10) / 10 + 0.1);
+                    const yMin = Math.max(0, Math.floor(dataMin * 10) / 10 - 0.1);
+                    const range = yMax - yMin || 1;
+                    return ipsData.map((sem, idx) => {
+                      const barHeight = sem.ips > 0 ? ((sem.ips - yMin) / range) * 100 : 0;
+                      const isAboveIPK = sem.ips >= ipk;
+                      return (
+                        <div
+                          key={idx}
+                          className="flex flex-col items-center gap-1 flex-1 max-w-[80px]"
+                        >
+                          <span className="text-xs font-medium text-slate-700">
+                            {sem.ips > 0 ? sem.ips.toFixed(2) : '-'}
+                          </span>
+                          <div
+                            className={`w-full rounded-t-md transition-all ${isAboveIPK ? 'bg-primary-500' : 'bg-red-400'}`}
+                            style={{ height: `${barHeight}%`, minHeight: sem.ips > 0 ? '4px' : '0px' }}
+                          />
+                          <span className="text-[10px] text-slate-500 text-center leading-tight mt-1">
+                            {sem.semesterName}
+                          </span>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
                 {/* IPK reference line */}
                 {ipsData.length > 0 &&
                   (() => {
-                    const maxIPS = Math.max(4, ...ipsData.map((s) => s.ips));
-                    const ipkPercent = (ipk / maxIPS) * 100;
+                    const ipsValues = ipsData.map((s) => s.ips).filter((v) => v > 0);
+                    if (ipsValues.length === 0) return null;
+                    const dataMax = Math.max(...ipsValues);
+                    const dataMin = Math.min(...ipsValues);
+                    const yMax = Math.min(4.0, Math.ceil(dataMax * 10) / 10 + 0.1);
+                    const yMin = Math.max(0, Math.floor(dataMin * 10) / 10 - 0.1);
+                    const range = yMax - yMin || 1;
+                    const ipkPercent = ((ipk - yMin) / range) * 100;
                     return (
                       <div
-                        className="absolute left-4 right-4 border-t-2 border-dashed border-amber-400"
+                        className="absolute left-8 right-4 border-t-2 border-dashed border-amber-400"
                         style={{ bottom: `calc(${ipkPercent}% + 2rem)` }}
                       >
                         <span className="absolute right-0 -top-5 text-xs font-bold text-amber-500">
