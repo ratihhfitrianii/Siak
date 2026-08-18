@@ -74,9 +74,7 @@ export function MyPaymentPage() {
       belum_lunas: { label: 'Belum Lunas', cls: 'bg-red-100 text-red-800' },
     };
     const m = map[status] || { label: status, cls: 'bg-slate-100 text-slate-800' };
-    return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${m.cls}`}>{m.label}</span>
-    );
+    return <span className={`px-2 py-1 text-xs font-medium rounded-full ${m.cls}`}>{m.label}</span>;
   }
 
   if (loading) {
@@ -195,11 +193,23 @@ export function MyPaymentPage() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <svg className="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <svg
+            className="mx-auto h-12 w-12 text-slate-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
           <h3 className="mt-2 text-lg font-medium text-slate-900">Belum ada tagihan</h3>
-          <p className="mt-1 text-slate-500">Tagihan akan muncul setelah admin generate untuk semester aktif.</p>
+          <p className="mt-1 text-slate-500">
+            Tagihan akan muncul setelah admin generate untuk semester aktif.
+          </p>
         </div>
       )}
 
@@ -210,7 +220,9 @@ export function MyPaymentPage() {
           <li>• Pembayaran dilakukan manual di bagian keuangan kampus</li>
           <li>• Simpan bukti pembayaran untuk verifikasi admin keuangan</li>
           <li>• Status akan diperbarui maksimal 1×24 jam setelah verifikasi</li>
-          <li>• KRS hanya bisa diisi setelah status <strong>Lunas</strong></li>
+          <li>
+            • KRS hanya bisa diisi setelah status <strong>Lunas</strong>
+          </li>
         </ul>
       </div>
 
@@ -229,9 +241,7 @@ export function MyPaymentPage() {
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Rincian Tagihan
-                </h3>
+                <h3 className="text-lg font-semibold text-slate-900">Rincian Tagihan</h3>
                 <p className="text-sm text-slate-500">{selectedPayment.semesterName}</p>
               </div>
               <button
@@ -249,11 +259,15 @@ export function MyPaymentPage() {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-sm text-slate-500">Total Tagihan</p>
-                  <p className="text-xl font-bold text-slate-900">{formatRupiah(selectedPayment.totalAmount)}</p>
+                  <p className="text-xl font-bold text-slate-900">
+                    {formatRupiah(selectedPayment.totalAmount)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-slate-500">Terbayar</p>
-                  <p className="text-xl font-bold text-green-600">{formatRupiah(selectedPayment.paidAmount)}</p>
+                  <p className="text-xl font-bold text-green-600">
+                    {formatRupiah(selectedPayment.paidAmount)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-slate-500">Status</p>
@@ -297,8 +311,12 @@ export function MyPaymentPage() {
                     </tr>
                   ))}
                   <tr className="bg-slate-50 font-semibold">
-                    <td colSpan={2} className="px-4 py-3 text-right text-sm text-slate-900">TOTAL</td>
-                    <td className="px-4 py-3 text-right text-sm text-slate-900">{formatRupiah(selectedPayment.totalAmount)}</td>
+                    <td colSpan={2} className="px-4 py-3 text-right text-sm text-slate-900">
+                      TOTAL
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-900">
+                      {formatRupiah(selectedPayment.totalAmount)}
+                    </td>
                     <td className="px-4 py-3 text-center"></td>
                   </tr>
                 </tbody>
@@ -308,13 +326,19 @@ export function MyPaymentPage() {
               {selectedPayment.status === 'partial' && selectedPayment.paidAmount > 0 && (
                 <div className="mt-4">
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-500">Terbayar: {formatRupiah(selectedPayment.paidAmount)}</span>
-                    <span className="text-slate-500">Sisa: {formatRupiah(selectedPayment.totalAmount - selectedPayment.paidAmount)}</span>
+                    <span className="text-slate-500">
+                      Terbayar: {formatRupiah(selectedPayment.paidAmount)}
+                    </span>
+                    <span className="text-slate-500">
+                      Sisa: {formatRupiah(selectedPayment.totalAmount - selectedPayment.paidAmount)}
+                    </span>
                   </div>
                   <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-yellow-500 transition-all duration-300"
-                      style={{ width: `${(selectedPayment.paidAmount / selectedPayment.totalAmount) * 100}%` }}
+                      style={{
+                        width: `${(selectedPayment.paidAmount / selectedPayment.totalAmount) * 100}%`,
+                      }}
                     />
                   </div>
                 </div>
