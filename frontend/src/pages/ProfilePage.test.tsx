@@ -133,7 +133,7 @@ describe('ProfilePage (Student Profile)', () => {
     render(<ProfilePage />);
 
     await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText(/Grafik IP per Semester/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Diagram Batang IP per Semester/i)).toBeInTheDocument());
     expect(screen.getByTestId('ips-chart')).toBeInTheDocument();
   });
 
