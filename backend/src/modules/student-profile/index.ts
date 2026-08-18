@@ -184,18 +184,7 @@ export function createStudentProfileRouter(): Router {
           semester_name: string;
         }>;
 
-        // Nilai terbaik per course_code (untuk handling matkul diulang)
-        const bestByCourse = new Map<string, { gradeId: number; point: number }>();
-
-        for (const row of rowsWithCourse) {
-          const point = row.grade_point !== null ? Number(row.grade_point) : 0;
-          const existing = bestByCourse.get(row.course_code);
-          if (!existing || point > existing.point) {
-            bestByCourse.set(row.course_code, { gradeId: Number(row.id), point });
-          }
-        }
-
-        // Group by semester
+        // Group by semester — hitung IPS per semester secara independen
         const semesterMap = new Map<
           number,
           {
@@ -205,6 +194,7 @@ export function createStudentProfileRouter(): Router {
             ips: number;
             sksLulus: number;
             sksDiambil: number;
+            courses: Array<{ id: number; code: string; credits: number; point: number }>;
           }
         >();
 
@@ -218,17 +208,17 @@ export function createStudentProfileRouter(): Router {
               ips: 0,
               sksLulus: 0,
               sksDiambil: 0,
+              courses: [],
             });
           }
           const sem = semesterMap.get(semId)!;
           const point = row.grade_point !== null ? Number(row.grade_point) : 0;
-          const best = bestByCourse.get(row.course_code)!;
-          const isBest = best.gradeId === Number(row.id);
-
-          if (isBest) {
-            sem.sksDiambil += Number(row.credits);
-            if (point > 0) sem.sksLulus += Number(row.credits);
-          }
+          sem.courses.push({
+            id: Number(row.id),
+            code: row.course_code,
+            credits: Number(row.credits),
+            point,
+          });
         }
 
         const semesters: Array<{
@@ -241,20 +231,28 @@ export function createStudentProfileRouter(): Router {
         }> = [];
 
         for (const sem of Array.from(semesterMap.values())) {
-          let bobotSem = 0;
-          // Need to get courses for this semester to calculate bobot
-          // For simplicity, recalculate from rows
-          for (const row of rowsWithCourse) {
-            if (Number(row.semester_id) === sem.semesterId) {
-              const point = row.grade_point !== null ? Number(row.grade_point) : 0;
-              const best = bestByCourse.get(row.course_code)!;
-              const isBest = best.gradeId === Number(row.id);
-              if (isBest && point > 0) {
-                bobotSem += point * Number(row.credits);
-              }
+          // Dedup per-semester: nilai terbaik per course_code dalam semester ini saja
+          const bestInSem = new Map<string, { id: number; point: number; credits: number }>();
+          for (const c of sem.courses) {
+            const existing = bestInSem.get(c.code);
+            if (!existing || c.point > existing.point) {
+              bestInSem.set(c.code, { id: c.id, point: c.point, credits: c.credits });
             }
           }
-          sem.ips = sem.sksLulus > 0 ? Math.round((bobotSem / sem.sksLulus) * 100) / 100 : 0;
+
+          let bobotSem = 0;
+          let sksLulus = 0;
+          let sksDiambil = 0;
+          for (const best of bestInSem.values()) {
+            sksDiambil += best.credits;
+            if (best.point > 0) {
+              sksLulus += best.credits;
+              bobotSem += best.point * best.credits;
+            }
+          }
+          sem.ips = sksLulus > 0 ? Math.round((bobotSem / sksLulus) * 100) / 100 : 0;
+          sem.sksLulus = sksLulus;
+          sem.sksDiambil = sksDiambil;
 
           semesters.push(sem);
         }
