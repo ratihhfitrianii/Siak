@@ -1,9 +1,8 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MyPaymentPage } from './MyPaymentPage';
 import type { MyPayment, KrsAccessResult } from '../lib/types';
 
-// Mock auth — MyPaymentPage tidak pakai useAuth, tapi di-render di ProtectedRoute
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({ user: null, booting: false, logout: vi.fn() }),
 }));
@@ -37,27 +36,9 @@ const PAYMENTS: MyPayment[] = [
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     items: [
-      {
-        id: 1,
-        type: 'spp',
-        description: 'SPP Ganjil 2024/2025',
-        amount: 2750000,
-        isMandatory: true,
-      },
-      {
-        id: 2,
-        type: 'biaya_dev',
-        description: 'Biaya Pengembangan',
-        amount: 500000,
-        isMandatory: true,
-      },
-      {
-        id: 3,
-        type: 'biaya_orientasi',
-        description: 'Biaya Orientasi',
-        amount: 750000,
-        isMandatory: false,
-      },
+      { id: 1, type: 'spp', description: 'SPP Ganjil 2024/2025', amount: 2750000, isMandatory: true },
+      { id: 2, type: 'biaya_dev', description: 'Biaya Pengembangan', amount: 500000, isMandatory: true },
+      { id: 3, type: 'biaya_orientasi', description: 'Biaya Orientasi', amount: 750000, isMandatory: false },
     ],
   },
   {
@@ -76,24 +57,37 @@ const PAYMENTS: MyPayment[] = [
     dueDate: '2025-08-01T00:00:00Z',
     isWaived: false,
     waivedReason: null,
-    proofUrl: null,
+    proofUrl: 'https://example.com/bukti.pdf',
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-10T00:00:00Z',
     items: [
-      {
-        id: 4,
-        type: 'spp',
-        description: 'SPP Genap 2023/2024',
-        amount: 2500000,
-        isMandatory: true,
-      },
-      {
-        id: 5,
-        type: 'biaya_dev',
-        description: 'Biaya Pengembangan',
-        amount: 500000,
-        isMandatory: true,
-      },
+      { id: 4, type: 'spp', description: 'SPP Genap 2023/2024', amount: 2500000, isMandatory: true },
+      { id: 5, type: 'biaya_dev', description: 'Biaya Pengembangan', amount: 500000, isMandatory: true },
+    ],
+  },
+  {
+    id: 3,
+    studentId: 7,
+    nim: '20240001',
+    fullName: 'Budi',
+    prodiId: 1,
+    prodiName: 'Teknik Informatika',
+    semesterId: 4,
+    semesterCode: '2024/2025-2',
+    semesterName: 'Genap 2024/2025',
+    totalAmount: 3500000,
+    paidAmount: 1500000,
+    status: 'partial',
+    dueDate: '2026-08-01T00:00:00Z',
+    isWaived: false,
+    waivedReason: null,
+    proofUrl: null,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    items: [
+      { id: 6, type: 'spp', description: 'SPP Genap 2024/2025', amount: 2500000, isMandatory: true },
+      { id: 7, type: 'biaya_dev', description: 'Biaya Pengembangan', amount: 500000, isMandatory: true },
+      { id: 8, type: 'asuransi', description: 'Asuransi Kesehatan', amount: 500000, isMandatory: false },
     ],
   },
 ];
@@ -109,23 +103,13 @@ const KRS_PERIOD_OPEN = {
   status: 'open',
 };
 
-const KRS_PERIOD_CLOSED = {
-  ...KRS_PERIOD_OPEN,
-  status: 'closed',
-};
+const KRS_PERIOD_CLOSED = { ...KRS_PERIOD_OPEN, status: 'closed' };
 
 const KRS_OK: KrsAccessResult = {
   canAccess: true,
-  payment: {
-    status: 'lunas',
-    totalAmount: 3000000,
-    paidAmount: 3000000,
-    dueDate: '2025-08-01T00:00:00Z',
-  },
+  payment: { status: 'lunas', totalAmount: 3000000, paidAmount: 3000000, dueDate: '2025-08-01T00:00:00Z' },
 };
 
-/** Konversi fixture camelCase → snake_case: mock fetch harus mencerminkan kontrak backend nyata
- *  (normalisasi snake→camel dilakukan getMyPayments di api.ts). */
 function toSnake(p: MyPayment): Record<string, unknown> {
   return {
     id: p.id,
@@ -145,6 +129,7 @@ function toSnake(p: MyPayment): Record<string, unknown> {
     waived_reason: p.waivedReason,
     created_at: p.createdAt,
     updated_at: p.updatedAt,
+    proof_url: p.proofUrl,
     items: p.items.map((it) => ({
       id: it.id,
       type: it.type,
@@ -157,62 +142,46 @@ function toSnake(p: MyPayment): Record<string, unknown> {
 
 const PAYMENTS_SNAKE = PAYMENTS.map(toSnake);
 
+function mockFetch(
+  payments: Record<string, unknown>[] = PAYMENTS_SNAKE,
+  krsResult: KrsAccessResult = KRS_OK,
+) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/krs/period')) {
+        return Promise.resolve(jsonResponse({ data: KRS_PERIOD_OPEN }));
+      }
+      if (url.includes('/krs-access')) {
+        return Promise.resolve(jsonResponse({ success: true, data: krsResult }));
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: payments }));
+    }),
+  );
+}
+
 describe('MyPaymentPage (T2.6) - All semesters table', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('menampilkan semua tagihan dalam tabel (tanpa tab semester)', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/krs/period')) {
-          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_OPEN }));
-        }
-        if (url.includes('/krs-access')) {
-          return Promise.resolve(jsonResponse({ success: true, data: KRS_OK }));
-        }
-        return Promise.resolve(jsonResponse({ success: true, data: PAYMENTS_SNAKE }));
-      }),
-    );
+  it('menampilkan semua tagihan dalam tabel', async () => {
+    mockFetch();
     render(<MyPaymentPage />);
 
     expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
-    // Semua semester ditampilkan dalam satu tabel
     expect(screen.getByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
     expect(screen.getByText('Genap 2023/2024 (2023/2024-2)')).toBeInTheDocument();
-    // Kolom Status ada - cek di tabel
     expect(screen.getAllByText('Belum Lunas').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Lunas').length).toBeGreaterThan(0);
-    // Tidak ada tab semester (versi lama pakai nav button)
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
   it('menampilkan status belum lunas & indikator KRS diblokir', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/krs/period')) {
-          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_OPEN }));
-        }
-        if (url.includes('/krs-access'))
-          return Promise.resolve(
-            jsonResponse({
-              success: true,
-              data: {
-                canAccess: false,
-                payment: {
-                  status: 'belum_lunas',
-                  totalAmount: 4000000,
-                  paidAmount: 0,
-                  dueDate: '2026-02-15T00:00:00Z',
-                },
-              },
-            }),
-          );
-        return Promise.resolve(jsonResponse({ success: true, data: PAYMENTS_SNAKE }));
-      }),
-    );
+    mockFetch(PAYMENTS_SNAKE, {
+      canAccess: false,
+      payment: { status: 'belum_lunas', totalAmount: 4000000, paidAmount: 0, dueDate: '2026-02-15T00:00:00Z' },
+    });
     render(<MyPaymentPage />);
 
     expect(await screen.findByText('Belum Lunas')).toBeInTheDocument();
@@ -223,14 +192,11 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/krs/period')) {
-          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_CLOSED }));
-        }
+        if (url.includes('/krs/period')) return Promise.resolve(jsonResponse({ data: KRS_PERIOD_CLOSED }));
         return Promise.resolve(jsonResponse({ success: true, data: [] }));
       }),
     );
     render(<MyPaymentPage />);
-
     expect(await screen.findByText('Belum ada tagihan')).toBeInTheDocument();
   });
 
@@ -238,43 +204,119 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/krs/period')) {
-          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_CLOSED }));
-        }
+        if (url.includes('/krs/period')) return Promise.resolve(jsonResponse({ data: KRS_PERIOD_CLOSED }));
         return Promise.resolve(
-          jsonResponse(
-            { success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal memuat tagihan' } },
-            500,
-          ),
+          jsonResponse({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal memuat tagihan' } }, 500),
         );
       }),
     );
     render(<MyPaymentPage />);
-
     expect(await screen.findByText('Gagal memuat tagihan')).toBeInTheDocument();
   });
 
-  it('fetch tagihan HANYA SEKALI — regresi loop flicker (krsPeriod via ref)', async () => {
+  it('fetch tagihan HANYA SEKALI — regresi loop flicker', async () => {
     let paymentsCalls = 0;
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/krs/period')) {
-          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_OPEN }));
-        }
-        if (url.includes('/krs-access')) {
-          return Promise.resolve(jsonResponse({ success: true, data: KRS_OK }));
-        }
+        if (url.includes('/krs/period')) return Promise.resolve(jsonResponse({ data: KRS_PERIOD_OPEN }));
+        if (url.includes('/krs-access')) return Promise.resolve(jsonResponse({ success: true, data: KRS_OK }));
         paymentsCalls += 1;
         return Promise.resolve(jsonResponse({ success: true, data: PAYMENTS_SNAKE }));
       }),
     );
     render(<MyPaymentPage />);
-
     expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
-    // Beri waktu beberapa tick: bila ada loop dependency (krsPeriod state), fetch
-    // akan berulang tanpa henti — test ini gagal sebelum fix (paymentsCalls >> 1).
     await new Promise((r) => setTimeout(r, 150));
     expect(paymentsCalls).toBe(1);
+  });
+
+  it('klik Detail → buka modal rincian tagihan', async () => {
+    mockFetch();
+    render(<MyPaymentPage />);
+    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+
+    // Klik tombol Detail pertama
+    const detailButtons = screen.getAllByText('Detail');
+    fireEvent.click(detailButtons[0]);
+
+    // Modal muncul
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Rincian Tagihan')).toBeInTheDocument();
+    // Items muncul di modal
+    expect(screen.getByText('SPP')).toBeInTheDocument();
+  });
+
+  it('modal: tutup pakai tombol ×', async () => {
+    mockFetch();
+    render(<MyPaymentPage />);
+    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByText('Detail')[0]);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Tutup'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('modal: tutup pakai klik overlay', async () => {
+    mockFetch();
+    render(<MyPaymentPage />);
+    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByText('Detail')[0]);
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(dialog); // click overlay
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('modal: tutup pakai tombol Tutup di footer', async () => {
+    mockFetch();
+    render(<MyPaymentPage />);
+    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByText('Detail')[0]);
+    fireEvent.click(screen.getByText('Tutup', { selector: 'button' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('modal lunas → tampilkan link bukti pembayaran', async () => {
+    mockFetch();
+    render(<MyPaymentPage />);
+    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+
+    // Klik Detail pada baris lunas (Genap 2023/2024)
+    const detailButtons = screen.getAllByText('Detail');
+    fireEvent.click(detailButtons[1]);
+
+    expect(screen.getByText('Bukti Pembayaran')).toBeInTheDocument();
+    expect(screen.getByText('Lihat Bukti Pembayaran →')).toHaveAttribute('href', 'https://example.com/bukti.pdf');
+  });
+
+  it('modal partial → tampilkan progress bar', async () => {
+    mockFetch();
+    render(<MyPaymentPage />);
+    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+
+    // Klik Detail pada baris partial (Genap 2024/2025, index 2)
+    const detailButtons = screen.getAllByText('Detail');
+    fireEvent.click(detailButtons[2]);
+
+    // Modal muncul dengan progress bar
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/Terbayar:/)).toBeInTheDocument();
+    expect(screen.getByText(/Sisa:/)).toBeInTheDocument();
+  });
+
+  it('tabel menampilkan kolom Bukti — link untuk lunas, — untuk lainnya', async () => {
+    mockFetch();
+    render(<MyPaymentPage />);
+    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+
+    // Link "Lihat" untuk lunas
+    expect(screen.getByText('Lihat')).toHaveAttribute('href', 'https://example.com/bukti.pdf');
+    // "—" untuk belum lunas
+    const dashes = screen.getAllByText('—');
+    expect(dashes.length).toBeGreaterThan(0);
   });
 });
