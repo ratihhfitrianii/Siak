@@ -416,9 +416,9 @@ export default function ProfilePage() {
                     const dataMin = Math.min(...ipsValues);
                     const yMax = Math.min(4.0, Math.ceil(dataMax * 10) / 10 + 0.1);
                     const yMin = Math.max(0, Math.floor(dataMin * 10) / 10 - 0.1);
-                    return [yMax, ((yMax + yMin) / 2).toFixed(1), yMin.toFixed(1)].map(
-                      (v, i) => <span key={i}>{v}</span>,
-                    );
+                    return [yMax, ((yMax + yMin) / 2).toFixed(1), yMin.toFixed(1)].map((v, i) => (
+                      <span key={i}>{v}</span>
+                    ));
                   })()}
                 </div>
                 <div className="flex items-end justify-around h-full pt-4 pb-8 px-4 ml-8">
@@ -442,7 +442,10 @@ export default function ProfilePage() {
                           </span>
                           <div
                             className={`w-full rounded-t-md transition-all ${isAboveIPK ? 'bg-primary-500' : 'bg-red-400'}`}
-                            style={{ height: `${barHeight}%`, minHeight: sem.ips > 0 ? '4px' : '0px' }}
+                            style={{
+                              height: `${barHeight}%`,
+                              minHeight: sem.ips > 0 ? '4px' : '0px',
+                            }}
                           />
                           <span className="text-[10px] text-slate-500 text-center leading-tight mt-1">
                             {sem.semesterName}
