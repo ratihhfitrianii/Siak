@@ -36,9 +36,27 @@ const PAYMENTS: MyPayment[] = [
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     items: [
-      { id: 1, type: 'spp', description: 'SPP Ganjil 2024/2025', amount: 2750000, isMandatory: true },
-      { id: 2, type: 'biaya_dev', description: 'Biaya Pengembangan', amount: 500000, isMandatory: true },
-      { id: 3, type: 'biaya_orientasi', description: 'Biaya Orientasi', amount: 750000, isMandatory: false },
+      {
+        id: 1,
+        type: 'spp',
+        description: 'SPP Ganjil 2024/2025',
+        amount: 2750000,
+        isMandatory: true,
+      },
+      {
+        id: 2,
+        type: 'biaya_dev',
+        description: 'Biaya Pengembangan',
+        amount: 500000,
+        isMandatory: true,
+      },
+      {
+        id: 3,
+        type: 'biaya_orientasi',
+        description: 'Biaya Orientasi',
+        amount: 750000,
+        isMandatory: false,
+      },
     ],
   },
   {
@@ -61,8 +79,20 @@ const PAYMENTS: MyPayment[] = [
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-10T00:00:00Z',
     items: [
-      { id: 4, type: 'spp', description: 'SPP Genap 2023/2024', amount: 2500000, isMandatory: true },
-      { id: 5, type: 'biaya_dev', description: 'Biaya Pengembangan', amount: 500000, isMandatory: true },
+      {
+        id: 4,
+        type: 'spp',
+        description: 'SPP Genap 2023/2024',
+        amount: 2500000,
+        isMandatory: true,
+      },
+      {
+        id: 5,
+        type: 'biaya_dev',
+        description: 'Biaya Pengembangan',
+        amount: 500000,
+        isMandatory: true,
+      },
     ],
   },
   {
@@ -85,9 +115,27 @@ const PAYMENTS: MyPayment[] = [
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     items: [
-      { id: 6, type: 'spp', description: 'SPP Genap 2024/2025', amount: 2500000, isMandatory: true },
-      { id: 7, type: 'biaya_dev', description: 'Biaya Pengembangan', amount: 500000, isMandatory: true },
-      { id: 8, type: 'asuransi', description: 'Asuransi Kesehatan', amount: 500000, isMandatory: false },
+      {
+        id: 6,
+        type: 'spp',
+        description: 'SPP Genap 2024/2025',
+        amount: 2500000,
+        isMandatory: true,
+      },
+      {
+        id: 7,
+        type: 'biaya_dev',
+        description: 'Biaya Pengembangan',
+        amount: 500000,
+        isMandatory: true,
+      },
+      {
+        id: 8,
+        type: 'asuransi',
+        description: 'Asuransi Kesehatan',
+        amount: 500000,
+        isMandatory: false,
+      },
     ],
   },
 ];
@@ -107,7 +155,12 @@ const KRS_PERIOD_CLOSED = { ...KRS_PERIOD_OPEN, status: 'closed' };
 
 const KRS_OK: KrsAccessResult = {
   canAccess: true,
-  payment: { status: 'lunas', totalAmount: 3000000, paidAmount: 3000000, dueDate: '2025-08-01T00:00:00Z' },
+  payment: {
+    status: 'lunas',
+    totalAmount: 3000000,
+    paidAmount: 3000000,
+    dueDate: '2025-08-01T00:00:00Z',
+  },
 };
 
 function toSnake(p: MyPayment): Record<string, unknown> {
@@ -180,7 +233,12 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
   it('menampilkan status belum lunas & indikator KRS diblokir', async () => {
     mockFetch(PAYMENTS_SNAKE, {
       canAccess: false,
-      payment: { status: 'belum_lunas', totalAmount: 4000000, paidAmount: 0, dueDate: '2026-02-15T00:00:00Z' },
+      payment: {
+        status: 'belum_lunas',
+        totalAmount: 4000000,
+        paidAmount: 0,
+        dueDate: '2026-02-15T00:00:00Z',
+      },
     });
     render(<MyPaymentPage />);
 
@@ -192,7 +250,8 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/krs/period')) return Promise.resolve(jsonResponse({ data: KRS_PERIOD_CLOSED }));
+        if (url.includes('/krs/period'))
+          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_CLOSED }));
         return Promise.resolve(jsonResponse({ success: true, data: [] }));
       }),
     );
@@ -204,9 +263,13 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/krs/period')) return Promise.resolve(jsonResponse({ data: KRS_PERIOD_CLOSED }));
+        if (url.includes('/krs/period'))
+          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_CLOSED }));
         return Promise.resolve(
-          jsonResponse({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal memuat tagihan' } }, 500),
+          jsonResponse(
+            { success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal memuat tagihan' } },
+            500,
+          ),
         );
       }),
     );
@@ -219,8 +282,10 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/krs/period')) return Promise.resolve(jsonResponse({ data: KRS_PERIOD_OPEN }));
-        if (url.includes('/krs-access')) return Promise.resolve(jsonResponse({ success: true, data: KRS_OK }));
+        if (url.includes('/krs/period'))
+          return Promise.resolve(jsonResponse({ data: KRS_PERIOD_OPEN }));
+        if (url.includes('/krs-access'))
+          return Promise.resolve(jsonResponse({ success: true, data: KRS_OK }));
         paymentsCalls += 1;
         return Promise.resolve(jsonResponse({ success: true, data: PAYMENTS_SNAKE }));
       }),
@@ -290,7 +355,10 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
     fireEvent.click(detailButtons[1]);
 
     expect(screen.getByText('Bukti Pembayaran')).toBeInTheDocument();
-    expect(screen.getByText('Lihat Bukti Pembayaran →')).toHaveAttribute('href', 'https://example.com/bukti.pdf');
+    expect(screen.getByText('Lihat Bukti Pembayaran →')).toHaveAttribute(
+      'href',
+      'https://example.com/bukti.pdf',
+    );
   });
 
   it('modal partial → tampilkan progress bar', async () => {
