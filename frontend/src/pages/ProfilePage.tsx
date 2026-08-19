@@ -407,8 +407,13 @@ export default function ProfilePage() {
               </div>
             ) : (
               (() => {
-                const yTicks = [4, 3, 2, 1, 0];
-                const yMax = 4;
+                const ipsPositive = ipsData.map((s) => s.ips).filter((v) => v > 0);
+                const dataMax = ipsPositive.length > 0 ? Math.max(...ipsPositive) : 4;
+                const dataMin = ipsPositive.length > 0 ? Math.min(...ipsPositive) : 0;
+                const yMax = Math.min(4.0, Math.ceil(dataMax * 10 + 2) / 10);
+                const yMin = dataMin > 0 ? Math.max(0, Math.floor((dataMin - 0.5) * 10) / 10) : 0;
+                const range = yMax - yMin || 1;
+                const yTicks = [yMax, yMax - range / 2, yMin].map((v) => Math.round(v * 10) / 10);
                 return (
                   <div className="relative" data-testid="ips-chart">
                     <div className="flex" style={{ height: '280px' }}>
@@ -425,13 +430,13 @@ export default function ProfilePage() {
                           <div
                             key={`grid-${tick}`}
                             className="absolute left-0 right-0 border-t border-slate-100"
-                            style={{ bottom: `${(tick / yMax) * 100}%` }}
+                            style={{ bottom: `${((tick - yMin) / range) * 100}%` }}
                           />
                         ))}
                         {/* Bars */}
                         <div className="absolute inset-0 flex items-end justify-around px-4 pb-6">
                           {ipsData.map((sem, idx) => {
-                            const barPct = (sem.ips / yMax) * 100;
+                            const barPct = ((sem.ips - yMin) / range) * 100;
                             return (
                               <div
                                 key={idx}
