@@ -127,7 +127,13 @@ export function createStudentProfileRouter(): Router {
                updated_at = now()
            WHERE id = $5
            RETURNING id, phone, personal_email, photo_url, domicile_address, updated_at`,
-          [phone ?? null, personalEmail ?? null, photoUrl ?? null, domicileAddress ?? null, user.studentId],
+          [
+            phone ?? null,
+            personalEmail ?? null,
+            photoUrl ?? null,
+            domicileAddress ?? null,
+            user.studentId,
+          ],
         );
 
         res.json({
