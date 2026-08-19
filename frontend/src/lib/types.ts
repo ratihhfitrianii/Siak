@@ -630,6 +630,8 @@ export interface MyClass {
   curriculumId: number;
   semesterId: number;
   semesterNumber: number;
+  semesterCode: string;
+  semesterName: string;
   courseCode: string;
   courseName: string;
   credits: number;

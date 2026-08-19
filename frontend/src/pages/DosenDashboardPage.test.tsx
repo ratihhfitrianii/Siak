@@ -53,7 +53,7 @@ describe('DosenDashboardPage (T3.7)', () => {
         return jsonResponse({ data: [] });
       }
       if (u.includes('/dosen/my-classes')) {
-        return jsonResponse({ data: { items: [] } });
+        return jsonResponse({ success: true, data: { items: [] } });
       }
       if (u.includes('/dosen/lecturers')) {
         return jsonResponse({ data: { items: [] } });
@@ -105,9 +105,9 @@ describe('DosenDashboardPage (T3.7)', () => {
     expect(screen.getByText('Input Absensi')).toBeInTheDocument();
   });
 
-  it('route /dosen/jadwal → render DosenSchedule (checklist klaim) — TIDAK ada header Dashboard Dosen', () => {
+  it('route /dosen/jadwal → render DosenSchedule (checklist klaim) — TIDAK ada header Dashboard Dosen', async () => {
     renderAt('/dosen/jadwal');
-    expect(screen.getByText('Jadwal Mengajar')).toBeInTheDocument();
+    expect(await screen.findByText('Belum ada kelas yang diampu.')).toBeInTheDocument();
     expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 

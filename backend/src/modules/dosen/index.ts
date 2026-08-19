@@ -417,10 +417,12 @@ export function createDosenRouter(): Router {
              cl.id, cl.class_code, cl.day_of_week, cl.start_time, cl.end_time,
              cl.room, cl.capacity, cl.current_enrolled, cl.is_active,
              cur.id as curriculum_id, cur.semester_id, cur.semester_number,
-             co.code as course_code, co.name as course_name, co.credits
+             co.code as course_code, co.name as course_name, co.credits,
+             sem.code as semester_code, sem.name as semester_name
            FROM classes cl
            JOIN curricula cur ON cur.id = cl.curriculum_id
            JOIN courses co ON co.id = cur.course_id
+           JOIN semesters sem ON sem.id = cur.semester_id
            WHERE cl.lecturer_id = $1 AND cl.is_active
            ORDER BY co.code, cl.class_code`,
           [req.user!.id],
@@ -461,6 +463,8 @@ export function createDosenRouter(): Router {
           curriculumId: Number(r.curriculum_id),
           semesterId: Number(r.semester_id),
           semesterNumber: Number(r.semester_number),
+          semesterCode: r.semester_code ?? '',
+          semesterName: r.semester_name ?? '',
           courseCode: r.course_code,
           courseName: r.course_name,
           credits: Number(r.credits),

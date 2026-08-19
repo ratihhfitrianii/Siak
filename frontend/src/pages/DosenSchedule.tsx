@@ -1,14 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from '../auth/AuthContext';
 import { getMyClasses } from '../lib/api';
 import type { MyClass } from '../lib/types';
 
 const dayNames = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 /**
- * Jadwal mengajar dosen — menampilkan kelas yang diampu + jadwal pertemuan.
+ * Jadwal mengajar dosen — header ringkasan + daftar kelas + jadwal pertemuan.
  * Data dari GET /dosen/my-classes.
  */
 export function DosenSchedule() {
+  const { user } = useAuth();
   const [classes, setClasses] = useState<MyClass[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,16 +33,128 @@ export function DosenSchedule() {
     load();
   }, [load]);
 
+  /* ---- Derived data ---- */
+  const summary = useMemo(() => {
+    if (classes.length === 0) return null;
+
+    // Aggregate per unique semester
+    const semMap = new Map<
+      number,
+      { code: string; name: string; totalSks: number; scheduledSks: number }
+    >();
+    let totalSksAll = 0;
+    let scheduledSksAll = 0;
+
+    for (const cls of classes) {
+      const sem = semMap.get(cls.semesterId) ?? {
+        code: cls.semesterCode,
+        name: cls.semesterName,
+        totalSks: 0,
+        scheduledSks: 0,
+      };
+      sem.totalSks += cls.credits;
+      if (cls.schedules.length > 0) {
+        sem.scheduledSks += cls.credits;
+      }
+      semMap.set(cls.semesterId, sem);
+
+      totalSksAll += cls.credits;
+      if (cls.schedules.length > 0) scheduledSksAll += cls.credits;
+    }
+
+    const semesters = Array.from(semMap.values());
+    const activeSemester =
+      semesters.length === 1
+        ? semesters[0]
+        : (semesters.find((s) => s.code.includes('-1')) ?? semesters[0]);
+
+    // Status pengajuan: derived from scheduling completeness
+    const allScheduled = scheduledSksAll === totalSksAll;
+    const noneScheduled = scheduledSksAll === 0;
+    const statusPengajuan: 'disetujui' | 'draft' | 'proses' = noneScheduled
+      ? 'draft'
+      : allScheduled
+        ? 'disetujui'
+        : 'proses';
+
+    return {
+      totalSks: totalSksAll,
+      scheduledSks: scheduledSksAll,
+      unscheduledSks: totalSksAll - scheduledSksAll,
+      classCount: classes.length,
+      activeSemester,
+      statusPengajuan,
+    };
+  }, [classes]);
+
   const toggleExpand = (id: number) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const statusLabels: Record<string, { label: string; color: string }> = {
+    draft: { label: 'Draft', color: 'bg-slate-100 text-slate-700' },
+    proses: { label: 'Menunggu Persetujuan Kaprodi', color: 'bg-amber-100 text-amber-700' },
+    disetujui: { label: 'Disetujui', color: 'bg-green-100 text-green-700' },
+  };
+
+  const schedPercent = summary ? Math.round((summary.scheduledSks / summary.totalSks) * 100) : 0;
+
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">Jadwal Mengajar</h2>
-        <p className="text-slate-600">Daftar kelas yang Anda ampu beserta jadwal pertemuan.</p>
-      </div>
+      {/* ===== HEADER & RINGKASAN ===== */}
+      {summary && (
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+          {/* Top bar: identity + status */}
+          <div className="bg-gradient-to-r from-primary-50 to-white px-6 py-4 border-b border-slate-100">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-lg font-bold">
+                  {user?.fullName?.charAt(0) ?? 'D'}
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    {user?.fullName ?? 'Dosen'}
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    {summary.activeSemester.name || summary.activeSemester.code}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`text-xs font-medium px-3 py-1 rounded-full ${statusLabels[summary.statusPengajuan].color}`}
+              >
+                {statusLabels[summary.statusPengajuan].label}
+              </span>
+            </div>
+          </div>
+
+          {/* SKS Progress Bar */}
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-700">Beban Mengajar SKS</span>
+              <span className="text-sm text-slate-500">
+                {summary.scheduledSks}/{summary.totalSks} SKS terjadwal
+              </span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-3">
+              <div
+                className="bg-primary-500 h-3 rounded-full transition-all duration-500"
+                style={{ width: `${schedPercent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
+              <span>
+                {summary.classCount} kelas • {summary.scheduledSks} SKS terjadwal
+              </span>
+              <span>
+                {summary.unscheduledSks > 0
+                  ? `${summary.unscheduledSks} SKS belum dijadwalkan`
+                  : 'Semua SKS sudah terjadwal'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
@@ -88,7 +202,13 @@ export function DosenSchedule() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded-full">
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        cls.schedules.length > 0
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
                       {cls.schedules.length} pertemuan
                     </span>
                     <svg
