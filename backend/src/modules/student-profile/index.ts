@@ -17,7 +17,8 @@ import { authenticate, authorize } from '../../lib/auth-middleware';
 const updateStudentProfileSchema = z.object({
   phone: z.string().max(20).optional().nullable(),
   personalEmail: z.string().email('Email pribadi tidak valid').optional().nullable(),
-  photoUrl: z.string().max(10000000).optional().nullable(), // terima data URLs untuk upload
+  photoUrl: z.string().max(10000000).optional().nullable(),
+  domicileAddress: z.string().max(500).optional().nullable(),
 });
 
 export function createStudentProfileRouter(): Router {
@@ -44,6 +45,7 @@ export function createStudentProfileRouter(): Router {
             s.phone,
             s.personal_email,
             s.photo_url,
+            s.domicile_address,
             p.code as prodi_code,
             p.name as prodi_name,
             f.code as faculty_code,
@@ -77,6 +79,7 @@ export function createStudentProfileRouter(): Router {
             phone: row.phone,
             personalEmail: row.personal_email,
             photoUrl: row.photo_url,
+            domicileAddress: row.domicile_address,
             prodiCode: row.prodi_code,
             prodiName: row.prodi_name,
             facultyCode: row.faculty_code,
@@ -113,17 +116,18 @@ export function createStudentProfileRouter(): Router {
           });
         }
 
-        const { phone, personalEmail, photoUrl } = parsed.data;
+        const { phone, personalEmail, photoUrl, domicileAddress } = parsed.data;
 
         const result = await pgPool.query(
           `UPDATE students
            SET phone = COALESCE($1, phone),
                personal_email = COALESCE($2, personal_email),
                photo_url = COALESCE($3, photo_url),
+               domicile_address = COALESCE($4, domicile_address),
                updated_at = now()
-           WHERE id = $4
-           RETURNING id, phone, personal_email, photo_url, updated_at`,
-          [phone ?? null, personalEmail ?? null, photoUrl ?? null, user.studentId],
+           WHERE id = $5
+           RETURNING id, phone, personal_email, photo_url, domicile_address, updated_at`,
+          [phone ?? null, personalEmail ?? null, photoUrl ?? null, domicileAddress ?? null, user.studentId],
         );
 
         res.json({

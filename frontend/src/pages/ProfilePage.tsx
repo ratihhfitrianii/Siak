@@ -9,6 +9,7 @@ interface StudentProfile {
   phone: string | null;
   personalEmail: string | null;
   photoUrl: string | null;
+  domicileAddress: string | null;
   prodiCode: string;
   prodiName: string;
   facultyCode: string;
@@ -36,6 +37,12 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    phone: '',
+    personalEmail: '',
+    domicileAddress: '',
+  });
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -44,6 +51,11 @@ export default function ProfilePage() {
       const data = await apiRequest<StudentProfile>('/students/me');
       setProfile(data);
       if (data.photoUrl) setPhotoPreview(data.photoUrl);
+      setEditData({
+        phone: data.phone || '',
+        personalEmail: data.personalEmail || '',
+        domicileAddress: data.domicileAddress || '',
+      });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Gagal memuat profil';
       setError(msg);
@@ -57,7 +69,7 @@ export default function ProfilePage() {
       const data = await apiRequest<SemesterIPS[]>('/students/me/ips');
       setIpsData(data);
     } catch {
-      // IPS data is optional, don't show error
+      // IPS data is optional
     }
   }, []);
 
@@ -69,50 +81,30 @@ export default function ProfilePage() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      console.error('File harus berupa gambar');
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      console.error('Ukuran file maksimal 2MB');
-      return;
-    }
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 2 * 1024 * 1024) return;
     const reader = new FileReader();
     reader.onload = () => setPhotoPreview(reader.result as string);
     reader.readAsDataURL(file);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
     if (!profile) return;
     setSaving(true);
     try {
-      const formData = new FormData(e.currentTarget as HTMLFormElement);
-      // Remove photo from formData if not changed
-      if (!formData.get('photoUrl')) {
-        formData.delete('photoUrl');
-      }
-
-      // Convert FormData to JSON
-      const body: Record<string, string | null> = {};
-      formData.forEach((value, key) => {
-        body[key] = value as string;
-      });
-
       const res = await apiRequest<StudentProfile>('/students/me', {
         method: 'PUT',
         body: JSON.stringify({
-          phone: body.phone || null,
-          personalEmail: body.personalEmail || null,
+          phone: editData.phone || null,
+          personalEmail: editData.personalEmail || null,
+          domicileAddress: editData.domicileAddress || null,
           photoUrl: photoPreview !== profile.photoUrl ? photoPreview : undefined,
         }),
       });
-
-      setProfile(res);
-      // Use console.log instead of alert for test compatibility
-      console.log('Profil berhasil diperbarui');
+      setProfile({ ...profile, ...res });
+      setEditing(false);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Gagal menyimpan profil';
+      const msg = err instanceof Error ? err.message : 'Gagal menyimpan';
       console.error(msg);
     } finally {
       setSaving(false);
@@ -120,22 +112,16 @@ export default function ProfilePage() {
   };
 
   const handleCancel = () => {
-    loadProfile();
-    setPhotoPreview(profile?.photoUrl ?? null);
-  };
-
-  const calculateIPK = (): number => {
-    if (!ipsData || !Array.isArray(ipsData)) return 0;
-    let totalBobot = 0;
-    let totalSks = 0;
-    for (const sem of ipsData) {
-      totalBobot += sem.ips * sem.sksLulus;
-      totalSks += sem.sksLulus;
+    if (profile) {
+      setEditData({
+        phone: profile.phone || '',
+        personalEmail: profile.personalEmail || '',
+        domicileAddress: profile.domicileAddress || '',
+      });
+      setPhotoPreview(profile.photoUrl ?? null);
     }
-    return totalSks > 0 ? Math.round((totalBobot / totalSks) * 100) / 100 : 0;
+    setEditing(false);
   };
-
-  const ipk = calculateIPK();
 
   if (loading && !profile) {
     return (
@@ -176,214 +162,192 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Photo & Basic Info */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Photo Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center">
-            <div className="relative inline-block mb-4">
-              <img
-                src={
-                  photoPreview ||
-                  'https://ui-avatars.com/api/?name=' +
-                    encodeURIComponent(profile.fullName) +
-                    '&background=random&size=150'
-                }
-                alt="Foto Profil"
-                className="w-32 h-32 rounded-full object-cover border-4 border-slate-200"
-              />
-              <label
-                htmlFor="photo-upload"
-                className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                className="sr-only"
-                id="photo-upload"
-              />
+        {/* Left: Photo & Info Card */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            {/* Photo */}
+            <div className="text-center mb-4">
+              <div className="relative inline-block">
+                <img
+                  src={
+                    photoPreview ||
+                    'https://ui-avatars.com/api/?name=' +
+                      encodeURIComponent(profile.fullName) +
+                      '&background=random&size=150'
+                  }
+                  alt="Foto Profil"
+                  className="w-32 h-32 rounded-full object-cover border-4 border-slate-200"
+                />
+                <label
+                  htmlFor="photo-upload"
+                  className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="sr-only"
+                  id="photo-upload"
+                />
+              </div>
             </div>
-            <p className="text-sm text-slate-500 mb-4">Foto ini akan digunakan untuk Ijazah</p>
-            <div className="space-y-2 text-left">
-              <div className="flex justify-between text-sm">
+
+            {/* Name */}
+            <h2 className="text-lg font-semibold text-slate-900 text-center mb-4">
+              {profile.fullName}
+            </h2>
+
+            {/* Info list below photo */}
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
                 <span className="text-slate-500">NIM</span>
                 <span className="font-medium text-slate-900">{profile.nim}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Status</span>
-                <span className="font-medium text-slate-900 capitalize">{profile.status}</span>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Program Studi</span>
+                <span className="font-medium text-slate-900 text-right">{profile.prodiName}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Fakultas</span>
+                <span className="font-medium text-slate-900 text-right">{profile.facultyName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Angkatan</span>
+                <span className="font-medium text-slate-900">{profile.academicYearCode}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-slate-500">Jalur Masuk</span>
                 <span className="font-medium text-slate-900">{profile.entryType}</span>
               </div>
-            </div>
-          </div>
-
-          {/* IPK Summary Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h3 className="font-semibold text-slate-900 mb-4">Ringkasan IP</h3>
-            <div className="text-center mb-4">
-              <div className="text-4xl font-bold text-primary-600">{ipk.toFixed(2)}</div>
-              <div className="text-sm text-slate-500">IP Kumulatif (IPK)</div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <div className="text-slate-500">Total SKS Lulus</div>
-                <div className="font-semibold text-slate-900">
-                  {(Array.isArray(ipsData) ? ipsData : []).reduce((a, b) => a + b.sksLulus, 0)}
-                </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Status</span>
+                <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full capitalize">
+                  {profile.status}
+                </span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <div className="text-slate-500">Semester Aktif</div>
-                <div className="font-semibold text-slate-900">{ipsData.length}</div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Email Kampus</span>
+                <span className="font-medium text-slate-900 text-right text-xs break-all">
+                  {profile.email}
+                </span>
+              </div>
+
+              {/* Editable fields */}
+              <div className="border-t border-slate-200 pt-3 mt-3">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-slate-700">Kontak & Domisili</span>
+                  {!editing ? (
+                    <button
+                      onClick={() => setEditing(true)}
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                      Edit
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleCancel}
+                        className="text-xs text-slate-500 hover:text-slate-700"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="text-xs bg-primary-600 text-white px-3 py-1 rounded hover:bg-primary-700 disabled:opacity-50"
+                      >
+                        {saving ? '...' : 'Simpan'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {editing ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">No. HP</label>
+                      <input
+                        type="text"
+                        value={editData.phone}
+                        onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                        className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="08xxxxxxxxxx"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">Email Pribadi</label>
+                      <input
+                        type="email"
+                        value={editData.personalEmail}
+                        onChange={(e) =>
+                          setEditData({ ...editData, personalEmail: e.target.value })
+                        }
+                        className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="nama@email.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">Alamat Domisili</label>
+                      <textarea
+                        value={editData.domicileAddress}
+                        onChange={(e) =>
+                          setEditData({ ...editData, domicileAddress: e.target.value })
+                        }
+                        className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                        rows={2}
+                        placeholder="Alamat lengkap domisili"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">No. HP</span>
+                      <span className="font-medium text-slate-900">{profile.phone || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Email Pribadi</span>
+                      <span className="font-medium text-slate-900 text-right text-xs">
+                        {profile.personalEmail || '-'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Alamat Domisili</span>
+                      <span className="font-medium text-slate-900 text-right text-xs max-w-[180px]">
+                        {profile.domicileAddress || '-'}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right: Form & Chart */}
+        {/* Right: Chart */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Detail Form */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h3 className="font-semibold text-slate-900 mb-4">Detail Mahasiswa</h3>
-            <form onSubmit={handleSave} className="space-y-4">
-              {/* Read-only fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Nama Lengkap
-                  </label>
-                  <input
-                    type="text"
-                    value={profile.fullName}
-                    readOnly
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Email Kampus
-                  </label>
-                  <input
-                    type="email"
-                    value={profile.email}
-                    readOnly
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">NIM</label>
-                  <input
-                    type="text"
-                    value={profile.nim}
-                    readOnly
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Fakultas</label>
-                  <input
-                    type="text"
-                    value={`${profile.facultyCode} - ${profile.facultyName}`}
-                    readOnly
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Program Studi
-                  </label>
-                  <input
-                    type="text"
-                    value={`${profile.prodiCode} - ${profile.prodiName}`}
-                    readOnly
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Tahun Akademik Masuk
-                  </label>
-                  <input
-                    type="text"
-                    value={profile.academicYearCode}
-                    readOnly
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900"
-                  />
-                </div>
-              </div>
-
-              {/* Editable fields */}
-              <div className="border-t border-slate-200 pt-4">
-                <h4 className="font-medium text-slate-900 mb-3">Informasi Kontak (Dapat Diubah)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="phone"
-                      className="block text-sm font-medium text-slate-700 mb-1"
-                    >
-                      No. HP
-                    </label>
-                    <input
-                      type="text"
-                      id="phone"
-                      name="phone"
-                      value={profile.phone || ''}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="08xxxxxxxxxx"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="personalEmail"
-                      className="block text-sm font-medium text-slate-700 mb-1"
-                    >
-                      Email Pribadi
-                    </label>
-                    <input
-                      type="email"
-                      id="personalEmail"
-                      name="personalEmail"
-                      value={profile.personalEmail || ''}
-                      onChange={(e) => setProfile({ ...profile, personalEmail: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="nama@email.com"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
-                >
-                  {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                </button>
-              </div>
-            </form>
-          </div>
-
           {/* IP Chart */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <h3 className="font-semibold text-slate-900 mb-4">Indek Prestasi (IP)</h3>
@@ -411,15 +375,12 @@ export default function ProfilePage() {
                 return (
                   <div className="relative" data-testid="ips-chart">
                     <div className="flex" style={{ height: '280px' }}>
-                      {/* Y-axis labels */}
                       <div className="w-10 flex flex-col justify-between text-right pr-3 text-[11px] text-slate-400 font-medium pt-1 pb-6">
-                        {yTicks.map((tick, i) => (
-                          <span key={i}>{tick.toFixed(1)}</span>
+                        {yTicks.map((tick) => (
+                          <span key={tick}>{tick.toFixed(1)}</span>
                         ))}
                       </div>
-                      {/* Chart area */}
                       <div className="flex-1 relative border-l border-b border-slate-200">
-                        {/* Horizontal gridlines */}
                         {yTicks.map((tick) => (
                           <div
                             key={`grid-${tick}`}
@@ -427,7 +388,6 @@ export default function ProfilePage() {
                             style={{ bottom: `${(tick / 4) * 100}%` }}
                           />
                         ))}
-                        {/* Bars */}
                         <div className="absolute inset-0 flex justify-around px-4 pb-6">
                           {ipsData.map((sem, idx) => {
                             const barPct = (sem.ips / 4) * 100;
