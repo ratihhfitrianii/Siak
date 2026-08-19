@@ -107,7 +107,7 @@ describe('DosenDashboardPage (T3.7)', () => {
 
   it('route /dosen/jadwal → render DosenSchedule (checklist klaim) — TIDAK ada header Dashboard Dosen', () => {
     renderAt('/dosen/jadwal');
-    expect(screen.getByText('Ketersediaan Jadwal Mengajar')).toBeInTheDocument();
+    expect(screen.getByText('Jadwal Mengajar')).toBeInTheDocument();
     expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 

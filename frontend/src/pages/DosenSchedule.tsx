@@ -1,28 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getDosenAvailableClasses, claimClass, unclaimClass } from '../lib/api';
-import type { ClaimableClass } from '../lib/types';
-import { FormAlert } from '../components/ErrorInline';
+import { getMyClasses } from '../lib/api';
+import type { MyClass } from '../lib/types';
+
+const dayNames = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
 /**
- * Jadwal mengajar dosen — Pilih jadwal (checklist) dari jadwal yang sudah diinput Admin Akademik (T3.9, F-21).
- * Sesuai desain DL-08/Q15: admin input jadwal → dosen memilih via checkbox (klaim kelas).
- * Terhubung ke endpoint: GET /dosen/available-classes, POST/DELETE /dosen/claim-class.
+ * Jadwal mengajar dosen — menampilkan kelas yang diampu + jadwal pertemuan.
+ * Data dari GET /dosen/my-classes.
  */
 export function DosenSchedule() {
-  const [classes, setClasses] = useState<ClaimableClass[]>([]);
+  const [classes, setClasses] = useState<MyClass[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [claiming, setClaiming] = useState<Set<number>>(new Set());
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await getDosenAvailableClasses();
+      const res = await getMyClasses();
       setClasses(res.items);
     } catch {
-      setError('Gagal memuat daftar kelas yang bisa diklaim');
+      setError('Gagal memuat jadwal mengajar');
     } finally {
       setIsLoading(false);
     }
@@ -32,198 +31,137 @@ export function DosenSchedule() {
     load();
   }, [load]);
 
-  const handleClaim = async (classId: number) => {
-    setClaiming((prev) => new Set(prev).add(classId));
-    setError(null);
-    setSuccess(null);
-    try {
-      await claimClass(classId);
-      setSuccess('Kelas berhasil diklaim');
-      load();
-    } catch (err: unknown) {
-      const apiError = err as { code?: string; message?: string };
-      if (apiError.code === 'VALIDATION_ERROR') {
-        setError(apiError.message ?? 'Data tidak valid');
-      } else if (apiError.message?.includes('already claimed')) {
-        setError('Kelas sudah diklaim dosen lain');
-      } else {
-        setError('Gagal mengklaim kelas');
-      }
-    } finally {
-      setClaiming((prev) => {
-        const next = new Set(prev);
-        next.delete(classId);
-        return next;
-      });
-    }
+  const toggleExpand = (id: number) => {
+    setExpandedId(expandedId === id ? null : id);
   };
-
-  const handleUnclaim = async (classId: number) => {
-    setClaiming((prev) => new Set(prev).add(classId));
-    setError(null);
-    setSuccess(null);
-    try {
-      await unclaimClass(classId);
-      setSuccess('Klaim kelas dibatalkan');
-      load();
-    } catch {
-      setError('Gagal membatalkan klaim');
-    } finally {
-      setClaiming((prev) => {
-        const next = new Set(prev);
-        next.delete(classId);
-        return next;
-      });
-    }
-  };
-
-  const dayNames = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">Ketersediaan Jadwal Mengajar</h2>
-        <p className="text-slate-600">
-          Pilih kelas yang akan Anda ampu (checkbox). Admin Akademik sudah menginput jadwal
-          pertemuan — Anda hanya memilih kelas mana yang ingin diampu. Setelah diklaim, jadwal akan
-          tampil di halaman Absensi & Bimbingan.
-        </p>
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">Jadwal Mengajar</h2>
+        <p className="text-slate-600">Daftar kelas yang Anda ampu beserta jadwal pertemuan.</p>
       </div>
 
-      {error && <FormAlert>{error}</FormAlert>}
-      {success && (
-        <p
-          role="status"
-          className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800"
-        >
-          {success}
-        </p>
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+          {error}
+        </div>
       )}
 
       {isLoading ? (
         <div className="bg-white rounded-lg shadow-sm p-6 text-center text-slate-500">
-          Memuat daftar kelas...
+          Memuat jadwal mengajar...
         </div>
       ) : classes.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm p-6 text-center text-slate-500">
-          Tidak ada kelas yang tersedia untuk diklaim di prodi Anda.
+          Belum ada kelas yang diampu.
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700 w-12">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (e.currentTarget.checked) {
-                          classes.forEach((c) => !claiming.has(c.id) && handleClaim(c.id));
-                        } else {
-                          classes.forEach((c) => handleUnclaim(c.id));
-                        }
-                      }}
-                      aria-label="Pilih semua kelas"
-                    />
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Mata Kuliah</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Kelas</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Semester</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">
-                    Jadwal Pertemuan
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Kuota</th>
-                  <th className="px-4 py-3 text-center font-medium text-slate-700">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
-                {classes.map((cls) => (
-                  <tr key={cls.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
-                        checked={claiming.has(cls.id) || false}
-                        onChange={() =>
-                          claiming.has(cls.id) ? handleUnclaim(cls.id) : handleClaim(cls.id)
-                        }
-                        disabled={claiming.has(cls.id)}
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-slate-900">{cls.courseName}</p>
-                      <p className="text-slate-500">
+        <div className="space-y-4">
+          {classes.map((cls) => (
+            <div key={cls.id} className="bg-white rounded-lg shadow-sm border border-slate-200">
+              {/* Class Header */}
+              <div
+                className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                onClick={() => toggleExpand(cls.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-semibold text-slate-900">{cls.courseName}</h3>
+                      <span className="text-sm text-slate-500">
                         {cls.courseCode} • {cls.credits} SKS
-                      </p>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-900">{cls.classCode}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-600">
-                      {cls.semesterName} ({cls.semesterCode})
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {cls.schedules.length === 0 ? (
-                        <span className="text-slate-400">Belum ada jadwal pertemuan</span>
-                      ) : (
-                        <ul className="space-y-1">
-                          {cls.schedules.slice(0, 3).map((s) => (
-                            <li key={s.id} className="flex items-center gap-2">
-                              <span className="text-slate-500">
-                                Pertemuan {s.meetingNumber}:{' '}
-                                {
-                                  dayNames[
-                                    s.scheduledDate ? new Date(s.scheduledDate).getDay() || 7 : 0
-                                  ]
-                                }{' '}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 text-sm text-slate-600">
+                      <span>Kelas: {cls.classCode}</span>
+                      {cls.dayOfWeek && (
+                        <span>
+                          {dayNames[cls.dayOfWeek]}{' '}
+                          {cls.startTime && cls.endTime ? `${cls.startTime}–${cls.endTime}` : ''}
+                        </span>
+                      )}
+                      {cls.room && <span>Ruang: {cls.room}</span>}
+                      <span>
+                        {cls.currentEnrolled}/{cls.capacity} mahasiswa
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded-full">
+                      {cls.schedules.length} pertemuan
+                    </span>
+                    <svg
+                      className={`w-5 h-5 text-slate-400 transition-transform ${
+                        expandedId === cls.id ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Schedules */}
+              {expandedId === cls.id && (
+                <div className="border-t border-slate-100 px-4 py-3 bg-slate-50">
+                  {cls.schedules.length === 0 ? (
+                    <p className="text-sm text-slate-500 py-2">Belum ada jadwal pertemuan.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-slate-500">
+                            <th className="py-2 pr-4 font-medium">Pertemuan</th>
+                            <th className="py-2 pr-4 font-medium">Tanggal</th>
+                            <th className="py-2 pr-4 font-medium">Topik</th>
+                            <th className="py-2 font-medium">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {cls.schedules.map((s) => (
+                            <tr key={s.id} className="text-slate-700">
+                              <td className="py-2 pr-4">{s.meetingNumber}</td>
+                              <td className="py-2 pr-4">
                                 {s.scheduledDate
-                                  ? new Date(s.scheduledDate).toLocaleDateString('id-ID')
+                                  ? new Date(s.scheduledDate).toLocaleDateString('id-ID', {
+                                      weekday: 'long',
+                                      day: 'numeric',
+                                      month: 'long',
+                                      year: 'numeric',
+                                    })
                                   : 'TBD'}
-                              </span>
-                              {s.topic && (
-                                <span className="text-slate-400 text-xs">({s.topic})</span>
-                              )}
-                              <span
-                                className={`text-xs px-1.5 py-0.5 rounded ${
-                                  s.isCompleted
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-primary-100 text-primary-800'
-                                }`}
-                              >
-                                {s.isCompleted ? 'Selesai' : 'Terjadwal'}
-                              </span>
-                            </li>
+                              </td>
+                              <td className="py-2 pr-4">{s.topic || '-'}</td>
+                              <td className="py-2">
+                                <span
+                                  className={`text-xs px-2 py-0.5 rounded-full ${
+                                    s.isCompleted
+                                      ? 'bg-green-100 text-green-700'
+                                      : 'bg-amber-100 text-amber-700'
+                                  }`}
+                                >
+                                  {s.isCompleted ? 'Selesai' : 'Terjadwal'}
+                                </span>
+                              </td>
+                            </tr>
                           ))}
-                          {cls.schedules.length > 3 && (
-                            <li className="text-slate-400 text-xs">
-                              +{cls.schedules.length - 3} pertemuan lainnya...
-                            </li>
-                          )}
-                        </ul>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-600">
-                      {cls.currentEnrolled} / {cls.capacity}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {claiming.has(cls.id) ? (
-                        <span className="text-slate-400 text-sm animate-pulse">Memproses...</span>
-                      ) : (
-                        <button
-                          onClick={() => handleClaim(cls.id)}
-                          className="px-3 py-1 bg-primary-500 text-white text-sm rounded hover:bg-primary-600 transition-colors"
-                        >
-                          Klaim
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
