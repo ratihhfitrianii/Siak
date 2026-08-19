@@ -428,29 +428,23 @@ export default function ProfilePage() {
                           />
                         ))}
                         {/* Bars */}
-                        <div className="absolute inset-0 flex items-end justify-around px-4 pb-6">
+                        <div className="absolute inset-0 flex justify-around px-4 pb-6">
                           {ipsData.map((sem, idx) => {
                             const barPct = (sem.ips / 4) * 100;
                             return (
-                              <div
-                                key={idx}
-                                className="flex flex-col items-center flex-1 max-w-[64px] mx-1"
-                              >
-                                <div className="relative w-full flex justify-center">
-                                  <div
-                                    className="w-12 rounded-t-lg transition-all"
-                                    style={{
-                                      height: `${barPct}%`,
-                                      minHeight: sem.ips > 0 ? '24px' : '4px',
-                                      backgroundColor: sem.ips === 0 ? '#e2e8f0' : '#3b82f6',
-                                    }}
-                                  >
-                                    {sem.ips > 0 && (
-                                      <span className="absolute inset-x-0 top-2 text-center text-[11px] font-bold text-white">
-                                        {sem.ips.toFixed(2)}
-                                      </span>
-                                    )}
-                                  </div>
+                              <div key={idx} className="relative flex-1 max-w-[64px] mx-1 h-full">
+                                <div
+                                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 rounded-t-lg transition-all"
+                                  style={{
+                                    height: `${barPct}%`,
+                                    backgroundColor: sem.ips === 0 ? '#e2e8f0' : '#3b82f6',
+                                  }}
+                                >
+                                  {sem.ips > 0 && (
+                                    <span className="absolute inset-x-0 top-2 text-center text-[11px] font-bold text-white">
+                                      {sem.ips.toFixed(2)}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             );
