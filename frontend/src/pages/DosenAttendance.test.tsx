@@ -238,8 +238,8 @@ describe('DosenAttendance (T3.8)', () => {
     expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
     expect(screen.getByText('Ani Wijaya')).toBeInTheDocument();
 
-    // Ani belum check-in → tampil badge, bukan select
-    expect(screen.getByText('Belum check-in')).toBeInTheDocument();
+    // Ani belum check-in → tampil badge "Belum Hadir"
+    expect(screen.getByText('Belum Hadir')).toBeInTheDocument();
 
     // Ubah status Budi (record_id 3111) → hadir → izin
     const budiRow = screen.getByText('Budi Santoso').closest('tr');

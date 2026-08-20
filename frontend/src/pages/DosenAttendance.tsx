@@ -164,14 +164,6 @@ export function DosenAttendance() {
     })),
   );
 
-  const statusColors: Record<string, string> = {
-    hadir: 'bg-green-100 text-green-800',
-    tidak_hadir: 'bg-red-100 text-red-800',
-    izin: 'bg-yellow-100 text-yellow-800',
-    sakit: 'bg-orange-100 text-orange-800',
-    belum_absen: 'bg-slate-100 text-slate-600',
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -326,6 +318,9 @@ export function DosenAttendance() {
                               <th className="px-4 py-3 text-center font-medium text-slate-700">
                                 Status
                               </th>
+                              <th className="px-4 py-3 text-center font-medium text-slate-700">
+                                Aksi
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-slate-200">
@@ -338,27 +333,80 @@ export function DosenAttendance() {
                                   {r.fullName}
                                 </td>
                                 <td className="px-4 py-3 text-center">
-                                  {r.recordId !== null ? (
-                                    <select
-                                      value={r.status}
-                                      onChange={(e) => handleUpdateRecord(r, e.target.value)}
-                                      disabled={isLoading}
-                                      className="px-2 py-1 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
-                                    >
-                                      <option value="hadir">Hadir</option>
-                                      <option value="tidak_hadir">Tidak Hadir</option>
-                                      <option value="izin">Izin</option>
-                                      <option value="sakit">Sakit</option>
-                                    </select>
+                                  {r.status === 'hadir' ? (
+                                    <span className="inline-flex items-center gap-1 text-green-700 font-medium">
+                                      <svg
+                                        className="h-5 w-5 text-green-500"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      Hadir
+                                    </span>
+                                  ) : r.status === 'izin' ? (
+                                    <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
+                                      <svg
+                                        className="h-5 w-5 text-amber-500"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.828a1 1 0 101.415-1.414L11 9.586V6z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      Izin
+                                    </span>
+                                  ) : r.status === 'sakit' ? (
+                                    <span className="inline-flex items-center gap-1 text-orange-700 font-medium">
+                                      <svg
+                                        className="h-5 w-5 text-orange-500"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-5a1 1 0 10-2 0v2a1 1 0 102 0v-2zm0-4a1 1 0 10-2 0v1a1 1 0 102 0V9z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      Sakit
+                                    </span>
                                   ) : (
-                                    <span
-                                      className={`text-xs px-2 py-1 rounded-full ${
-                                        statusColors[r.status] ?? 'bg-slate-100 text-slate-600'
-                                      }`}
-                                    >
-                                      Belum check-in
+                                    <span className="inline-flex items-center gap-1 text-red-600 font-medium">
+                                      <svg
+                                        className="h-5 w-5 text-red-500"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      Belum Hadir
                                     </span>
                                   )}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <select
+                                    value={r.status}
+                                    onChange={(e) => handleUpdateRecord(r, e.target.value)}
+                                    disabled={isLoading}
+                                    className="px-2 py-1 border border-slate-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+                                  >
+                                    <option value="hadir">Hadir</option>
+                                    <option value="tidak_hadir">Tidak Hadir</option>
+                                    <option value="izin">Izin</option>
+                                    <option value="sakit">Sakit</option>
+                                  </select>
                                 </td>
                               </tr>
                             ))}
