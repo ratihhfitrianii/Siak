@@ -261,8 +261,111 @@ export function DosenProposalReview() {
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-slate-100 bg-slate-50 px-6 py-4">
-                    <h4 className="font-medium text-slate-700 mb-3">Riwayat Status</h4>
+                  <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 space-y-4">
+                    {/* Detail Proposal */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="p-3 bg-white rounded-lg border border-slate-100">
+                        <p className="text-xs text-slate-400">Mahasiswa</p>
+                        <p className="font-medium text-slate-900">{p.studentName}</p>
+                        <p className="text-sm text-slate-500">{p.nim}</p>
+                      </div>
+                      <div className="p-3 bg-white rounded-lg border border-slate-100">
+                        <p className="text-xs text-slate-400">Email</p>
+                        <p className="font-medium text-slate-900">{p.studentEmail}</p>
+                      </div>
+                      <div className="p-3 bg-white rounded-lg border border-slate-100">
+                        <p className="text-xs text-slate-400">Program Studi</p>
+                        <p className="font-medium text-slate-900">{p.prodiName}</p>
+                      </div>
+                      <div className="p-3 bg-white rounded-lg border border-slate-100">
+                        <p className="text-xs text-slate-400">Status</p>
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLOR[p.status]}`}
+                        >
+                          {STATUS_LABEL[p.status]}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* File Proposal */}
+                    {p.proposalFile && (
+                      <div className="p-4 bg-white rounded-lg border border-slate-100">
+                        <p className="text-xs text-slate-400 mb-2">Lampiran Proposal</p>
+                        <div className="flex items-center gap-3">
+                          <a
+                            href={p.proposalFile}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition font-medium text-sm"
+                          >
+                            <svg
+                              className="h-5 w-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                              />
+                            </svg>
+                            Lihat Proposal (PDF)
+                          </a>
+                          <a
+                            href={p.proposalFile}
+                            download={`proposal-${p.nim}-${p.title.slice(0, 30)}.pdf`}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
+                          >
+                            <svg
+                              className="h-5 w-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                              />
+                            </svg>
+                            Unduh
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pembimbing */}
+                    {p.supervisors && p.supervisors.length > 0 && (
+                      <div className="p-3 bg-white rounded-lg border border-slate-100">
+                        <p className="text-xs text-slate-400 mb-2">Dosen Pembimbing</p>
+                        <div className="flex flex-wrap gap-2">
+                          {p.supervisors.map((s) => (
+                            <span
+                              key={s.id}
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                                s.isPrimary
+                                  ? 'bg-primary-50 text-primary-700'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}
+                            >
+                              {s.fullName} ({s.nidn}) {s.isPrimary && '⭐'}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Riwayat Status */}
+                    <h4 className="font-medium text-slate-700">Riwayat Status</h4>
                     {historyLoadingId === p.id ? (
                       <Spinner className="h-4 w-4" label="Memuat riwayat..." />
                     ) : history ? (
