@@ -58,6 +58,14 @@ const MahasiswaCheckIn = lazy(() =>
   import('./pages/MahasiswaCheckIn').then((m) => ({ default: m.MahasiswaCheckIn })),
 );
 
+const MahasiswaAjukanBimbingan = lazy(() =>
+  import('./pages/MahasiswaAjukanBimbingan').then((m) => ({ default: m.MahasiswaAjukanBimbingan })),
+);
+
+const MahasiswaSidang = lazy(() =>
+  import('./pages/MahasiswaSidang').then((m) => ({ default: m.MahasiswaSidang })),
+);
+
 const AdminCourseReviewPage = lazy(() =>
   import('./pages/AdminCourseReviewPage').then((m) => ({ default: m.AdminCourseReviewPage })),
 );
@@ -150,6 +158,28 @@ export default function App() {
               <ProtectedRoute perm="krs.fill">
                 <AppLayout>
                   <MahasiswaCheckIn />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Skripsi — Ajukan Bimbingan */}
+          <Route
+            path="/skripsi/ajukan"
+            element={
+              <ProtectedRoute perm="thesis.submit">
+                <AppLayout>
+                  <MahasiswaAjukanBimbingan />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Skripsi — Sidang */}
+          <Route
+            path="/skripsi/sidang"
+            element={
+              <ProtectedRoute perm="thesis.submit">
+                <AppLayout>
+                  <MahasiswaSidang />
                 </AppLayout>
               </ProtectedRoute>
             }

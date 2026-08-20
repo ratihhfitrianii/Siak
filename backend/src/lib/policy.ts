@@ -47,6 +47,9 @@ export const PERMISSIONS = [
   'course.manage', // Mata Kuliah CRUD (global)
   'schedule.manage', // Jadwal Kelas CRUD
   'student.profile', // Profil Mahasiswa (foto, detail, IP per semester)
+  'thesis.submit', // Mahasiswa submit proposal skripsi
+  'thesis.review', // Dosen review proposal skripsi
+  'thesis.manage', // Admin kelola semua proposal skripsi
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -66,6 +69,7 @@ const ROLE_PERMISSIONS: Record<RoleCode, ReadonlySet<Permission>> = {
     'krs.view_classes',
     'guidance.manage',
     'student.profile',
+    'thesis.submit',
   ]),
   dosen: new Set([
     'auth.profile',
@@ -78,6 +82,7 @@ const ROLE_PERMISSIONS: Record<RoleCode, ReadonlySet<Permission>> = {
     'attendance.input',
     'substitute.manage',
     'payroll.view',
+    'thesis.review',
   ]),
   admin_akademik: new Set([
     'auth.profile',
@@ -97,6 +102,7 @@ const ROLE_PERMISSIONS: Record<RoleCode, ReadonlySet<Permission>> = {
     'kurikulum.manage',
     'course.manage',
     'schedule.manage',
+    'thesis.manage',
     'lecturer.select_course',
   ]),
   admin_keuangan: new Set([

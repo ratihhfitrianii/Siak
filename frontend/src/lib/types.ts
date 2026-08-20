@@ -729,6 +729,58 @@ export interface UpdateAttendanceRecordInput {
   status: 'hadir' | 'tidak_hadir' | 'izin' | 'sakit';
 }
 
+// --- Skripsi (POST /skripsi/proposals, GET /skripsi/proposals, etc.) ---
+export type SkripsiStatus =
+  | 'draft'
+  | 'diajukan'
+  | 'dilihat_dosen'
+  | 'disetujui_dosen'
+  | 'ditolak_dosen'
+  | 'disetujui_admin'
+  | 'ditolak_admin'
+  | 'dalam_bimbingan'
+  | 'siap_sidang'
+  | 'lulus'
+  | 'tidak_lulus';
+
+export interface SkripsiProposal {
+  id: number;
+  studentId: number;
+  supervisorId: number;
+  nim: string;
+  studentName: string;
+  studentEmail: string;
+  supervisorName: string;
+  supervisorEmail: string;
+  prodiName: string;
+  title: string;
+  proposalFile: string | null;
+  status: SkripsiStatus;
+  statusNotes: string | null;
+  reviewedBy: number | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SkripsiProposalStatus {
+  id: number;
+  proposalId: number;
+  status: SkripsiStatus;
+  notes: string | null;
+  changedBy: number;
+  changedByName: string;
+  changedAt: string;
+}
+
+export interface SkripsiSupervisor {
+  id: number;
+  fullName: string;
+  nidn: string;
+  nik: string;
+  prodiName: string;
+}
+
 // --- Bimbingan (GET /guidance/mentees, GET/POST /guidance/sessions) ---
 export interface Mentee {
   studentId: number;

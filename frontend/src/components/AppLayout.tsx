@@ -69,6 +69,24 @@ const MENU_ITEMS: {
     icon: 'check',
     description: 'Absensi check-in kehadiran',
   },
+  // Skripsi — Ajukan Bimbingan
+  {
+    permissions: ['thesis.submit'],
+    roles: ['mahasiswa'],
+    label: 'Ajukan Bimbingan',
+    path: '/skripsi/ajukan',
+    icon: 'document',
+    description: 'Ajukan proposal skripsi & bimbingan',
+  },
+  // Skripsi — Sidang
+  {
+    permissions: ['thesis.submit'],
+    roles: ['mahasiswa'],
+    label: 'Sidang',
+    path: '/skripsi/sidang',
+    icon: 'clipboard',
+    description: 'Pendaftaran sidang skripsi',
+  },
   {
     permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
     label: 'KRS',

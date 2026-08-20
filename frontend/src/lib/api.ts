@@ -1229,6 +1229,47 @@ export async function checkInAttendance(input: {
   return apiRequest('/attendance/check-in', { method: 'POST', body: input });
 }
 
+/* --- Skripsi (thesis proposals) --- */
+
+import type {
+  SkripsiProposal,
+  SkripsiProposalStatus,
+  SkripsiStatus,
+  SkripsiSupervisor,
+} from './types';
+
+/** GET /skripsi/supervisors — list dosen pembimbing per prodi mahasiswa. */
+export async function getSkripsiSupervisors() {
+  return apiRequest<SkripsiSupervisor[]>('/skripsi/supervisors');
+}
+
+/** POST /skripsi/proposals — mahasiswa submit proposal skripsi. */
+export async function submitSkripsiProposal(input: {
+  title: string;
+  proposalFile?: string;
+  supervisorId: number;
+}) {
+  return apiRequest('/skripsi/proposals', { method: 'POST', body: input });
+}
+
+/** GET /skripsi/proposals — list proposals (mahasiswa=own, dosen=supervised, admin=all). */
+export async function getSkripsiProposals() {
+  return apiRequest<SkripsiProposal[]>('/skripsi/proposals?limit=100');
+}
+
+/** PUT /skripsi/proposals/:id — dosen/admin update status. */
+export async function updateSkripsiProposal(
+  proposalId: number,
+  input: { status: SkripsiStatus; statusNotes?: string },
+) {
+  return apiRequest(`/skripsi/proposals/${proposalId}`, { method: 'PUT', body: input });
+}
+
+/** GET /skripsi/proposals/:id/statuses — status history. */
+export async function getSkripsiProposalStatuses(proposalId: number) {
+  return apiRequest<SkripsiProposalStatus[]>(`/skripsi/proposals/${proposalId}/statuses`);
+}
+
 /* --- Bimbingan (GET /guidance/mentees, GET/POST /guidance/sessions) --- */
 
 interface GuidanceSessionRow {

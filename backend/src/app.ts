@@ -22,6 +22,7 @@ import { createGuidanceRouter } from './modules/guidance';
 import { createSubstituteRouter } from './modules/substitute';
 import { createAdminMasterRouter } from './modules/admin-master';
 import { createAnnouncementRouter } from './modules/announcement';
+import { createSkripsiRouter } from './modules/skripsi';
 import { createStudentProfileRouter } from './modules/student-profile';
 import {
   WaitingRoomService,
@@ -96,6 +97,7 @@ export function createApp(healthDeps: HealthDependencies = {}, options: AppOptio
   app.use('/api/v1/substitute', createSubstituteRouter());
   app.use('/api/v1/admin-master', createAdminMasterRouter());
   app.use('/api/v1/announcements', createAnnouncementRouter());
+  app.use('/api/v1/skripsi', createSkripsiRouter());
   app.use('/api/v1/students', createStudentProfileRouter());
 
   app.use(notFoundHandler);
