@@ -1,0 +1,319 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import { getSkripsiProposals, updateSkripsiProposal, getSkripsiProposalStatuses } from '../lib/api';
+import type { SkripsiProposal, SkripsiStatus, SkripsiProposalStatus } from '../lib/types';
+import { FormAlert } from '../components/ErrorInline';
+import { Spinner } from '../components/Spinner';
+
+const STATUS_LABEL: Record<SkripsiStatus, string> = {
+  draft: 'Draft',
+  diajukan: 'Diajukan',
+  dilihat_dosen: 'Dilihat Dosen',
+  disetujui_dosen: 'Disetujui Dosen',
+  ditolak_dosen: 'Ditolak Dosen',
+  disetujui_admin: 'Disetujui Admin',
+  ditolak_admin: 'Ditolak Admin',
+  dalam_bimbingan: 'Dalam Bimbingan',
+  siap_sidang: 'Siap Sidang',
+  lulus: 'Lulus',
+  tidak_lulus: 'Tidak Lulus',
+};
+
+const STATUS_COLOR: Record<SkripsiStatus, string> = {
+  draft: 'bg-slate-100 text-slate-700',
+  diajukan: 'bg-amber-100 text-amber-700',
+  dilihat_dosen: 'bg-blue-100 text-blue-700',
+  disetujui_dosen: 'bg-green-100 text-green-700',
+  ditolak_dosen: 'bg-red-100 text-red-700',
+  disetujui_admin: 'bg-emerald-100 text-emerald-700',
+  ditolak_admin: 'bg-red-100 text-red-700',
+  dalam_bimbingan: 'bg-indigo-100 text-indigo-700',
+  siap_sidang: 'bg-purple-100 text-purple-700',
+  lulus: 'bg-green-100 text-green-800 font-medium',
+  tidak_lulus: 'bg-red-100 text-red-800 font-medium',
+};
+
+const NEXT_STATUS_MAP: Partial<
+  Record<SkripsiStatus, { approve: SkripsiStatus; reject: SkripsiStatus }>
+> = {
+  diajukan: { approve: 'dilihat_dosen', reject: 'ditolak_dosen' },
+  dilihat_dosen: { approve: 'disetujui_dosen', reject: 'ditolak_dosen' },
+  disetujui_dosen: { approve: 'dalam_bimbingan', reject: 'ditolak_dosen' },
+  ditolak_dosen: { approve: 'dalam_bimbingan', reject: 'ditolak_dosen' },
+  dalam_bimbingan: { approve: 'siap_sidang', reject: 'tidak_lulus' },
+  siap_sidang: { approve: 'lulus', reject: 'tidak_lulus' },
+};
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function DosenProposalReview() {
+  const { user } = useAuth();
+  const [proposals, setProposals] = useState<SkripsiProposal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [statusHistories, setStatusHistories] = useState<Record<number, SkripsiProposalStatus[]>>(
+    {},
+  );
+  const [historyLoadingId, setHistoryLoadingId] = useState<number | null>(null);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    loadProposals();
+  }, []);
+
+  const loadProposals = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getSkripsiProposals();
+      // Filter proposals where this dosen is one of the supervisors
+      const filtered = data.filter((p) => p.supervisors?.some((s) => s.id === user?.id));
+      setProposals(filtered);
+    } catch {
+      setError('Gagal memuat daftar proposal');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadStatusHistory = async (proposalId: number) => {
+    if (statusHistories[proposalId]) return;
+    setHistoryLoadingId(proposalId);
+    try {
+      const history = await getSkripsiProposalStatuses(proposalId);
+      setStatusHistories((prev) => ({ ...prev, [proposalId]: history }));
+    } catch {
+      setError('Gagal memuat riwayat status');
+    } finally {
+      setHistoryLoadingId(null);
+    }
+  };
+
+  const toggleExpand = async (proposalId: number) => {
+    if (expandedId === proposalId) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(proposalId);
+      await loadStatusHistory(proposalId);
+    }
+  };
+
+  const handleUpdateStatus = async (proposalId: number, action: 'approve' | 'reject') => {
+    const proposal = proposals.find((p) => p.id === proposalId);
+    if (!proposal) return;
+
+    const next = NEXT_STATUS_MAP[proposal.status];
+    if (!next) {
+      setError('Proposal tidak bisa diubah statusnya lagi');
+      return;
+    }
+
+    const newStatus = action === 'approve' ? next.approve : next.reject;
+    const notes =
+      action === 'approve'
+        ? 'Proposal disetujui oleh dosen pembimbing'
+        : 'Proposal ditolak oleh dosen pembimbing';
+
+    setUpdatingId(proposalId);
+    try {
+      await updateSkripsiProposal(proposalId, { status: newStatus, statusNotes: notes });
+      // Update local state
+      setProposals((prev) =>
+        prev.map((p) =>
+          p.id === proposalId ? { ...p, status: newStatus, statusNotes: notes } : p,
+        ),
+      );
+      // Clear history cache to reload
+      setStatusHistories((prev) => {
+        const next = { ...prev };
+        delete next[proposalId];
+        return next;
+      });
+    } catch {
+      setError('Gagal mengubah status proposal');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const canAct = (status: SkripsiStatus) => {
+    return (
+      status === 'diajukan' ||
+      status === 'dilihat_dosen' ||
+      status === 'disetujui_dosen' ||
+      status === 'dalam_bimbingan' ||
+      status === 'siap_sidang'
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Spinner label="Memuat proposal..." />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Pengajuan Proposal</h1>
+          <p className="text-slate-500 mt-1">
+            Review proposal skripsi mahasiswa yang memilih Anda sebagai pembimbing
+          </p>
+        </div>
+      </header>
+
+      {error && <FormAlert>{error}</FormAlert>}
+
+      {proposals.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
+          <svg
+            className="mx-auto h-12 w-12 text-slate-300"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <h3 className="mt-4 text-lg font-medium text-slate-900">Belum ada proposal</h3>
+          <p className="mt-1 text-slate-500">
+            Tidak ada mahasiswa yang mengajukan proposal dengan Anda sebagai pembimbing.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {proposals.map((p) => {
+            const isExpanded = expandedId === p.id;
+            const history = statusHistories[p.id];
+            const actionable = canAct(p.status);
+            return (
+              <div key={p.id} className="rounded-xl border border-slate-200 bg-white">
+                <button
+                  onClick={() => toggleExpand(p.id)}
+                  className="w-full px-6 py-4 flex items-center justify-between gap-4 text-left"
+                >
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-slate-900 truncate">{p.title}</h3>
+                    <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                      <span>NIM: {p.nim}</span>
+                      <span>{p.studentName}</span>
+                      <span>Prodi: {p.prodiName}</span>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLOR[p.status]}`}
+                      >
+                        {STATUS_LABEL[p.status]}
+                      </span>
+                    </div>
+                    {p.supervisors && p.supervisors.length > 1 && (
+                      <p className="mt-1 text-xs text-slate-400">
+                        Pembimbing: {p.supervisors.map((s) => s.fullName).join(', ')}
+                        {p.supervisors.find((s) => s.isPrimary) && ' (Pembimbing Utama)'}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {actionable && updatingId !== p.id && (
+                      <>
+                        <button
+                          onClick={() => handleUpdateStatus(p.id, 'approve')}
+                          className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition"
+                        >
+                          Setujui
+                        </button>
+                        <button
+                          onClick={() => handleUpdateStatus(p.id, 'reject')}
+                          className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition"
+                        >
+                          Tolak
+                        </button>
+                      </>
+                    )}
+                    {updatingId === p.id && <Spinner className="h-4 w-4" label="Menyimpan..." />}
+                    <svg
+                      className={`h-5 w-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
+                </button>
+
+                {isExpanded && (
+                  <div className="border-t border-slate-100 bg-slate-50 px-6 py-4">
+                    <h4 className="font-medium text-slate-700 mb-3">Riwayat Status</h4>
+                    {historyLoadingId === p.id ? (
+                      <Spinner className="h-4 w-4" label="Memuat riwayat..." />
+                    ) : history ? (
+                      <div className="space-y-2">
+                        {history.map((h) => (
+                          <div
+                            key={h.id}
+                            className="flex items-start gap-3 p-3 bg-white rounded-lg border border-slate-100"
+                          >
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                              <svg
+                                className="h-4 w-4 text-primary-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-slate-900">
+                                  {STATUS_LABEL[h.status]}
+                                </span>
+                                <span className="text-xs text-slate-400">
+                                  {formatDate(h.changedAt)}
+                                </span>
+                              </div>
+                              <div className="text-sm text-slate-500">{h.changedByName}</div>
+                              {h.notes && (
+                                <div className="text-sm text-slate-500 mt-1">{h.notes}</div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 text-sm">Belum ada riwayat status</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

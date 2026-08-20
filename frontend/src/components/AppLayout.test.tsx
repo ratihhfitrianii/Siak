@@ -311,8 +311,9 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     mockUser = { ...DOSEN, isWali: true };
     renderLayout();
 
-    expect(screen.getByRole('link', { name: 'Bimbingan' })).toBeInTheDocument();
-    expect(screen.getByText('Bimbingan')).toBeInTheDocument();
+    // Bimbingan is now a parent dropdown - check the parent menu exists
+    const bimbinganMenus = screen.getAllByText('Bimbingan');
+    expect(bimbinganMenus.length).toBeGreaterThanOrEqual(1);
   });
 
   it('submenu dosen TIDAK muncul untuk role lain (mahasiswa/admin)', () => {

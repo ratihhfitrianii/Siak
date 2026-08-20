@@ -65,6 +65,13 @@ const MahasiswaAjukanBimbingan = lazy(() =>
 const MahasiswaSidang = lazy(() =>
   import('./pages/MahasiswaSidang').then((m) => ({ default: m.MahasiswaSidang })),
 );
+// Dosen Bimbingan pages
+const DosenProposalReview = lazy(() =>
+  import('./pages/DosenProposalReview').then((m) => ({ default: m.DosenProposalReview })),
+);
+const DosenBimbinganBerjalan = lazy(() =>
+  import('./pages/DosenBimbinganBerjalan').then((m) => ({ default: m.DosenBimbinganBerjalan })),
+);
 
 const AdminCourseReviewPage = lazy(() =>
   import('./pages/AdminCourseReviewPage').then((m) => ({ default: m.AdminCourseReviewPage })),
@@ -180,6 +187,28 @@ export default function App() {
               <ProtectedRoute perm="thesis.submit">
                 <AppLayout>
                   <MahasiswaSidang />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Dosen — Pengajuan Proposal */}
+          <Route
+            path="/dosen/bimbingan/proposal"
+            element={
+              <ProtectedRoute perm="thesis.review">
+                <AppLayout>
+                  <DosenProposalReview />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Dosen — Bimbingan Berjalan */}
+          <Route
+            path="/dosen/bimbingan/berjalan"
+            element={
+              <ProtectedRoute perm="guidance.manage">
+                <AppLayout>
+                  <DosenBimbinganBerjalan />
                 </AppLayout>
               </ProtectedRoute>
             }

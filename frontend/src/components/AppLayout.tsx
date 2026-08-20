@@ -56,6 +56,8 @@ const MENU_ITEMS: {
     path: string;
     icon: string;
     description: string;
+    roles?: string[];
+    requiresWali?: boolean;
   }[];
 }[] = [
   // Profil mahasiswa — di bawah Dashboard di sidebar
@@ -215,6 +217,32 @@ const MENU_ITEMS: {
     path: '/dosen/substitute',
     icon: 'swap',
     description: 'Kelola penggantian jadwal',
+  },
+  // Bimbingan — Parent dropdown untuk dosen
+  {
+    permissions: ['thesis.review', 'guidance.manage'],
+    roles: ['dosen'],
+    label: 'Bimbingan',
+    path: '/dosen/bimbingan',
+    icon: 'chat',
+    description: 'Kelola bimbingan skripsi & mahasiswa binaan',
+    children: [
+      {
+        permissions: ['thesis.review'],
+        label: 'Pengajuan Proposal',
+        path: '/dosen/bimbingan/proposal',
+        icon: 'clipboard',
+        description: 'Review & setujui/tolak proposal skripsi',
+      },
+      {
+        permissions: ['guidance.manage'],
+        requiresWali: true,
+        label: 'Bimbingan Berjalan',
+        path: '/dosen/bimbingan/berjalan',
+        icon: 'book',
+        description: 'Daftar mahasiswa bimbingan berjalan',
+      },
+    ],
   },
   {
     permissions: ['grade.input'],
