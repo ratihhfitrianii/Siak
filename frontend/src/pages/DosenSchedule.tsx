@@ -296,10 +296,15 @@ export function DosenSchedule() {
                 const hasSchedules = cls.schedules.length > 0;
 
                 return (
-                  <button
+                  <div
                     key={cls.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedId(cls.id)}
-                    className={`w-full text-left rounded-lg border-2 p-3 transition-all duration-150 ${
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') setSelectedId(cls.id);
+                    }}
+                    className={`w-full text-left rounded-lg border-2 p-3 transition-all duration-150 cursor-pointer ${
                       cls.id === selectedId
                         ? 'border-primary-500 ring-2 ring-primary-200 bg-white shadow-md'
                         : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
@@ -355,11 +360,33 @@ export function DosenSchedule() {
                               </svg>
                               Belum Terjadwal
                             </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedId(cls.id);
+                              }}
+                              className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-md hover:bg-red-600 transition-colors"
+                            >
+                              <svg
+                                className="w-3.5 h-3.5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
+                              </svg>
+                              Atur Jadwal
+                            </button>
                           </div>
                         )}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

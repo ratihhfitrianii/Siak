@@ -151,8 +151,10 @@ describe('DosenSchedule (jadwal mengajar)', () => {
     render(<DosenSchedule />);
     await screen.findByText('Dr. Budi Santoso');
 
-    // Red dot on unscheduled card
+    // Red dot + "Atur Jadwal" button on unscheduled card
     expect(screen.getAllByText('Belum Terjadwal').length).toBeGreaterThanOrEqual(1);
+    const scheduleBtns = screen.getAllByRole('button', { name: /Atur Jadwal/i });
+    expect(scheduleBtns.length).toBeGreaterThanOrEqual(1);
 
     // No calendar block for TI103 (no day/time = no block)
     expect(document.querySelector('[title*="TI103"]')).not.toBeInTheDocument();
@@ -178,11 +180,11 @@ describe('DosenSchedule (jadwal mengajar)', () => {
     render(<DosenSchedule />);
     await screen.findByText('Dr. Budi Santoso');
 
-    // Click second card (name appears in card + calendar, so scope to button)
-    const cardBtn = screen.getAllByText('Struktur Data')[0].closest('button')!;
-    await userEvent.click(cardBtn);
+    // Click second card (name appears in card + calendar, scope to the div role=button)
+    const cardEl = screen.getAllByText('Struktur Data')[0].closest('[role="button"]')!;
+    await userEvent.click(cardEl);
 
-    expect(cardBtn.className).toContain('border-primary-500');
+    expect(cardEl.className).toContain('border-primary-500');
   });
 
   it('load gagal → tampilkan error', async () => {
