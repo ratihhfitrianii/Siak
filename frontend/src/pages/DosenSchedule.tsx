@@ -185,7 +185,6 @@ export function DosenSchedule() {
 
     for (const cls of classes) {
       if (!cls.dayOfWeek || !cls.startTime || !cls.endTime) continue;
-      if (cls.schedules.length === 0) continue; // only show classes with actual meetings
       const col = DAY_COL_MAP[cls.dayOfWeek];
       if (!col) continue;
 

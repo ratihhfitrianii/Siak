@@ -212,8 +212,8 @@ describe('DosenSchedule (jadwal mengajar)', () => {
     expect(screen.getByText(/belum dijadwalkan/)).toBeInTheDocument();
     expect(screen.getByText('Jadwal Mingguan')).toBeInTheDocument();
 
-    // All classes have day/time but 0 schedules → NO calendar blocks (blocks require meetings)
+    // Classes have day/time → blocks appear on calendar (schedules check not needed for time slots)
     const blocks = document.querySelectorAll('[title*="TI101"]');
-    expect(blocks.length).toBe(0);
+    expect(blocks.length).toBeGreaterThanOrEqual(1);
   });
 });
