@@ -202,15 +202,6 @@ const MENU_ITEMS: {
     description: 'Input absensi pertemuan',
   },
   {
-    permissions: ['guidance.manage'],
-    roles: ['dosen'],
-    requiresWali: true,
-    label: 'Bimbingan',
-    path: '/dosen/bimbingan',
-    icon: 'chat',
-    description: 'Bimbingan mahasiswa binaan',
-  },
-  {
     permissions: ['substitute.manage'],
     roles: ['dosen'],
     label: 'Substitute',
@@ -218,14 +209,15 @@ const MENU_ITEMS: {
     icon: 'swap',
     description: 'Kelola penggantian jadwal',
   },
-  // Bimbingan — Parent dropdown untuk dosen
+  // Bimbingan — Parent dropdown untuk dosen (Bimbingan Berjalan + Pengajuan Proposal)
   {
-    permissions: ['thesis.review', 'guidance.manage'],
+    permissions: ['guidance.manage'],
     roles: ['dosen'],
-    label: 'Bimbingan',
-    path: '/dosen/bimbingan',
-    icon: 'chat',
-    description: 'Kelola bimbingan skripsi & mahasiswa binaan',
+    requiresWali: true,
+    label: 'Bimbingan Berjalan',
+    path: '/dosen/bimbingan/berjalan',
+    icon: 'book',
+    description: 'Daftar mahasiswa bimbingan berjalan',
     children: [
       {
         permissions: ['thesis.review'],
@@ -233,14 +225,6 @@ const MENU_ITEMS: {
         path: '/dosen/bimbingan/proposal',
         icon: 'clipboard',
         description: 'Review & setujui/tolak proposal skripsi',
-      },
-      {
-        permissions: ['guidance.manage'],
-        requiresWali: true,
-        label: 'Bimbingan Berjalan',
-        path: '/dosen/bimbingan/berjalan',
-        icon: 'book',
-        description: 'Daftar mahasiswa bimbingan berjalan',
       },
     ],
   },

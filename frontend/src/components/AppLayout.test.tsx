@@ -104,6 +104,7 @@ const DOSEN = {
     'lecturer.availability',
     'attendance.input',
     'guidance.manage',
+    'thesis.review',
     'substitute.manage',
     'grade.input',
   ],
@@ -307,13 +308,12 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.queryByText('Input dan ubah nilai')).not.toBeInTheDocument();
   });
 
-  it('dosen Wali → menu Bimbingan tampil di sidebar', () => {
+  it('dosen Wali → menu Bimbingan Berjalan tampil di sidebar', () => {
     mockUser = { ...DOSEN, isWali: true };
     renderLayout();
 
-    // Bimbingan is now a parent dropdown - check the parent menu exists
-    const bimbinganMenus = screen.getAllByText('Bimbingan');
-    expect(bimbinganMenus.length).toBeGreaterThanOrEqual(1);
+    // Bimbingan Berjalan is now the parent menu - use regex for flexible match
+    expect(screen.getByText(/Bimbingan Berjalan/)).toBeInTheDocument();
   });
 
   it('submenu dosen TIDAK muncul untuk role lain (mahasiswa/admin)', () => {
