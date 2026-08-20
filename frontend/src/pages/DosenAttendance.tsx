@@ -271,9 +271,15 @@ export function DosenAttendance() {
                         Pertemuan {s.meetingNumber} · {s.sessionDate}
                       </span>
                     </h4>
-                    <p className="text-sm text-slate-600 mt-1">
-                      {s.topic ?? 'Tanpa topik'} · Hadir {s.hadirCount}/{s.totalRecords}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="inline-flex items-center gap-1 text-xs font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                        ID: {s.id}
+                      </span>
+                      <span className="text-xs text-slate-400">•</span>
+                      <span className="text-xs text-slate-500">
+                        {s.topic ?? 'Tanpa topik'} · Hadir {s.hadirCount}/{s.totalRecords}
+                      </span>
+                    </div>
                   </button>
                   <div className="flex items-center gap-2 shrink-0">
                     <span
