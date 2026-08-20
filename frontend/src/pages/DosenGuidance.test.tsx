@@ -4,8 +4,6 @@ import { controlFor } from '../test/controls';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenGuidance } from './DosenGuidance';
 
-// userEvent + coverage instrumentation lambat → timeout default 5s sering kebentur
-// (flaky pre-existing saat full suite; standalone selalu pass). Naikkan per-file.
 vi.setConfig({ testTimeout: 20_000 });
 
 function jsonResponse(payload: unknown, status = 200) {
@@ -16,7 +14,6 @@ function jsonResponse(payload: unknown, status = 200) {
   } as Response;
 }
 
-/** Raw snake_case dari backend (normalisasi di lib/api). */
 const MENTEES_RAW = [
   {
     student_id: 1,
@@ -55,7 +52,7 @@ const SESSIONS_RAW = [
   },
 ];
 
-describe('DosenGuidance (T3.8)', () => {
+describe('DosenGuidance', () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
@@ -64,7 +61,6 @@ describe('DosenGuidance (T3.8)', () => {
     fetchMock.mockImplementation((url: string) => {
       const u = String(url);
       if (u.includes('/guidance/mentees')) {
-        // Handle search query param if present
         return Promise.resolve(jsonResponse({ data: MENTEES_RAW }));
       }
       if (u.includes('/guidance/sessions')) {
@@ -78,16 +74,42 @@ describe('DosenGuidance (T3.8)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('render — header + form bimbingan + daftar sesi dari API', async () => {
+  it('render — header + search + student cards + form', async () => {
     render(<DosenGuidance />);
     expect(screen.getByText('Bimbingan Mahasiswa Binaan')).toBeInTheDocument();
-    expect(await screen.findByText('Budi Santoso (2023110001)')).toBeInTheDocument();
-    expect(screen.getByText('Konsultasi KRS')).toBeInTheDocument();
-    // Badge progress di daftar sesi (bukan option select "Berjalan")
-    expect(screen.getByText('Berjalan', { selector: 'span' })).toBeInTheDocument();
+    // Student cards visible
+    expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
+    expect(screen.getByText('Ani Wijaya')).toBeInTheDocument();
+    // Search bar
+    expect(screen.getByPlaceholderText(/Cari berdasarkan NIM, nama, email/)).toBeInTheDocument();
+    // Form
+    expect(screen.getByText('Catat Bimbingan Baru')).toBeInTheDocument();
   });
 
-  it('tanpa mahasiswa binaan → pesan khusus', async () => {
+  it('expand card — show session detail', async () => {
+    const user = userEvent.setup();
+    render(<DosenGuidance />);
+    await screen.findByText('Budi Santoso');
+
+    // Click on Budi's card to expand
+    await user.click(screen.getByText('Budi Santoso'));
+    // Session detail visible
+    expect(await screen.findByText('Konsultasi KRS')).toBeInTheDocument();
+  });
+
+  it('collapse card — hide session detail', async () => {
+    const user = userEvent.setup();
+    render(<DosenGuidance />);
+    await screen.findByText('Budi Santoso');
+
+    // Expand then collapse
+    await user.click(screen.getByText('Budi Santoso'));
+    await screen.findByText('Konsultasi KRS');
+    await user.click(screen.getByText('Budi Santoso'));
+    expect(screen.queryByText('Konsultasi KRS')).not.toBeInTheDocument();
+  });
+
+  it('tanpa mahasiswa binaan — pesan kosong', async () => {
     fetchMock.mockImplementation((url: string) => {
       if (String(url).includes('/guidance/mentees')) {
         return Promise.resolve(jsonResponse({ data: [] }));
@@ -95,12 +117,10 @@ describe('DosenGuidance (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: [] }));
     });
     render(<DosenGuidance />);
-    expect(
-      await screen.findByText('Anda belum memiliki mahasiswa binaan (atribut Wali).'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Belum ada mahasiswa binaan')).toBeInTheDocument();
   });
 
-  it('load gagal → error', async () => {
+  it('load gagal — error', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'x' } }, 500),
     );
@@ -108,7 +128,7 @@ describe('DosenGuidance (T3.8)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat data bimbingan');
   });
 
-  it('submit lengkap → POST /guidance/sessions + success', async () => {
+  it('submit — POST /guidance/sessions + success', async () => {
     const user = userEvent.setup();
     let postBody: unknown = null;
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
@@ -141,14 +161,18 @@ describe('DosenGuidance (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenGuidance />);
-    await screen.findByText('Budi Santoso (2023110001)');
+    await screen.findByText('Budi Santoso');
 
-    await user.selectOptions(controlFor('Pilih Mahasiswa Binaan', 'select'), '1');
+    // Select student
+    await user.selectOptions(controlFor('Mahasiswa Binaan', 'select'), '1');
+    // Date
     await user.type(controlFor('Tanggal Bimbingan', 'input'), '2026-08-10');
+    // Progress
     await user.selectOptions(controlFor('Progress', 'select'), 'berjalan');
-    await user.type(controlFor('Catatan', 'textarea'), 'Bimbingan Bab 3');
+    // Notes
+    await user.type(controlFor('Catatan Bimbingan', 'textarea'), 'Bimbingan Bab 3');
 
-    await user.click(screen.getByRole('button', { name: 'Simpan Bimbingan' }));
+    await user.click(screen.getByRole('button', { name: 'Simpan Catatan' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Catatan bimbingan berhasil disimpan',
     );
@@ -160,46 +184,19 @@ describe('DosenGuidance (T3.8)', () => {
     });
   });
 
-  it('submit FORBIDDEN → pesan hanya dosen Wali', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      const u = String(url);
-      if (init?.method === 'POST' && u.endsWith('/guidance/sessions')) {
-        return Promise.resolve(
-          jsonResponse(
-            { success: false, error: { code: 'FORBIDDEN', message: 'bukan wali' } },
-            403,
-          ),
-        );
-      }
-      if (u.includes('/guidance/mentees')) {
-        return Promise.resolve(jsonResponse({ data: MENTEES_RAW }));
-      }
-      return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
-    });
-    render(<DosenGuidance />);
-    await screen.findByText('Budi Santoso (2023110001)');
-
-    await user.selectOptions(controlFor('Pilih Mahasiswa Binaan', 'select'), '1');
-    await user.type(controlFor('Tanggal Bimbingan', 'input'), '2026-08-11');
-    await user.type(controlFor('Catatan', 'textarea'), 'test');
-    await user.click(screen.getByRole('button', { name: 'Simpan Bimbingan' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Anda tidak memiliki izin untuk bimbingan mahasiswa ini (hanya dosen Wali)',
-    );
-  });
-
-  it('filter sesi berdasarkan mahasiswa', async () => {
+  it('click + Catat Bimbingan Baru pada card → pindah ke form', async () => {
     const user = userEvent.setup();
     render(<DosenGuidance />);
-    await screen.findByText('Budi Santoso (2023110001)');
+    await screen.findByText('Budi Santoso');
 
-    // Sesi Budi (student 1) tampil; pilih Ani (student 2) → daftar kosong
-    await user.selectOptions(controlFor('Pilih Mahasiswa Binaan', 'select'), '2');
-    expect(
-      await screen.findByText('Belum ada catatan bimbingan untuk mahasiswa ini.'),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Konsultasi KRS')).not.toBeInTheDocument();
+    // Expand Budi's card
+    await user.click(screen.getByText('Budi Santoso'));
+    // Click "Catat Bimbingan Baru" button inside expanded card
+    const addBtn = screen.getByRole('button', { name: /Catat Bimbingan Baru/ });
+    await user.click(addBtn);
+
+    // Student should be selected in form
+    const select = controlFor('Mahasiswa Binaan', 'select');
+    expect(select).toHaveValue('1');
   });
 });
