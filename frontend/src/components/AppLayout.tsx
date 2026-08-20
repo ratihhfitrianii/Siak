@@ -49,6 +49,7 @@ const MENU_ITEMS: {
   icon: string;
   description: string;
   roles?: string[];
+  requiresWali?: boolean;
 }[] = [
   // Profil mahasiswa — di bawah Dashboard di sidebar
   {
@@ -160,6 +161,7 @@ const MENU_ITEMS: {
   {
     permissions: ['guidance.manage'],
     roles: ['dosen'],
+    requiresWali: true,
     label: 'Bimbingan',
     path: '/dosen/bimbingan',
     icon: 'chat',
@@ -349,6 +351,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     (item) =>
       !hidden.includes(item.path) &&
       (!item.roles || item.roles.includes(user.role)) &&
+      (!item.requiresWali || user.isWali) &&
       item.permissions.some((p) => user.menu.includes(p)),
   );
 

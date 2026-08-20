@@ -290,19 +290,29 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
   });
 
-  it('keluhan #5 — submenu dosen pindah ke sidebar (Pilih MK, Jadwal, Absensi, Bimbingan, Substitute, Nilai)', () => {
+  it('keluhan #5 — submenu dosen pindah ke sidebar (Pilih MK, Jadwal, Absensi, Substitute, Nilai)', () => {
     mockUser = DOSEN;
     renderLayout();
 
-    for (const label of ['Pilih MK', 'Jadwal', 'Absensi', 'Bimbingan', 'Substitute', 'Nilai']) {
+    // Non-wali dosen: Bimbingan TIDAK tampil
+    for (const label of ['Pilih MK', 'Jadwal', 'Absensi', 'Substitute', 'Nilai']) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
+    expect(screen.queryByRole('link', { name: 'Bimbingan' })).not.toBeInTheDocument();
     // Expanded: label inline tampil (bukan tooltip).
     expect(screen.getByText('Pilih MK')).toBeInTheDocument();
     expect(screen.getByText('Nilai')).toBeInTheDocument();
     // Tooltip deskripsi TIDAK dirender saat expanded.
     expect(screen.queryByText('Pilih mata kuliah yang diampu')).not.toBeInTheDocument();
     expect(screen.queryByText('Input dan ubah nilai')).not.toBeInTheDocument();
+  });
+
+  it('dosen Wali → menu Bimbingan tampil di sidebar', () => {
+    mockUser = { ...DOSEN, isWali: true };
+    renderLayout();
+
+    expect(screen.getByRole('link', { name: 'Bimbingan' })).toBeInTheDocument();
+    expect(screen.getByText('Bimbingan')).toBeInTheDocument();
   });
 
   it('submenu dosen TIDAK muncul untuk role lain (mahasiswa/admin)', () => {
