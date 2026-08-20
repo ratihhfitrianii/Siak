@@ -84,7 +84,11 @@ export function createRbacRouter(): Router {
   router.get('/me', authenticate, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user!;
-      const menu = permissionsFor(user.roleCode);
+      let menu = permissionsFor(user.roleCode);
+      // Dosen Wali mendapat permission guidance.manage untuk sidebar
+      if (user.roleCode === 'dosen' && user.isWali && !menu.includes('guidance.manage')) {
+        menu = [...menu, 'guidance.manage'];
+      }
 
       const result = await pgPool.query(
         `SELECT u.id, u.email, u.full_name, u.is_active, u.must_change_password, u.created_at,
