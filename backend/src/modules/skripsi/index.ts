@@ -2,8 +2,25 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import { z } from 'zod';
 import { pgPool } from '../../lib/pg';
 import { authenticate, authorize } from '../../lib/auth-middleware';
+import { can } from '../../lib/policy';
 import { auditFromRequest } from '../../lib/audit-service';
 import { AppError } from '../../middleware/error-handler';
+import type { Permission } from '../../lib/policy';
+
+/** Authorize — cek apakah user punya SALAH SATU dari permissions. */
+function authorizeAny(...permissions: Permission[]) {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      next(new AppError('UNAUTHORIZED', 'Authenticate required', 401));
+      return;
+    }
+    if (!permissions.some((p) => can(req.user!.roleCode, p))) {
+      next(new AppError('FORBIDDEN', 'Akses ditolak: di luar peran Anda', 403));
+      return;
+    }
+    next();
+  };
+}
 
 /**
  * Modul Skripsi — proposal & sidang:
@@ -50,10 +67,9 @@ export function createSkripsiRouter(): Router {
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         // Get student's prodi
-        const studentRes = await pgPool.query(
-          `SELECT s.prodi_id FROM students s WHERE s.id = $1`,
-          [req.user!.studentId],
-        );
+        const studentRes = await pgPool.query(`SELECT s.prodi_id FROM students s WHERE s.id = $1`, [
+          req.user!.studentId,
+        ]);
         if (studentRes.rows.length === 0) {
           throw new AppError('FORBIDDEN', 'Akun bukan mahasiswa aktif', 403);
         }
@@ -149,7 +165,7 @@ export function createSkripsiRouter(): Router {
   router.get(
     '/proposals',
     authenticate,
-    authorize('thesis.submit', 'thesis.review', 'thesis.manage'),
+    authorizeAny('thesis.submit', 'thesis.review', 'thesis.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { page = '1', limit = '20' } = req.query;
@@ -160,8 +176,7 @@ export function createSkripsiRouter(): Router {
         const roleCode = req.user!.roleCode;
         const isStudent = roleCode === 'mahasiswa';
         const isLecturer = roleCode === 'dosen';
-        const isAdmin =
-          roleCode === 'admin_akademik' || roleCode === 'admin_sistem';
+        const isAdmin = roleCode === 'admin_akademik' || roleCode === 'admin_sistem';
 
         let where = 'WHERE 1=1';
         const params: (string | number)[] = [];
@@ -232,7 +247,7 @@ export function createSkripsiRouter(): Router {
   router.get(
     '/proposals/:id/statuses',
     authenticate,
-    authorize('thesis.submit', 'thesis.review', 'thesis.manage'),
+    authorizeAny('thesis.submit', 'thesis.review', 'thesis.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const proposalId = parseInt(req.params.id ?? '', 10);
@@ -273,7 +288,7 @@ export function createSkripsiRouter(): Router {
   router.put(
     '/proposals/:id',
     authenticate,
-    authorize('thesis.review', 'thesis.manage'),
+    authorizeAny('thesis.review', 'thesis.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const proposalId = parseInt(req.params.id ?? '', 10);
@@ -283,10 +298,9 @@ export function createSkripsiRouter(): Router {
         const data = proposalUpdateSchema.parse(req.body);
 
         // Verify proposal exists
-        const existing = await pgPool.query(
-          `SELECT * FROM skripsi_proposals WHERE id = $1`,
-          [proposalId],
-        );
+        const existing = await pgPool.query(`SELECT * FROM skripsi_proposals WHERE id = $1`, [
+          proposalId,
+        ]);
         if (existing.rows.length === 0) {
           throw new AppError('NOT_FOUND', 'Proposal tidak ditemukan', 404);
         }

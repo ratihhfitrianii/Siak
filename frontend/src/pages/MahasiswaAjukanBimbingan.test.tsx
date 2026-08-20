@@ -203,9 +203,7 @@ describe('MahasiswaAjukanBimbingan', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText('Belum ada proposal skripsi')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Ajukan proposal pertama Anda/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Ajukan proposal pertama Anda/)).toBeInTheDocument();
   });
 
   it('file upload — shows file name confirmation', async () => {
@@ -287,14 +285,10 @@ describe('MahasiswaAjukanBimbingan', () => {
       </MemoryRouter>,
     );
     // Wait for proposals to load
-    await screen.findByText(
-      'Analisis Sistem Informasi Manajemen Keuangan Universitas',
-    );
+    await screen.findByText('Analisis Sistem Informasi Manajemen Keuangan Universitas');
 
     // Click chevron to expand — find the card's button via its h4 child
-    const title = screen.getByText(
-      'Analisis Sistem Informasi Manajemen Keuangan Universitas',
-    );
+    const title = screen.getByText('Analisis Sistem Informasi Manajemen Keuangan Universitas');
     await user.click(title.closest('button')!);
 
     // Status history visible
@@ -303,10 +297,7 @@ describe('MahasiswaAjukanBimbingan', () => {
 
   it('load error — shows error alert', async () => {
     fetchMock.mockResolvedValue(
-      jsonResponse(
-        { success: false, error: { code: 'INTERNAL', message: 'Server error' } },
-        500,
-      ),
+      jsonResponse({ success: false, error: { code: 'INTERNAL', message: 'Server error' } }, 500),
     );
     render(
       <MemoryRouter>

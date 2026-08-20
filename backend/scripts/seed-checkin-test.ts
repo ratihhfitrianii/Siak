@@ -49,7 +49,9 @@ async function main() {
   }
   console.log(`\nDitemukan ${sessRes.rows.length} sesi absensi:`);
   for (const sess of sessRes.rows) {
-    console.log(`  - ID: ${sess.id} | ${sess.course_code} (${sess.class_code}) | ${sess.session_date} | open=${sess.is_open}`);
+    console.log(
+      `  - ID: ${sess.id} | ${sess.course_code} (${sess.class_code}) | ${sess.session_date} | open=${sess.is_open}`,
+    );
   }
 
   // 3. Ambil sesi pertama untuk test
@@ -69,7 +71,9 @@ async function main() {
   if (enrollRes.rows.length > 0) {
     console.log(`Mahasiswa NIM ${NIM} sudah terdaftar di kelas ${target.class_code}.`);
   } else {
-    console.log(`Mahasiswa NIM ${NIM} BELUM terdaftar di kelas ${target.class_code}. Mendaftarkan...`);
+    console.log(
+      `Mahasiswa NIM ${NIM} BELUM terdaftar di kelas ${target.class_code}. Mendaftarkan...`,
+    );
 
     // Cari periode KRS aktif
     const periodRes = await pgPool.query(
@@ -115,12 +119,13 @@ async function main() {
     );
 
     // Update current_enrolled
-    await pgPool.query(
-      `UPDATE classes SET current_enrolled = current_enrolled + 1 WHERE id = $1`,
-      [classId],
-    );
+    await pgPool.query(`UPDATE classes SET current_enrolled = current_enrolled + 1 WHERE id = $1`, [
+      classId,
+    ]);
 
-    console.log(`Berhasil mendaftarkan NIM ${NIM} ke kelas ${target.class_code} (krs_submission_id=${subId})`);
+    console.log(
+      `Berhasil mendaftarkan NIM ${NIM} ke kelas ${target.class_code} (krs_submission_id=${subId})`,
+    );
   }
 
   // 5. Buka sesi jika belum terbuka
@@ -141,7 +146,9 @@ async function main() {
   console.log(`Kelas     : ${target.course_code} (${target.class_code})`);
   console.log(`Sesi ID   : ${target.id}`);
   console.log(`Status    : ${target.is_open ? 'Terbuka ✅' : 'Dibuka sekarang ✅'}`);
-  console.log(`\nCara test: Login sebagai mahasiswa NIM ${NIM} → /absensi/check-in → masukkan ID ${target.id}`);
+  console.log(
+    `\nCara test: Login sebagai mahasiswa NIM ${NIM} → /absensi/check-in → masukkan ID ${target.id}`,
+  );
   console.log('================================');
 }
 
