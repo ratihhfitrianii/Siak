@@ -212,10 +212,8 @@ describe('DosenSchedule (jadwal mengajar)', () => {
     expect(screen.getByText(/belum dijadwalkan/)).toBeInTheDocument();
     expect(screen.getByText('Jadwal Mingguan')).toBeInTheDocument();
 
-    // Classes still have day/time so blocks render — but 0 meetings badge shows "Belum"
-    // Calendar blocks are based on dayOfWeek/startTime, not schedules.length
-    // so they still appear for classes with assigned times
+    // All classes have day/time but 0 schedules → NO calendar blocks (blocks require meetings)
     const blocks = document.querySelectorAll('[title*="TI101"]');
-    expect(blocks.length).toBeGreaterThanOrEqual(1);
+    expect(blocks.length).toBe(0);
   });
 });
