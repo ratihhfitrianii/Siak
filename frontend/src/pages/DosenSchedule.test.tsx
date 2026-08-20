@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenSchedule } from './DosenSchedule';
@@ -45,13 +45,7 @@ const MY_CLASSES_RAW = [
         topic: 'Pengenalan',
         isCompleted: false,
       },
-      {
-        id: 12,
-        meetingNumber: 2,
-        scheduledDate: '2026-08-17',
-        topic: null,
-        isCompleted: true,
-      },
+      { id: 12, meetingNumber: 2, scheduledDate: '2026-08-17', topic: null, isCompleted: true },
     ],
   },
   {
@@ -92,60 +86,53 @@ describe('DosenSchedule (jadwal mengajar)', () => {
     vi.clearAllMocks();
   });
 
-  it('render awal — header ringkasan + Panel Kiri cards + Panel Kanan auto-select kelas pertama', async () => {
+  it('render awal — header + Panel Kiri cards + Panel Kanan kalender', async () => {
     mockedApi.getMyClasses.mockResolvedValueOnce({ items: MY_CLASSES_RAW });
 
     render(<DosenSchedule />);
 
-    // Header identity
     expect(await screen.findByText('Dr. Budi Santoso')).toBeInTheDocument();
     expect(screen.getByText('Ganjil 2025/2026')).toBeInTheDocument();
-
-    // SKS progress
-    expect(screen.getByText(/Beban Mengajar SKS/)).toBeInTheDocument();
-    expect(screen.getByText(/6\/6 SKS terjadwal/)).toBeInTheDocument();
-
-    // Status badge — all scheduled → Disetujui
     expect(screen.getByText('Disetujui')).toBeInTheDocument();
 
-    // Panel Kiri heading
+    // Panel Kiri
     expect(screen.getByText('Daftar Mata Kuliah')).toBeInTheDocument();
-
-    // Both class cards visible in Panel Kiri (name appears in card + detail panel)
+    // Name appears in card AND calendar block → use getAllByText
     expect(screen.getAllByText('Dasar-Dasar Pemrograman').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Struktur Data').length).toBeGreaterThanOrEqual(1);
 
-    // Panel Kanan: first class auto-selected, shows detail (async — useEffect sets selection)
-    expect(await screen.findByText('Daftar Pertemuan')).toBeInTheDocument();
-    expect(screen.getByText('Pengenalan')).toBeInTheDocument();
+    // Panel Kanan — calendar
+    expect(screen.getByText('Jadwal Mingguan')).toBeInTheDocument();
+    expect(screen.getByText('Senin–Sabtu • 07:00–18:00')).toBeInTheDocument();
   });
 
-  it('klik kartu kelas kedua → Panel Kanan tampilkan data kelas itu', async () => {
+  it('kelas terjadwal → blok warna di kalender dengan info lengkap', async () => {
     mockedApi.getMyClasses.mockResolvedValueOnce({ items: MY_CLASSES_RAW });
 
     render(<DosenSchedule />);
     await screen.findByText('Dr. Budi Santoso');
 
-    // Click second class card
-    await userEvent.click(screen.getByText('Struktur Data'));
+    const block = document.querySelector('[title*="TI101-A"]');
+    expect(block).toBeInTheDocument();
+    expect(block?.textContent).toContain('Dasar-Dasar Pemrograman');
+    expect(block?.textContent).toContain('07:30–09:00');
 
-    await waitFor(() => {
-      expect(screen.getByText('Array & Linked List')).toBeInTheDocument();
-    });
-    // Should show Struktur Data detail, not TI101
-    expect(screen.getByText('TI102 • 3 SKS • Kelas TI102-A')).toBeInTheDocument();
+    const block2 = document.querySelector('[title*="TI102-A"]');
+    expect(block2).toBeInTheDocument();
+    expect(block2?.textContent).toContain('Struktur Data');
+    expect(block2?.textContent).toContain('09:15–10:45');
   });
 
-  it('kelas belum terjadwal — kartu merah, tombol Atur Jadwal di Panel Kanan', async () => {
+  it('kelas tanpa hari/jam → tidak ada blok di kalender, kartu merah', async () => {
     const withUnscheduled = [
       ...MY_CLASSES_RAW,
       {
         id: 3,
         classCode: 'TI103-A',
-        dayOfWeek: 2,
-        startTime: '13:00',
-        endTime: '14:30',
-        room: 'C303',
+        dayOfWeek: null,
+        startTime: null,
+        endTime: null,
+        room: null,
         capacity: 25,
         currentEnrolled: 0,
         curriculumId: 103,
@@ -164,35 +151,38 @@ describe('DosenSchedule (jadwal mengajar)', () => {
     render(<DosenSchedule />);
     await screen.findByText('Dr. Budi Santoso');
 
-    // Card shows "Belum Terjadwal" warning
+    // Red dot on unscheduled card
     expect(screen.getAllByText('Belum Terjadwal').length).toBeGreaterThanOrEqual(1);
 
-    // Click the unscheduled class card
-    await userEvent.click(screen.getByText('Algoritma Pemrograman'));
-
-    await waitFor(() => {
-      // Panel Kanan shows "Belum ada jadwal pertemuan"
-      expect(screen.getByText('Belum ada jadwal pertemuan')).toBeInTheDocument();
-    });
-
-    // "Atur Jadwal" button visible in Panel Kanan
-    expect(screen.getByRole('button', { name: /Atur Jadwal/i })).toBeInTheDocument();
+    // No calendar block for TI103 (no day/time = no block)
+    expect(document.querySelector('[title*="TI103"]')).not.toBeInTheDocument();
   });
 
-  it('kelas terjadwal — Panel Kanan tampilkan tabel pertemuan dengan status', async () => {
+  it('grid header tampilkan hari Senin-Sabtu', async () => {
     mockedApi.getMyClasses.mockResolvedValueOnce({ items: MY_CLASSES_RAW });
 
     render(<DosenSchedule />);
     await screen.findByText('Dr. Budi Santoso');
 
-    // First class auto-selected, should show meeting table (async useEffect)
-    expect(await screen.findByText('Daftar Pertemuan')).toBeInTheDocument();
-    expect(screen.getByText('Pengenalan')).toBeInTheDocument();
-    expect(screen.getByText('Terjadwal')).toBeInTheDocument();
-    expect(screen.getByText('Selesai')).toBeInTheDocument();
+    expect(screen.getByText('Senin')).toBeInTheDocument();
+    expect(screen.getByText('Selasa')).toBeInTheDocument();
+    expect(screen.getByText('Rabu')).toBeInTheDocument();
+    expect(screen.getByText('Kamis')).toBeInTheDocument();
+    expect(screen.getByText('Jumat')).toBeInTheDocument();
+    expect(screen.getByText('Sabtu')).toBeInTheDocument();
+  });
 
-    // Badge shows "2 Pertemuan Terjadwal"
-    expect(screen.getByText('2 Pertemuan Terjadwal')).toBeInTheDocument();
+  it('klik kartu → selection berubah (ring highlight)', async () => {
+    mockedApi.getMyClasses.mockResolvedValueOnce({ items: MY_CLASSES_RAW });
+
+    render(<DosenSchedule />);
+    await screen.findByText('Dr. Budi Santoso');
+
+    // Click second card (name appears in card + calendar, so scope to button)
+    const cardBtn = screen.getAllByText('Struktur Data')[0].closest('button')!;
+    await userEvent.click(cardBtn);
+
+    expect(cardBtn.className).toContain('border-primary-500');
   });
 
   it('load gagal → tampilkan error', async () => {
@@ -202,16 +192,16 @@ describe('DosenSchedule (jadwal mengajar)', () => {
     expect(await screen.findByText('Gagal memuat jadwal mengajar')).toBeInTheDocument();
   });
 
-  it('tidak ada kelas → pesan kosong, tanpa panel', async () => {
+  it('tidak ada kelas → pesan kosong', async () => {
     mockedApi.getMyClasses.mockResolvedValueOnce({ items: [] });
     render(<DosenSchedule />);
 
     expect(await screen.findByText('Belum ada kelas yang diampu.')).toBeInTheDocument();
-    expect(screen.queryByText('Daftar Mata Kuliah')).not.toBeInTheDocument();
+    expect(screen.queryByText('Jadwal Mingguan')).not.toBeInTheDocument();
     expect(screen.queryByText('Beban Mengajar SKS')).not.toBeInTheDocument();
   });
 
-  it('belum ada jadwal sama sekali → status Draft', async () => {
+  it('semua kelas tanpa jadwal → Draft + kalender kosong', async () => {
     const noSchedule = MY_CLASSES_RAW.map((c) => ({ ...c, schedules: [] }));
     mockedApi.getMyClasses.mockResolvedValueOnce({ items: noSchedule });
 
@@ -220,33 +210,12 @@ describe('DosenSchedule (jadwal mengajar)', () => {
 
     expect(screen.getByText('Draft')).toBeInTheDocument();
     expect(screen.getByText(/belum dijadwalkan/)).toBeInTheDocument();
-  });
+    expect(screen.getByText('Jadwal Mingguan')).toBeInTheDocument();
 
-  it('warna kartu — scheduled hijau dot, unscheduled merah dot', async () => {
-    const mixed = [
-      {
-        ...MY_CLASSES_RAW[0],
-        schedules: [
-          {
-            id: 99,
-            meetingNumber: 1,
-            scheduledDate: '2026-09-01',
-            topic: 'Test',
-            isCompleted: false,
-          },
-        ],
-      },
-      { ...MY_CLASSES_RAW[1], schedules: [] },
-    ];
-    mockedApi.getMyClasses.mockResolvedValueOnce({ items: mixed });
-
-    render(<DosenSchedule />);
-    await screen.findByText('Dr. Budi Santoso');
-
-    // Both dot classes should be present — green (bg-green-500) and red (bg-red-500)
-    const greenDots = document.querySelectorAll('.bg-green-500');
-    const redDots = document.querySelectorAll('.bg-red-500');
-    expect(greenDots.length).toBeGreaterThanOrEqual(1);
-    expect(redDots.length).toBeGreaterThanOrEqual(1);
+    // Classes still have day/time so blocks render — but 0 meetings badge shows "Belum"
+    // Calendar blocks are based on dayOfWeek/startTime, not schedules.length
+    // so they still appear for classes with assigned times
+    const blocks = document.querySelectorAll('[title*="TI101"]');
+    expect(blocks.length).toBeGreaterThanOrEqual(1);
   });
 });

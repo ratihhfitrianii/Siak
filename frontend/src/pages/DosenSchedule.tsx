@@ -3,12 +3,81 @@ import { useAuth } from '../auth/AuthContext';
 import { getMyClasses } from '../lib/api';
 import type { MyClass } from '../lib/types';
 
-const dayNames = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+const DAY_LABELS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+const DAY_COL_MAP: Record<number, number> = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7 };
+
+// Every 30 min from 07:00 to 18:00 → 22 rows (row 2..23 in grid, row 1 = header)
+const TIME_SLOTS: string[] = [];
+for (let h = 7; h <= 17; h++) {
+  TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
+  TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
+}
+TIME_SLOTS.push('18:00');
+
+/** Map "HH:MM" to the nearest slot index (0-based from 07:00) */
+function timeToSlotIdx(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  const totalMin = h * 60 + m;
+  const startMin = 7 * 60;
+  return Math.floor((totalMin - startMin) / 30);
+}
+
+// Distinct pastel colors for class blocks
+const BLOCK_COLORS = [
+  {
+    bg: 'bg-blue-100',
+    border: 'border-blue-300',
+    text: 'text-blue-800',
+    badge: 'bg-blue-200 text-blue-700',
+  },
+  {
+    bg: 'bg-emerald-100',
+    border: 'border-emerald-300',
+    text: 'text-emerald-800',
+    badge: 'bg-emerald-200 text-emerald-700',
+  },
+  {
+    bg: 'bg-violet-100',
+    border: 'border-violet-300',
+    text: 'text-violet-800',
+    badge: 'bg-violet-200 text-violet-700',
+  },
+  {
+    bg: 'bg-amber-100',
+    border: 'border-amber-300',
+    text: 'text-amber-800',
+    badge: 'bg-amber-200 text-amber-700',
+  },
+  {
+    bg: 'bg-rose-100',
+    border: 'border-rose-300',
+    text: 'text-rose-800',
+    badge: 'bg-rose-200 text-rose-700',
+  },
+  {
+    bg: 'bg-cyan-100',
+    border: 'border-cyan-300',
+    text: 'text-cyan-800',
+    badge: 'bg-cyan-200 text-cyan-700',
+  },
+  {
+    bg: 'bg-fuchsia-100',
+    border: 'border-fuchsia-300',
+    text: 'text-fuchsia-800',
+    badge: 'bg-fuchsia-200 text-fuchsia-700',
+  },
+  {
+    bg: 'bg-lime-100',
+    border: 'border-lime-300',
+    text: 'text-lime-800',
+    badge: 'bg-lime-200 text-lime-700',
+  },
+];
 
 /**
  * Jadwal mengajar dosen — 2-panel layout.
  * Panel Kiri: daftar mata kuliah yang di-plot (to-do list cards).
- * Panel Kanan: detail jadwal pertemuan kelas terpilih.
+ * Panel Kanan: kalender mingguan visual (Senin-Sabtu, 07:00-18:00).
  * Data dari GET /dosen/my-classes.
  */
 export function DosenSchedule() {
@@ -54,9 +123,7 @@ export function DosenSchedule() {
         scheduledSks: 0,
       };
       sem.totalSks += cls.credits;
-      if (cls.schedules.length > 0) {
-        sem.scheduledSks += cls.credits;
-      }
+      if (cls.schedules.length > 0) sem.scheduledSks += cls.credits;
       semMap.set(cls.semesterId, sem);
 
       totalSksAll += cls.credits;
@@ -87,17 +154,57 @@ export function DosenSchedule() {
     };
   }, [classes]);
 
-  const selectedClass = useMemo(
-    () => (selectedId !== null ? (classes.find((c) => c.id === selectedId) ?? null) : null),
-    [classes, selectedId],
-  );
-
-  // Auto-select first class on load if nothing selected
+  // Auto-select first class on load
   useEffect(() => {
     if (classes.length > 0 && selectedId === null) {
       setSelectedId(classes[0].id);
     }
   }, [classes, selectedId]);
+
+  /** Assign colors to each class by courseCode */
+  const colorMap = useMemo(() => {
+    const map = new Map<string, (typeof BLOCK_COLORS)[number]>();
+    let idx = 0;
+    for (const cls of classes) {
+      if (!map.has(cls.courseCode)) {
+        map.set(cls.courseCode, BLOCK_COLORS[idx % BLOCK_COLORS.length]);
+        idx++;
+      }
+    }
+    return map;
+  }, [classes]);
+
+  /** Scheduled classes → calendar block positions */
+  const calendarBlocks = useMemo(() => {
+    const blocks: {
+      cls: MyClass;
+      gridRow: string;
+      gridColumn: string;
+      color: (typeof BLOCK_COLORS)[number];
+    }[] = [];
+
+    for (const cls of classes) {
+      if (!cls.dayOfWeek || !cls.startTime || !cls.endTime) continue;
+      const col = DAY_COL_MAP[cls.dayOfWeek];
+      if (!col) continue;
+
+      const startIdx = timeToSlotIdx(cls.startTime);
+      const endIdx = timeToSlotIdx(cls.endTime);
+      const startRow = startIdx + 2; // +2: row 1 = header, slots start at row 2
+      const endRow = endIdx + 2;
+
+      if (endRow <= startRow) continue; // invalid range
+
+      blocks.push({
+        cls,
+        gridRow: `${startRow} / ${endRow}`,
+        gridColumn: `${col} / ${col + 1}`,
+        color: colorMap.get(cls.courseCode) ?? BLOCK_COLORS[0],
+      });
+    }
+
+    return blocks;
+  }, [classes, colorMap]);
 
   const statusLabels: Record<string, { label: string; color: string }> = {
     draft: { label: 'Draft', color: 'bg-slate-100 text-slate-700' },
@@ -178,72 +285,66 @@ export function DosenSchedule() {
         </div>
       ) : (
         /* ===== 2-PANEL LAYOUT ===== */
-        <div className="flex gap-6 min-h-[480px]">
+        <div className="flex gap-6 items-start">
           {/* --- Panel Kiri: To-Do List --- */}
-          <div className="w-80 shrink-0">
+          <div className="w-72 shrink-0">
             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
               Daftar Mata Kuliah
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {classes.map((cls) => {
                 const hasSchedules = cls.schedules.length > 0;
-                const isSelected = cls.id === selectedId;
 
                 return (
                   <button
                     key={cls.id}
                     onClick={() => setSelectedId(cls.id)}
-                    className={`w-full text-left rounded-lg border-2 p-4 transition-all duration-150 ${
-                      isSelected
+                    className={`w-full text-left rounded-lg border-2 p-3 transition-all duration-150 ${
+                      cls.id === selectedId
                         ? 'border-primary-500 ring-2 ring-primary-200 bg-white shadow-md'
                         : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
                     }`}
                   >
-                    <div className="flex items-start gap-3">
-                      {/* Status indicator dot */}
-                      <div className="mt-1 shrink-0">
+                    <div className="flex items-start gap-2.5">
+                      <div className="mt-0.5 shrink-0">
                         <div
-                          className={`w-3 h-3 rounded-full ${
+                          className={`w-2.5 h-2.5 rounded-full ${
                             hasSchedules ? 'bg-green-500' : 'bg-red-500'
                           }`}
                         />
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        {/* Course name */}
                         <h4 className="font-semibold text-slate-900 text-sm leading-tight">
                           {cls.courseName}
                         </h4>
-
-                        {/* Code + SKS */}
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-slate-500 mt-0.5">
                           {cls.courseCode} • {cls.credits} SKS
                         </p>
-
-                        {/* Class */}
                         <p className="text-xs text-slate-500">Kelas {cls.classCode}</p>
 
-                        {/* Schedule info or action */}
                         {hasSchedules ? (
-                          <div className="mt-2 pt-2 border-t border-slate-100">
+                          <div className="mt-1.5 pt-1.5 border-t border-slate-100">
                             <p className="text-xs text-slate-600">
-                              {dayNames[cls.dayOfWeek ?? 0]}{' '}
+                              {DAY_LABELS[(cls.dayOfWeek ?? 1) - 1]}{' '}
                               {cls.startTime && cls.endTime
                                 ? `${cls.startTime}–${cls.endTime}`
                                 : ''}
                             </p>
-                            <div className="flex items-center gap-2 mt-1.5">
+                            <div className="flex items-center gap-1.5 mt-0.5">
                               <span className="text-xs text-green-600 font-medium">
                                 {cls.schedules.length} pertemuan
                               </span>
-                              <span className="text-xs text-slate-300">•</span>
-                              <span className="text-xs text-slate-400">
-                                {cls.room ?? 'Ruang TBD'}
-                              </span>
+                              {cls.room && (
+                                <>
+                                  <span className="text-xs text-slate-300">•</span>
+                                  <span className="text-xs text-slate-400">{cls.room}</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         ) : (
-                          <div className="mt-2 pt-2 border-t border-slate-100">
+                          <div className="mt-1.5 pt-1.5 border-t border-slate-100">
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path
@@ -257,23 +358,6 @@ export function DosenSchedule() {
                           </div>
                         )}
                       </div>
-
-                      {/* Chevron indicator */}
-                      <svg
-                        className={`w-4 h-4 shrink-0 mt-1 transition-colors ${
-                          isSelected ? 'text-primary-500' : 'text-slate-300'
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
                     </div>
                   </button>
                 );
@@ -281,209 +365,85 @@ export function DosenSchedule() {
             </div>
           </div>
 
-          {/* --- Panel Kanan: Detail Jadwal --- */}
-          <div className="flex-1 bg-white rounded-lg shadow-sm border border-slate-200">
-            {selectedClass ? (
-              <div>
-                {/* Class detail header */}
-                <div className="px-6 py-4 border-b border-slate-100">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        {selectedClass.courseName}
-                      </h3>
-                      <p className="text-sm text-slate-500 mt-0.5">
-                        {selectedClass.courseCode} • {selectedClass.credits} SKS • Kelas{' '}
-                        {selectedClass.classCode}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs px-3 py-1 rounded-full font-medium ${
-                          selectedClass.schedules.length > 0
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-600'
-                        }`}
-                      >
-                        {selectedClass.schedules.length > 0
-                          ? `${selectedClass.schedules.length} Pertemuan Terjadwal`
-                          : 'Belum Terjadwal'}
-                      </span>
-                    </div>
-                  </div>
+          {/* --- Panel Kanan: Kalender Mingguan --- */}
+          <div className="flex-1 bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-100">
+              <h3 className="text-sm font-semibold text-slate-700">Jadwal Mingguan</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {DAY_LABELS[0]}–{DAY_LABELS[5]} • 07:00–18:00
+              </p>
+            </div>
 
-                  {/* Class meta */}
-                  <div className="flex items-center gap-4 mt-3 text-sm text-slate-600">
-                    {selectedClass.dayOfWeek && (
-                      <span className="flex items-center gap-1.5">
-                        <svg
-                          className="w-4 h-4 text-slate-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                        {dayNames[selectedClass.dayOfWeek]}{' '}
-                        {selectedClass.startTime && selectedClass.endTime
-                          ? `${selectedClass.startTime}–${selectedClass.endTime}`
-                          : ''}
-                      </span>
-                    )}
-                    {selectedClass.room && (
-                      <span className="flex items-center gap-1.5">
-                        <svg
-                          className="w-4 h-4 text-slate-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                          />
-                        </svg>
-                        {selectedClass.room}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1.5">
-                      <svg
-                        className="w-4 h-4 text-slate-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                        />
-                      </svg>
-                      {selectedClass.currentEnrolled}/{selectedClass.capacity} mahasiswa
-                    </span>
+            <div className="overflow-auto max-h-[620px]">
+              <div
+                className="grid relative"
+                style={{
+                  gridTemplateColumns: '56px repeat(6, 1fr)',
+                  gridTemplateRows: `36px repeat(${TIME_SLOTS.length - 1}, minmax(28px, auto))`,
+                }}
+              >
+                {/* — Header row: day names — */}
+                <div className="sticky top-0 z-20 bg-slate-50 border-b border-slate-200 text-xs font-medium text-slate-500 flex items-center justify-center">
+                  Jam
+                </div>
+                {DAY_LABELS.map((d) => (
+                  <div
+                    key={d}
+                    className="sticky top-0 z-20 bg-slate-50 border-b border-slate-200 border-l border-slate-100 text-xs font-medium text-slate-700 flex items-center justify-center"
+                  >
+                    {d}
                   </div>
-                </div>
+                ))}
 
-                {/* Meeting list */}
-                <div className="px-6 py-4">
-                  {selectedClass.schedules.length > 0 ? (
-                    <div>
-                      <h4 className="text-sm font-semibold text-slate-700 mb-3">
-                        Daftar Pertemuan
-                      </h4>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm">
-                          <thead>
-                            <tr className="text-left text-slate-500 border-b border-slate-100">
-                              <th className="py-2 pr-4 font-medium">No.</th>
-                              <th className="py-2 pr-4 font-medium">Tanggal</th>
-                              <th className="py-2 pr-4 font-medium">Topik</th>
-                              <th className="py-2 font-medium">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {selectedClass.schedules.map((s) => (
-                              <tr key={s.id} className="text-slate-700 hover:bg-slate-50">
-                                <td className="py-3 pr-4 font-medium text-slate-600">
-                                  {s.meetingNumber}
-                                </td>
-                                <td className="py-3 pr-4">
-                                  {s.scheduledDate
-                                    ? new Date(s.scheduledDate).toLocaleDateString('id-ID', {
-                                        weekday: 'long',
-                                        day: 'numeric',
-                                        month: 'long',
-                                        year: 'numeric',
-                                      })
-                                    : 'TBD'}
-                                </td>
-                                <td className="py-3 pr-4 text-slate-600">{s.topic || '-'}</td>
-                                <td className="py-3">
-                                  <span
-                                    className={`text-xs px-2 py-0.5 rounded-full ${
-                                      s.isCompleted
-                                        ? 'bg-green-100 text-green-700'
-                                        : 'bg-amber-100 text-amber-700'
-                                    }`}
-                                  >
-                                    {s.isCompleted ? 'Selesai' : 'Terjadwal'}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-                        <svg
-                          className="w-8 h-8 text-red-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                      </div>
-                      <h4 className="text-sm font-medium text-slate-700 mb-1">
-                        Belum ada jadwal pertemuan
-                      </h4>
-                      <p className="text-xs text-slate-500 mb-4">
-                        Atur jadwal pertemuan untuk kelas ini.
-                      </p>
-                      <button className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                          />
-                        </svg>
-                        Atur Jadwal
-                      </button>
-                    </div>
-                  )}
-                </div>
+                {/* — Time labels (column 1) — */}
+                {TIME_SLOTS.map((t, i) => (
+                  <div
+                    key={t}
+                    className="text-[11px] text-slate-400 border-t border-slate-100 flex items-center justify-center pr-1"
+                    style={{ gridRow: i + 2, gridColumn: 1 }}
+                  >
+                    {i % 2 === 0 ? t : '\u00A0'}
+                  </div>
+                ))}
+
+                {/* — Grid cells (background) — */}
+                {TIME_SLOTS.slice(0, -1).map((_, rowIdx) =>
+                  DAY_LABELS.map((_, colIdx) => (
+                    <div
+                      key={`${rowIdx}-${colIdx}`}
+                      className="border-t border-l border-slate-100"
+                      style={{ gridRow: rowIdx + 2, gridColumn: colIdx + 2 }}
+                    />
+                  )),
+                )}
+
+                {/* — Scheduled class blocks — */}
+                {calendarBlocks.map((block) => (
+                  <div
+                    key={block.cls.id}
+                    className={`${block.color.bg} ${block.color.border} border rounded-md p-1.5 overflow-hidden cursor-default transition-shadow hover:shadow-md z-10`}
+                    style={{
+                      gridRow: block.gridRow,
+                      gridColumn: block.gridColumn,
+                    }}
+                    title={`${block.cls.courseName} (${block.cls.classCode})\n${block.cls.startTime}–${block.cls.endTime}\n${block.cls.room ?? ''}`}
+                  >
+                    <p
+                      className={`text-[11px] font-semibold leading-tight ${block.color.text} truncate`}
+                    >
+                      {block.cls.courseName}
+                    </p>
+                    <p className={`text-[10px] ${block.color.text} opacity-75 leading-tight`}>
+                      {block.cls.classCode}
+                      {block.cls.room ? ` • ${block.cls.room}` : ''}
+                    </p>
+                    <p className={`text-[10px] ${block.color.text} opacity-60 leading-tight`}>
+                      {block.cls.startTime}–{block.cls.endTime}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-slate-400">
-                <svg
-                  className="w-12 h-12 mb-3 text-slate-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
-                <p className="text-sm">Pilih kelas untuk melihat detail jadwal</p>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       )}
