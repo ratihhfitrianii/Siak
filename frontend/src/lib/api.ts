@@ -1221,6 +1221,14 @@ export async function updateAttendanceRecord(
   return apiRequest(`/attendance/records/${recordId}`, { method: 'PUT', body: input });
 }
 
+/** POST /attendance/check-in — mahasiswa self check-in (via sessionId atau qrCode). */
+export async function checkInAttendance(input: {
+  sessionId?: number;
+  qrCode?: string;
+}): Promise<{ id: number; message: string }> {
+  return apiRequest('/attendance/check-in', { method: 'POST', body: input });
+}
+
 /* --- Bimbingan (GET /guidance/mentees, GET/POST /guidance/sessions) --- */
 
 interface GuidanceSessionRow {

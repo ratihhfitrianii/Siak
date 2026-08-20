@@ -60,6 +60,15 @@ const MENU_ITEMS: {
     icon: 'user',
     description: 'Lihat & edit profil mahasiswa',
   },
+  // Mahasiswa Check-In Absensi
+  {
+    permissions: ['krs.fill'],
+    roles: ['mahasiswa'],
+    label: 'Check-In',
+    path: '/absensi/check-in',
+    icon: 'check',
+    description: 'Absensi check-in kehadiran',
+  },
   {
     permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
     label: 'KRS',

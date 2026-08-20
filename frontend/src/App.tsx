@@ -54,6 +54,10 @@ const AdminSchedulePage = lazy(() =>
   import('./pages/AdminSchedulePage').then((m) => ({ default: m.AdminSchedulePage })),
 );
 
+const MahasiswaCheckIn = lazy(() =>
+  import('./pages/MahasiswaCheckIn').then((m) => ({ default: m.MahasiswaCheckIn })),
+);
+
 const AdminCourseReviewPage = lazy(() =>
   import('./pages/AdminCourseReviewPage').then((m) => ({ default: m.AdminCourseReviewPage })),
 );
@@ -135,6 +139,17 @@ export default function App() {
               <ProtectedRoute perm={['krs.fill', 'krs.approve']}>
                 <AppLayout>
                   <KrsRoute />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Mahasiswa Check-In Absensi */}
+          <Route
+            path="/absensi/check-in"
+            element={
+              <ProtectedRoute perm="krs.fill">
+                <AppLayout>
+                  <MahasiswaCheckIn />
                 </AppLayout>
               </ProtectedRoute>
             }
