@@ -1,5 +1,6 @@
 import { useParams } from 'react-router';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../auth/AuthContext';
 import { DosenSelectMK } from './DosenSelectMK';
 import { DosenSchedule } from './DosenSchedule';
 import { DosenAttendance } from './DosenAttendance';
@@ -40,6 +41,7 @@ interface MyClassSummary {
 export function DosenDashboardPage() {
   const { tab } = useParams<{ tab?: string }>();
   const isSubTab = tab && TABS.some((t) => t.id === tab);
+  const { user } = useAuth();
 
   // Fetch ringkasan kelas untuk dashboard overview (hanya dipakai di root)
   const [myClasses, setMyClasses] = useState<MyClassSummary[]>([]);
@@ -171,28 +173,30 @@ export function DosenDashboardPage() {
               <p className="text-sm text-slate-500">Isi kehadiran pertemuan</p>
             </div>
           </a>
-          <a
-            href="/dosen/bimbingan"
-            className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:border-primary-300 hover:bg-primary-50 transition-colors"
-          >
-            <svg
-              className="h-6 w-6 text-primary-600 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          {user?.isWali && (
+            <a
+              href="/dosen/bimbingan"
+              className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:border-primary-300 hover:bg-primary-50 transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
-            </svg>
-            <div>
-              <p className="font-medium text-slate-900">Bimbingan</p>
-              <p className="text-sm text-slate-500">Kelola mahasiswa binaan</p>
-            </div>
-          </a>
+              <svg
+                className="h-6 w-6 text-primary-600 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+              <div>
+                <p className="font-medium text-slate-900">Bimbingan</p>
+                <p className="text-sm text-slate-500">Kelola mahasiswa binaan</p>
+              </div>
+            </a>
+          )}
           <a
             href="/dosen/nilai"
             className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:border-primary-300 hover:bg-primary-50 transition-colors"

@@ -4,7 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenDashboardPage } from './DosenDashboardPage';
 
 vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 4, username: 'dosen.TI1' }, booting: false, logout: vi.fn() }),
+  useAuth: () => ({
+    user: { id: 4, username: 'dosen.TI1', isWali: false },
+    booting: false,
+    logout: vi.fn(),
+  }),
 }));
 
 function jsonResponse(payload: unknown, status = 200) {
