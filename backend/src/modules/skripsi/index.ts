@@ -264,6 +264,7 @@ export function createSkripsiRouter(): Router {
             reviewedAt: r.reviewed_at?.toISOString() ?? null,
             createdAt: r.created_at.toISOString(),
             updatedAt: r.updated_at.toISOString(),
+            supervisors: r.supervisors ?? [],
           })),
           pagination: { page: p, limit: l, total, totalPages: Math.ceil(total / l) },
         });
