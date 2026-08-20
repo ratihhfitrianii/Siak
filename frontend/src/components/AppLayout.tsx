@@ -209,16 +209,23 @@ const MENU_ITEMS: {
     icon: 'swap',
     description: 'Kelola penggantian jadwal',
   },
-  // Bimbingan — Parent dropdown untuk dosen (Bimbingan Berjalan + Pengajuan Proposal)
+  // Bimbingan — Parent dropdown untuk dosen
   {
-    permissions: ['guidance.manage'],
+    permissions: ['guidance.manage', 'thesis.review'],
     roles: ['dosen'],
     requiresWali: true,
-    label: 'Bimbingan Berjalan',
-    path: '/dosen/bimbingan/berjalan',
-    icon: 'book',
-    description: 'Daftar mahasiswa bimbingan berjalan',
+    label: 'Bimbingan',
+    path: '/dosen/bimbingan',
+    icon: 'chat',
+    description: 'Kelola bimbingan mahasiswa binaan & review proposal',
     children: [
+      {
+        permissions: ['guidance.manage'],
+        label: 'Bimbingan Mahasiswa Binaan',
+        path: '/dosen/bimbingan/mahasiswa-binaan',
+        icon: 'users',
+        description: 'Daftar mahasiswa yang proposalnya disetujui',
+      },
       {
         permissions: ['thesis.review'],
         label: 'Pengajuan Proposal',

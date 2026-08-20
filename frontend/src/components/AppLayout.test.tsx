@@ -308,12 +308,12 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.queryByText('Input dan ubah nilai')).not.toBeInTheDocument();
   });
 
-  it('dosen Wali → menu Bimbingan Berjalan tampil di sidebar', () => {
+  it('dosen Wali → menu Bimbingan tampil di sidebar', () => {
     mockUser = { ...DOSEN, isWali: true };
     renderLayout();
 
-    // Bimbingan Berjalan is now the parent menu - use regex for flexible match
-    expect(screen.getByText(/Bimbingan Berjalan/)).toBeInTheDocument();
+    // Bimbingan is now the parent menu
+    expect(screen.getByText(/Bimbingan/)).toBeInTheDocument();
   });
 
   it('submenu dosen TIDAK muncul untuk role lain (mahasiswa/admin)', () => {

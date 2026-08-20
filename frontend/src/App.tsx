@@ -72,6 +72,11 @@ const DosenProposalReview = lazy(() =>
 const DosenBimbinganBerjalan = lazy(() =>
   import('./pages/DosenBimbinganBerjalan').then((m) => ({ default: m.DosenBimbinganBerjalan })),
 );
+const DosenBimbinganMahasiswaBinaan = lazy(() =>
+  import('./pages/DosenBimbinganMahasiswaBinaan').then((m) => ({
+    default: m.DosenBimbinganMahasiswaBinaan,
+  })),
+);
 
 const AdminCourseReviewPage = lazy(() =>
   import('./pages/AdminCourseReviewPage').then((m) => ({ default: m.AdminCourseReviewPage })),
@@ -209,6 +214,17 @@ export default function App() {
               <ProtectedRoute perm="guidance.manage">
                 <AppLayout>
                   <DosenBimbinganBerjalan />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Dosen — Bimbingan Mahasiswa Binaan */}
+          <Route
+            path="/dosen/bimbingan/mahasiswa-binaan"
+            element={
+              <ProtectedRoute perm="guidance.manage">
+                <AppLayout>
+                  <DosenBimbinganMahasiswaBinaan />
                 </AppLayout>
               </ProtectedRoute>
             }
