@@ -1247,7 +1247,7 @@ export async function getSkripsiSupervisors() {
 export async function submitSkripsiProposal(input: {
   title: string;
   proposalFile?: string;
-  supervisorId: number;
+  supervisorIds: number[];
 }) {
   return apiRequest('/skripsi/proposals', { method: 'POST', body: input });
 }

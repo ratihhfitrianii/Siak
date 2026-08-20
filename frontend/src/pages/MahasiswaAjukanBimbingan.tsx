@@ -46,7 +46,8 @@ const MAX_FILE_SIZE_MB = 10;
 
 export function MahasiswaAjukanBimbingan() {
   const [title, setTitle] = useState('');
-  const [supervisorId, setSupervisorId] = useState<number | ''>('');
+  const [supervisorIds, setSupervisorIds] = useState<number[]>([]);
+  const [supervisorSearch, setSupervisorSearch] = useState('');
   const [proposalFile, setProposalFile] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -129,8 +130,8 @@ export function MahasiswaAjukanBimbingan() {
       setError('Judul proposal minimal 10 karakter');
       return;
     }
-    if (supervisorId === '') {
-      setError('Pilih dosen pembimbing terlebih dahulu');
+    if (supervisorIds.length === 0) {
+      setError('Pilih minimal 1 dosen pembimbing');
       return;
     }
     if (!proposalFile) {
@@ -142,12 +143,12 @@ export function MahasiswaAjukanBimbingan() {
     try {
       await submitSkripsiProposal({
         title: title.trim(),
-        supervisorId: Number(supervisorId),
-        proposalFile,
+        supervisorIds,
+        proposalFile: proposalFile ?? undefined,
       });
       setSuccess('Proposal berhasil diajukan!');
       setTitle('');
-      setSupervisorId('');
+      setSupervisorIds([]);
       setProposalFile(null);
       setFileName('');
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -247,18 +248,104 @@ export function MahasiswaAjukanBimbingan() {
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Dosen Pembimbing
             </label>
-            <select
-              value={supervisorId}
-              onChange={(e) => setSupervisorId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="">Pilih Dosen Pembimbing</option>
-              {supervisors.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.fullName} ({s.nidn})
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <input
+                type="text"
+                value={supervisorSearch}
+                onChange={(e) => setSupervisorSearch(e.target.value)}
+                placeholder="Cari nama/NIDN dosen..."
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              {supervisorSearch && (
+                <button
+                  type="button"
+                  onClick={() => setSupervisorSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {supervisors.length > 0 && (
+              <div className="mt-2 max-h-60 overflow-y-auto border border-slate-200 rounded-lg bg-white">
+                {supervisors
+                  .filter(
+                    (s) =>
+                      !supervisorIds.includes(s.id) &&
+                      (supervisorSearch === '' ||
+                        s.fullName.toLowerCase().includes(supervisorSearch.toLowerCase()) ||
+                        s.nidn.toLowerCase().includes(supervisorSearch.toLowerCase())),
+                  )
+                  .map((s) => (
+                    <label
+                      key={s.id}
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        disabled={supervisorIds.length >= 2 && !supervisorIds.includes(s.id)}
+                        checked={supervisorIds.includes(s.id)}
+                        onChange={() =>
+                          setSupervisorIds((prev) =>
+                            prev.includes(s.id)
+                              ? prev.filter((id) => id !== s.id)
+                              : [...prev, s.id],
+                          )
+                        }
+                        className="h-4 w-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-slate-700">
+                        {s.fullName} ({s.nidn})
+                      </span>
+                      <span className="text-xs text-slate-400 ml-auto">{s.prodiName}</span>
+                    </label>
+                  ))}
+              </div>
+            )}
+            {supervisorIds.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {supervisorIds.map((id) => {
+                  const s = supervisors.find((sv) => sv.id === id);
+                  return s ? (
+                    <span
+                      key={id}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-full"
+                    >
+                      {s.fullName}
+                      <button
+                        type="button"
+                        onClick={() => setSupervisorIds((prev) => prev.filter((i) => i !== id))}
+                        className="ml-1 hover:text-primary-900"
+                      >
+                        <svg
+                          className="h-3 w-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
+            {supervisorIds.length >= 2 && (
+              <p className="mt-1 text-xs text-amber-600">Maksimal 2 dosen pembimbing</p>
+            )}
             {isLoading && supervisors.length === 0 && (
               <p className="text-xs text-slate-400 mt-1">Memuat daftar dosen...</p>
             )}

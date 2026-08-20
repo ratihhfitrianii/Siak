@@ -2,7 +2,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { controlFor } from '../test/controls';
 import { MahasiswaAjukanBimbingan } from './MahasiswaAjukanBimbingan';
 
 vi.setConfig({ testTimeout: 20_000 });
@@ -83,16 +82,15 @@ describe('MahasiswaAjukanBimbingan', () => {
       </MemoryRouter>,
     );
     expect(screen.getByText('Ajukan Bimbingan Skripsi')).toBeInTheDocument();
-    // Form fields
+    // Form fields - search input instead of select
     expect(screen.getByPlaceholderText(/Contoh: Analisis/)).toBeInTheDocument();
-    expect(screen.getByText('Pilih Dosen Pembimbing')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Cari nama\/NIDN dosen/)).toBeInTheDocument();
     expect(screen.getByText('Ajukan Proposal')).toBeInTheDocument();
-    // Existing proposals loaded (title + supervisor name visible in card)
+    // Existing proposals loaded
     expect(
       await screen.findByText('Analisis Sistem Informasi Manajemen Keuangan Universitas'),
     ).toBeInTheDocument();
     expect(screen.getByText('Diajukan')).toBeInTheDocument();
-    // Supervisor name appears in proposal card
     expect(screen.getAllByText(/Dr\. Siti Aminah/).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -103,15 +101,16 @@ describe('MahasiswaAjukanBimbingan', () => {
         <MahasiswaAjukanBimbingan />
       </MemoryRouter>,
     );
-    // Wait for data load — check for the supervisor option text in dropdown
+    // Wait for supervisors to load
     await waitFor(() => {
       expect(screen.getAllByText(/Dr\. Siti Aminah/).length).toBeGreaterThanOrEqual(1);
     });
 
     // Fill valid title (10+ chars)
     await user.type(screen.getByPlaceholderText(/Contoh: Analisis/), 'Judul proposal yang valid');
-    // Select supervisor
-    await user.selectOptions(controlFor('Dosen Pembimbing', 'select'), '10');
+    // Select supervisor via checkbox
+    const checkbox = screen.getByLabelText(/Dr\. Siti Aminah/);
+    await user.click(checkbox);
     // No file selected
     await user.click(screen.getByText('Ajukan Proposal'));
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -132,10 +131,10 @@ describe('MahasiswaAjukanBimbingan', () => {
 
     // Fill valid title (10+ chars)
     await user.type(screen.getByPlaceholderText(/Contoh: Analisis/), 'Judul proposal yang valid');
-    // Don't select supervisor — leave default ""
+    // Don't select supervisor
     await user.click(screen.getByText('Ajukan Proposal'));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Pilih dosen pembimbing terlebih dahulu',
+      'Pilih minimal 1 dosen pembimbing',
     );
   });
 
@@ -169,8 +168,9 @@ describe('MahasiswaAjukanBimbingan', () => {
 
     // Fill title
     await user.type(screen.getByPlaceholderText(/Contoh: Analisis/), 'Judul proposal yang valid');
-    // Select supervisor
-    await user.selectOptions(controlFor('Dosen Pembimbing', 'select'), '10');
+    // Select supervisor via checkbox
+    const checkbox = screen.getByLabelText(/Dr\. Siti Aminah/);
+    await user.click(checkbox);
 
     // Simulate file upload using fireEvent
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -181,7 +181,7 @@ describe('MahasiswaAjukanBimbingan', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Proposal berhasil diajukan!');
     expect(postBody).toMatchObject({
       title: 'Judul proposal yang valid',
-      supervisorId: 10,
+      supervisorIds: [10],
     });
     expect((postBody as { proposalFile?: string }).proposalFile).toContain('data:');
   });
@@ -287,7 +287,7 @@ describe('MahasiswaAjukanBimbingan', () => {
     // Wait for proposals to load
     await screen.findByText('Analisis Sistem Informasi Manajemen Keuangan Universitas');
 
-    // Click chevron to expand — find the card's button via its h4 child
+    // Click chevron to expand — click the title
     const title = screen.getByText('Analisis Sistem Informasi Manajemen Keuangan Universitas');
     await user.click(title.closest('button')!);
 

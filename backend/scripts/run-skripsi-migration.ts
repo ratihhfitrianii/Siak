@@ -4,12 +4,22 @@ import { Pool } from 'pg';
 
 async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const sql = readFileSync(
-    resolve(__dirname, '../migrations/V20260820_001__create_skripsi_tables.sql'),
-    'utf-8',
-  );
-  await pool.query(sql);
-  console.log('Migration V20260820_001 applied successfully');
+  const migrations = [
+    'V20260820_001__create_skripsi_tables.sql',
+    'V20260820_002__add_multiple_supervisors.sql',
+  ];
+
+  for (const file of migrations) {
+    const sql = readFileSync(resolve(__dirname, '../migrations', file), 'utf-8');
+    try {
+      await pool.query(sql);
+      console.log(`Migration ${file} applied successfully`);
+    } catch (err) {
+      console.error(`Migration ${file} failed:`, err);
+      throw err;
+    }
+  }
+
   await pool.end();
 }
 

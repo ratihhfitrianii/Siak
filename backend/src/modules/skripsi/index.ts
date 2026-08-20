@@ -34,7 +34,7 @@ function authorizeAny(...permissions: Permission[]) {
 const proposalCreateSchema = z.object({
   title: z.string().min(10).max(500),
   proposalFile: z.string().max(10_000_000).optional(),
-  supervisorId: z.number().int().positive(),
+  supervisorIds: z.array(z.number().int().positive()).min(1).max(2),
 });
 
 const proposalUpdateSchema = z.object({
@@ -115,25 +115,41 @@ export function createSkripsiRouter(): Router {
         }
         const data = proposalCreateSchema.parse(req.body);
 
-        // Verify supervisor exists and is active dosen
+        // Verify all supervisors exist and are active dosen
         const supervisorRes = await pgPool.query(
           `SELECT u.id FROM users u
            JOIN lecturers l ON l.user_id = u.id
-           WHERE u.id = $1 AND l.is_active = true AND u.is_active = true`,
-          [data.supervisorId],
+           WHERE u.id = ANY($1) AND l.is_active = true AND u.is_active = true`,
+          [data.supervisorIds],
         );
-        if (supervisorRes.rows.length === 0) {
-          throw new AppError('NOT_FOUND', 'Dosen pembimbing tidak ditemukan', 404);
+        if (supervisorRes.rows.length !== data.supervisorIds.length) {
+          throw new AppError('NOT_FOUND', 'Satu atau lebih dosen pembimbing tidak ditemukan', 404);
         }
+
+        const primarySupervisorId = data.supervisorIds[0];
 
         const result = await pgPool.query(
           `INSERT INTO skripsi_proposals (student_id, supervisor_id, title, proposal_file, status)
            VALUES ($1, $2, $3, $4, 'diajukan')
            RETURNING *`,
-          [req.user!.studentId, data.supervisorId, data.title, data.proposalFile ?? null],
+          [req.user!.studentId, primarySupervisorId, data.title, data.proposalFile ?? null],
         );
 
         const proposal = result.rows[0];
+
+        // Insert all supervisors into junction table
+        const supervisorValues = data.supervisorIds.map((id, idx) => ({
+          proposalId: proposal.id,
+          supervisorId: id,
+          isPrimary: idx === 0,
+        }));
+        for (const sv of supervisorValues) {
+          await pgPool.query(
+            `INSERT INTO skripsi_proposal_supervisors (proposal_id, supervisor_id, is_primary)
+             VALUES ($1, $2, $3)`,
+            [sv.proposalId, sv.supervisorId, sv.isPrimary],
+          );
+        }
 
         // Insert status history
         await pgPool.query(
@@ -146,7 +162,7 @@ export function createSkripsiRouter(): Router {
           tableName: 'skripsi_proposals',
           recordId: Number(proposal.id),
           action: 'INSERT',
-          newValues: { title: data.title, supervisorId: data.supervisorId },
+          newValues: { title: data.title, supervisorIds: data.supervisorIds },
         });
 
         res.status(201).json({ success: true, data: proposal });
@@ -186,7 +202,10 @@ export function createSkripsiRouter(): Router {
           where += ` AND sp.student_id = $${paramIdx++}`;
           params.push(req.user!.studentId!);
         } else if (isLecturer && !isAdmin) {
-          where += ` AND sp.supervisor_id = $${paramIdx++}`;
+          where += ` AND EXISTS (
+            SELECT 1 FROM skripsi_proposal_supervisors sps
+            WHERE sps.proposal_id = sp.id AND sps.supervisor_id = $${paramIdx++}
+          )`;
           params.push(req.user!.id);
         }
 
@@ -199,12 +218,25 @@ export function createSkripsiRouter(): Router {
         const dataRes = await pgPool.query(
           `SELECT sp.*,
                   st.nim, su.full_name as student_name, su.email as student_email,
-                  pr.full_name as supervisor_name, pr.email as supervisor_email,
+                  (
+                    SELECT json_agg(json_build_object(
+                      'id', u.id,
+                      'fullName', u.full_name,
+                      'nidn', l.nidn,
+                      'nik', l.nik,
+                      'prodiName', pr.name,
+                      'isPrimary', sps.is_primary
+                    ) ORDER BY sps.is_primary DESC, u.full_name)
+                    FROM skripsi_proposal_supervisors sps
+                    JOIN users u ON u.id = sps.supervisor_id
+                    JOIN lecturers l ON l.user_id = u.id
+                    JOIN prodis pr ON pr.id = l.prodi_id
+                    WHERE sps.proposal_id = sp.id
+                  ) as supervisors,
                   prd.name as prodi_name
            FROM skripsi_proposals sp
            JOIN students st ON st.id = sp.student_id
            JOIN users su ON su.id = st.user_id
-           JOIN users pr ON pr.id = sp.supervisor_id
            JOIN prodis prd ON prd.id = st.prodi_id
            ${where}
            ORDER BY sp.created_at DESC

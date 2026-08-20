@@ -743,6 +743,25 @@ export type SkripsiStatus =
   | 'lulus'
   | 'tidak_lulus';
 
+export interface SkripsiProposalStatus {
+  id: number;
+  proposalId: number;
+  status: SkripsiStatus;
+  notes: string | null;
+  changedBy: number;
+  changedByName: string;
+  changedAt: string;
+}
+
+export interface SkripsiSupervisor {
+  id: number;
+  fullName: string;
+  nidn: string;
+  nik: string;
+  prodiName: string;
+  isPrimary?: boolean;
+}
+
 export interface SkripsiProposal {
   id: number;
   studentId: number;
@@ -761,24 +780,7 @@ export interface SkripsiProposal {
   reviewedAt: string | null;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface SkripsiProposalStatus {
-  id: number;
-  proposalId: number;
-  status: SkripsiStatus;
-  notes: string | null;
-  changedBy: number;
-  changedByName: string;
-  changedAt: string;
-}
-
-export interface SkripsiSupervisor {
-  id: number;
-  fullName: string;
-  nidn: string;
-  nik: string;
-  prodiName: string;
+  supervisors?: SkripsiSupervisor[];
 }
 
 // --- Bimbingan (GET /guidance/mentees, GET/POST /guidance/sessions) ---

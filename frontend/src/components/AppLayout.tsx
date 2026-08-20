@@ -50,6 +50,13 @@ const MENU_ITEMS: {
   description: string;
   roles?: string[];
   requiresWali?: boolean;
+  children?: {
+    permissions: string[];
+    label: string;
+    path: string;
+    icon: string;
+    description: string;
+  }[];
 }[] = [
   // Profil mahasiswa — di bawah Dashboard di sidebar
   {
@@ -69,23 +76,30 @@ const MENU_ITEMS: {
     icon: 'check',
     description: 'Absensi check-in kehadiran',
   },
-  // Skripsi — Ajukan Bimbingan
+  // Skripsi — Parent dropdown
   {
     permissions: ['thesis.submit'],
     roles: ['mahasiswa'],
-    label: 'Ajukan Bimbingan',
-    path: '/skripsi/ajukan',
+    label: 'Skripsi',
+    path: '/skripsi',
     icon: 'document',
-    description: 'Ajukan proposal skripsi & bimbingan',
-  },
-  // Skripsi — Sidang
-  {
-    permissions: ['thesis.submit'],
-    roles: ['mahasiswa'],
-    label: 'Sidang',
-    path: '/skripsi/sidang',
-    icon: 'clipboard',
-    description: 'Pendaftaran sidang skripsi',
+    description: 'Manajemen skripsi',
+    children: [
+      {
+        permissions: ['thesis.submit'],
+        label: 'Ajukan Bimbingan',
+        path: '/skripsi/ajukan',
+        icon: 'document',
+        description: 'Ajukan proposal skripsi & bimbingan',
+      },
+      {
+        permissions: ['thesis.submit'],
+        label: 'Sidang',
+        path: '/skripsi/sidang',
+        icon: 'clipboard',
+        description: 'Pendaftaran sidang skripsi',
+      },
+    ],
   },
   {
     permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
@@ -307,6 +321,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, [user]);
 
   // Keluhan #26: dropdown avatar — tutup saat klik di luar menu.
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   useEffect(() => {
     if (!menuOpen) return;
     const onPointerDown = (e: PointerEvent) => {
@@ -379,7 +394,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
       !hidden.includes(item.path) &&
       (!item.roles || item.roles.includes(user.role)) &&
       (!item.requiresWali || user.isWali) &&
-      item.permissions.some((p) => user.menu.includes(p)),
+      (item.children
+        ? item.children.some((c) => c.permissions.some((p) => user.menu.includes(p)))
+        : item.permissions.some((p) => user.menu.includes(p))),
   );
 
   async function handleLogout() {
@@ -433,28 +450,95 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </span>
             )}
           </NavLink>
-          {menu.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              aria-label={item.label}
-              title={item.label}
-              className={navItemClass}
-            >
-              <MenuIcon path={ICON_PATHS[item.icon]} />
-              {!sidebarCollapsed && (
-                <span className="truncate text-sm font-medium">{item.label}</span>
-              )}
-              {sidebarCollapsed && (
-                <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
-                  {item.label}
-                  <span className="block text-[10px] font-normal text-slate-300">
-                    {item.description}
+          {menu.map((item) => {
+            const isExpanded = expandedMenus.has(item.path);
+            if (item.children) {
+              const visibleChildren = item.children.filter((c) =>
+                c.permissions.some((p) => user!.menu.includes(p)),
+              );
+              return (
+                <div key={item.path}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedMenus((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(item.path)) next.delete(item.path);
+                        else next.add(item.path);
+                        return next;
+                      })
+                    }
+                    className={`group relative flex h-10 shrink-0 w-full items-center rounded-md transition cursor-pointer ${
+                      sidebarCollapsed ? 'justify-center' : 'justify-start gap-2 px-2.5'
+                    } text-slate-600 hover:bg-slate-100 hover:text-slate-900`}
+                  >
+                    <MenuIcon path={ICON_PATHS[item.icon]} />
+                    {!sidebarCollapsed && (
+                      <>
+                        <span className="flex-1 truncate text-left text-sm font-medium">
+                          {item.label}
+                        </span>
+                        <svg
+                          className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                  {isExpanded && !sidebarCollapsed && (
+                    <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-200 pl-2">
+                      {visibleChildren.map((child) => (
+                        <NavLink
+                          key={child.path}
+                          to={child.path}
+                          className={({ isActive }) =>
+                            `flex h-8 items-center gap-2 rounded-md px-2 text-sm transition ${
+                              isActive
+                                ? 'bg-primary-50 text-primary-700 font-medium'
+                                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                            }`
+                          }
+                        >
+                          <span className="truncate">{child.label}</span>
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                aria-label={item.label}
+                title={item.label}
+                className={navItemClass}
+              >
+                <MenuIcon path={ICON_PATHS[item.icon]} />
+                {!sidebarCollapsed && (
+                  <span className="truncate text-sm font-medium">{item.label}</span>
+                )}
+                {sidebarCollapsed && (
+                  <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
+                    {item.label}
+                    <span className="block text-[10px] font-normal text-slate-300">
+                      {item.description}
+                    </span>
                   </span>
-                </span>
-              )}
-            </NavLink>
-          ))}
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
         {/* Tombol expand/collapse di ujung bawah sidebar — hanya ikon (tanpa teks). */}
         <div className="hidden border-t border-slate-100 p-2 md:block">
