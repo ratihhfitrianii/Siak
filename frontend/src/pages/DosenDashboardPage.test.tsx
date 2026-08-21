@@ -89,17 +89,15 @@ describe('DosenDashboardPage (T3.7)', () => {
     );
   }
 
-  it('render — header dashboard + konten default Pilih MK (keluhan #5: tanpa tab bar teks)', () => {
+  it('render — konten default Pilih MK (keluhan #5: tanpa tab bar teks)', () => {
     renderAt('/dosen');
-    expect(screen.getByText('Dashboard Dosen')).toBeInTheDocument();
-    expect(
-      screen.getByText('Ringkasan aktivitas mengajar: kelas, jadwal, absensi, dan bimbingan'),
-    ).toBeInTheDocument();
+    // Header "Dashboard Dosen" + kartu "Kelas Diampu" sudah dihapus
+    expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kelas Diampu')).not.toBeInTheDocument();
     // Tab teks horizontal TIDAK ada lagi (menu pindah ke sidebar)
     expect(screen.queryByRole('button', { name: 'Jadwal' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Nilai' })).not.toBeInTheDocument();
     // Konten dashboard: kartu ringkasan + aksi cepat
-    expect(screen.getByText('Kelas Diampu')).toBeInTheDocument();
     expect(screen.getByText('Total Pertemuan')).toBeInTheDocument();
     expect(screen.getByText('Pertemuan Selesai')).toBeInTheDocument();
     expect(screen.getByText('Akan Datang')).toBeInTheDocument();
@@ -146,9 +144,10 @@ describe('DosenDashboardPage (T3.7)', () => {
 
   it('tab tidak dikenal → render dashboard overview (bukan Pilih MK)', () => {
     renderAt('/dosen/tidak-ada');
-    expect(screen.getByText('Dashboard Dosen')).toBeInTheDocument();
-    expect(screen.getByText('Kelas Diampu')).toBeInTheDocument();
-    // Grid "Kelas yang Diampu" sudah dihapus dari overview
+    expect(screen.getByText('Aksi Cepat')).toBeInTheDocument();
+    // Header "Dashboard Dosen" + grid/kartu "Kelas Diampu" sudah dihapus
+    expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kelas Diampu')).not.toBeInTheDocument();
     expect(screen.queryByText('Kelas yang Diampu')).not.toBeInTheDocument();
   });
 });
