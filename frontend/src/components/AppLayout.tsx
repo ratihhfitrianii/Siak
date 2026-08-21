@@ -496,6 +496,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </NavLink>
           {menu.map((item) => {
             const isExpanded = expandedMenus.has(item.path);
+            const isParentActive = item.children
+              ? item.children.some((c) => window.location.pathname.startsWith(c.path))
+              : false;
             if (item.children) {
               const visibleChildren = item.children.filter((c) =>
                 c.permissions.some((p) => user!.menu.includes(p)),
@@ -514,7 +517,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     }
                     className={`group relative flex h-10 shrink-0 w-full items-center rounded-md transition cursor-pointer ${
                       sidebarCollapsed ? 'justify-center' : 'justify-start gap-2 px-2.5'
-                    } text-slate-600 hover:bg-slate-100 hover:text-slate-900`}
+                    } text-slate-600 hover:bg-slate-100 hover:text-slate-900 ${isParentActive ? 'bg-primary-50 text-primary-700' : ''}`}
                   >
                     <MenuIcon path={ICON_PATHS[item.icon]} />
                     {!sidebarCollapsed && (

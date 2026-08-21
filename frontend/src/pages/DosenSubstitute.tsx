@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   getSubstituteRequests,
   createSubstitute,
@@ -9,6 +9,125 @@ import {
 import { useAuth } from '../auth/AuthContext';
 import type { SubstituteRequest, LecturerBrief, MyClass } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
+
+/** Simple searchable select component */
+function SearchableSelect<T extends { id: number; label: string }>({
+  options,
+  value,
+  onChange,
+  placeholder,
+  maxHeight = 200,
+}: {
+  options: T[];
+  value: number | null;
+  onChange: (val: number | null) => void;
+  placeholder: string;
+  maxHeight?: number;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = useMemo(() =>
+    options.filter(o => o.label.toLowerCase().includes(search.toLowerCase())),
+    [options, search]
+  );
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setSearch('');
+        setHighlightedIndex(-1);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isOpen) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(i => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(i => Math.max(i - 1, -1));
+    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+      e.preventDefault();
+      onChange(filtered[highlightedIndex].id);
+      setIsOpen(false);
+      setSearch('');
+      setHighlightedIndex(-1);
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+      setSearch('');
+      setHighlightedIndex(-1);
+    }
+  };
+
+  const selectedOption = options.find(o => o.id === value);
+
+  return (
+    <div ref={containerRef} className="relative w-full max-w-xs">
+      <button
+        type="button"
+        onClick={() => { setIsOpen(!isOpen); if (!isOpen) setHighlightedIndex(-1); }}
+        className={`w-full px-3 py-1.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm text-left ${value ? 'text-slate-900' : 'text-slate-500'}`}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={placeholder}
+      >
+        {selectedOption?.label ?? placeholder}
+      </button>
+      {isOpen && (
+        <div
+          className="absolute z-10 w-full max-w-xs mt-1 bg-white border border-slate-300 rounded-md shadow-lg overflow-hidden"
+          style={{ maxHeight: maxHeight }}
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            value={search}
+            onChange={e => { setSearch(e.target.value); setHighlightedIndex(-1); }}
+            onKeyDown={handleKeyDown}
+            placeholder="Cari..."
+            className="w-full px-3 py-2 border-b border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+            autoFocus
+          />
+          <ul role="listbox" className="max-h-[160px] overflow-y-auto">
+            {filtered.length === 0 ? (
+              <li className="px-3 py-2 text-sm text-slate-500">Tidak ditemukan</li>
+            ) : (
+              filtered.map((opt, idx) => (
+                <li
+                  key={opt.id}
+                  role="option"
+                  aria-selected={idx === highlightedIndex}
+                  onClick={() => {
+                    onChange(opt.id);
+                    setIsOpen(false);
+                    setSearch('');
+                    setHighlightedIndex(-1);
+                  }}
+                  className={`px-3 py-2 text-sm cursor-pointer ${
+                    idx === highlightedIndex
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'hover:bg-slate-50 text-slate-900'
+                  }`}
+                >
+                  {opt.label}
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * Substitute teaching (T3.7 + T3.8, perm substitute.manage) — ajukan dosen pengganti.
@@ -176,48 +295,36 @@ export function DosenSubstitute() {
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Dosen Pengganti
               </label>
-              <select
-                value={substituteLecturerId ?? ''}
-                onChange={(e) =>
-                  setSubstituteLecturerId(e.target.value ? Number(e.target.value) : null)
-                }
-                className="w-full max-w-xs px-3 py-1.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-              >
-                <option value="">Pilih Dosen Pengganti</option>
-                {lecturers
+              <SearchableSelect
+                options={lecturers
                   .filter(
                     (lec) =>
                       lec.id !== originalLecturerId &&
                       lec.prodiCode === originalLecturer?.prodiCode,
                   )
-                  .map((lec) => (
-                    <option key={lec.id} value={lec.id}>
-                      {lec.fullName} ({lec.prodiCode})
-                    </option>
-                  ))}
-              </select>
+                  .map((lec) => ({
+                    id: lec.id,
+                    label: `${lec.fullName} (${lec.prodiCode})`,
+                  }))}
+                value={substituteLecturerId}
+                onChange={setSubstituteLecturerId}
+                placeholder="Pilih Dosen Pengganti"
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Kelas</label>
-              <select
-                value={classId ?? ''}
-                onChange={(e) => {
-                  const id = e.target.value ? Number(e.target.value) : null;
-                  setClassId(id);
-                  setScheduleId(null);
-                }}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">Pilih Kelas</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.courseCode} — {cls.classCode}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={classes.map((cls) => ({
+                  id: cls.id,
+                  label: `${cls.courseCode} — ${cls.classCode}`,
+                }))}
+                value={classId}
+                onChange={(val) => { setClassId(val); setScheduleId(null); }}
+                placeholder="Pilih Kelas"
+              />
               {classes.length === 0 && (
                 <p className="mt-1 text-xs text-slate-500">
                   Anda belum memiliki kelas dengan jadwal pertemuan.
@@ -229,28 +336,25 @@ export function DosenSubstitute() {
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Jadwal Pertemuan
               </label>
-              <select
-                value={scheduleId ?? ''}
-                onChange={(e) => setScheduleId(e.target.value ? Number(e.target.value) : null)}
-                disabled={!selectedClass || selectedClass.schedules.length === 0}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-slate-100 disabled:text-slate-400"
-              >
-                <option value="">Pilih Jadwal</option>
-                {selectedClass?.schedules.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    Pertemuan {s.meetingNumber} — {s.scheduledDate}
-                    {s.topic ? ` (${s.topic})` : ''}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={selectedClass?.schedules.map((s) => ({
+                  id: s.id,
+                  label: `Pertemuan ${s.meetingNumber} — ${s.scheduledDate}${s.topic ? ` (${s.topic})` : ''}`,
+                })) ?? []}
+                value={scheduleId}
+                onChange={setScheduleId}
+                placeholder="Pilih Jadwal"
+                maxHeight={180}
+              />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="reason" className="block text-sm font-medium text-slate-700 mb-2">
               Alasan (opsional)
             </label>
             <textarea
+              id="reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}

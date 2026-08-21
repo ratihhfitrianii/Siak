@@ -126,7 +126,7 @@ describe('DosenAttendance (T3.8)', () => {
     render(<DosenAttendance />);
     expect(screen.getByText('Sesi Absensi')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '+ Tambah Sesi Absensi' })).toBeInTheDocument();
-    expect(await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/)).toBeInTheDocument();
+    expect(await screen.findByText(/Pertemuan 1 \/ Senin, 3 Agustus 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Hadir 1\/2/)).toBeInTheDocument();
   });
 
@@ -178,7 +178,7 @@ describe('DosenAttendance (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenAttendance />);
-    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
+    await screen.findByText(/Pertemuan 1 \/ Senin, 3 Agustus 2026/);
 
     // Form awalnya TIDAK tampil — baru muncul setelah klik tombol
     expect(screen.queryByLabelText('Jadwal Pertemuan')).not.toBeInTheDocument();
@@ -200,7 +200,7 @@ describe('DosenAttendance (T3.8)', () => {
   it('popup batal → form tertutup tanpa POST', async () => {
     const user = userEvent.setup();
     render(<DosenAttendance />);
-    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
+    await screen.findByText(/Pertemuan 1 \/ Senin, 3 Agustus 2026/);
 
     await user.click(screen.getByRole('button', { name: '+ Tambah Sesi Absensi' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -231,7 +231,7 @@ describe('DosenAttendance (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenAttendance />);
-    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
+    await screen.findByText(/Pertemuan 1 \/ Senin, 3 Agustus 2026/);
 
     await user.click(screen.getByRole('button', { name: '+ Tambah Sesi Absensi' }));
     const dialog = screen.getByRole('dialog');
@@ -246,7 +246,7 @@ describe('DosenAttendance (T3.8)', () => {
     const user = userEvent.setup();
     render(<DosenAttendance />);
     // Sesi 31 = jadwal schedule_id 311 (sudah dibuat); hanya 312 yang tersedia
-    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
+    await screen.findByText(/Pertemuan 1 \/ Senin, 3 Agustus 2026/);
 
     await user.click(screen.getByRole('button', { name: '+ Tambah Sesi Absensi' }));
     const dialog = screen.getByRole('dialog');
@@ -279,7 +279,7 @@ describe('DosenAttendance (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: [] }));
     });
     render(<DosenAttendance />);
-    await screen.findAllByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
+    await screen.findAllByText(/Pertemuan 1 \/ Senin, 3 Agustus 2026/);
 
     await user.click(screen.getByRole('button', { name: '+ Tambah Sesi Absensi' }));
     expect(
@@ -309,10 +309,10 @@ describe('DosenAttendance (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenAttendance />);
-    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
+    await screen.findByText(/Pertemuan 1 \/ Senin, 3 Agustus 2026/);
 
     // Expand sesi 31
-    await user.click(screen.getByText(/Pertemuan 1 · Senin, 3 Agustus 2026/));
+    await user.click(screen.getByText(/Pertemuan 1 \/ Senin, 3 Agustus 2026/));
     expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
     expect(screen.getByText('Ani Wijaya')).toBeInTheDocument();
 
@@ -335,7 +335,7 @@ describe('DosenAttendance (T3.8)', () => {
     expect(putBody).toEqual({ status: 'izin' });
 
     // Klik sesi yang sama lagi → collapse (detail hilang)
-    await user.click(screen.getByText(/Pertemuan 1 · Senin, 3 Agustus 2026/));
+    await user.click(screen.getByText(/Pertemuan 1 \/ Senin, 3 Agustus 2026/));
     expect(screen.queryByText('Budi Santoso')).not.toBeInTheDocument();
     expect(screen.queryByText('Tanggal: Senin, 3 Agustus 2026')).not.toBeInTheDocument();
   });
@@ -360,7 +360,7 @@ describe('DosenAttendance (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenAttendance />);
-    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
+    await screen.findByText(/Pertemuan 1 \/ Senin, 3 Agustus 2026/);
 
     await user.click(screen.getByRole('button', { name: 'Buka' }));
     expect(await screen.findByRole('status')).toHaveTextContent(

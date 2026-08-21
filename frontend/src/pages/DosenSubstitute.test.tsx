@@ -1,6 +1,5 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { controlFor } from '../test/controls';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenSubstitute } from './DosenSubstitute';
 
@@ -138,12 +137,16 @@ describe('DosenSubstitute (T3.8)', () => {
     await screen.findByText(/TI101 — TI101-A · Pertemuan 1/);
 
     // Dropdown pengganti TIDAK memuat dosen asli (diri sendiri, id 1)
-    const subSelect = controlFor('Dosen Pengganti', 'select');
-    const options = Array.from(subSelect.querySelectorAll('option')).map((o) =>
-      o.getAttribute('value'),
-    );
-    expect(options).not.toContain('1');
-    expect(options).toContain('2');
+    // SearchableSelect: klik button → buka dropdown → cari option
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Pilih Dosen Pengganti' }));
+    
+    // Dropdown list items (hanya untuk dosen pengganti)
+    const subOptions = await screen.findAllByRole('option');
+    const subValues = subOptions.map(o => o.textContent);
+    expect(subValues).not.toContain('Dosen Satu (TI)');
+    expect(subValues).toContain('Dosen Dua (TI)');
+    // Tutup dropdown
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Pilih Dosen Pengganti' }));
     // Tombol disabled karena pengganti belum dipilih
     expect(screen.getByRole('button', { name: 'Ajukan Substitute' })).toBeDisabled();
   });
@@ -195,10 +198,18 @@ describe('DosenSubstitute (T3.8)', () => {
     render(<DosenSubstitute />);
     await screen.findByText(/TI101 — TI101-A · Pertemuan 1/);
 
-    await user.selectOptions(controlFor('Dosen Pengganti', 'select'), '2');
-    await user.selectOptions(controlFor('Kelas', 'select'), '1');
-    await user.selectOptions(controlFor('Jadwal Pertemuan', 'select'), '311');
-    await user.type(controlFor('Alasan (opsional)', 'textarea'), 'Sakit');
+    // SearchableSelect: klik button → type search → click option
+    await user.click(screen.getByRole('button', { name: 'Pilih Dosen Pengganti' }));
+    await user.type(screen.getByPlaceholderText('Cari...'), 'Dosen Dua');
+    await user.click(screen.getByRole('option', { name: 'Dosen Dua (TI)' }));
+
+    await user.click(screen.getByRole('button', { name: 'Pilih Kelas' }));
+    await user.click(screen.getByRole('option', { name: 'TI101 — TI101-A' }));
+
+    await user.click(screen.getByRole('button', { name: 'Pilih Jadwal' }));
+    await user.click(screen.getByRole('option', { name: /Pertemuan 1/ }));
+
+    await user.type(screen.getByLabelText('Alasan (opsional)'), 'Sakit');
 
     await user.click(screen.getByRole('button', { name: 'Ajukan Substitute' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
@@ -237,12 +248,22 @@ describe('DosenSubstitute (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: [] }));
     });
     render(<DosenSubstitute />);
-    // Tunggu opsi dosen pengganti muncul (menjamin lecturers + my-classes selesai load)
-    await screen.findByRole('option', { name: 'Dosen Dua (TI)' });
+    // Tunggu form siap - cek header "Form Substitute"
+    await screen.findByText('Form Substitute');
 
-    await user.selectOptions(controlFor('Dosen Pengganti', 'select'), '2');
-    await user.selectOptions(controlFor('Kelas', 'select'), '1');
-    await user.selectOptions(controlFor('Jadwal Pertemuan', 'select'), '311');
+    // Pilih dosen pengganti
+    await user.click(screen.getByRole('button', { name: 'Pilih Dosen Pengganti' }));
+    await user.type(screen.getByPlaceholderText('Cari...'), 'Dosen Dua');
+    await user.click(screen.getByRole('option', { name: 'Dosen Dua (TI)' }));
+
+    // Pilih kelas
+    await user.click(screen.getByRole('button', { name: 'Pilih Kelas' }));
+    await user.click(screen.getByRole('option', { name: 'TI101 — TI101-A' }));
+
+    // Pilih jadwal
+    await user.click(screen.getByRole('button', { name: 'Pilih Jadwal' }));
+    await user.click(screen.getByRole('option', { name: /Pertemuan 1/ }));
+
     await user.click(screen.getByRole('button', { name: 'Ajukan Substitute' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Sudah ada substitute aktif');
