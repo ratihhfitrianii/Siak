@@ -661,10 +661,10 @@ describe('T3.3 Absensi — Attendance Sessions & Records', () => {
   // POST /attendance/sessions/:id/records — dosen set status mahasiswa belum check-in
   it('POST /sessions/:id/records → buat record baru untuk mahasiswa belum absen', async () => {
     // Hapus record mahasiswa agar mulai dari kondisi "belum punya record"
-    await pgPool.query(
-      `DELETE FROM attendance_records WHERE session_id = $1 AND student_id = $2`,
-      [sessionId, mahasiswaStudentId],
-    );
+    await pgPool.query(`DELETE FROM attendance_records WHERE session_id = $1 AND student_id = $2`, [
+      sessionId,
+      mahasiswaStudentId,
+    ]);
 
     const res = await request(app)
       .post(`/api/v1/attendance/sessions/${sessionId}/records`)
