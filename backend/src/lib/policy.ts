@@ -33,6 +33,7 @@ export const PERMISSIONS = [
   'lecturer.select_course', // Pilih MK (filter prodi)
   'lecturer.availability', // Ketersediaan Jadwal
   'attendance.input', // Absensi (wajib materi)
+  'attendance.recap', // Rekap Kehadiran Mahasiswa
   'guidance.manage', // Bimbingan (catatan)
   'substitute.manage', // Substitute Teaching
   'payroll.view', // Lihat Payroll
@@ -80,6 +81,7 @@ const ROLE_PERMISSIONS: Record<RoleCode, ReadonlySet<Permission>> = {
     'lecturer.select_course',
     'lecturer.availability',
     'attendance.input',
+    'attendance.recap',
     'substitute.manage',
     'payroll.view',
     'thesis.review',
