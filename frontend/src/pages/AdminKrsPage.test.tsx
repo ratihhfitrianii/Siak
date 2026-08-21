@@ -104,9 +104,7 @@ describe('AdminKrsPage (T1.11c)', () => {
     mockAdminRoutes();
     render(<AdminKrsPage />);
 
-    expect(await screen.findByText('Persetujuan KRS')).toBeInTheDocument();
-    expect(screen.getByText('2 pengajuan menunggu keputusan Anda.')).toBeInTheDocument();
-    expect(screen.getByText('Budi Santoso')).toBeInTheDocument();
+    expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
     expect(screen.getByText('2024001')).toBeInTheDocument();
     expect(screen.getByText('Siti Aminah')).toBeInTheDocument();
     // kolom SKS per baris
@@ -173,7 +171,6 @@ describe('AdminKrsPage (T1.11c)', () => {
     expect(approveBody).toHaveBeenCalledWith({});
     // list dimuat ulang → Budi hilang
     await vi.waitFor(() => expect(screen.queryByText('Budi Santoso')).not.toBeInTheDocument());
-    expect(screen.getByText('1 pengajuan menunggu keputusan Anda.')).toBeInTheDocument();
   });
 
   it('approve gagal (409) → pesan error inline', async () => {

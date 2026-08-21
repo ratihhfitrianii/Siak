@@ -276,18 +276,8 @@ export function DosenSelectMK() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">Pilih Mata Kuliah</h2>
-        <p className="text-slate-600">
-          Pilih semester dan ajukan mata kuliah yang akan diajar. Status: belum_diajukan → diajukan
-          → disetujui/ditolak.
-        </p>
-      </div>
-
       {/* Filter Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-slate-900 mb-4">Filter & Search</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Semester</label>

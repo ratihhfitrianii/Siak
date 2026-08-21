@@ -137,8 +137,7 @@ describe('TranscriptPage (T1.11b)', () => {
     );
     render(<TranscriptPage />);
 
-    expect(await screen.findByText('Transkrip Nilai')).toBeInTheDocument();
-    expect(screen.getByText('Semester 2024/2025-1')).toBeInTheDocument();
+    expect(await screen.findByText('Semester 2024/2025-1')).toBeInTheDocument();
     expect(screen.getByText('Semester 2023/2024-2')).toBeInTheDocument();
 
     // IP semester 1 = (3×4.0 + 2×3.3)/5 = 18.6/5 = 3.72

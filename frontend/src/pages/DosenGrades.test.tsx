@@ -92,7 +92,7 @@ describe('DosenGrades (T3.8)', () => {
 
   it('render — header + dropdown kelas dari getMyClasses', async () => {
     render(<DosenGrades />);
-    expect(screen.getByText('Input Nilai')).toBeInTheDocument();
+    expect(screen.getByText('Form Nilai')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Simpan Nilai' })).not.toBeInTheDocument();
     await screen.findByText('TI101-A - Dasar-Dasar Pemrograman (TI101)');
     expect(

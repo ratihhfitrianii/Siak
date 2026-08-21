@@ -151,16 +151,6 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Profil Mahasiswa</h1>
-          <p className="text-slate-500 mt-1">
-            Kelola informasi profil dan lihat riwayat IP per semester
-          </p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Photo & Info Card */}
         <div className="lg:col-span-1">

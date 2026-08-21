@@ -194,14 +194,6 @@ export function AdminSchedulePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Kelola Jadwal Pengajar</h1>
-        <p className="text-slate-600 mt-1">
-          CRUD jadwal pertemuan per kelas (Admin Sistem / Admin Akademik)
-        </p>
-      </div>
-
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

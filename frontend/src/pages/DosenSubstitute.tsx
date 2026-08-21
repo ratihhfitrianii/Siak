@@ -131,15 +131,6 @@ export function DosenSubstitute() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">Substitute Teaching</h2>
-        <p className="text-slate-600">
-          Ajukan dosen pengganti untuk jadwal pertemuan kelas yang Anda ampu. Pengajuan langsung
-          aktif; hanya dosen yang terlibat (asli/pengganti) atau admin yang dapat membatalkan.
-        </p>
-      </div>
-
       {/* Form Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-medium text-slate-900 mb-4">Form Substitute</h3>

@@ -63,7 +63,6 @@ describe('ProfilePage (Student Profile)', () => {
     render(<ProfilePage />);
 
     await waitFor(() => expect(screen.queryByText(/Memuat profil/i)).not.toBeInTheDocument());
-    expect(screen.getByText(/Profil Mahasiswa/i)).toBeInTheDocument();
     expect(screen.getByText('Budi Santoso')).toBeInTheDocument();
     expect(screen.getByText('2021001')).toBeInTheDocument();
   });

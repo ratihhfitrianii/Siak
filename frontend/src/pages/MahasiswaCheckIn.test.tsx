@@ -30,7 +30,6 @@ describe('MahasiswaCheckIn', () => {
         <MahasiswaCheckIn />
       </MemoryRouter>,
     );
-    expect(screen.getByText('Check-In Absensi')).toBeInTheDocument();
     expect(screen.getByText('ID Sesi')).toBeInTheDocument();
     expect(screen.getByText('QR Code')).toBeInTheDocument();
     expect(screen.getByText('Check-In Sekarang')).toBeInTheDocument();

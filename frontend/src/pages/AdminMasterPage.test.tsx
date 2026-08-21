@@ -158,7 +158,6 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     render(<AdminMasterPage />);
 
-    expect(await screen.findByText('Master Data')).toBeInTheDocument();
     expect(await screen.findByText('Fakultas Teknik')).toBeInTheDocument();
     expect(screen.getByText('FT')).toBeInTheDocument();
     // "Aktif" appears in status badges — use container to scope

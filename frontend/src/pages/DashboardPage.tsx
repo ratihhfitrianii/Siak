@@ -4,14 +4,6 @@ import { useAuth } from '../auth/AuthContext';
 import { getKrsPeriod, getMyNotifications, getAnnouncements } from '../lib/api';
 import type { KrsPeriod, AppNotification, Announcement } from '../lib/types';
 
-const ROLE_LABEL: Record<string, string> = {
-  mahasiswa: 'Mahasiswa',
-  dosen: 'Dosen',
-  admin_akademik: 'Admin Akademik',
-  admin_keuangan: 'Admin Keuangan',
-  admin_sistem: 'Admin Sistem',
-};
-
 function formatDate(iso: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -92,17 +84,6 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-bold text-slate-900">Selamat datang, {user.fullName}</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Anda masuk sebagai{' '}
-          <span className="font-medium text-slate-700">
-            {ROLE_LABEL[user.role] ?? user.roleName}
-          </span>
-          .
-        </p>
-      </div>
-
       {/* Keluhan: dashboard hanya menampilkan grid INFORMASI PENTING — grid menu (kartu
           navigasi KRS/Transkrip/Kelola Pengguna) dihapus; navigasi tetap lewat sidebar ikon.
           Keluhan #27 — informasi terkini universitas (semua role; kartu periode khusus yang punya akses krs.*) */}

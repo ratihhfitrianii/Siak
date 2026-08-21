@@ -53,27 +53,6 @@ export function MahasiswaCheckIn() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg
-            className="h-8 w-8 text-green-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        </div>
-        <h1 className="text-2xl font-bold text-slate-900">Check-In Absensi</h1>
-        <p className="text-slate-500 mt-1">Masukkan ID Sesi atau pindai QR Code dari dosen Anda</p>
-      </div>
-
       {/* Input Mode Toggle */}
       <div className="bg-white rounded-lg shadow-sm p-1 flex gap-1">
         <button

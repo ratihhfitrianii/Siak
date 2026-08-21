@@ -207,41 +207,35 @@ export function FinancePaymentsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header & Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Kelola Tagihan</h1>
-          <p className="text-slate-600 mt-1">Daftar tagihan mahasiswa (per NIM)</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={filters.prodi_id}
-            onChange={(e) => setFilters((f) => ({ ...f, prodi_id: e.target.value, page: 1 }))}
-            className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          >
-            <option value="">Semua Prodi</option>
-            {prodis.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="Cari NIM/Nama..."
-            value={filters.search}
-            onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value, page: 1 }))}
-            className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48 sm:w-64"
-          />
-          <button
-            type="button"
-            onClick={handleGeneratePayments}
-            disabled={generating}
-            className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {generating ? 'Generating...' : 'Generate Tagihan'}
-          </button>
-        </div>
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          value={filters.prodi_id}
+          onChange={(e) => setFilters((f) => ({ ...f, prodi_id: e.target.value, page: 1 }))}
+          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        >
+          <option value="">Semua Prodi</option>
+          {prodis.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <input
+          type="text"
+          placeholder="Cari NIM/Nama..."
+          value={filters.search}
+          onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value, page: 1 }))}
+          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48 sm:w-64"
+        />
+        <button
+          type="button"
+          onClick={handleGeneratePayments}
+          disabled={generating}
+          className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {generating ? 'Generating...' : 'Generate Tagihan'}
+        </button>
       </div>
 
       {/* Error */}

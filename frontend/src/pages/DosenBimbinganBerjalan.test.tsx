@@ -100,7 +100,7 @@ describe('DosenBimbinganBerjalan', () => {
     expect(await screen.findByText('Sistem Informasi Akademik Berbasis Web')).toBeInTheDocument();
     // Proposal 2 (dosen lain + status diajukan) tidak tampil
     expect(screen.queryByText('Proposal Dosen Lain')).not.toBeInTheDocument();
-    expect(screen.getByText('Bimbingan Berjalan')).toBeInTheDocument();
+    // Header card "Bimbingan Berjalan" dihapus — judul proposal menjadi penanda render
   });
 
   it('expand card — detail mahasiswa + pembimbing + tombol aksi', async () => {

@@ -437,14 +437,6 @@ export function AdminMasterPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">Master Data</h2>
-        <p className="text-slate-600">
-          Kelola data master Fakultas, Program Studi, Mahasiswa, dan Dosen. Hanya Admin Sistem yang
-          dapat mengakses halaman ini.
-        </p>
-      </div>
-
       {/* Tab navigation */}
       <div className="bg-white rounded-lg shadow-sm border-b">
         <nav className="flex -mb-px" role="tablist">

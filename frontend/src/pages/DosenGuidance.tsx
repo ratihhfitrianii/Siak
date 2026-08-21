@@ -121,14 +121,6 @@ export function DosenGuidance() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-slate-900">Bimbingan Mahasiswa Binaan</h2>
-        <p className="text-slate-500 text-sm mt-1">
-          Kelola catatan bimbingan akademik untuk mahasiswa binaan Anda.
-        </p>
-      </div>
-
       {/* Search */}
       <div className="bg-white rounded-lg shadow-sm p-4">
         <div className="relative">

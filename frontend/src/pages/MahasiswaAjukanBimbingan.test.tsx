@@ -81,7 +81,7 @@ describe('MahasiswaAjukanBimbingan', () => {
         <MahasiswaAjukanBimbingan />
       </MemoryRouter>,
     );
-    expect(screen.getByText('Ajukan Bimbingan Skripsi')).toBeInTheDocument();
+    expect(screen.getByText('Form Pengajuan Proposal')).toBeInTheDocument();
     // Form fields - search input instead of select
     expect(screen.getByPlaceholderText(/Contoh: Analisis/)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Cari nama\/NIDN dosen/)).toBeInTheDocument();

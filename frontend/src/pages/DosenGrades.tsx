@@ -146,16 +146,6 @@ export function DosenGrades() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">Input Nilai</h2>
-        <p className="text-slate-600">
-          Input nilai tugas, UTS, dan UAS untuk mahasiswa di kelas yang Anda ampu. Nilai akhir
-          dihitung otomatis dengan bobot tugas 20%, UTS 30%, UAS 50%; remedial per komponen
-          mengambil nilai tertinggi.
-        </p>
-      </div>
-
       {/* Form Section */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-medium text-slate-900 mb-4">Form Nilai</h3>

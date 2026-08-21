@@ -121,25 +121,27 @@ describe('DosenDashboardPage (T3.7)', () => {
 
   it('route /dosen/bimbingan → render DosenGuidance — TIDAK ada header Dashboard Dosen', () => {
     renderAt('/dosen/bimbingan');
-    expect(screen.getByText('Bimbingan Mahasiswa Binaan')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Cari berdasarkan NIM, nama, email, atau prodi...'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 
   it('route /dosen/substitute → render DosenSubstitute — TIDAK ada header Dashboard Dosen', () => {
     renderAt('/dosen/substitute');
-    expect(screen.getByText('Substitute Teaching')).toBeInTheDocument();
+    expect(screen.getByText('Form Substitute')).toBeInTheDocument();
     expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 
   it('route /dosen/nilai → render DosenGrades — TIDAK ada header Dashboard Dosen', () => {
     renderAt('/dosen/nilai');
-    expect(screen.getByText('Input Nilai')).toBeInTheDocument();
+    expect(screen.getByText('Form Nilai')).toBeInTheDocument();
     expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 
   it('route /dosen/pilih-mk → render DosenSelectMK', () => {
     renderAt('/dosen/pilih-mk');
-    expect(screen.getByText('Pilih Mata Kuliah')).toBeInTheDocument();
+    expect(screen.getByText('Mata Kuliah Tersedia')).toBeInTheDocument();
   });
 
   it('tab tidak dikenal → render dashboard overview (bukan Pilih MK)', () => {

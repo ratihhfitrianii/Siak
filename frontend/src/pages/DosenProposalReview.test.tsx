@@ -107,7 +107,7 @@ describe('DosenProposalReview', () => {
     expect(await screen.findByText('Sistem Informasi Akademik Berbasis Web')).toBeInTheDocument();
     // Proposal dosen lain tidak tampil
     expect(screen.queryByText('Proposal Dosen Lain')).not.toBeInTheDocument();
-    expect(screen.getByText('Pengajuan Proposal')).toBeInTheDocument();
+    // Header card "Pengajuan Proposal" dihapus — judul proposal sudah menjadi penanda render
     // Status actionable → tombol Setujui/Tolak tampil
     expect(screen.getByRole('button', { name: 'Setujui' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tolak' })).toBeInTheDocument();

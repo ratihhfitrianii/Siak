@@ -76,7 +76,7 @@ describe('DosenGuidance', () => {
 
   it('render — header + search + student cards + form', async () => {
     render(<DosenGuidance />);
-    expect(screen.getByText('Bimbingan Mahasiswa Binaan')).toBeInTheDocument();
+    // Header card dihapus — cek langsung konten student cards
     // Student cards visible
     expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
     expect(screen.getByText('Ani Wijaya')).toBeInTheDocument();

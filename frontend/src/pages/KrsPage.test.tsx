@@ -183,12 +183,11 @@ describe('KrsPage (T1.11b + Gelombang 3 #28–#30 redesign)', () => {
     mockKrsRoutes();
     render(<KrsPage />);
 
-    expect(await screen.findByText('Kartu Rencana Studi')).toBeInTheDocument();
-    expect(screen.getByLabelText('Daftar mata kuliah')).toBeInTheDocument();
+    // Header "Kartu Rencana Studi" dihapus — tunggu konten daftar matkul render
+    expect(await screen.findByLabelText('Daftar mata kuliah')).toBeInTheDocument();
     expect(screen.getByLabelText('Kelas terpilih')).toBeInTheDocument();
     // Periode + status
     expect(screen.getByText('Periode Buka')).toBeInTheDocument();
-    expect(screen.getByText('Ganjil 2024/2025')).toBeInTheDocument();
   });
 
   it('keluhan #30 — kartu menampilkan format: nama MK - kode | SKS, dosen | jadwal, kuota tersisa', async () => {
@@ -382,7 +381,9 @@ describe('KrsPage (T1.11b + Gelombang 3 #28–#30 redesign)', () => {
     mockKrsRoutes({ period: { ...PERIOD, status: 'closed' }, available: [] });
     render(<KrsPage />);
 
-    expect(await screen.findByText('Periode KRS sedang tutup.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Pengisian KRS hanya dapat dilakukan saat periode KRS sedang buka.'),
+    ).toBeInTheDocument();
     expect(
       screen.getByText('Pengisian KRS hanya dapat dilakukan saat periode KRS sedang buka.'),
     ).toBeInTheDocument();
@@ -465,7 +466,9 @@ describe('KrsPage (T1.11b + Gelombang 3 #28–#30 redesign)', () => {
     mockKrsRoutes({ period: { ...PERIOD, status: 'closed' }, available: [] });
     render(<KrsPage />);
 
-    expect(await screen.findByText('Periode KRS sedang tutup.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Pengisian KRS hanya dapat dilakukan saat periode KRS sedang buka.'),
+    ).toBeInTheDocument();
     expect(
       screen.getByText('Pengisian KRS hanya dapat dilakukan saat periode KRS sedang buka.'),
     ).toBeInTheDocument();

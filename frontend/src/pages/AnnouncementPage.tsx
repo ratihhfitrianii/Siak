@@ -124,14 +124,6 @@ export function AnnouncementPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">Informasi Penting</h2>
-        <p className="text-slate-600">
-          Kelola informasi penting yang akan ditampilkan di dashboard mahasiswa dan dosen. Pilih
-          target role (kosong = semua role). Priority lebih tinggi ditampilkan lebih atas.
-        </p>
-      </div>
-
       {error && <FormAlert>{error}</FormAlert>}
       {success && (
         <p

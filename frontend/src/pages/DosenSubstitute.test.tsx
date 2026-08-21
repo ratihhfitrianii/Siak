@@ -117,7 +117,7 @@ describe('DosenSubstitute (T3.8)', () => {
 
   it('render — header + daftar requests + default dosen asli = diri sendiri', async () => {
     render(<DosenSubstitute />);
-    expect(screen.getByText('Substitute Teaching')).toBeInTheDocument();
+    expect(screen.getByText('Form Substitute')).toBeInTheDocument();
     expect(await screen.findByText(/TI101 — TI101-A · Pertemuan 1/)).toBeInTheDocument();
     expect(screen.getByText('Aktif')).toBeInTheDocument();
     // Keluhan lama: dosen asli TIDAK dipilih manual — dikunci otomatis (diri sendiri, userId 4 → id 1)

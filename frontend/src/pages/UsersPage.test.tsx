@@ -160,9 +160,9 @@ describe('UsersPage (T1.11c)', () => {
     mockUsersRoutes();
     render(<UsersPage />);
 
-    expect(await screen.findByText('Kelola Pengguna')).toBeInTheDocument();
+    expect(await screen.findByText('+ Buat User')).toBeInTheDocument();
     await vi.waitFor(() => {
-      expect(screen.getByText('2 pengguna terdaftar.')).toBeInTheDocument();
+      expect(screen.getByText('Andi')).toBeInTheDocument();
     });
     expect(screen.getByText('Andi')).toBeInTheDocument();
     expect(screen.getByText('andi@kampus.ac.id')).toBeInTheDocument();

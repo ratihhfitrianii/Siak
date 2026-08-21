@@ -130,11 +130,12 @@ describe('DashboardPage (T1.11b + keluhan #27 info terkini)', () => {
     vi.clearAllMocks();
   });
 
-  it('keluhan — grid menu (KRS/Transkrip/Kelola Pengguna) TIDAK tampil; hanya info penting', () => {
+  it('keluhan — grid menu (KRS/Transkrip/Kelola Pengguna) TIDAK tampil; hanya info penting', async () => {
     mockUser = MAHASISWA;
     renderDashboard();
 
-    expect(screen.getByText('Selamat datang, Budi')).toBeInTheDocument();
+    // Header "Selamat datang, Budi" dihapus — kartu Info Penting menjadi penanda render
+    expect(await screen.findByText('Info Penting')).toBeInTheDocument();
     // Grid menu dihapus — kartu navigasi tidak boleh tampil sebagai teks apa pun
     expect(
       screen.queryByText('Isi & pantau Kartu Rencana Studi periode aktif'),
@@ -211,7 +212,6 @@ describe('DashboardPage (T1.11b + keluhan #27 info terkini)', () => {
 
     expect(await screen.findByText(/Info periode tidak dapat dimuat/)).toBeInTheDocument();
     expect(screen.getByText(/Informasi penting tidak dapat dimuat/)).toBeInTheDocument();
-    expect(screen.getByText('Selamat datang, Budi')).toBeInTheDocument();
   });
 
   it('admin tanpa permission krs.* → tidak ada kartu Periode KRS, Info Penting tetap ada', async () => {

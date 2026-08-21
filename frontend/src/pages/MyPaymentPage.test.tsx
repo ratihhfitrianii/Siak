@@ -222,8 +222,7 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
     mockFetch();
     render(<MyPaymentPage />);
 
-    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
-    expect(screen.getByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
+    expect(await screen.findByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
     expect(screen.getByText('Genap 2023/2024 (2023/2024-2)')).toBeInTheDocument();
     expect(screen.getAllByText('Belum Lunas').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Lunas').length).toBeGreaterThan(0);
@@ -291,7 +290,7 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
       }),
     );
     render(<MyPaymentPage />);
-    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+    expect(await screen.findByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 150));
     expect(paymentsCalls).toBe(1);
   });
@@ -299,7 +298,7 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
   it('klik Detail → buka modal rincian tagihan', async () => {
     mockFetch();
     render(<MyPaymentPage />);
-    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+    expect(await screen.findByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
 
     // Klik tombol Detail pertama
     const detailButtons = screen.getAllByText('Detail');
@@ -315,7 +314,7 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
   it('modal: tutup pakai tombol ×', async () => {
     mockFetch();
     render(<MyPaymentPage />);
-    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+    expect(await screen.findByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
 
     fireEvent.click(screen.getAllByText('Detail')[0]);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -327,7 +326,7 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
   it('modal: tutup pakai klik overlay', async () => {
     mockFetch();
     render(<MyPaymentPage />);
-    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+    expect(await screen.findByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
 
     fireEvent.click(screen.getAllByText('Detail')[0]);
     const dialog = screen.getByRole('dialog');
@@ -338,7 +337,7 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
   it('modal: tutup pakai tombol Tutup di footer', async () => {
     mockFetch();
     render(<MyPaymentPage />);
-    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+    expect(await screen.findByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
 
     fireEvent.click(screen.getAllByText('Detail')[0]);
     fireEvent.click(screen.getByText('Tutup', { selector: 'button' }));
@@ -348,7 +347,7 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
   it('modal lunas → tampilkan link bukti pembayaran', async () => {
     mockFetch();
     render(<MyPaymentPage />);
-    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+    expect(await screen.findByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
 
     // Klik Detail pada baris lunas (Genap 2023/2024)
     const detailButtons = screen.getAllByText('Detail');
@@ -364,7 +363,7 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
   it('modal partial → tampilkan progress bar', async () => {
     mockFetch();
     render(<MyPaymentPage />);
-    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+    expect(await screen.findByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
 
     // Klik Detail pada baris partial (Genap 2024/2025, index 2)
     const detailButtons = screen.getAllByText('Detail');
@@ -379,7 +378,7 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
   it('tabel menampilkan kolom Bukti — link untuk lunas, — untuk lainnya', async () => {
     mockFetch();
     render(<MyPaymentPage />);
-    expect(await screen.findByText('Tagihan Saya')).toBeInTheDocument();
+    expect(await screen.findByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
 
     // Link "Lihat" untuk lunas
     expect(screen.getByText('Lihat')).toHaveAttribute('href', 'https://example.com/bukti.pdf');

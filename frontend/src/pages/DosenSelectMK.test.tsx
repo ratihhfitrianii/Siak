@@ -73,7 +73,7 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
 
     render(<DosenSelectMK />);
 
-    expect(screen.getByText('Pilih Mata Kuliah')).toBeInTheDocument();
+    expect(screen.getByText('Mata Kuliah Tersedia')).toBeInTheDocument();
 
     // Default semester should be the first one (latest)
     expect(await screen.findByText('Dasar-Dasar Pemrograman')).toBeInTheDocument();

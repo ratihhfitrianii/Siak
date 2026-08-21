@@ -10,7 +10,6 @@ describe('MahasiswaSidang', () => {
         <MahasiswaSidang />
       </MemoryRouter>,
     );
-    expect(screen.getByText('Sidang Skripsi')).toBeInTheDocument();
     expect(screen.getByText('Segera Tersedia')).toBeInTheDocument();
     expect(screen.getByText('Fitur sidang skripsi akan segera tersedia.')).toBeInTheDocument();
     expect(screen.getByText('← Kembali ke Dashboard')).toBeInTheDocument();

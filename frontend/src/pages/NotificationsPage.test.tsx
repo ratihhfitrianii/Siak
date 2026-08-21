@@ -58,8 +58,7 @@ describe('NotificationsPage (T2.5)', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(NOTIFS_RESPONSE)));
     render(<NotificationsPage />);
 
-    expect(await screen.findByText('Notifikasi')).toBeInTheDocument();
-    expect(screen.getByText('Ingat: isi KRS')).toBeInTheDocument();
+    expect(await screen.findByText('Ingat: isi KRS')).toBeInTheDocument();
     // "KRS Disetujui" muncul 2× (badge tipe + judul notifikasi)
     expect(screen.getAllByText('KRS Disetujui').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('Pengingat KRS')).toBeInTheDocument();

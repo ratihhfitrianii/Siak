@@ -95,12 +95,6 @@ export function MyPaymentPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Tagihan Saya</h1>
-        <p className="text-slate-600 mt-1">Lihat detail pembayaran semua semester</p>
-      </div>
-
       {/* KRS Access Indicator */}
       {krsAccess && (
         <div

@@ -91,7 +91,7 @@ describe('DosenBimbinganMahasiswaBinaan', () => {
     expect(await screen.findByText('Sistem Informasi Akademik Berbasis Web')).toBeInTheDocument();
     // Proposal dosen lain tidak tampil walau statusnya approved
     expect(screen.queryByText('Proposal Dosen Lain')).not.toBeInTheDocument();
-    expect(screen.getByText('Bimbingan Mahasiswa Binaan')).toBeInTheDocument();
+    // Header card "Bimbingan Mahasiswa Binaan" dihapus — judul proposal menjadi penanda render
   });
 
   it('expand card — detail mahasiswa + tombol aksi', async () => {
