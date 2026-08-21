@@ -10,6 +10,18 @@ import {
 import type { AttendanceSession, AttendanceRecordItem, MyClass } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
+/** Format tanggal (ISO atau yyyy-MM-dd) → "Senin, 15 September 2026" (id-ID). */
+function formatTanggalID(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 /**
  * Absensi dosen (T3.7 + T3.8, perm attendance.input) — terhubung API nyata:
  * GET/POST /attendance/sessions, PUT /attendance/sessions/:id/open|close,
@@ -79,9 +91,16 @@ export function DosenAttendance() {
 
   const handleSelectSession = (id: string) => {
     const sid = id ? Number(id) : null;
-    setSelectedSessionId(sid);
     setError(null);
     setSuccess(null);
+    // Klik sesi yang sama → collapse (toggle). Klik sesi lain → expand.
+    if (sid !== null && sid === selectedSessionId) {
+      setSelectedSessionId(null);
+      setRecords([]);
+      setSessionInfo(null);
+      return;
+    }
+    setSelectedSessionId(sid);
     if (sid) {
       loadRecords(sid);
     } else {
@@ -260,7 +279,7 @@ export function DosenAttendance() {
                     <h4 className="font-semibold text-slate-900">
                       {s.courseCode} — {s.classCode}
                       <span className="ml-2 text-sm font-normal text-slate-500">
-                        Pertemuan {s.meetingNumber} · {s.sessionDate}
+                        Pertemuan {s.meetingNumber} · {formatTanggalID(s.sessionDate)}
                       </span>
                     </h4>
                     <div className="flex items-center gap-2 mt-1">
@@ -296,14 +315,8 @@ export function DosenAttendance() {
                   <div className="mt-4 border-t border-slate-200 pt-4">
                     {sessionInfo && (
                       <p className="text-sm text-slate-600 mb-2">
-                        Tanggal:{' '}
-                        {new Date(sessionInfo.sessionDate).toLocaleDateString('id-ID', {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                        })}{' '}
-                        · Topik: {sessionInfo.topic ?? '-'} ·{' '}
+                        Tanggal: {formatTanggalID(sessionInfo.sessionDate)} · Topik:{' '}
+                        {sessionInfo.topic ?? '-'} ·{' '}
                         {sessionInfo.isOpen
                           ? 'Mahasiswa dapat check-in'
                           : 'Sesi tertutup — rekap masih bisa diperbarui'}

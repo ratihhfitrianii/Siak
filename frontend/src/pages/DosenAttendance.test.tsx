@@ -126,7 +126,7 @@ describe('DosenAttendance (T3.8)', () => {
   it('render — header + daftar sesi absensi dari API', async () => {
     render(<DosenAttendance />);
     expect(screen.getByText('Absensi Mengajar')).toBeInTheDocument();
-    expect(await screen.findByText(/Pertemuan 1 · 2026-08-03/)).toBeInTheDocument();
+    expect(await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Hadir 1\/2/)).toBeInTheDocument();
   });
 
@@ -176,7 +176,7 @@ describe('DosenAttendance (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenAttendance />);
-    await screen.findByText(/Pertemuan 1 · 2026-08-03/);
+    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
 
     await user.selectOptions(controlFor('Jadwal Pertemuan', 'select'), '312');
     await user.type(controlFor('Topik (opsional)', 'input'), 'Array');
@@ -204,7 +204,7 @@ describe('DosenAttendance (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenAttendance />);
-    await screen.findByText(/Pertemuan 1 · 2026-08-03/);
+    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
 
     await user.selectOptions(controlFor('Jadwal Pertemuan', 'select'), '312');
     await user.click(screen.getByRole('button', { name: 'Buat Sesi Absensi' }));
@@ -231,10 +231,10 @@ describe('DosenAttendance (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenAttendance />);
-    await screen.findByText(/Pertemuan 1 · 2026-08-03/);
+    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
 
     // Expand sesi 31
-    await user.click(screen.getByText(/Pertemuan 1 · 2026-08-03/));
+    await user.click(screen.getByText(/Pertemuan 1 · Senin, 3 Agustus 2026/));
     expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
     expect(screen.getByText('Ani Wijaya')).toBeInTheDocument();
 
@@ -255,6 +255,11 @@ describe('DosenAttendance (T3.8)', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Status 2023110001 diperbarui');
     expect(putUrl).toContain('/attendance/records/3111');
     expect(putBody).toEqual({ status: 'izin' });
+
+    // Klik sesi yang sama lagi → collapse (detail hilang)
+    await user.click(screen.getByText(/Pertemuan 1 · Senin, 3 Agustus 2026/));
+    expect(screen.queryByText('Budi Santoso')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tanggal: Senin, 3 Agustus 2026')).not.toBeInTheDocument();
   });
 
   it('buka sesi → PUT /attendance/sessions/:id/open', async () => {
@@ -277,7 +282,7 @@ describe('DosenAttendance (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: SESSIONS_RAW }));
     });
     render(<DosenAttendance />);
-    await screen.findByText(/Pertemuan 1 · 2026-08-03/);
+    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
 
     await user.click(screen.getByRole('button', { name: 'Buka' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
