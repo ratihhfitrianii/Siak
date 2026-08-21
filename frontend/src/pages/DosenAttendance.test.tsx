@@ -238,14 +238,20 @@ describe('DosenAttendance (T3.8)', () => {
     expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
     expect(screen.getByText('Ani Wijaya')).toBeInTheDocument();
 
-    // Ani belum check-in → tampil badge "Belum Hadir"
-    expect(screen.getByText('Belum Hadir')).toBeInTheDocument();
+    // Ani belum check-in (belum_absen, record_id null) → tidak ada radio yang terpilih
+    // dan semua radio disabled (belum ada record untuk diubah)
+    const aniRow = screen.getByText('Ani Wijaya').closest('tr');
+    expect(aniRow).not.toBeNull();
+    const aniRadios = within(aniRow as HTMLElement).getByRole('radio', {
+      name: 'Tidak Hadir',
+    }) as HTMLInputElement;
+    expect(aniRadios.checked).toBe(false);
+    expect(aniRadios.disabled).toBe(true);
 
-    // Ubah status Budi (record_id 3111) → hadir → izin
+    // Ubah status Budi (record_id 3111) → hadir → izin via radio
     const budiRow = screen.getByText('Budi Santoso').closest('tr');
     expect(budiRow).not.toBeNull();
-    const budiSelect = within(budiRow as HTMLElement).getByRole('combobox');
-    await user.selectOptions(budiSelect, 'izin');
+    await user.click(within(budiRow as HTMLElement).getByRole('radio', { name: 'Izin' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Status 2023110001 diperbarui');
     expect(putUrl).toContain('/attendance/records/3111');
     expect(putBody).toEqual({ status: 'izin' });

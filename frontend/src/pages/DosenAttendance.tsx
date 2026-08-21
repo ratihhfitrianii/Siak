@@ -296,7 +296,14 @@ export function DosenAttendance() {
                   <div className="mt-4 border-t border-slate-200 pt-4">
                     {sessionInfo && (
                       <p className="text-sm text-slate-600 mb-2">
-                        Tanggal: {sessionInfo.sessionDate} · Topik: {sessionInfo.topic ?? '-'} ·{' '}
+                        Tanggal:{' '}
+                        {new Date(sessionInfo.sessionDate).toLocaleDateString('id-ID', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}{' '}
+                        · Topik: {sessionInfo.topic ?? '-'} ·{' '}
                         {sessionInfo.isOpen
                           ? 'Mahasiswa dapat check-in'
                           : 'Sesi tertutup — rekap masih bisa diperbarui'}
@@ -316,10 +323,7 @@ export function DosenAttendance() {
                                 Nama
                               </th>
                               <th className="px-4 py-3 text-center font-medium text-slate-700">
-                                Status
-                              </th>
-                              <th className="px-4 py-3 text-center font-medium text-slate-700">
-                                Aksi
+                                Status Kehadiran
                               </th>
                             </tr>
                           </thead>
@@ -332,81 +336,33 @@ export function DosenAttendance() {
                                 <td className="px-4 py-3 whitespace-nowrap text-slate-900">
                                   {r.fullName}
                                 </td>
-                                <td className="px-4 py-3 text-center">
-                                  {r.status === 'hadir' ? (
-                                    <span className="inline-flex items-center gap-1 text-green-700 font-medium">
-                                      <svg
-                                        className="h-5 w-5 text-green-500"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
+                                <td className="px-4 py-3">
+                                  <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+                                    {(
+                                      [
+                                        ['hadir', 'Hadir'],
+                                        ['tidak_hadir', 'Tidak Hadir'],
+                                        ['sakit', 'Sakit'],
+                                        ['izin', 'Izin'],
+                                      ] as const
+                                    ).map(([value, label]) => (
+                                      <label
+                                        key={value}
+                                        className="inline-flex items-center gap-1.5 cursor-pointer"
                                       >
-                                        <path
-                                          fillRule="evenodd"
-                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                          clipRule="evenodd"
+                                        <input
+                                          type="radio"
+                                          name={`status-${r.studentId}`}
+                                          value={value}
+                                          checked={r.status === value}
+                                          onChange={() => handleUpdateRecord(r, value)}
+                                          disabled={isLoading || r.recordId === null}
+                                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-slate-300"
                                         />
-                                      </svg>
-                                      Hadir
-                                    </span>
-                                  ) : r.status === 'izin' ? (
-                                    <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
-                                      <svg
-                                        className="h-5 w-5 text-amber-500"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                      >
-                                        <path
-                                          fillRule="evenodd"
-                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.828a1 1 0 101.415-1.414L11 9.586V6z"
-                                          clipRule="evenodd"
-                                        />
-                                      </svg>
-                                      Izin
-                                    </span>
-                                  ) : r.status === 'sakit' ? (
-                                    <span className="inline-flex items-center gap-1 text-orange-700 font-medium">
-                                      <svg
-                                        className="h-5 w-5 text-orange-500"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                      >
-                                        <path
-                                          fillRule="evenodd"
-                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-5a1 1 0 10-2 0v2a1 1 0 102 0v-2zm0-4a1 1 0 10-2 0v1a1 1 0 102 0V9z"
-                                          clipRule="evenodd"
-                                        />
-                                      </svg>
-                                      Sakit
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1 text-red-600 font-medium">
-                                      <svg
-                                        className="h-5 w-5 text-red-500"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                      >
-                                        <path
-                                          fillRule="evenodd"
-                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                          clipRule="evenodd"
-                                        />
-                                      </svg>
-                                      Belum Hadir
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <select
-                                    value={r.status}
-                                    onChange={(e) => handleUpdateRecord(r, e.target.value)}
-                                    disabled={isLoading}
-                                    className="px-2 py-1 border border-slate-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
-                                  >
-                                    <option value="hadir">Hadir</option>
-                                    <option value="tidak_hadir">Tidak Hadir</option>
-                                    <option value="izin">Izin</option>
-                                    <option value="sakit">Sakit</option>
-                                  </select>
+                                        <span className="text-xs text-slate-700">{label}</span>
+                                      </label>
+                                    ))}
+                                  </div>
                                 </td>
                               </tr>
                             ))}
