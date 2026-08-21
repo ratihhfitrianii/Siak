@@ -1,18 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getGradesByClass, submitGrades, updateGrade, getMyClasses } from '../lib/api';
 import type { GradeClassItem, GradeInput, MyClass } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
+/** Baris nilai + kode kelas asal (hasil penggabungan kelas paralel satu MK). */
+type GradeRow = GradeClassItem & { classCode: string };
+
 /**
- * Input nilai dosen (T3.7 + T3.8, perm grade.input) — daftar mahasiswa per kelas,
- * input skor tugas/UTS/UAS + remedial per komponen. Final = max(asli, remedial)
- * per komponen (bobot 20/30/50) — sinkron dengan backend grades (T3.6).
- * Kelas diampu dari GET /dosen/my-classes; nilai dari GET /grades/class/:classId.
+ * Input nilai dosen (T3.7 + T3.8, perm grade.input) — daftar mahasiswa per MATA KULIAH:
+ * semua kelas/paralel yang diampu untuk MK yang sama digabung dalam satu tabel
+ * (kolom "Kelas" membedakan seksi). Input skor tugas/UTS/UAS + remedial per komponen.
+ * Final = max(asli, remedial) per komponen (bobot 20/30/50) — sinkron dengan backend grades (T3.6).
+ * Kelas diampu dari GET /dosen/my-classes; nilai dari GET /grades/class/:classId per kelas.
  */
 export function DosenGrades() {
-  const [classId, setClassId] = useState<number | null>(null);
+  const [courseKey, setCourseKey] = useState<string | null>(null);
   const [classes, setClasses] = useState<MyClass[]>([]);
-  const [grades, setGrades] = useState<GradeClassItem[]>([]);
+  const [grades, setGrades] = useState<GradeRow[]>([]);
   const [scores, setScores] = useState<Record<number, { tugas: string; uts: string; uas: string }>>(
     {},
   );
@@ -29,42 +33,62 @@ export function DosenGrades() {
       });
   }, []);
 
-  // Load grades when classId changes
-  const loadGrades = useCallback(async (clsId: number) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await getGradesByClass(clsId);
-      setGrades(res.items);
-      setScores(
-        Object.fromEntries(
-          res.items.map((g) => [
-            g.id,
-            {
-              tugas: g.tugasScore?.toString() ?? '',
-              uts: g.utsScore?.toString() ?? '',
-              uas: g.uasScore?.toString() ?? '',
-            },
-          ]),
-        ),
-      );
-    } catch (_err) {
-      setError('Gagal memuat data nilai');
-    } finally {
-      setIsLoading(false);
+  // Opsi unik per mata kuliah — kelas paralel (A/B/…) dengan courseCode sama digabung jadi satu opsi
+  const courseOptions = useMemo(() => {
+    const seen = new Map<string, { name: string; code: string }>();
+    for (const cls of classes) {
+      if (!seen.has(cls.courseCode)) {
+        seen.set(cls.courseCode, { name: cls.courseName, code: cls.courseCode });
+      }
     }
-  }, []);
+    return [...seen.entries()].map(([code, v]) => ({ key: code, name: v.name, code: v.code }));
+  }, [classes]);
 
-  const handleSelectClass = (clsId: string) => {
-    const id = clsId ? Number(clsId) : null;
-    setClassId(id);
+  // Load grades untuk SEMUA kelas dari MK terpilih, digabung jadi satu daftar
+  const loadGrades = useCallback(
+    async (key: string) => {
+      const targets = classes.filter((c) => c.courseCode === key);
+      if (targets.length === 0) return;
+      setIsLoading(true);
+      setError(null);
+      try {
+        const results = await Promise.all(
+          targets.map(async (cls) => {
+            const res = await getGradesByClass(cls.id);
+            return res.items.map((g) => ({ ...g, classCode: cls.classCode }));
+          }),
+        );
+        const items = results.flat();
+        setGrades(items);
+        setScores(
+          Object.fromEntries(
+            items.map((g) => [
+              g.id,
+              {
+                tugas: g.tugasScore?.toString() ?? '',
+                uts: g.utsScore?.toString() ?? '',
+                uas: g.uasScore?.toString() ?? '',
+              },
+            ]),
+          ),
+        );
+      } catch (_err) {
+        setError('Gagal memuat data nilai');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [classes],
+  );
+
+  const handleSelectCourse = (key: string) => {
+    setCourseKey(key || null);
     setError(null);
     setSuccess(null);
-    if (id) {
-      loadGrades(id);
-    } else {
-      setGrades([]);
-      setScores({});
+    setGrades([]);
+    setScores({});
+    if (key) {
+      void loadGrades(key);
     }
   };
 
@@ -89,7 +113,7 @@ export function DosenGrades() {
   }
 
   const handleSubmit = async () => {
-    if (!classId) {
+    if (!courseKey) {
       setError('Pilih mata kuliah terlebih dahulu');
       return;
     }
@@ -120,8 +144,8 @@ export function DosenGrades() {
         }
       }
       setSuccess('Nilai berhasil disimpan');
-      if (classId) {
-        await loadGrades(classId);
+      if (courseKey) {
+        await loadGrades(courseKey);
       }
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
@@ -136,13 +160,6 @@ export function DosenGrades() {
       setIsLoading(false);
     }
   };
-
-  // Kelas diampu — dari API nyata (getMyClasses)
-  const classOptions = classes.map((cls) => ({
-    id: cls.id,
-    code: cls.classCode,
-    name: `${cls.courseName} (${cls.courseCode})`,
-  }));
 
   return (
     <div className="space-y-6">
@@ -160,31 +177,45 @@ export function DosenGrades() {
         )}
 
         <div className="max-w-md">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
+          <label
+            htmlFor="grade-course-select"
+            className="block text-sm font-medium text-slate-700 mb-2"
+          >
             Mata Kuliah / Kelas
           </label>
           <select
-            value={classId ?? ''}
-            onChange={(e) => handleSelectClass(e.target.value)}
+            id="grade-course-select"
+            value={courseKey ?? ''}
+            onChange={(e) => handleSelectCourse(e.target.value)}
             className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="">Pilih Mata Kuliah</option>
-            {classOptions.map((cls) => (
-              <option key={cls.id} value={cls.id}>
-                {cls.code} - {cls.name}
+            {courseOptions.map((course) => (
+              <option key={course.key} value={course.key}>
+                {course.name} ({course.code})
               </option>
             ))}
           </select>
+          {courseKey && (
+            <p className="mt-2 text-xs text-slate-500">
+              Menampilkan {classes.filter((c) => c.courseCode === courseKey).length} kelas digabung:{' '}
+              {classes
+                .filter((c) => c.courseCode === courseKey)
+                .map((c) => c.classCode)
+                .join(', ')}
+            </p>
+          )}
         </div>
 
         {/* Grades Table */}
-        {classId && grades.length > 0 && (
+        {courseKey && grades.length > 0 && (
           <div className="mt-6 overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-slate-700">NIM</th>
                   <th className="px-4 py-3 text-left font-medium text-slate-700">Nama</th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">Kelas</th>
                   <th className="px-4 py-3 text-center font-medium text-slate-700">Tugas (20%)</th>
                   <th className="px-4 py-3 text-center font-medium text-slate-700">UTS (30%)</th>
                   <th className="px-4 py-3 text-center font-medium text-slate-700">UAS (50%)</th>
@@ -207,6 +238,9 @@ export function DosenGrades() {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-slate-900">
                         {grade.student.name}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-600">
+                        {grade.classCode}
                       </td>
                       {(['tugas', 'uts', 'uas'] as const).map((field) => (
                         <td key={field} className="px-4 py-3 text-center">
@@ -238,12 +272,12 @@ export function DosenGrades() {
           </div>
         )}
 
-        {classId && grades.length === 0 && !isLoading && (
-          <p className="mt-6 text-slate-500">Belum ada mahasiswa terdaftar di kelas ini.</p>
+        {courseKey && grades.length === 0 && !isLoading && (
+          <p className="mt-6 text-slate-500">Belum ada mahasiswa terdaftar di mata kuliah ini.</p>
         )}
 
         {/* Submit Button */}
-        {classId && grades.length > 0 && (
+        {courseKey && grades.length > 0 && (
           <div className="mt-6 flex justify-end">
             <button
               type="button"
