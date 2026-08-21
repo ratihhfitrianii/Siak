@@ -115,7 +115,7 @@ describe('DosenDashboardPage (T3.7)', () => {
 
   it('route /dosen/absensi → render DosenAttendance — TIDAK ada header Dashboard Dosen', () => {
     renderAt('/dosen/absensi');
-    expect(screen.getByText('Buat Sesi Absensi')).toBeInTheDocument();
+    expect(screen.getByText('+ Tambah Sesi Absensi')).toBeInTheDocument();
     expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { getSkripsiProposals, updateSkripsiProposal, getSkripsiProposalStatuses } from '../lib/api';
 import type { SkripsiProposal, SkripsiStatus, SkripsiProposalStatus } from '../lib/types';
@@ -113,6 +113,25 @@ export function DosenProposalReview() {
   );
   const [historyLoadingId, setHistoryLoadingId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  // Halaman detail (popup) — proposal yang sedang dilihat
+  const [detailId, setDetailId] = useState<number | null>(null);
+  // Pencarian (judul/NIM/nama/prodi)
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const detailProposal = proposals.find((p) => p.id === detailId) ?? null;
+
+  // Filter klien-side: judul, NIM, nama mahasiswa, atau prodi
+  const filteredProposals = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return proposals;
+    return proposals.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.nim.toLowerCase().includes(q) ||
+        p.studentName.toLowerCase().includes(q) ||
+        p.prodiName.toLowerCase().includes(q),
+    );
+  }, [proposals, searchTerm]);
 
   const loadProposals = useCallback(async () => {
     try {
@@ -167,7 +186,7 @@ export function DosenProposalReview() {
     const newStatus = action === 'approve' ? next.approve : next.reject;
     const notes =
       action === 'approve'
-        ? 'Proposal disetujui oleh dosen pembimbing'
+        ? 'Proposal disetujui oleh dosen pembimbing — menunggu persetujuan admin akademik untuk mulai bimbingan'
         : 'Proposal ditolak oleh dosen pembimbing';
 
     setUpdatingId(proposalId);
@@ -185,6 +204,8 @@ export function DosenProposalReview() {
         delete next[proposalId];
         return next;
       });
+      // Riwayat dimuat ulang agar keputusan tampil di detail
+      void loadStatusHistory(proposalId);
     } catch {
       setError('Gagal mengubah status proposal');
     } finally {
@@ -192,15 +213,12 @@ export function DosenProposalReview() {
     }
   };
 
-  const canAct = (status: SkripsiStatus) => {
-    return (
-      status === 'diajukan' ||
-      status === 'dilihat_dosen' ||
-      status === 'disetujui_dosen' ||
-      status === 'dalam_bimbingan' ||
-      status === 'siap_sidang'
-    );
-  };
+  /**
+   * Tombol aksi hanya aktif saat proposal masih "diajukan". Sekali dosen
+   * menyetujui/menolak (→ dilihat_dosen / ditolak_dosen), SEMUA tombol hilang —
+   * lanjut ke bimbingan menunggu persetujuan admin akademik.
+   */
+  const canAct = (status: SkripsiStatus) => status === 'diajukan';
 
   if (isLoading) {
     return (
@@ -212,6 +230,33 @@ export function DosenProposalReview() {
 
   return (
     <div className="space-y-6">
+      {/* Pencarian */}
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="relative">
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            id="proposal-review-search"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Cari judul, NIM, nama mahasiswa, atau prodi..."
+            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          />
+        </div>
+      </div>
+
       {error && <FormAlert>{error}</FormAlert>}
 
       {proposals.length === 0 ? (
@@ -234,12 +279,17 @@ export function DosenProposalReview() {
             Tidak ada mahasiswa yang mengajukan proposal dengan Anda sebagai pembimbing.
           </p>
         </div>
+      ) : filteredProposals.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+          <p className="text-slate-500">
+            Tidak ada proposal yang cocok dengan pencarian "{searchTerm}".
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
-          {proposals.map((p) => {
+          {filteredProposals.map((p) => {
             const isExpanded = expandedId === p.id;
             const history = statusHistories[p.id];
-            const actionable = canAct(p.status);
             return (
               <div key={p.id} className="rounded-xl border border-slate-200 bg-white">
                 <button
@@ -266,23 +316,15 @@ export function DosenProposalReview() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {actionable && updatingId !== p.id && (
-                      <>
-                        <button
-                          onClick={() => handleUpdateStatus(p.id, 'approve')}
-                          className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition"
-                        >
-                          Setujui
-                        </button>
-                        <button
-                          onClick={() => handleUpdateStatus(p.id, 'reject')}
-                          className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition"
-                        >
-                          Tolak
-                        </button>
-                      </>
-                    )}
-                    {updatingId === p.id && <Spinner className="h-4 w-4" label="Menyimpan..." />}
+                    <button
+                      onClick={() => {
+                        setDetailId(p.id);
+                        void loadStatusHistory(p.id);
+                      }}
+                      className="px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition"
+                    >
+                      Detail
+                    </button>
                     <svg
                       className={`h-5 w-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                       fill="none"
@@ -418,6 +460,178 @@ export function DosenProposalReview() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Popup: Detail Proposal + aksi Setujui/Tolak */}
+      {detailProposal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Detail proposal ${detailProposal.title}`}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDetailId(null);
+          }}
+        >
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="min-w-0">
+                <h3 className="text-lg font-medium text-slate-900">{detailProposal.title}</h3>
+                <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                  <span>
+                    {detailProposal.studentName} ({detailProposal.nim})
+                  </span>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLOR[detailProposal.status]}`}
+                  >
+                    {STATUS_LABEL[detailProposal.status]}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDetailId(null)}
+                aria-label="Tutup"
+                className="text-slate-400 hover:text-slate-600 transition-colors shrink-0"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Info mahasiswa */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <p className="text-xs text-slate-400">Mahasiswa</p>
+                <p className="font-medium text-slate-900 text-sm">{detailProposal.studentName}</p>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <p className="text-xs text-slate-400">NIM</p>
+                <p className="font-medium text-slate-900 text-sm">{detailProposal.nim}</p>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <p className="text-xs text-slate-400">Program Studi</p>
+                <p className="font-medium text-slate-900 text-sm">{detailProposal.prodiName}</p>
+              </div>
+            </div>
+
+            {/* Lampiran PDF */}
+            {detailProposal.proposalFile && (
+              <div className="mb-4 p-4 bg-white rounded-lg border border-slate-200">
+                <p className="text-xs text-slate-400 mb-2">Lampiran Proposal</p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      if (!openProposalFile(detailProposal.proposalFile!)) {
+                        setError('Gagal membuka file proposal');
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition font-medium text-sm"
+                  >
+                    Lihat Proposal (PDF)
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (
+                        !downloadProposalFile(
+                          detailProposal.proposalFile!,
+                          `proposal-${detailProposal.nim}-${detailProposal.title.slice(0, 30)}.pdf`,
+                        )
+                      ) {
+                        setError('Gagal mengunduh file proposal');
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
+                  >
+                    Unduh
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Riwayat Status */}
+            <h4 className="font-medium text-slate-700 mb-2">Riwayat Status</h4>
+            {historyLoadingId === detailProposal.id ? (
+              <Spinner className="h-4 w-4" label="Memuat riwayat..." />
+            ) : statusHistories[detailProposal.id]?.length ? (
+              <div className="space-y-2 mb-4">
+                {statusHistories[detailProposal.id].map((h) => (
+                  <div
+                    key={h.id}
+                    className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100"
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                      <svg
+                        className="h-4 w-4 text-primary-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-900">{STATUS_LABEL[h.status]}</span>
+                        <span className="text-xs text-slate-400">{formatDate(h.changedAt)}</span>
+                      </div>
+                      <div className="text-sm text-slate-500">{h.changedByName}</div>
+                      {h.notes && <div className="text-sm text-slate-500 mt-1">{h.notes}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-500 text-sm mb-4">Belum ada riwayat status</p>
+            )}
+
+            {/* Aksi: hanya aktif saat menunggu keputusan dosen */}
+            {canAct(detailProposal.status) ? (
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                {updatingId === detailProposal.id ? (
+                  <Spinner className="h-5 w-5" label="Menyimpan..." />
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleUpdateStatus(detailProposal.id, 'reject')}
+                      disabled={updatingId === detailProposal.id}
+                      className="px-5 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                    >
+                      Tolak
+                    </button>
+                    <button
+                      onClick={() => handleUpdateStatus(detailProposal.id, 'approve')}
+                      disabled={updatingId === detailProposal.id}
+                      className="px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                    >
+                      Setujui
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="pt-4 border-t border-slate-100">
+                <p className="text-sm text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                  {detailProposal.status === 'disetujui_dosen' ||
+                  detailProposal.status === 'dilihat_dosen'
+                    ? 'Keputusan Anda tersimpan. Menunggu persetujuan admin akademik — bimbingan dapat dimulai setelah admin menyetujui.'
+                    : 'Keputusan sudah tidak dapat diubah lagi pada tahap ini.'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { getSkripsiProposals } from '../lib/api';
 import type { SkripsiProposal, SkripsiStatus } from '../lib/types';
@@ -55,6 +55,20 @@ export function DosenBimbinganMahasiswaBinaan() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  // Pencarian (judul/NIM/nama/prodi)
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredProposals = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return proposals;
+    return proposals.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.nim.toLowerCase().includes(q) ||
+        p.studentName.toLowerCase().includes(q) ||
+        p.prodiName.toLowerCase().includes(q),
+    );
+  }, [proposals, searchTerm]);
 
   const loadProposals = useCallback(async () => {
     try {
@@ -87,6 +101,33 @@ export function DosenBimbinganMahasiswaBinaan() {
 
   return (
     <div className="space-y-6">
+      {/* Pencarian */}
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="relative">
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            id="binaan-search"
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Cari judul, NIM, nama mahasiswa, atau prodi..."
+            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          />
+        </div>
+      </div>
+
       {error && <FormAlert>{error}</FormAlert>}
 
       {proposals.length === 0 ? (
@@ -109,9 +150,15 @@ export function DosenBimbinganMahasiswaBinaan() {
             Mahasiswa yang proposalnya disetujui akan muncul di sini.
           </p>
         </div>
+      ) : filteredProposals.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+          <p className="text-slate-500">
+            Tidak ada mahasiswa binaan yang cocok dengan pencarian "{searchTerm}".
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
-          {proposals.map((p) => {
+          {filteredProposals.map((p) => {
             const isExpanded = expandedId === p.id;
             const primarySupervisor = p.supervisors?.find((s) => s.isPrimary);
             return (
@@ -162,34 +209,8 @@ export function DosenBimbinganMahasiswaBinaan() {
 
                 {isExpanded && (
                   <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="p-3 bg-white rounded-lg border border-slate-100">
-                        <p className="text-xs text-slate-400">Mahasiswa</p>
-                        <p className="font-medium text-slate-900">{p.studentName}</p>
-                        <p className="text-sm text-slate-500">{p.nim}</p>
-                      </div>
-                      <div className="p-3 bg-white rounded-lg border border-slate-100">
-                        <p className="text-xs text-slate-400">Email</p>
-                        <p className="font-medium text-slate-900">{p.studentEmail}</p>
-                      </div>
-                      <div className="p-3 bg-white rounded-lg border border-slate-100">
-                        <p className="text-xs text-slate-400">Program Studi</p>
-                        <p className="font-medium text-slate-900">{p.prodiName}</p>
-                      </div>
-                      <div className="p-3 bg-white rounded-lg border border-slate-100">
-                        <p className="text-xs text-slate-400">Status Bimbingan</p>
-                        <span
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLOR[p.status]}`}
-                        >
-                          {STATUS_LABEL[p.status]}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-white rounded-lg border border-slate-100">
-                      <p className="text-xs text-slate-400 mb-1">Judul Proposal</p>
-                      <p className="font-medium text-slate-900">{p.title}</p>
-                    </div>
+                    {/* Grid data mahasiswa/email/prodi/status & judul dihapus —
+                        info sudah tampil di header kartu; detail cukup file + pembimbing */}
 
                     {p.proposalFile && (
                       <div className="p-3 bg-white rounded-lg border border-slate-100">

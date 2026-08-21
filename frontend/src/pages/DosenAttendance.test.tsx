@@ -1,6 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { controlFor } from '../test/controls';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenAttendance } from './DosenAttendance';
 
@@ -123,9 +122,10 @@ describe('DosenAttendance (T3.8)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('render — header + daftar sesi absensi dari API', async () => {
+  it('render — tombol Tambah Sesi + daftar sesi absensi dari API', async () => {
     render(<DosenAttendance />);
-    expect(screen.getByText('Buat Sesi Absensi')).toBeInTheDocument();
+    expect(screen.getByText('Sesi Absensi')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ Tambah Sesi Absensi' })).toBeInTheDocument();
     expect(await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Hadir 1\/2/)).toBeInTheDocument();
   });
@@ -139,7 +139,9 @@ describe('DosenAttendance (T3.8)', () => {
     });
     render(<DosenAttendance />);
     expect(
-      await screen.findByText('Belum ada sesi absensi. Buat dari jadwal pertemuan di atas.'),
+      await screen.findByText(
+        'Belum ada sesi absensi. Klik "Tambah Sesi Absensi" untuk membuat dari jadwal pertemuan.',
+      ),
     ).toBeInTheDocument();
   });
 
@@ -156,7 +158,7 @@ describe('DosenAttendance (T3.8)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat sesi absensi');
   });
 
-  it('buat sesi dari jadwal pertemuan → POST /attendance/sessions + success', async () => {
+  it('tombol Tambah → popup buka → pilih jadwal + topik → POST + modal tertutup', async () => {
     const user = userEvent.setup();
     let postBody: unknown = null;
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
@@ -178,15 +180,40 @@ describe('DosenAttendance (T3.8)', () => {
     render(<DosenAttendance />);
     await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
 
-    await user.selectOptions(controlFor('Jadwal Pertemuan', 'select'), '312');
-    await user.type(controlFor('Topik (opsional)', 'input'), 'Array');
+    // Form awalnya TIDAK tampil — baru muncul setelah klik tombol
+    expect(screen.queryByLabelText('Jadwal Pertemuan')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '+ Tambah Sesi Absensi' }));
 
-    await user.click(screen.getByRole('button', { name: 'Buat Sesi Absensi' }));
+    const scheduleSelect = await screen.findByLabelText('Jadwal Pertemuan');
+    await user.selectOptions(scheduleSelect, '312');
+    await user.type(screen.getByLabelText('Topik (opsional)'), 'Array');
+
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Buat Sesi Absensi' }),
+    );
     expect(await screen.findByRole('status')).toHaveTextContent('Sesi absensi berhasil dibuat');
     expect(postBody).toEqual({ scheduleId: 312, topic: 'Array' });
+    // Modal tertutup setelah sukses
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('buat sesi CONFLICT → pesan API', async () => {
+  it('popup batal → form tertutup tanpa POST', async () => {
+    const user = userEvent.setup();
+    render(<DosenAttendance />);
+    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
+
+    await user.click(screen.getByRole('button', { name: '+ Tambah Sesi Absensi' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Batal' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining('/attendance/sessions'),
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('buat sesi CONFLICT → pesan API di dalam popup', async () => {
     const user = userEvent.setup();
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       const u = String(url);
@@ -206,9 +233,13 @@ describe('DosenAttendance (T3.8)', () => {
     render(<DosenAttendance />);
     await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
 
-    await user.selectOptions(controlFor('Jadwal Pertemuan', 'select'), '312');
-    await user.click(screen.getByRole('button', { name: 'Buat Sesi Absensi' }));
+    await user.click(screen.getByRole('button', { name: '+ Tambah Sesi Absensi' }));
+    const dialog = screen.getByRole('dialog');
+    await user.selectOptions(within(dialog).getByLabelText('Jadwal Pertemuan'), '312');
+    await user.click(within(dialog).getByRole('button', { name: 'Buat Sesi Absensi' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Sesi sudah ada');
+    // Modal tetap terbuka agar dosen bisa koreksi
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('pilih sesi → load records → ubah status → PUT /attendance/records/:id', async () => {

@@ -101,7 +101,8 @@ describe('DosenBimbinganMahasiswaBinaan', () => {
 
     await user.click(screen.getByText('Sistem Informasi Akademik Berbasis Web'));
     expect((await screen.findAllByText('Muhammad Husni')).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('husni@example.id')).toBeInTheDocument();
+    // Grid detail (email/prodi/status/judul) dihapus — hanya file + pembimbing + aksi
+    expect(screen.queryByText('husni@example.id')).not.toBeInTheDocument();
     expect(screen.getByText(/Dosen TI 1 \(198001002\) ⭐/)).toBeInTheDocument();
     expect(screen.getByText('Catat Bimbingan')).toBeInTheDocument();
     expect(screen.getByText('Lihat Log')).toBeInTheDocument();

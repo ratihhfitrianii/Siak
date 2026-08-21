@@ -47,6 +47,23 @@ export function DosenAttendance() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // Popup form buat sesi
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const closeCreateModal = useCallback(() => {
+    setShowCreateModal(false);
+    setScheduleId(null);
+    setTopic('');
+  }, []);
+
+  useEffect(() => {
+    if (!showCreateModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeCreateModal();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showCreateModal, closeCreateModal]);
 
   const loadSessions = useCallback(async () => {
     setIsLoading(true);
@@ -121,8 +138,7 @@ export function DosenAttendance() {
     try {
       await createAttendanceSession({ scheduleId, topic: topic.trim() });
       setSuccess('Sesi absensi berhasil dibuat');
-      setScheduleId(null);
-      setTopic('');
+      closeCreateModal();
       await loadSessions();
     } catch (err: unknown) {
       const apiError = err as { code?: string; message?: string };
@@ -196,60 +212,18 @@ export function DosenAttendance() {
 
   return (
     <div className="space-y-6">
-      {/* Create session */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-slate-900 mb-4">Buat Sesi Absensi</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Jadwal Pertemuan
-            </label>
-            <select
-              value={scheduleId ?? ''}
-              onChange={(e) => setScheduleId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="">Pilih Jadwal Pertemuan</option>
-              {allSchedules.map((s) => (
-                <option key={s.scheduleId} value={s.scheduleId}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-            {allSchedules.length === 0 && (
-              <p className="mt-1 text-xs text-slate-500">
-                Belum ada jadwal pertemuan — admin akademik perlu mengisi jadwal kelas Anda.
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Topik (opsional)
-            </label>
-            <input
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="Mis. Materi pertemuan 5"
-              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-        </div>
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={isLoading || !scheduleId}
-            className="px-6 py-2 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-          >
-            {isLoading ? 'Memproses...' : 'Buat Sesi Absensi'}
-          </button>
-        </div>
-      </div>
-
       {/* Sessions list */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-slate-900 mb-4">Sesi Absensi</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium text-slate-900">Sesi Absensi</h3>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors text-sm"
+          >
+            + Tambah Sesi Absensi
+          </button>
+        </div>
         {error && <FormAlert>{error}</FormAlert>}
         {success && (
           <p
@@ -263,7 +237,7 @@ export function DosenAttendance() {
           <p className="text-slate-500">Memuat sesi absensi...</p>
         ) : sessions.length === 0 ? (
           <p className="text-slate-500">
-            Belum ada sesi absensi. Buat dari jadwal pertemuan di atas.
+            Belum ada sesi absensi. Klik "Tambah Sesi Absensi" untuk membuat dari jadwal pertemuan.
           </p>
         ) : (
           <div className="space-y-3">
@@ -392,6 +366,101 @@ export function DosenAttendance() {
           </div>
         )}
       </div>
+
+      {/* Popup: Buat Sesi Absensi */}
+      {showCreateModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Buat Sesi Absensi"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeCreateModal();
+          }}
+        >
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-slate-900">Buat Sesi Absensi</h3>
+              <button
+                type="button"
+                onClick={closeCreateModal}
+                aria-label="Tutup"
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="attendance-schedule-select"
+                  className="block text-sm font-medium text-slate-700 mb-2"
+                >
+                  Jadwal Pertemuan
+                </label>
+                <select
+                  id="attendance-schedule-select"
+                  value={scheduleId ?? ''}
+                  onChange={(e) => setScheduleId(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Pilih Jadwal Pertemuan</option>
+                  {allSchedules.map((s) => (
+                    <option key={s.scheduleId} value={s.scheduleId}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                {allSchedules.length === 0 && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Belum ada jadwal pertemuan — admin akademik perlu mengisi jadwal kelas Anda.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label
+                  htmlFor="attendance-topic-input"
+                  className="block text-sm font-medium text-slate-700 mb-2"
+                >
+                  Topik (opsional)
+                </label>
+                <input
+                  id="attendance-topic-input"
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="Mis. Materi pertemuan 5"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeCreateModal}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={isLoading || !scheduleId}
+                className="px-6 py-2 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                {isLoading ? 'Memproses...' : 'Buat Sesi Absensi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
