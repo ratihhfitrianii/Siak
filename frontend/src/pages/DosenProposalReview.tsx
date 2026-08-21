@@ -54,6 +54,54 @@ function formatDate(iso: string) {
   });
 }
 
+/**
+ * Buka PDF dari data URL di tab baru.
+ * Browser modern memblokir navigasi langsung ke data: URL, jadi kita
+ * konversi ke Blob lalu buka via object URL. Return false jika gagal.
+ */
+function openProposalFile(dataUrl: string): boolean {
+  try {
+    const [meta, base64] = dataUrl.split(',');
+    const mimeMatch = meta.match(/data:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mime });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    // Revoke setelah delay agar tab baru sempat load
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Unduh PDF dari data URL dengan nama file. Return false jika gagal. */
+function downloadProposalFile(dataUrl: string, filename: string): boolean {
+  try {
+    const [meta, base64] = dataUrl.split(',');
+    const mimeMatch = meta.match(/data:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function DosenProposalReview() {
   const { user } = useAuth();
   const [proposals, setProposals] = useState<SkripsiProposal[]>([]);
@@ -292,10 +340,12 @@ export function DosenProposalReview() {
                       <div className="p-4 bg-white rounded-lg border border-slate-100">
                         <p className="text-xs text-slate-400 mb-2">Lampiran Proposal</p>
                         <div className="flex items-center gap-3">
-                          <a
-                            href={p.proposalFile}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => {
+                              if (!openProposalFile(p.proposalFile!)) {
+                                setError('Gagal membuka file proposal');
+                              }
+                            }}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition font-medium text-sm"
                           >
                             <svg
@@ -318,10 +368,18 @@ export function DosenProposalReview() {
                               />
                             </svg>
                             Lihat Proposal (PDF)
-                          </a>
-                          <a
-                            href={p.proposalFile}
-                            download={`proposal-${p.nim}-${p.title.slice(0, 30)}.pdf`}
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (
+                                !downloadProposalFile(
+                                  p.proposalFile!,
+                                  `proposal-${p.nim}-${p.title.slice(0, 30)}.pdf`,
+                                )
+                              ) {
+                                setError('Gagal mengunduh file proposal');
+                              }
+                            }}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
                           >
                             <svg
@@ -338,7 +396,7 @@ export function DosenProposalReview() {
                               />
                             </svg>
                             Unduh
-                          </a>
+                          </button>
                         </div>
                       </div>
                     )}
