@@ -161,7 +161,7 @@ const MENU_ITEMS: {
   {
     permissions: ['lecturer.availability'],
     roles: ['dosen'],
-    label: 'Jadwal',
+    label: 'Rencana Mengajar Dosen',
     path: '/dosen/jadwal',
     icon: 'calendar',
     description: 'Lihat jadwal mengajar',

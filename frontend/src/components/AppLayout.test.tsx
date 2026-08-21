@@ -296,7 +296,7 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     renderLayout();
 
     // Non-wali dosen: Bimbingan TIDAK tampil
-    for (const label of ['Pilih MK', 'Jadwal', 'Absensi', 'Substitute', 'Nilai']) {
+    for (const label of ['Pilih MK', 'Rencana Mengajar Dosen', 'Absensi', 'Substitute', 'Nilai']) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
     expect(screen.queryByRole('link', { name: 'Bimbingan' })).not.toBeInTheDocument();
