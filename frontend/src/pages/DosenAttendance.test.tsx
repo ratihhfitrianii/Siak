@@ -125,7 +125,7 @@ describe('DosenAttendance (T3.8)', () => {
 
   it('render — header + daftar sesi absensi dari API', async () => {
     render(<DosenAttendance />);
-    expect(screen.getByText('Absensi Mengajar')).toBeInTheDocument();
+    expect(screen.getByText('Buat Sesi Absensi')).toBeInTheDocument();
     expect(await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Hadir 1\/2/)).toBeInTheDocument();
   });

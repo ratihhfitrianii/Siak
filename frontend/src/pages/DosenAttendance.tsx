@@ -196,15 +196,6 @@ export function DosenAttendance() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-slate-900 mb-4">Absensi Mengajar</h2>
-        <p className="text-slate-600">
-          Buat sesi absensi dari jadwal pertemuan, buka sesi agar mahasiswa dapat check-in, lalu
-          perbarui rekap kehadiran.
-        </p>
-      </div>
-
       {/* Create session */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-medium text-slate-900 mb-4">Buat Sesi Absensi</h3>
