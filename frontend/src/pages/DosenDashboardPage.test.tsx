@@ -148,5 +148,7 @@ describe('DosenDashboardPage (T3.7)', () => {
     renderAt('/dosen/tidak-ada');
     expect(screen.getByText('Dashboard Dosen')).toBeInTheDocument();
     expect(screen.getByText('Kelas Diampu')).toBeInTheDocument();
+    // Grid "Kelas yang Diampu" sudah dihapus dari overview
+    expect(screen.queryByText('Kelas yang Diampu')).not.toBeInTheDocument();
   });
 });

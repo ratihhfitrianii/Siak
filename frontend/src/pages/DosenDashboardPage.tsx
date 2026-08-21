@@ -45,16 +45,12 @@ export function DosenDashboardPage() {
 
   // Fetch ringkasan kelas untuk dashboard overview (hanya dipakai di root)
   const [myClasses, setMyClasses] = useState<MyClassSummary[]>([]);
-  const [loadingClasses, setLoadingClasses] = useState(true);
 
   useEffect(() => {
     if (!isSubTab) {
       getMyClasses()
         .then((res) => setMyClasses(res.items))
-        .catch(() => setMyClasses([]))
-        .finally(() => setLoadingClasses(false));
-    } else {
-      setLoadingClasses(false);
+        .catch(() => setMyClasses([]));
     }
   }, [isSubTab]);
 
@@ -242,49 +238,6 @@ export function DosenDashboardPage() {
             </div>
           </a>
         </div>
-      </div>
-
-      {/* Daftar Kelas Terbaru */}
-      <div className="bg-white rounded-lg shadow-sm">
-        <div className="p-6 border-b border-slate-100">
-          <h2 className="text-lg font-semibold text-slate-900">Kelas yang Diampu</h2>
-        </div>
-        {loadingClasses ? (
-          <div className="p-6 text-center text-slate-500">Memuat...</div>
-        ) : myClasses.length === 0 ? (
-          <div className="p-6 text-center text-slate-500">
-            Belum ada kelas yang diampu.{' '}
-            <a href="/dosen/jadwal" className="text-primary-600 hover:underline">
-              Klaim jadwal di sini
-            </a>
-            .
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {myClasses.slice(0, 5).map((cls) => (
-              <div key={cls.id} className="p-4 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-slate-900">{cls.courseName}</p>
-                    <p className="text-sm text-slate-500">
-                      {cls.classCode} • {cls.courseCode}
-                    </p>
-                  </div>
-                  <a href="/dosen/absensi" className="text-sm text-primary-600 hover:underline">
-                    Absensi
-                  </a>
-                </div>
-              </div>
-            ))}
-            {myClasses.length > 5 && (
-              <div className="p-4 text-center border-t border-slate-100">
-                <a href="/dosen/jadwal" className="text-sm text-primary-600 hover:underline">
-                  Lihat semua {myClasses.length} kelas →
-                </a>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
