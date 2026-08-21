@@ -57,7 +57,8 @@ test.describe('Critical path: transkrip (T5.7)', () => {
 test.describe('Critical path: absensi & nilai dosen (T5.7)', () => {
   test('dosen lihat kelas di menu Absensi & Nilai (sidebar — keluhan #5)', async ({ page }) => {
     await login(page, DOSEN.identifier, DOSEN.pass);
-    await expect(page.getByText('Dashboard Dosen')).toBeVisible({ timeout: 10_000 });
+    // Header "Dashboard Dosen" dihapus — pakai kartu ringkasan sebagai penanda login sukses
+    await expect(page.getByText('Total Pertemuan')).toBeVisible({ timeout: 10_000 });
 
     // Keluhan #5: tab teks diganti menu sidebar ikon → navigasi via sidebar link /dosen/absensi
     // Gunakan link di sidebar (aria-label) untuk menghindari collision dengan card/link lain

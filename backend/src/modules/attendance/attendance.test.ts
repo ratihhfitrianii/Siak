@@ -658,6 +658,74 @@ describe('T3.3 Absensi — Attendance Sessions & Records', () => {
     expect(res.body.error.code).toBe('FORBIDDEN');
   });
 
+  // POST /attendance/sessions/:id/records — dosen set status mahasiswa belum check-in
+  it('POST /sessions/:id/records → buat record baru untuk mahasiswa belum absen', async () => {
+    // Hapus record mahasiswa agar mulai dari kondisi "belum punya record"
+    await pgPool.query(
+      `DELETE FROM attendance_records WHERE session_id = $1 AND student_id = $2`,
+      [sessionId, mahasiswaStudentId],
+    );
+
+    const res = await request(app)
+      .post(`/api/v1/attendance/sessions/${sessionId}/records`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ studentId: mahasiswaStudentId, status: 'izin' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.status).toBe('izin');
+    expect(Number(res.body.data.student_id)).toBe(mahasiswaStudentId);
+  });
+
+  it('POST /sessions/:id/records → record sudah ada → update (200)', async () => {
+    const res = await request(app)
+      .post(`/api/v1/attendance/sessions/${sessionId}/records`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ studentId: mahasiswaStudentId, status: 'sakit' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('sakit');
+  });
+
+  it('POST /sessions/:id/records → tanpa studentId → 400', async () => {
+    const res = await request(app)
+      .post(`/api/v1/attendance/sessions/${sessionId}/records`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ status: 'hadir' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('POST /sessions/:id/records → sesi tidak ditemukan → 404', async () => {
+    const res = await request(app)
+      .post('/api/v1/attendance/sessions/999999999/records')
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ studentId: mahasiswaStudentId, status: 'hadir' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('NOT_FOUND');
+  });
+
+  it('POST /sessions/:id/records → sesi dosen lain → 403', async () => {
+    const res = await request(app)
+      .post(`/api/v1/attendance/sessions/${otherSessionId}/records`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ studentId: mahasiswaStudentId, status: 'hadir' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+  });
+
+  it('POST /sessions/:id/records → mahasiswa tidak terdaftar di kelas → 403', async () => {
+    const res = await request(app)
+      .post(`/api/v1/attendance/sessions/${sessionId}/records`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ studentId: ghostMhsUserId, status: 'hadir' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('FORBIDDEN');
+  });
+
   it('PUT /attendance/records/:id → record tidak ditemukan → 404', async () => {
     const res = await request(app)
       .put('/api/v1/attendance/records/999999999')

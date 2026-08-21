@@ -29,10 +29,11 @@ test.describe('Login — critical path (T5.7)', () => {
     await page.getByLabel('NIM / NIK / Email', { exact: true }).fill('E2EDS001');
     await page.getByLabel('Password', { exact: true }).fill('E2ePass123!');
     await page.getByRole('button', { name: 'Masuk' }).click();
-    await expect(page.getByText('Dashboard Dosen')).toBeVisible({ timeout: 10_000 });
+    // Header "Dashboard Dosen" dihapus — pakai kartu ringkasan sebagai penanda login sukses
+    await expect(page.getByText('Total Pertemuan')).toBeVisible({ timeout: 10_000 });
 
     await page.reload();
-    await expect(page.getByText('Dashboard Dosen')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Total Pertemuan')).toBeVisible({ timeout: 10_000 });
   });
 
   test('logout → kembali ke halaman login', async ({ page }) => {
