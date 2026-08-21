@@ -310,31 +310,6 @@ export function DosenProposalReview() {
 
                 {isExpanded && (
                   <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 space-y-4">
-                    {/* Detail Proposal */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="p-3 bg-white rounded-lg border border-slate-100">
-                        <p className="text-xs text-slate-400">Mahasiswa</p>
-                        <p className="font-medium text-slate-900">{p.studentName}</p>
-                        <p className="text-sm text-slate-500">{p.nim}</p>
-                      </div>
-                      <div className="p-3 bg-white rounded-lg border border-slate-100">
-                        <p className="text-xs text-slate-400">Email</p>
-                        <p className="font-medium text-slate-900">{p.studentEmail}</p>
-                      </div>
-                      <div className="p-3 bg-white rounded-lg border border-slate-100">
-                        <p className="text-xs text-slate-400">Program Studi</p>
-                        <p className="font-medium text-slate-900">{p.prodiName}</p>
-                      </div>
-                      <div className="p-3 bg-white rounded-lg border border-slate-100">
-                        <p className="text-xs text-slate-400">Status</p>
-                        <span
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLOR[p.status]}`}
-                        >
-                          {STATUS_LABEL[p.status]}
-                        </span>
-                      </div>
-                    </div>
-
                     {/* File Proposal */}
                     {p.proposalFile && (
                       <div className="p-4 bg-white rounded-lg border border-slate-100">
@@ -397,27 +372,6 @@ export function DosenProposalReview() {
                             </svg>
                             Unduh
                           </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Pembimbing */}
-                    {p.supervisors && p.supervisors.length > 0 && (
-                      <div className="p-3 bg-white rounded-lg border border-slate-100">
-                        <p className="text-xs text-slate-400 mb-2">Dosen Pembimbing</p>
-                        <div className="flex flex-wrap gap-2">
-                          {p.supervisors.map((s) => (
-                            <span
-                              key={s.id}
-                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                                s.isPrimary
-                                  ? 'bg-primary-50 text-primary-700'
-                                  : 'bg-slate-100 text-slate-700'
-                              }`}
-                            >
-                              {s.fullName} ({s.nidn}) {s.isPrimary && '⭐'}
-                            </span>
-                          ))}
                         </div>
                       </div>
                     )}

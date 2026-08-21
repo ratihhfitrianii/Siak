@@ -113,7 +113,7 @@ describe('DosenProposalReview', () => {
     expect(screen.getByRole('button', { name: 'Tolak' })).toBeInTheDocument();
   });
 
-  it('expand card — lampiran PDF + pembimbing + riwayat status', async () => {
+  it('expand card — lampiran PDF + riwayat status (tanpa grid detail)', async () => {
     const user = userEvent.setup();
     render(<DosenProposalReview />);
     await screen.findByText('Sistem Informasi Akademik Berbasis Web');
@@ -123,11 +123,12 @@ describe('DosenProposalReview', () => {
     expect(await screen.findByText('Lampiran Proposal')).toBeInTheDocument();
     expect(screen.getByText('Lihat Proposal (PDF)')).toBeInTheDocument();
     expect(screen.getByText('Unduh')).toBeInTheDocument();
-    // Pembimbing dengan bintang primary
-    expect(screen.getByText(/Dosen TI 1 \(198001002\) ⭐/)).toBeInTheDocument();
     // Riwayat status dimuat
     expect(await screen.findByText('Riwayat Status')).toBeInTheDocument();
     expect(screen.getByText('Proposal diajukan oleh mahasiswa')).toBeInTheDocument();
+    // Grid detail & dosen pembimbing sudah dihapus dari detail
+    expect(screen.queryByText('Program Studi')).not.toBeInTheDocument();
+    expect(screen.queryByText('Dosen Pembimbing')).not.toBeInTheDocument();
   });
 
   it('klik Setujui → PUT ke endpoint update + status berubah lokal', async () => {
