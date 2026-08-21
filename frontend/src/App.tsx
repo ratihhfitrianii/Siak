@@ -78,6 +78,10 @@ const DosenBimbinganMahasiswaBinaan = lazy(() =>
   })),
 );
 
+const DosenAttendanceRecap = lazy(() =>
+  import('./pages/DosenAttendanceRecap').then((m) => ({ default: m.DosenAttendanceRecap })),
+);
+
 const AdminCourseReviewPage = lazy(() =>
   import('./pages/AdminCourseReviewPage').then((m) => ({ default: m.AdminCourseReviewPage })),
 );
@@ -291,7 +295,17 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          {/* Admin Akademik: Persetujuan MK Dosen (kurikulum.manage) */}
+          {/* Dosen — Rekap Kehadiran Mahasiswa */}
+          <Route
+            path="/dosen/absensi/rekap"
+            element={
+              <ProtectedRoute perm="attendance.recap">
+                <AppLayout>
+                  <DosenAttendanceRecap />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin/persetujuan-mk"
             element={

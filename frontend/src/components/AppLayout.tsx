@@ -211,12 +211,28 @@ const MENU_ITEMS: {
     description: 'Kelola informasi penting untuk mahasiswa & dosen',
   },
   {
-    permissions: ['attendance.input'],
+    permissions: ['attendance.input', 'attendance.recap'],
     roles: ['dosen'],
-    label: 'Kelola Absensi',
+    label: 'Absensi',
     path: '/dosen/absensi',
     icon: 'check',
-    description: 'Input absensi pertemuan',
+    description: 'Kelola absensi & rekap kehadiran',
+    children: [
+      {
+        permissions: ['attendance.input'],
+        label: 'Kelola Absensi',
+        path: '/dosen/absensi',
+        icon: 'check',
+        description: 'Input absensi pertemuan',
+      },
+      {
+        permissions: ['attendance.recap'],
+        label: 'Rekap Kehadiran Mahasiswa',
+        path: '/dosen/absensi/rekap',
+        icon: 'chart-bar',
+        description: 'Persentase kehadiran per mahasiswa per kelas',
+      },
+    ],
   },
   // Bimbingan — Parent dropdown untuk dosen
   {

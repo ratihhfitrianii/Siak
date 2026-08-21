@@ -729,6 +729,21 @@ export interface UpdateAttendanceRecordInput {
   status: 'hadir' | 'tidak_hadir' | 'izin' | 'sakit';
 }
 
+/** GET /attendance/recap — rekap kehadiran per mahasiswa per kelas (dosen pengampu). */
+export interface AttendanceRecapItem {
+  studentId: number;
+  nim: string;
+  studentName: string;
+  hadirCount: number;
+  izinCount: number;
+  sakitCount: number;
+  alphaCount: number;
+  totalSessions: number;
+  attendanceRate: number; // persentase (hadirCount / totalSessions * 100)
+}
+
+export type AttendanceRecapResponse = AttendanceRecapItem[];
+
 // --- Skripsi (POST /skripsi/proposals, GET /skripsi/proposals, etc.) ---
 export type SkripsiStatus =
   | 'draft'

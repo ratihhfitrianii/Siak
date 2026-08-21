@@ -827,6 +827,7 @@ import type {
   CreateAttendanceInput,
   AttendanceRecordsResponse,
   UpdateAttendanceRecordInput,
+  AttendanceRecapResponse,
   Mentee,
   GuidanceSession,
   CreateGuidanceInput,
@@ -1146,7 +1147,10 @@ function normalizeAttendanceSession(r: AttendanceSessionRow): AttendanceSession 
   };
 }
 
-/** GET /attendance/sessions — sesi absensi dosen (ownership otomatis; ?schedule_id= opsional). */
+/** GET /attendance/recap?classId= — rekap kehadiran per mahasiswa per kelas (dosen pengampu). */
+export async function getAttendanceRecap(classId: number): Promise<AttendanceRecapResponse> {
+  return apiRequest<AttendanceRecapResponse>(`/attendance/recap?classId=${classId}`);
+}
 export async function getAttendanceSessions(scheduleId?: number): Promise<AttendanceSession[]> {
   const qs = scheduleId ? `?schedule_id=${scheduleId}&limit=100` : '?limit=100';
   const rows = await apiRequest<AttendanceSessionRow[]>(`/attendance/sessions${qs}`);

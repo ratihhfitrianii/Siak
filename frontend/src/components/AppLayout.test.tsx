@@ -103,6 +103,7 @@ const DOSEN = {
     'lecturer.select_course',
     'lecturer.availability',
     'attendance.input',
+    'attendance.recap',
     'guidance.manage',
     'thesis.review',
     'substitute.manage',
@@ -291,14 +292,19 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
   });
 
-  it('keluhan #5 — submenu dosen pindah ke sidebar (Pilih MK, Jadwal, Kelola Absensi, Nilai)', () => {
+  it('keluhan #5 — submenu dosen pindah ke sidebar (Pilih MK, Jadwal, Absensi, Nilai)', async () => {
+    const user = userEvent.setup();
     mockUser = DOSEN;
     renderLayout();
 
     // Non-wali dosen: Bimbingan TIDAK tampil
-    for (const label of ['Pilih MK', 'Jadwal', 'Kelola Absensi', 'Nilai']) {
+    for (const label of ['Pilih MK', 'Jadwal', 'Absensi', 'Nilai']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
+    // Absensi adalah parent dropdown — perlu klik untuk expand dan lihat children
+    await user.click(screen.getByText('Absensi'));
+    expect(screen.getByText('Kelola Absensi')).toBeInTheDocument();
+    expect(screen.getByText('Rekap Kehadiran Mahasiswa')).toBeInTheDocument();
     // Jadwal kini parent dropdown — Rencana Mengajar & Substitute jadi children
     expect(screen.queryByRole('link', { name: 'Bimbingan' })).not.toBeInTheDocument();
     // Expanded: label inline tampil (bukan tooltip).
