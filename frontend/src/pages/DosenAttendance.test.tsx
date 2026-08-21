@@ -242,6 +242,53 @@ describe('DosenAttendance (T3.8)', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
+  it('popup: jadwal yang sudah punya sesi absensi tidak muncul di dropdown', async () => {
+    const user = userEvent.setup();
+    render(<DosenAttendance />);
+    // Sesi 31 = jadwal schedule_id 311 (sudah dibuat); hanya 312 yang tersedia
+    await screen.findByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
+
+    await user.click(screen.getByRole('button', { name: '+ Tambah Sesi Absensi' }));
+    const dialog = screen.getByRole('dialog');
+    const select = within(dialog).getByLabelText('Jadwal Pertemuan') as HTMLSelectElement;
+    const values = Array.from(select.options).map((o) => o.value);
+    expect(values).not.toContain('311'); // sudah ada sesi → disembunyikan
+    expect(values).toContain('312'); // belum ada sesi → tersedia
+    expect(
+      within(select).getByText(/Dasar-Dasar Pemrograman - TI101-A - Semester 1/),
+    ).toBeInTheDocument();
+  });
+
+  it('semua jadwal sudah dibuatkan sesi → pesan kosong di popup', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.includes('/attendance/sessions?limit=100')) {
+        return Promise.resolve(
+          jsonResponse({
+            data: [
+              { ...SESSIONS_RAW[0], schedule_id: 311 },
+              { ...SESSIONS_RAW[0], id: 32, schedule_id: 312 },
+            ],
+          }),
+        );
+      }
+      if (u.includes('/dosen/my-classes')) {
+        return Promise.resolve(jsonResponse({ data: MY_CLASSES }));
+      }
+      return Promise.resolve(jsonResponse({ data: [] }));
+    });
+    render(<DosenAttendance />);
+    await screen.findAllByText(/Pertemuan 1 · Senin, 3 Agustus 2026/);
+
+    await user.click(screen.getByRole('button', { name: '+ Tambah Sesi Absensi' }));
+    expect(
+      await within(screen.getByRole('dialog')).findByText(
+        'Semua jadwal pertemuan sudah dibuatkan sesi absensi.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('pilih sesi → load records → ubah status → PUT /attendance/records/:id', async () => {
     const user = userEvent.setup();
     let putBody: unknown = null;

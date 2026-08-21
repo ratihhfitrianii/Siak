@@ -113,12 +113,8 @@ export function DosenProposalReview() {
   );
   const [historyLoadingId, setHistoryLoadingId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
-  // Halaman detail (popup) — proposal yang sedang dilihat
-  const [detailId, setDetailId] = useState<number | null>(null);
   // Pencarian (judul/NIM/nama/prodi)
   const [searchTerm, setSearchTerm] = useState('');
-
-  const detailProposal = proposals.find((p) => p.id === detailId) ?? null;
 
   // Filter klien-side: judul, NIM, nama mahasiswa, atau prodi
   const filteredProposals = useMemo(() => {
@@ -316,15 +312,9 @@ export function DosenProposalReview() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => {
-                        setDetailId(p.id);
-                        void loadStatusHistory(p.id);
-                      }}
-                      className="px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition"
-                    >
+                    <span className="text-xs font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg px-3 py-1.5">
                       Detail
-                    </button>
+                    </span>
                     <svg
                       className={`h-5 w-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                       fill="none"
@@ -343,6 +333,38 @@ export function DosenProposalReview() {
 
                 {isExpanded && (
                   <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 space-y-4">
+                    {/* Aksi Setujui/Tolak — hanya aktif saat menunggu keputusan dosen */}
+                    {canAct(p.status) ? (
+                      <div className="flex justify-end gap-2">
+                        {updatingId === p.id ? (
+                          <Spinner className="h-5 w-5" label="Menyimpan..." />
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleUpdateStatus(p.id, 'reject')}
+                              disabled={updatingId === p.id}
+                              className="px-5 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                            >
+                              Tolak
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(p.id, 'approve')}
+                              disabled={updatingId === p.id}
+                              className="px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                            >
+                              Setujui
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500 bg-slate-100 border border-slate-200 rounded-lg p-3">
+                        {p.status === 'disetujui_dosen' || p.status === 'dilihat_dosen'
+                          ? 'Keputusan Anda tersimpan. Menunggu persetujuan admin akademik — bimbingan dapat dimulai setelah admin menyetujui.'
+                          : 'Keputusan sudah tidak dapat diubah lagi pada tahap ini.'}
+                      </p>
+                    )}
+
                     {/* File Proposal */}
                     {p.proposalFile && (
                       <div className="p-4 bg-white rounded-lg border border-slate-100">
@@ -460,178 +482,6 @@ export function DosenProposalReview() {
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* Popup: Detail Proposal + aksi Setujui/Tolak */}
-      {detailProposal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Detail proposal ${detailProposal.title}`}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setDetailId(null);
-          }}
-        >
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div className="min-w-0">
-                <h3 className="text-lg font-medium text-slate-900">{detailProposal.title}</h3>
-                <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                  <span>
-                    {detailProposal.studentName} ({detailProposal.nim})
-                  </span>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLOR[detailProposal.status]}`}
-                  >
-                    {STATUS_LABEL[detailProposal.status]}
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDetailId(null)}
-                aria-label="Tutup"
-                className="text-slate-400 hover:text-slate-600 transition-colors shrink-0"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {/* Info mahasiswa */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <p className="text-xs text-slate-400">Mahasiswa</p>
-                <p className="font-medium text-slate-900 text-sm">{detailProposal.studentName}</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <p className="text-xs text-slate-400">NIM</p>
-                <p className="font-medium text-slate-900 text-sm">{detailProposal.nim}</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <p className="text-xs text-slate-400">Program Studi</p>
-                <p className="font-medium text-slate-900 text-sm">{detailProposal.prodiName}</p>
-              </div>
-            </div>
-
-            {/* Lampiran PDF */}
-            {detailProposal.proposalFile && (
-              <div className="mb-4 p-4 bg-white rounded-lg border border-slate-200">
-                <p className="text-xs text-slate-400 mb-2">Lampiran Proposal</p>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      if (!openProposalFile(detailProposal.proposalFile!)) {
-                        setError('Gagal membuka file proposal');
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition font-medium text-sm"
-                  >
-                    Lihat Proposal (PDF)
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (
-                        !downloadProposalFile(
-                          detailProposal.proposalFile!,
-                          `proposal-${detailProposal.nim}-${detailProposal.title.slice(0, 30)}.pdf`,
-                        )
-                      ) {
-                        setError('Gagal mengunduh file proposal');
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
-                  >
-                    Unduh
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Riwayat Status */}
-            <h4 className="font-medium text-slate-700 mb-2">Riwayat Status</h4>
-            {historyLoadingId === detailProposal.id ? (
-              <Spinner className="h-4 w-4" label="Memuat riwayat..." />
-            ) : statusHistories[detailProposal.id]?.length ? (
-              <div className="space-y-2 mb-4">
-                {statusHistories[detailProposal.id].map((h) => (
-                  <div
-                    key={h.id}
-                    className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100"
-                  >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                      <svg
-                        className="h-4 w-4 text-primary-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-900">{STATUS_LABEL[h.status]}</span>
-                        <span className="text-xs text-slate-400">{formatDate(h.changedAt)}</span>
-                      </div>
-                      <div className="text-sm text-slate-500">{h.changedByName}</div>
-                      {h.notes && <div className="text-sm text-slate-500 mt-1">{h.notes}</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm mb-4">Belum ada riwayat status</p>
-            )}
-
-            {/* Aksi: hanya aktif saat menunggu keputusan dosen */}
-            {canAct(detailProposal.status) ? (
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
-                {updatingId === detailProposal.id ? (
-                  <Spinner className="h-5 w-5" label="Menyimpan..." />
-                ) : (
-                  <>
-                    <button
-                      onClick={() => handleUpdateStatus(detailProposal.id, 'reject')}
-                      disabled={updatingId === detailProposal.id}
-                      className="px-5 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition disabled:opacity-50"
-                    >
-                      Tolak
-                    </button>
-                    <button
-                      onClick={() => handleUpdateStatus(detailProposal.id, 'approve')}
-                      disabled={updatingId === detailProposal.id}
-                      className="px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-                    >
-                      Setujui
-                    </button>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="pt-4 border-t border-slate-100">
-                <p className="text-sm text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3">
-                  {detailProposal.status === 'disetujui_dosen' ||
-                  detailProposal.status === 'dilihat_dosen'
-                    ? 'Keputusan Anda tersimpan. Menunggu persetujuan admin akademik — bimbingan dapat dimulai setelah admin menyetujui.'
-                    : 'Keputusan sudah tidak dapat diubah lagi pada tahap ini.'}
-                </p>
-              </div>
-            )}
-          </div>
         </div>
       )}
     </div>

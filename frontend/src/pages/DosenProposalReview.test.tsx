@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenProposalReview } from './DosenProposalReview';
@@ -102,16 +102,16 @@ describe('DosenProposalReview', () => {
     vi.unstubAllGlobals();
   });
 
-  it('render — hanya proposal yang diampu dosen login + tombol Detail (bukan Setujui/Tolak di baris)', async () => {
+  it('render — hanya proposal yang diampu dosen login + penanda Detail di baris', async () => {
     render(<DosenProposalReview />);
     expect(await screen.findByText('Sistem Informasi Akademik Berbasis Web')).toBeInTheDocument();
     // Proposal dosen lain tidak tampil
     expect(screen.queryByText('Proposal Dosen Lain')).not.toBeInTheDocument();
-    // Setujui/Tolak TIDAK lagi di baris list — pindah ke halaman detail
+    // Setujui/Tolak TIDAK tampil sebelum card dibuka
     expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Tolak' })).not.toBeInTheDocument();
-    // Tombol Detail tersedia
-    expect(screen.getByRole('button', { name: 'Detail' })).toBeInTheDocument();
+    // Penanda Detail tersedia di baris
+    expect(screen.getByText('Detail')).toBeInTheDocument();
   });
 
   it('pencarian — filter judul/NIM/nama/prodi secara klien-side', async () => {
@@ -129,45 +129,37 @@ describe('DosenProposalReview', () => {
     expect(screen.getByText(/Tidak ada proposal yang cocok dengan pencarian/)).toBeInTheDocument();
   });
 
-  it('klik Detail → popup berisi info mahasiswa, lampiran, riwayat, tombol Setujui/Tolak', async () => {
+  it('buka detail (expand) → aksi Setujui/Tolak DI ATAS grid lampiran + riwayat', async () => {
     const user = userEvent.setup();
     render(<DosenProposalReview />);
     await screen.findByText('Sistem Informasi Akademik Berbasis Web');
 
-    await user.click(screen.getByRole('button', { name: 'Detail' }));
-    const dialog = screen.getByRole('dialog');
-    // Info mahasiswa + lampiran + riwayat
-    expect(within(dialog).getByText('Teknik Informatika')).toBeInTheDocument();
-    expect(within(dialog).getByText('Lampiran Proposal')).toBeInTheDocument();
-    expect(await within(dialog).findByText('Riwayat Status')).toBeInTheDocument();
-    // Aksi tersedia saat status diajukan
-    expect(within(dialog).getByRole('button', { name: 'Setujui' })).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Tolak' })).toBeInTheDocument();
-  });
-
-  it('expand card — lampiran PDF + riwayat status (tanpa grid detail)', async () => {
-    const user = userEvent.setup();
-    render(<DosenProposalReview />);
-    await screen.findByText('Sistem Informasi Akademik Berbasis Web');
-
+    // Buka detail dengan klik header card
     await user.click(screen.getByText('Sistem Informasi Akademik Berbasis Web'));
-    // Lampiran
-    expect(await screen.findByText('Lampiran Proposal')).toBeInTheDocument();
+
+    // Aksi Setujui/Tolak muncul SEBELUM lampiran dalam struktur DOM
+    const setujuiBtn = screen.getByRole('button', { name: 'Setujui' });
+    const tolakBtn = screen.getByRole('button', { name: 'Tolak' });
+    const lampiran = screen.getByText('Lampiran Proposal');
+    expect(setujuiBtn.compareDocumentPosition(lampiran) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    void tolakBtn;
+
+    // Lampiran + riwayat tetap tampil di detail
     expect(screen.getByText('Lihat Proposal (PDF)')).toBeInTheDocument();
-    expect(screen.getByText('Unduh')).toBeInTheDocument();
-    // Riwayat status dimuat
     expect(await screen.findByText('Riwayat Status')).toBeInTheDocument();
     expect(screen.getByText('Proposal diajukan oleh mahasiswa')).toBeInTheDocument();
   });
 
-  it('klik Setujui di detail → PUT ke endpoint update + semua tombol aksi disable (tunggu admin)', async () => {
+  it('klik Setujui di detail terbuka → PUT endpoint update + semua tombol hilang (tunggu admin)', async () => {
     const user = userEvent.setup();
     render(<DosenProposalReview />);
     await screen.findByText('Sistem Informasi Akademik Berbasis Web');
 
-    await user.click(screen.getByRole('button', { name: 'Detail' }));
-    const dialog = screen.getByRole('dialog');
-    await user.click(within(dialog).getByRole('button', { name: 'Setujui' }));
+    // Tidak ada popup — detail adalah expand inline
+    await user.click(screen.getByText('Sistem Informasi Akademik Berbasis Web'));
+    await user.click(screen.getByRole('button', { name: 'Setujui' }));
 
     // PUT dipanggil dengan status berikutnya (diajukan → dilihat_dosen)
     await vi.waitFor(() => {
@@ -176,13 +168,12 @@ describe('DosenProposalReview', () => {
       );
       expect(putCall).toBeTruthy();
     });
-    // Badge baru muncul di dialog
-    expect((await within(dialog).findAllByText('Dilihat Dosen')).length).toBeGreaterThanOrEqual(1);
+    expect((await screen.findAllByText('Dilihat Dosen')).length).toBeGreaterThanOrEqual(1);
     // Semua tombol aksi HILANG setelah keputusan — dosen tidak bisa klik lagi,
     // lanjut ke bimbingan menunggu persetujuan admin akademik
-    expect(within(dialog).queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument();
-    expect(within(dialog).queryByRole('button', { name: 'Tolak' })).not.toBeInTheDocument();
-    expect(within(dialog).getByText(/Menunggu persetujuan admin akademik/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tolak' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Menunggu persetujuan admin akademik/)).toBeInTheDocument();
   });
 
   it('kosong — pesan empty state', async () => {

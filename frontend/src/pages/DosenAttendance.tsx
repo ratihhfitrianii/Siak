@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   getAttendanceSessions,
   createAttendanceSession,
@@ -203,18 +203,30 @@ export function DosenAttendance() {
     }
   };
 
-  const allSchedules = classes.flatMap((cls) =>
-    cls.schedules.map((s) => {
-      const d = new Date(s.scheduledDate);
-      const hari = Number.isNaN(d.getTime())
-        ? ''
-        : d.toLocaleDateString('id-ID', { weekday: 'long' });
-      const tanggalWaktu = `${formatTanggalID(s.scheduledDate)}${cls.startTime ? `, ${cls.startTime}-${cls.endTime}` : ''}`;
-      return {
-        scheduleId: s.id,
-        label: `${cls.courseName} - ${cls.classCode} - Semester ${cls.semesterNumber} - ${hari}, ${tanggalWaktu}`,
-      };
-    }),
+  const takenScheduleIds = useMemo(() => new Set(sessions.map((s) => s.scheduleId)), [sessions]);
+  // Jadwal yang sudah pernah dibuatkan sesi absensi tidak ditawarkan lagi
+  const availableSchedules = useMemo(
+    () => classes.flatMap((cls) => cls.schedules).filter((s) => !takenScheduleIds.has(s.id)),
+    [classes, takenScheduleIds],
+  );
+  const scheduleLabels = useMemo(
+    () =>
+      new Map(
+        classes.flatMap((cls) =>
+          cls.schedules.map((s) => {
+            const d = new Date(s.scheduledDate);
+            const hari = Number.isNaN(d.getTime())
+              ? ''
+              : d.toLocaleDateString('id-ID', { weekday: 'long' });
+            const tanggalWaktu = `${formatTanggalID(s.scheduledDate)}${cls.startTime ? `, ${cls.startTime}-${cls.endTime}` : ''}`;
+            return [
+              s.id,
+              `${cls.courseName} - ${cls.classCode} - Semester ${cls.semesterNumber} - ${hari}, ${tanggalWaktu}`,
+            ] as const;
+          }),
+        ),
+      ),
+    [classes],
   );
 
   return (
@@ -419,17 +431,17 @@ export function DosenAttendance() {
                   className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Pilih Jadwal Pertemuan</option>
-                  {allSchedules.map((s) => (
-                    <option key={s.scheduleId} value={s.scheduleId}>
-                      {s.label}
+                  {availableSchedules.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {scheduleLabels.get(s.id)}
                     </option>
                   ))}
                 </select>
-                {allSchedules.length === 0 && (
+                {availableSchedules.length === 0 ? (
                   <p className="mt-1 text-xs text-slate-500">
-                    Belum ada jadwal pertemuan — admin akademik perlu mengisi jadwal kelas Anda.
+                    Semua jadwal pertemuan sudah dibuatkan sesi absensi.
                   </p>
-                )}
+                ) : null}
               </div>
               <div>
                 <label

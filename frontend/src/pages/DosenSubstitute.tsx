@@ -185,7 +185,11 @@ export function DosenSubstitute() {
               >
                 <option value="">Pilih Dosen Pengganti</option>
                 {lecturers
-                  .filter((lec) => lec.id !== originalLecturerId)
+                  .filter(
+                    (lec) =>
+                      lec.id !== originalLecturerId &&
+                      lec.prodiCode === originalLecturer?.prodiCode,
+                  )
                   .map((lec) => (
                     <option key={lec.id} value={lec.id}>
                       {lec.fullName} ({lec.prodiCode})
