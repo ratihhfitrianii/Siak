@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { getSkripsiProposals, updateSkripsiProposal, getSkripsiProposalStatuses } from '../lib/api';
 import type { SkripsiProposal, SkripsiStatus, SkripsiProposalStatus } from '../lib/types';
@@ -66,11 +66,7 @@ export function DosenProposalReview() {
   const [historyLoadingId, setHistoryLoadingId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
-  useEffect(() => {
-    loadProposals();
-  }, []);
-
-  const loadProposals = async () => {
+  const loadProposals = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await getSkripsiProposals();
@@ -82,7 +78,11 @@ export function DosenProposalReview() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadProposals();
+  }, [loadProposals]);
 
   const loadStatusHistory = async (proposalId: number) => {
     if (statusHistories[proposalId]) return;

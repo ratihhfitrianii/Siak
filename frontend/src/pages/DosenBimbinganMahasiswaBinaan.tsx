@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { getSkripsiProposals } from '../lib/api';
 import type { SkripsiProposal, SkripsiStatus } from '../lib/types';
@@ -56,11 +56,7 @@ export function DosenBimbinganMahasiswaBinaan() {
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  useEffect(() => {
-    loadProposals();
-  }, []);
-
-  const loadProposals = async () => {
+  const loadProposals = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await getSkripsiProposals();
@@ -75,7 +71,11 @@ export function DosenBimbinganMahasiswaBinaan() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadProposals();
+  }, [loadProposals]);
 
   if (isLoading) {
     return (
