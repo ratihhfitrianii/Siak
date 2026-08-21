@@ -65,6 +65,24 @@ const MY_CLASSES = {
       credits: 3,
       schedules: [],
     },
+    // Penawaran LAMA TI101 di semester beda — TIDAK boleh digabung dengan semester 1 (bug duplikat NIM)
+    {
+      id: 4,
+      classCode: 'TI101-A',
+      dayOfWeek: 1,
+      startTime: '07:30',
+      endTime: '09:00',
+      room: 'R.103',
+      capacity: 40,
+      currentEnrolled: 1,
+      curriculumId: 30,
+      semesterId: 2,
+      semesterNumber: 1,
+      courseCode: 'TI101',
+      courseName: 'Dasar-Dasar Pemrograman',
+      credits: 3,
+      schedules: [],
+    },
   ],
 };
 
@@ -160,24 +178,27 @@ describe('DosenGrades (T3.8)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('render — dropdown digabung per mata kuliah dari getMyClasses', async () => {
+  it('render — dropdown digabung per penawaran MK (courseCode+semester) dari getMyClasses', async () => {
     render(<DosenGrades />);
     expect(screen.getByText('Form Nilai')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Simpan Nilai' })).not.toBeInTheDocument();
-    // Kelas paralel TI101-A & TI101-B digabung → hanya 1 opsi "Dasar-Dasar Pemrograman (TI101)"
-    await screen.findByText('Dasar-Dasar Pemrograman (TI101)');
+    // TI101-A + TI101-B semester 1 digabung; TI101 semester 2 & TI202 tetap opsi terpisah
+    await screen.findByText('Form Nilai');
     const options = screen
       .getByLabelText('Mata Kuliah / Kelas')
       .querySelectorAll('option:not([value=""])');
-    expect(options.length).toBe(2); // TI101 (gabungan A+B) + TI202
+    expect(options.length).toBe(3); // TI101 sem-1 (A+B), TI202, TI101 sem-2
   });
 
   it('pilih MK → kelas paralel digabung: load nilai A+B dalam satu tabel + kolom Kelas', async () => {
     const user = userEvent.setup();
     render(<DosenGrades />);
-    await screen.findByText('Dasar-Dasar Pemrograman (TI101)');
+    await screen.findByText('Form Nilai');
 
-    await user.selectOptions(screen.getByLabelText('Mata Kuliah / Kelas'), 'TI101');
+    // Pilih opsi pertama = penawaran semester terbaru (kelas id 1 & 2)
+    const select = screen.getByLabelText('Mata Kuliah / Kelas') as HTMLSelectElement;
+    const firstKey = select.options[1].value;
+    await user.selectOptions(select, firstKey);
     expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
     // Mahasiswa dari kelas paralel B ikut termuat dalam tabel yang sama
     expect(screen.getByText('Siti Aminah')).toBeInTheDocument();
@@ -187,6 +208,11 @@ describe('DosenGrades (T3.8)', () => {
     );
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/grades/class/2'),
+      expect.any(Object),
+    );
+    // Penawaran semester lama TIDAK ikut dimuat
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining('/grades/class/4'),
       expect.any(Object),
     );
     // Kolom Kelas membedakan seksi asal
@@ -210,8 +236,9 @@ describe('DosenGrades (T3.8)', () => {
       );
     });
     render(<DosenGrades />);
-    await screen.findByText('Dasar-Dasar Pemrograman (TI101)');
-    await user.selectOptions(screen.getByLabelText('Mata Kuliah / Kelas'), 'TI101');
+    await screen.findByText('Form Nilai');
+    const sel = screen.getByLabelText('Mata Kuliah / Kelas') as HTMLSelectElement;
+    await user.selectOptions(sel, sel.options[1].value);
     expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat data nilai');
   });
 
@@ -235,8 +262,9 @@ describe('DosenGrades (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: { items: [] } }));
     });
     render(<DosenGrades />);
-    await screen.findByText('Dasar-Dasar Pemrograman (TI101)');
-    await user.selectOptions(screen.getByLabelText('Mata Kuliah / Kelas'), 'TI101');
+    await screen.findByText('Form Nilai');
+    const sel = screen.getByLabelText('Mata Kuliah / Kelas') as HTMLSelectElement;
+    await user.selectOptions(sel, sel.options[1].value);
     expect(
       await screen.findByText('Belum ada mahasiswa terdaftar di mata kuliah ini.'),
     ).toBeInTheDocument();
@@ -272,8 +300,9 @@ describe('DosenGrades (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: { items: [] } }));
     });
     render(<DosenGrades />);
-    await screen.findByText('Dasar-Dasar Pemrograman (TI101)');
-    await user.selectOptions(screen.getByLabelText('Mata Kuliah / Kelas'), 'TI101');
+    await screen.findByText('Form Nilai');
+    const sel = screen.getByLabelText('Mata Kuliah / Kelas') as HTMLSelectElement;
+    await user.selectOptions(sel, sel.options[1].value);
     await screen.findByText('Budi Santoso');
 
     const utsInput = screen.getByDisplayValue('70');
@@ -323,8 +352,9 @@ describe('DosenGrades (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: { items: [] } }));
     });
     render(<DosenGrades />);
-    await screen.findByText('Dasar-Dasar Pemrograman (TI101)');
-    await user.selectOptions(screen.getByLabelText('Mata Kuliah / Kelas'), 'TI101');
+    await screen.findByText('Form Nilai');
+    const sel = screen.getByLabelText('Mata Kuliah / Kelas') as HTMLSelectElement;
+    await user.selectOptions(sel, sel.options[1].value);
     await screen.findByText('Budi Santoso');
 
     await user.click(screen.getByRole('button', { name: 'Simpan Nilai' }));
@@ -360,8 +390,9 @@ describe('DosenGrades (T3.8)', () => {
       return Promise.resolve(jsonResponse({ data: { items: [] } }));
     });
     render(<DosenGrades />);
-    await screen.findByText('Dasar-Dasar Pemrograman (TI101)');
-    await user.selectOptions(screen.getByLabelText('Mata Kuliah / Kelas'), 'TI101');
+    await screen.findByText('Form Nilai');
+    const sel = screen.getByLabelText('Mata Kuliah / Kelas') as HTMLSelectElement;
+    await user.selectOptions(sel, sel.options[1].value);
     expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
     expect(screen.getAllByText('-').length).toBeGreaterThanOrEqual(1);
   });
