@@ -133,9 +133,7 @@ describe('MahasiswaAjukanBimbingan', () => {
     await user.type(screen.getByPlaceholderText(/Contoh: Analisis/), 'Judul proposal yang valid');
     // Don't select supervisor
     await user.click(screen.getByText('Ajukan Proposal'));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Pilih minimal 1 dosen pembimbing',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Pilih minimal 1 dosen pembimbing');
   });
 
   it('submit success — POST proposal + reset form', async () => {

@@ -3,7 +3,7 @@ import request from 'supertest';
 
 // Env test SEBELUM import app
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL ??= 'postgres://siak:***@localhost:5433/siak';
+process.env.DATABASE_URL ??= 'postgres://siak:siak_dev_password@localhost:5433/siak';
 process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.JWT_SECRET = 'test-secret-student-profile';
 

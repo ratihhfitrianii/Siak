@@ -113,7 +113,13 @@ export function createSkripsiRouter(): Router {
         if (!req.user?.studentId) {
           throw new AppError('FORBIDDEN', 'Akun bukan mahasiswa aktif', 403);
         }
-        const data = proposalCreateSchema.parse(req.body);
+        const parsed = proposalCreateSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data proposal tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const data = parsed.data;
 
         // Verify all supervisors exist and are active dosen
         const supervisorRes = await pgPool.query(
@@ -328,7 +334,13 @@ export function createSkripsiRouter(): Router {
         if (isNaN(proposalId)) {
           throw new AppError('VALIDATION_ERROR', 'Invalid proposal ID', 400);
         }
-        const data = proposalUpdateSchema.parse(req.body);
+        const parsed = proposalUpdateSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data update tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const data = parsed.data;
 
         // Verify proposal exists
         const existing = await pgPool.query(`SELECT * FROM skripsi_proposals WHERE id = $1`, [
