@@ -158,13 +158,30 @@ const MENU_ITEMS: {
     icon: 'book',
     description: 'Pilih mata kuliah yang diampu',
   },
+  // Jadwal — Parent dropdown untuk dosen (Rencana Mengajar + Substitute)
   {
-    permissions: ['lecturer.availability'],
+    permissions: ['lecturer.availability', 'substitute.manage'],
     roles: ['dosen'],
-    label: 'Rencana Mengajar Dosen',
+    label: 'Jadwal',
     path: '/dosen/jadwal',
     icon: 'calendar',
-    description: 'Lihat jadwal mengajar',
+    description: 'Kelola jadwal mengajar & penggantian jadwal',
+    children: [
+      {
+        permissions: ['lecturer.availability'],
+        label: 'Rencana Mengajar Dosen',
+        path: '/dosen/jadwal',
+        icon: 'calendar',
+        description: 'Lihat jadwal mengajar',
+      },
+      {
+        permissions: ['substitute.manage'],
+        label: 'Substitute',
+        path: '/dosen/substitute',
+        icon: 'swap',
+        description: 'Kelola penggantian jadwal',
+      },
+    ],
   },
   // ---- Admin Akademik: Jadwal Pengajar (T3.2, perm schedule.manage) ----
   {
@@ -200,14 +217,6 @@ const MENU_ITEMS: {
     path: '/dosen/absensi',
     icon: 'check',
     description: 'Input absensi pertemuan',
-  },
-  {
-    permissions: ['substitute.manage'],
-    roles: ['dosen'],
-    label: 'Substitute',
-    path: '/dosen/substitute',
-    icon: 'swap',
-    description: 'Kelola penggantian jadwal',
   },
   // Bimbingan — Parent dropdown untuk dosen
   {

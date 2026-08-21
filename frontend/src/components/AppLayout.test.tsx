@@ -291,14 +291,15 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
   });
 
-  it('keluhan #5 — submenu dosen pindah ke sidebar (Pilih MK, Jadwal, Absensi, Substitute, Nilai)', () => {
+  it('keluhan #5 — submenu dosen pindah ke sidebar (Pilih MK, Jadwal, Absensi, Nilai)', () => {
     mockUser = DOSEN;
     renderLayout();
 
     // Non-wali dosen: Bimbingan TIDAK tampil
-    for (const label of ['Pilih MK', 'Rencana Mengajar Dosen', 'Absensi', 'Substitute', 'Nilai']) {
-      expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
+    for (const label of ['Pilih MK', 'Jadwal', 'Absensi', 'Nilai']) {
+      expect(screen.getByText(label)).toBeInTheDocument();
     }
+    // Jadwal kini parent dropdown — Rencana Mengajar & Substitute jadi children
     expect(screen.queryByRole('link', { name: 'Bimbingan' })).not.toBeInTheDocument();
     // Expanded: label inline tampil (bukan tooltip).
     expect(screen.getByText('Pilih MK')).toBeInTheDocument();
