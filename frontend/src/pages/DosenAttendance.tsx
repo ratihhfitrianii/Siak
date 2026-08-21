@@ -204,10 +204,17 @@ export function DosenAttendance() {
   };
 
   const allSchedules = classes.flatMap((cls) =>
-    cls.schedules.map((s) => ({
-      scheduleId: s.id,
-      label: `${cls.courseCode} — ${cls.classCode} (Pertemuan ${s.meetingNumber}, ${s.scheduledDate})`,
-    })),
+    cls.schedules.map((s) => {
+      const d = new Date(s.scheduledDate);
+      const hari = Number.isNaN(d.getTime())
+        ? ''
+        : d.toLocaleDateString('id-ID', { weekday: 'long' });
+      const tanggalWaktu = `${formatTanggalID(s.scheduledDate)}${cls.startTime ? `, ${cls.startTime}-${cls.endTime}` : ''}`;
+      return {
+        scheduleId: s.id,
+        label: `${cls.courseName} - ${cls.classCode} - Semester ${cls.semesterNumber} - ${hari}, ${tanggalWaktu}`,
+      };
+    }),
   );
 
   return (
