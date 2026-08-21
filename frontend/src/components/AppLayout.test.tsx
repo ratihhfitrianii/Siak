@@ -291,12 +291,12 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
   });
 
-  it('keluhan #5 — submenu dosen pindah ke sidebar (Pilih MK, Jadwal, Absensi, Nilai)', () => {
+  it('keluhan #5 — submenu dosen pindah ke sidebar (Pilih MK, Jadwal, Kelola Absensi, Nilai)', () => {
     mockUser = DOSEN;
     renderLayout();
 
     // Non-wali dosen: Bimbingan TIDAK tampil
-    for (const label of ['Pilih MK', 'Jadwal', 'Absensi', 'Nilai']) {
+    for (const label of ['Pilih MK', 'Jadwal', 'Kelola Absensi', 'Nilai']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     // Jadwal kini parent dropdown — Rencana Mengajar & Substitute jadi children

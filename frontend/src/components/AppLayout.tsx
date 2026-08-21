@@ -213,7 +213,7 @@ const MENU_ITEMS: {
   {
     permissions: ['attendance.input'],
     roles: ['dosen'],
-    label: 'Absensi',
+    label: 'Kelola Absensi',
     path: '/dosen/absensi',
     icon: 'check',
     description: 'Input absensi pertemuan',
