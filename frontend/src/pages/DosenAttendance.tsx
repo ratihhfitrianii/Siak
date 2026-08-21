@@ -5,6 +5,7 @@ import {
   setAttendanceSessionOpen,
   getAttendanceRecords,
   updateAttendanceRecord,
+  createAttendanceRecord,
   getMyClasses,
 } from '../lib/api';
 import type { AttendanceSession, AttendanceRecordItem, MyClass } from '../lib/types';
@@ -157,14 +158,24 @@ export function DosenAttendance() {
   };
 
   const handleUpdateRecord = async (record: AttendanceRecordItem, status: string) => {
-    if (!record.recordId) return;
     setIsLoading(true);
     setError(null);
     setSuccess(null);
     try {
-      await updateAttendanceRecord(record.recordId, {
-        status: status as 'hadir' | 'tidak_hadir' | 'izin' | 'sakit',
-      });
+      if (record.recordId) {
+        // Sudah ada record (mis. hasil check-in) → update
+        await updateAttendanceRecord(record.recordId, {
+          status: status as 'hadir' | 'tidak_hadir' | 'izin' | 'sakit',
+        });
+      } else if (selectedSessionId) {
+        // Belum check-in → dosen buat record baru sekaligus set statusnya
+        await createAttendanceRecord(selectedSessionId, {
+          studentId: record.studentId,
+          status: status as 'hadir' | 'tidak_hadir' | 'izin' | 'sakit',
+        });
+      } else {
+        return;
+      }
       setSuccess(`Status ${record.nim} diperbarui`);
       if (selectedSessionId) {
         await loadRecords(selectedSessionId);
@@ -369,7 +380,7 @@ export function DosenAttendance() {
                                           value={value}
                                           checked={r.status === value}
                                           onChange={() => handleUpdateRecord(r, value)}
-                                          disabled={isLoading || r.recordId === null}
+                                          disabled={isLoading}
                                           className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-slate-300"
                                         />
                                         <span className="text-xs text-slate-700">{label}</span>

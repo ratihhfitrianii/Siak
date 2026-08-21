@@ -238,15 +238,15 @@ describe('DosenAttendance (T3.8)', () => {
     expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
     expect(screen.getByText('Ani Wijaya')).toBeInTheDocument();
 
-    // Ani belum check-in (belum_absen, record_id null) → tidak ada radio yang terpilih
-    // dan semua radio disabled (belum ada record untuk diubah)
+    // Ani belum check-in (belum_absen, record_id null) → tidak ada radio terpilih,
+    // tapi radio TETAP AKTIF — dosen bisa set status manual (auto-create record)
     const aniRow = screen.getByText('Ani Wijaya').closest('tr');
     expect(aniRow).not.toBeNull();
     const aniRadios = within(aniRow as HTMLElement).getByRole('radio', {
       name: 'Tidak Hadir',
     }) as HTMLInputElement;
     expect(aniRadios.checked).toBe(false);
-    expect(aniRadios.disabled).toBe(true);
+    expect(aniRadios.disabled).toBe(false);
 
     // Ubah status Budi (record_id 3111) → hadir → izin via radio
     const budiRow = screen.getByText('Budi Santoso').closest('tr');

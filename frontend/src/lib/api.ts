@@ -1221,6 +1221,14 @@ export async function updateAttendanceRecord(
   return apiRequest(`/attendance/records/${recordId}`, { method: 'PUT', body: input });
 }
 
+/** POST /attendance/sessions/:id/records — dosen set status mahasiswa yang belum punya record. */
+export async function createAttendanceRecord(
+  sessionId: number,
+  input: UpdateAttendanceRecordInput & { studentId: number },
+): Promise<{ id: number }> {
+  return apiRequest(`/attendance/sessions/${sessionId}/records`, { method: 'POST', body: input });
+}
+
 /** POST /attendance/check-in — mahasiswa self check-in (via sessionId atau qrCode). */
 export async function checkInAttendance(input: {
   sessionId?: number;

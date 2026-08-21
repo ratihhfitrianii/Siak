@@ -104,7 +104,13 @@ export function createAttendanceRouter(): Router {
                  cl.class_code, cl.id as class_id,
                  cur.semester_number, co.code as course_code, co.name as course_name,
                  u.full_name as created_by_name,
-                 (SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = s.id) as total_records,
+                 (
+                   SELECT COUNT(*) FROM krs_items ki
+                   JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
+                   WHERE ki.class_id = sch.class_id
+                     AND ks.student_id IS NOT NULL
+                     AND ks.status IN ('submitted', 'approved')
+                 ) as total_records,
                  (SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = s.id AND ar.status = 'hadir') as hadir_count
           FROM attendance_sessions s
           JOIN schedules sch ON sch.id = s.schedule_id
@@ -483,6 +489,89 @@ export function createAttendanceRouter(): Router {
             records: merged,
           },
         });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /attendance/sessions/:id/records — dosen set status untuk mahasiswa yang
+  // belum punya record (belum check-in). Membuat record baru sekaligus.
+  router.post(
+    '/sessions/:id/records',
+    authenticate,
+    authorize('attendance.input'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const isAdmin =
+          req.user!.roleCode === 'admin_akademik' || req.user!.roleCode === 'admin_sistem';
+        const sessionId = parseInt(req.params.id ?? '', 10);
+        if (isNaN(sessionId)) throw new AppError('VALIDATION_ERROR', 'Invalid session ID', 400);
+
+        const data = recordUpdateSchema.parse(req.body);
+        const studentId = Number(req.body.studentId);
+        if (!Number.isInteger(studentId) || studentId <= 0) {
+          throw new AppError('VALIDATION_ERROR', 'studentId wajib diisi', 400);
+        }
+
+        // Session harus ada & milik dosen (atau admin)
+        const sessRes = await pgPool.query(
+          `SELECT s.id, s.is_open, sch.class_id, cl.lecturer_id
+           FROM attendance_sessions s
+           JOIN schedules sch ON sch.id = s.schedule_id
+           JOIN classes cl ON cl.id = sch.class_id
+           WHERE s.id = $1`,
+          [sessionId],
+        );
+        if (sessRes.rows.length === 0) {
+          throw new AppError('NOT_FOUND', 'Sesi absensi tidak ditemukan', 404);
+        }
+        const sess = sessRes.rows[0];
+        if (!isAdmin && Number(sess.lecturer_id) !== req.user!.id) {
+          throw new AppError('FORBIDDEN', 'Sesi bukan milik Anda', 403);
+        }
+
+        // Mahasiswa harus terdaftar di kelas ini
+        const enr = await pgPool.query(
+          `SELECT 1 FROM krs_items ki
+           JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
+           WHERE ks.student_id = $1 AND ki.class_id = $2 AND ks.status IN ('submitted','approved')`,
+          [studentId, sess.class_id],
+        );
+        if (enr.rows.length === 0) {
+          throw new AppError('FORBIDDEN', 'Mahasiswa tidak terdaftar di kelas ini', 403);
+        }
+
+        // Upsert: kalau sudah ada record → update; kalau belum → buat
+        const existing = await pgPool.query(
+          `SELECT id FROM attendance_records WHERE session_id = $1 AND student_id = $2`,
+          [sessionId, studentId],
+        );
+        let record;
+        if (existing.rows.length > 0) {
+          const upd = await pgPool.query(
+            `UPDATE attendance_records SET status = $1, marked_at = now(), marked_by = $2
+             WHERE id = $3 RETURNING *`,
+            [data.status, req.user!.id, existing.rows[0].id],
+          );
+          record = upd.rows[0];
+        } else {
+          const ins = await pgPool.query(
+            `INSERT INTO attendance_records (session_id, student_id, status, marked_by)
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [sessionId, studentId, data.status, req.user!.id],
+          );
+          record = ins.rows[0];
+        }
+
+        await auditFromRequest(req.user!, req, {
+          tableName: 'attendance_records',
+          recordId: record.id,
+          action: existing.rows.length > 0 ? 'UPDATE' : 'INSERT',
+          newValues: { status: data.status },
+        });
+
+        res.status(existing.rows.length > 0 ? 200 : 201).json({ success: true, data: record });
       } catch (err) {
         next(err);
       }
