@@ -193,7 +193,7 @@ describe('T-Payroll — Slip Gaji (generate → approve → pay → dosen lihat)
     expect(res.status).toBe(403);
   });
 
-  it('GET /payroll/my hanya return payroll dosen sendiri', async () => {
+  it('GET /payroll/my hanya return payroll dosen sendiri, status paid saja', async () => {
     const res = await request(app)
       .get('/api/v1/payroll/my?period_start=2026-08-01&period_end=2026-08-31')
       .set('Authorization', `Bearer ${dosenToken}`);
@@ -201,6 +201,8 @@ describe('T-Payroll — Slip Gaji (generate → approve → pay → dosen lihat)
     expect(Array.isArray(res.body.data)).toBe(true);
     for (const row of res.body.data) {
       expect(row.lecturerId).toBe(dosenLecturerId);
+      // Dosen tidak boleh melihat draft/approved — hanya yang sudah dibayar
+      expect(row.status).toBe('paid');
     }
   });
 });

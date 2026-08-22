@@ -34,15 +34,7 @@ function periodeLabel(periodStart: string): string {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  draft: 'Draft',
-  approved: 'Disetujui',
   paid: 'Dibayar',
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  draft: 'bg-slate-100 text-slate-700',
-  approved: 'bg-blue-100 text-blue-800',
-  paid: 'bg-green-100 text-green-800',
 };
 
 /**
@@ -220,9 +212,7 @@ export function DosenSalarySlip() {
                     {formatRupiah(s.netAmount)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span
-                      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${STATUS_STYLE[s.status] ?? 'bg-slate-100 text-slate-700'}`}
-                    >
+                    <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                       {STATUS_LABEL[s.status] ?? s.status}
                     </span>
                   </td>

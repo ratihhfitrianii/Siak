@@ -46,7 +46,7 @@ const SLIPS = {
       totalHonor: 600000,
       deductions: 250000,
       netAmount: 5350000,
-      status: 'approved' as const,
+      status: 'paid' as const,
     },
   ],
 };
@@ -67,9 +67,8 @@ describe('DosenSalarySlip', () => {
     expect(screen.getByText('September 2026')).toBeInTheDocument();
     // Rupiah format (muncul di 2 baris: gaji pokok Agustus & September)
     expect(screen.getAllByText('Rp 5.000.000').length).toBe(2);
-    // Status badge
-    expect(screen.getAllByText('Dibayar').length).toBe(1);
-    expect(screen.getAllByText('Disetujui').length).toBe(1);
+    // Status badge — dosen hanya melihat payroll paid (backend memfilter)
+    expect(screen.getAllByText('Dibayar').length).toBe(2);
     // Total footer
     expect(screen.getByText('Rp 10.900.000')).toBeInTheDocument();
   });
