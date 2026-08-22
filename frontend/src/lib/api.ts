@@ -688,7 +688,13 @@ export async function getMySalarySlips(
   if (periodStart) params.set('period_start', periodStart);
   if (periodEnd) params.set('period_end', periodEnd);
   const qs = params.toString();
-  return apiRequest<SalarySlipsResponse>(`/payroll/my${qs ? `?${qs}` : ''}`);
+  // Backend res.json(): { success, data: PayrollItem[], pagination } — data LANGSUNG array
+  // (bukan { items }), jadi normalisasi di sini agar pemanggil selalu dapat { items }.
+  const data = await apiRequest<SalarySlipsResponse['items'] | SalarySlipsResponse>(
+    `/payroll/my${qs ? `?${qs}` : ''}`,
+  );
+  if (Array.isArray(data)) return { items: data };
+  return data;
 }
 
 /** GET /payroll/my/download — unduh PDF slip gaji sesuai filter (blob + trigger download). */
