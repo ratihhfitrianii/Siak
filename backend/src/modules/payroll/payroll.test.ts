@@ -135,6 +135,42 @@ describe('T-Payroll — Slip Gaji (generate → approve → pay → dosen lihat)
     expect(res.total).toBeGreaterThanOrEqual(1);
   });
 
+  it('listPayrolls filter q (nama/NIDN) & prodiId', async () => {
+    // Ambil prodi dosen uji
+    const lectRes = await pgPool.query(
+      `SELECT prodi_id, nidn, user_id FROM lecturers WHERE id = $1`,
+      [dosenLecturerId],
+    );
+    const { prodi_id } = lectRes.rows[0];
+    const fullName = (
+      await pgPool.query(`SELECT full_name FROM users WHERE id = $1`, [lectRes.rows[0].user_id])
+    ).rows[0].full_name;
+
+    // Cari by nama depan (potongan nama)
+    const byName = await listPayrolls({
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+      q: fullName.split(' ')[0],
+    });
+    expect(byName.items.some((i) => i.lecturerId === dosenLecturerId)).toBe(true);
+
+    // Filter prodi: dosen uji harus masuk; semua hasil di prodi yang sama
+    const byProdi = await listPayrolls({
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+      prodiId: Number(prodi_id),
+    });
+    expect(byProdi.items.length).toBeGreaterThanOrEqual(1);
+
+    // Q tak match → kosong
+    const none = await listPayrolls({
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+      q: 'TIDAK-ADA-NAMA-INI-XYZ',
+    });
+    expect(none.items.length).toBe(0);
+  });
+
   it('approve → pay: transisi status draft → approved → paid', async () => {
     const approved = await approvePayroll(createdPayrollIds[0], 1);
     expect(approved.status).toBe('approved');

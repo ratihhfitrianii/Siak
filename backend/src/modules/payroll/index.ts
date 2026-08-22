@@ -112,6 +112,8 @@ export function createPayrollRouter(): Router {
           period_start,
           period_end,
           status,
+          prodi_id,
+          q,
           page = '1',
           limit = '20',
         } = req.query;
@@ -121,6 +123,8 @@ export function createPayrollRouter(): Router {
           periodStart: period_start as string,
           periodEnd: period_end as string,
           status: status as string,
+          prodiId: prodi_id ? parseInt(prodi_id as string, 10) : undefined,
+          q: q as string | undefined,
           page: parseInt(page as string, 10),
           limit: parseInt(limit as string, 10),
         };

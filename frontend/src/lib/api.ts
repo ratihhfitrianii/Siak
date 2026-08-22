@@ -734,12 +734,14 @@ export async function downloadSalarySlipPdf(
 
 /* ==== Payroll Admin (admin keuangan) ==== */
 
-/** GET /payroll — daftar payroll semua dosen, filter periode/status (admin keuangan). */
+/** GET /payroll — daftar payroll semua dosen, filter periode/prodi/pencarian/status (admin keuangan). */
 export async function getPayrolls(
   filters: {
     periodStart?: string;
     periodEnd?: string;
     status?: string;
+    prodiId?: number;
+    q?: string;
     page?: number;
     limit?: number;
   } = {},
@@ -748,6 +750,8 @@ export async function getPayrolls(
   if (filters.periodStart) params.set('period_start', filters.periodStart);
   if (filters.periodEnd) params.set('period_end', filters.periodEnd);
   if (filters.status) params.set('status', filters.status);
+  if (filters.prodiId) params.set('prodi_id', String(filters.prodiId));
+  if (filters.q && filters.q.trim()) params.set('q', filters.q.trim());
   params.set('page', String(filters.page ?? 1));
   params.set('limit', String(filters.limit ?? 100));
   const data = await apiRequest<PayrollsResponse & { pagination: PayrollsResponse }>(

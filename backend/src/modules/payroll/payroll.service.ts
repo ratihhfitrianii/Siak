@@ -265,6 +265,10 @@ export async function listPayrolls(filters: {
   periodStart?: string;
   periodEnd?: string;
   status?: string;
+  /** Filter per program studi (lecturers.prodi_id) */
+  prodiId?: number;
+  /** Pencarian nama/NIDN dosen (ILIKE %q%) */
+  q?: string;
   page?: number;
   limit?: number;
 }): Promise<{
@@ -298,8 +302,21 @@ export async function listPayrolls(filters: {
     where += ` AND p.status = $${paramIdx++}`;
     params.push(filters.status);
   }
+  if (filters.prodiId) {
+    // lecturers sudah di-join di countSql & dataSql — filter prodi-nya langsung
+    where += ` AND l.prodi_id = $${paramIdx++}`;
+    params.push(filters.prodiId);
+  }
+  if (filters.q && filters.q.trim()) {
+    where += ` AND (u.full_name ILIKE $${paramIdx} OR l.nidn ILIKE $${paramIdx})`;
+    params.push(`%${filters.q.trim()}%`);
+    paramIdx++;
+  }
 
-  const countSql = `SELECT COUNT(*) FROM payrolls p ${where}`;
+  const countSql = `SELECT COUNT(*) FROM payrolls p
+    JOIN lecturers l ON l.id = p.lecturer_id
+    JOIN users u ON u.id = l.user_id
+    ${where}`;
   const countRes = await pgPool.query(countSql, params);
   const total = parseInt(countRes.rows[0].count, 10);
 

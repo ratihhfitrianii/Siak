@@ -16,6 +16,7 @@ vi.mock('../lib/api', async () => {
     generatePayrollBatch: vi.fn(),
     approvePayroll: vi.fn(),
     payPayroll: vi.fn(),
+    listProdis: vi.fn(),
   };
 });
 
@@ -23,6 +24,15 @@ const mockedGet = vi.mocked(api.getPayrolls);
 const mockedGenerate = vi.mocked(api.generatePayrollBatch);
 const mockedApprove = vi.mocked(api.approvePayroll);
 const mockedPay = vi.mocked(api.payPayroll);
+const mockedProdis = vi.mocked(api.listProdis);
+
+const PRODIS = {
+  items: [
+    { id: 1, code: 'TI', name: 'Teknik Informatika' },
+    { id: 2, code: 'SI', name: 'Sistem Informasi' },
+  ],
+  pagination: { page: 1, limit: 10, total: 2 },
+};
 
 const PAYROLLS = {
   items: [
@@ -79,6 +89,7 @@ describe('FinancePayrollPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedGet.mockResolvedValue(PAYROLLS);
+    mockedProdis.mockResolvedValue(PRODIS as unknown as Awaited<ReturnType<typeof api.listProdis>>);
   });
 
   afterEach(() => {
@@ -135,5 +146,38 @@ describe('FinancePayrollPage', () => {
     mockedGet.mockRejectedValue(new Error('500'));
     render(<FinancePayrollPage />);
     expect(await screen.findByText('Gagal memuat data payroll')).toBeInTheDocument();
+  });
+
+  it('dropdown prodi terisi dari listProdis + pilih prodi → getPayrolls dengan prodi_id', async () => {
+    const user = userEvent.setup();
+    render(<FinancePayrollPage />);
+    await screen.findByText('Dosen TI 1');
+
+    await user.selectOptions(screen.getByLabelText('Prodi'), '1');
+    let lastCall = mockedGet.mock.calls.at(-1)?.[0];
+    expect(lastCall?.prodiId).toBe(1);
+
+    // Kembali ke Semua Prodi
+    await user.selectOptions(screen.getByLabelText('Prodi'), '');
+    lastCall = mockedGet.mock.calls.at(-1)?.[0];
+    expect(lastCall?.prodiId).toBeUndefined();
+  });
+
+  it('tombol Cari menerapkan kata kunci pencarian nama/NIDN', async () => {
+    const user = userEvent.setup();
+    render(<FinancePayrollPage />);
+    await screen.findByText('Dosen TI 1');
+
+    // Ketik lalu klik Cari
+    await user.type(screen.getByLabelText('Cari Dosen'), 'Dosen TI');
+    await user.click(screen.getByRole('button', { name: /Cari/ }));
+    let lastCall = mockedGet.mock.calls.at(-1)?.[0];
+    expect(lastCall?.q).toBe('Dosen TI');
+
+    // Enter juga menerapkan
+    await user.clear(screen.getByLabelText('Cari Dosen'));
+    await user.type(screen.getByLabelText('Cari Dosen'), '198001002{Enter}');
+    lastCall = mockedGet.mock.calls.at(-1)?.[0];
+    expect(lastCall?.q).toBe('198001002');
   });
 });

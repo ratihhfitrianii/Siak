@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getPayrolls, generatePayrollBatch, approvePayroll, payPayroll } from '../lib/api';
-import type { SalarySlip } from '../lib/types';
+import {
+  getPayrolls,
+  generatePayrollBatch,
+  approvePayroll,
+  payPayroll,
+  listProdis,
+} from '../lib/api';
+import type { SalarySlip, Prodi } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
 
@@ -60,6 +66,24 @@ export function FinancePayrollPage() {
   const [tahun, setTahun] = useState(now.getFullYear());
   const TAHUN_OPTIONS = Array.from({ length: 3 }, (_, i) => now.getFullYear() + 1 - i);
 
+  // Filter pencarian nama/NIDN + prodi (keluhan: kolom pencarian & filter per prodi)
+  const [searchInput, setSearchInput] = useState(''); // nilai di input (belum diterapkan)
+  const [q, setQ] = useState(''); // nilai yang aktif memicu load
+  const [prodiId, setProdiId] = useState<number | ''>('');
+  const [prodis, setProdis] = useState<Prodi[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listProdis()
+      .then((res) => {
+        if (!cancelled) setProdis(res.items);
+      })
+      .catch(() => {}); // dropdown prodi kosong kalau gagal — jangan blok halaman
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const loadItems = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -67,7 +91,12 @@ export function FinancePayrollPage() {
       const lastDay = new Date(tahun, bulan + 1, 0).getDate();
       const start = `${tahun}-${String(bulan + 1).padStart(2, '0')}-01`;
       const end = `${tahun}-${String(bulan + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-      const res = await getPayrolls({ periodStart: start, periodEnd: end });
+      const res = await getPayrolls({
+        periodStart: start,
+        periodEnd: end,
+        q: q || undefined,
+        prodiId: prodiId === '' ? undefined : Number(prodiId),
+      });
       setItems(res.items);
     } catch {
       setError('Gagal memuat data payroll');
@@ -75,7 +104,7 @@ export function FinancePayrollPage() {
     } finally {
       setLoading(false);
     }
-  }, [bulan, tahun]);
+  }, [bulan, tahun, q, prodiId]);
 
   useEffect(() => {
     loadItems();
@@ -168,6 +197,57 @@ export function FinancePayrollPage() {
               {TAHUN_OPTIONS.map((y) => (
                 <option key={y} value={y}>
                   {y}
+                </option>
+              ))}
+            </select>
+          </div>
+          {/* Pencarian nama/NIDN dosen — tombol Cari menerapkan, Enter juga */}
+          <div className="flex items-end gap-1">
+            <div>
+              <label
+                htmlFor="payroll-cari"
+                className="block text-sm font-medium text-slate-700 mb-1"
+              >
+                Cari Dosen
+              </label>
+              <input
+                id="payroll-cari"
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setQ(searchInput);
+                }}
+                placeholder="Nama / NIDN…"
+                className="px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm w-44"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setQ(searchInput)}
+              className="px-3 py-2 bg-slate-700 text-white rounded-md text-sm font-medium hover:bg-slate-800 transition"
+            >
+              🔍 Cari
+            </button>
+          </div>
+          {/* Filter per program studi */}
+          <div>
+            <label
+              htmlFor="payroll-prodi"
+              className="block text-sm font-medium text-slate-700 mb-1"
+            >
+              Prodi
+            </label>
+            <select
+              id="payroll-prodi"
+              value={prodiId}
+              onChange={(e) => setProdiId(e.target.value === '' ? '' : Number(e.target.value))}
+              className="px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm max-w-[180px]"
+            >
+              <option value="">Semua Prodi</option>
+              {prodis.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.code} — {p.name}
                 </option>
               ))}
             </select>
