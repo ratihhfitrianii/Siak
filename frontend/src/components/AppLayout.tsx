@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router';
+import { NavLink, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import {
   ApiError,
@@ -327,8 +327,9 @@ function MenuIcon({ path }: { path: string }) {
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   // Halaman /users pakai tema sidebar gelap (abu-abu kebiruan)
-  const isDarkSidebar = window.location.pathname.startsWith('/users');
+  const isDarkSidebar = location.pathname.startsWith('/users');
   const [unread, setUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -507,7 +508,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           {menu.map((item) => {
             const isExpanded = expandedMenus.has(item.path);
             const isParentActive = item.children
-              ? item.children.some((c) => window.location.pathname.startsWith(c.path))
+              ? item.children.some((c) => location.pathname.startsWith(c.path))
               : false;
             if (item.children) {
               const visibleChildren = item.children.filter((c) =>
