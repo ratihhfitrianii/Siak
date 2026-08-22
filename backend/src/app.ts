@@ -24,6 +24,7 @@ import { createAdminMasterRouter } from './modules/admin-master';
 import { createAnnouncementRouter } from './modules/announcement';
 import { createSkripsiRouter } from './modules/skripsi';
 import { createStudentProfileRouter } from './modules/student-profile';
+import { createPayrollRouter } from './modules/payroll';
 import {
   WaitingRoomService,
   WR_DEFAULT_OPTIONS,
@@ -99,6 +100,7 @@ export function createApp(healthDeps: HealthDependencies = {}, options: AppOptio
   app.use('/api/v1/announcements', createAnnouncementRouter());
   app.use('/api/v1/skripsi', createSkripsiRouter());
   app.use('/api/v1/students', createStudentProfileRouter());
+  app.use('/api/v1/payroll', createPayrollRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

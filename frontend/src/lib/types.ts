@@ -642,6 +642,25 @@ export interface MyClassesResponse {
   items: MyClass[];
 }
 
+// --- Slip Gaji Dosen (GET /payroll/my) — lihat + download PDF, filter bulan/tahun ---
+export interface SalarySlip {
+  id: number;
+  lecturerId: number;
+  periodStart: string;
+  periodEnd: string;
+  baseSalary: number;
+  honorPerMeeting: number;
+  totalMeetings: number;
+  totalHonor: number;
+  deductions: number;
+  netAmount: number;
+  status: 'draft' | 'approved' | 'paid';
+}
+
+export interface SalarySlipsResponse {
+  items: SalarySlip[];
+}
+
 // --- Kelas belum diklaim (GET /dosen/available-classes) — dosen pilih via checkbox (T3.9, F-21) ---
 export interface ClaimableClass {
   id: number;

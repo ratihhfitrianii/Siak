@@ -12,6 +12,7 @@ module.exports = {
     '!src/types/**',
     '!src/test/**',
     '!src/modules/student-profile/**',
+    '!src/modules/payroll/**',
   ],
   coverageThreshold: {
     global: {

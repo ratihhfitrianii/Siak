@@ -38,6 +38,8 @@ const ICON_PATHS: Record<string, string> = {
   chat: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
   swap: 'M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4',
   star: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z',
+  wallet:
+    'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z',
 };
 
 /** Mapping permission → item menu (RBAC UI: menu disaring dari /users/me, bukan hardcode per role).
@@ -267,6 +269,15 @@ const MENU_ITEMS: {
     path: '/dosen/nilai',
     icon: 'star',
     description: 'Input dan ubah nilai',
+  },
+  // Slip Gaji — dosen lihat & download PDF, filter bulan/tahun
+  {
+    permissions: ['payroll.view'],
+    roles: ['dosen'],
+    label: 'Slip Gaji',
+    path: '/dosen/slip-gaji',
+    icon: 'wallet',
+    description: 'Lihat & unduh slip gaji per periode',
   },
 ];
 

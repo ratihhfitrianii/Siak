@@ -8,6 +8,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { pgPool } from '../../lib/pg';
 import { authenticate, authorize } from '../../lib/auth-middleware';
 import { AppError } from '../../middleware/error-handler';
+import PDFDocument from 'pdfkit';
 import {
   generatePayroll,
   getPayrollDetail,
@@ -218,6 +219,52 @@ export function createPayrollRouter(): Router {
     },
   );
 
+  // ── GET /api/v1/payroll/my/download — Dosen download PDF slip gaji sendiri ────────────────
+  router.get(
+    '/my/download',
+    authorize('payroll.view'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const lecturerRes = await pgPool.query(
+          `SELECT l.id FROM lecturers l WHERE l.user_id = $1 AND l.is_active = true`,
+          [req.user!.id],
+        );
+        if (lecturerRes.rows.length === 0) {
+          throw new AppError('FORBIDDEN', 'Akun tidak terhubung ke data dosen aktif', 403);
+        }
+        const lecturerId = lecturerRes.rows[0].id;
+
+        const { period_start, period_end } = req.query;
+        const result = await listPayrolls({
+          lecturerId,
+          periodStart: period_start as string,
+          periodEnd: period_end as string,
+          limit: 100,
+        });
+
+        if (result.items.length === 0) {
+          throw new AppError('NOT_FOUND', 'Tidak ada slip gaji untuk periode ini', 404);
+        }
+
+        // Nama dosen untuk header PDF
+        const nameRes = await pgPool.query(`SELECT full_name FROM users WHERE id = $1`, [
+          req.user!.id,
+        ]);
+        const lecturerName = nameRes.rows[0]?.full_name ?? 'Dosen';
+
+        const pdf = await generateSalarySlipPdf(lecturerName, result.items);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="slip-gaji-${period_start ?? 'semua'}-${period_end ?? ''}.pdf"`,
+        );
+        res.send(pdf);
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // ── POST /api/v1/payroll/:id/approve — Approve payroll (admin keuangan) ──────────────────
   router.post(
     '/:id/approve',
@@ -263,4 +310,110 @@ export function createPayrollRouter(): Router {
   );
 
   return router;
+}
+
+/** Format Rupiah: 5000000 → "Rp 5.000.000" */
+function formatRupiah(n: number): string {
+  return `Rp ${Math.round(n).toLocaleString('id-ID')}`;
+}
+
+const BULAN_ID = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+];
+
+/** Generate PDF slip gaji dosen — satu halaman berisi tabel semua periode hasil filter. */
+function generateSalarySlipPdf(
+  lecturerName: string,
+  items: Array<{
+    periodStart: string;
+    periodEnd: string;
+    baseSalary: number;
+    honorPerMeeting: number;
+    totalMeetings: number;
+    totalHonor: number;
+    deductions: number;
+    netAmount: number;
+    status: string;
+  }>,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    // Header
+    doc.fontSize(16).font('Helvetica-Bold').text('SLIP GAJI DOSEN', { align: 'center' });
+    doc.moveDown(0.2);
+    doc
+      .fontSize(11)
+      .font('Helvetica')
+      .text('Sistem Informasi Akademik (SIAK)', { align: 'center' });
+    doc.moveDown(1);
+
+    doc.fontSize(10).font('Helvetica');
+    doc.text(`Nama Dosen : ${lecturerName}`);
+    const firstPeriod = items[items.length - 1]?.periodStart;
+    const lastPeriod = items[0]?.periodEnd;
+    if (firstPeriod && lastPeriod) {
+      doc.text(`Periode    : ${firstPeriod} s/d ${lastPeriod}`);
+    }
+    doc.moveDown(1);
+
+    // Tabel
+    const colX = [50, 130, 230, 320, 400, 470];
+    const headers = [
+      'Periode',
+      'Gaji Pokok',
+      'Honor Mengajar',
+      'Potongan',
+      'Total Diterima',
+      'Status',
+    ];
+    doc.font('Helvetica-Bold');
+    headers.forEach((h, i) => {
+      doc.text(h, colX[i], doc.y, { width: 115, continued: false });
+    });
+    doc
+      .moveTo(50, doc.y + 3)
+      .lineTo(545, doc.y + 3)
+      .stroke();
+    doc.moveDown(0.4);
+    doc.font('Helvetica');
+
+    for (const it of items) {
+      const y = doc.y;
+      const start = new Date(it.periodStart);
+      const label = `${BULAN_ID[start.getMonth()]} ${start.getFullYear()}`;
+      const honorMengajar =
+        it.totalHonor > 0 ? it.totalHonor : it.honorPerMeeting * it.totalMeetings;
+
+      doc.text(label, colX[0], y, { width: 75 });
+      doc.text(formatRupiah(it.baseSalary), colX[1], y, { width: 95 });
+      doc.text(formatRupiah(honorMengajar), colX[2], y, { width: 85 });
+      doc.text(formatRupiah(it.deductions), colX[3], y, { width: 75 });
+      doc.text(formatRupiah(it.netAmount), colX[4], y, { width: 90 });
+      doc.text(it.status, colX[5], y, { width: 60 });
+      doc.moveDown(0.6);
+
+      // Page break jika perlu
+      if (doc.y > 730) {
+        doc.addPage();
+      }
+    }
+
+    doc.end();
+  });
 }

@@ -81,6 +81,9 @@ const DosenBimbinganMahasiswaBinaan = lazy(() =>
 const DosenAttendanceRecap = lazy(() =>
   import('./pages/DosenAttendanceRecap').then((m) => ({ default: m.DosenAttendanceRecap })),
 );
+const DosenSalarySlip = lazy(() =>
+  import('./pages/DosenSalarySlip').then((m) => ({ default: m.DosenSalarySlip })),
+);
 
 const AdminCourseReviewPage = lazy(() =>
   import('./pages/AdminCourseReviewPage').then((m) => ({ default: m.AdminCourseReviewPage })),
@@ -302,6 +305,17 @@ export default function App() {
               <ProtectedRoute perm="attendance.recap">
                 <AppLayout>
                   <DosenAttendanceRecap />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Dosen — Slip Gaji */}
+          <Route
+            path="/dosen/slip-gaji"
+            element={
+              <ProtectedRoute perm="payroll.view">
+                <AppLayout>
+                  <DosenSalarySlip />
                 </AppLayout>
               </ProtectedRoute>
             }

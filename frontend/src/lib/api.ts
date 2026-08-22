@@ -677,7 +677,54 @@ export async function getKrsAccess(semester_id: number): Promise<KrsAccessResult
   };
 }
 
-/* ==== T2.4 — Transkrip PDF ==== */
+/* ==== Slip Gaji Dosen (payroll) ==== */
+
+/** GET /payroll/my — daftar slip gaji dosen sendiri, filter periode (YYYY-MM-DD). */
+export async function getMySalarySlips(
+  periodStart?: string,
+  periodEnd?: string,
+): Promise<SalarySlipsResponse> {
+  const params = new URLSearchParams();
+  if (periodStart) params.set('period_start', periodStart);
+  if (periodEnd) params.set('period_end', periodEnd);
+  const qs = params.toString();
+  return apiRequest<SalarySlipsResponse>(`/payroll/my${qs ? `?${qs}` : ''}`);
+}
+
+/** GET /payroll/my/download — unduh PDF slip gaji sesuai filter (blob + trigger download). */
+export async function downloadSalarySlipPdf(
+  periodStart?: string,
+  periodEnd?: string,
+): Promise<void> {
+  const token = getAccessToken();
+  if (!token) return;
+  const params = new URLSearchParams();
+  if (periodStart) params.set('period_start', periodStart);
+  if (periodEnd) params.set('period_end', periodEnd);
+  const qs = params.toString();
+  let res = await fetch(`${API_BASE}/payroll/my/download${qs ? `?${qs}` : ''}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) {
+    const refreshed = await tryRefresh();
+    if (!refreshed) return;
+    res = await fetch(`${API_BASE}/payroll/my/download${qs ? `?${qs}` : ''}`, {
+      headers: { Authorization: `Bearer ${getAccessToken()}` },
+    });
+  }
+  if (!res.ok) {
+    throw await downloadError(res, 'Gagal mengunduh slip gaji');
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `slip-gaji-${periodStart ?? 'semua'}${periodEnd ? `-${periodEnd}` : ''}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 /** GET /transcript/my/download — unduh PDF transkrip (blob + trigger download). */
 export async function downloadTranscriptPdf(academicYearId?: number): Promise<void> {
@@ -821,6 +868,7 @@ export async function deleteAnnouncement(id: number): Promise<{ message: string 
 
 import type {
   MyClassesResponse,
+  SalarySlipsResponse,
   LecturersResponse,
   ScheduleAvailability,
   AttendanceSession,
