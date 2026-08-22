@@ -1,9 +1,129 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { getMyClasses, getAttendanceRecap } from '../lib/api';
 import type { MyClass, AttendanceRecapItem } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
+
+/**
+ * SearchableSelect - dropdown dengan search (reused from DosenSubstitute)
+ */
+function SearchableSelect({
+  options,
+  value,
+  onChange,
+  placeholder,
+  maxHeight = 180,
+}: {
+  options: { id: number; label: string }[];
+  value: number | null;
+  onChange: (id: number | null) => void;
+  placeholder: string;
+  maxHeight?: number;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()));
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setSearch('');
+        setHighlightedIndex(-1);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isOpen) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex((i) => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex((i) => Math.max(i - 1, -1));
+    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+      e.preventDefault();
+      onChange(filtered[highlightedIndex].id);
+      setIsOpen(false);
+      setSearch('');
+      setHighlightedIndex(-1);
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+      setSearch('');
+      setHighlightedIndex(-1);
+    }
+  };
+
+  const selectedOption = options.find((o) => o.id === value);
+
+  return (
+    <div ref={containerRef} className="relative w-full max-w-xs">
+      <button
+        type="button"
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen) setHighlightedIndex(-1);
+        }}
+        className={`w-full px-3 py-1.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm text-left ${value ? 'text-slate-900' : 'text-slate-500'}`}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={placeholder}
+      >
+        {selectedOption?.label ?? placeholder}
+      </button>
+      {isOpen && (
+        <div
+          className="absolute z-10 w-full max-w-xs mt-1 bg-white border border-slate-300 rounded-md shadow-lg overflow-hidden"
+          style={{ maxHeight: maxHeight }}
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setHighlightedIndex(-1);
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="Cari..."
+            className="w-full px-3 py-2 border-b border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+            autoFocus
+          />
+          <ul role="listbox" className="max-h-[160px] overflow-y-auto">
+            {filtered.length === 0 ? (
+              <li className="px-3 py-2 text-sm text-slate-500">Tidak ditemukan</li>
+            ) : (
+              filtered.map((opt, idx) => (
+                <li
+                  key={opt.id}
+                  role="option"
+                  aria-selected={idx === highlightedIndex}
+                  className={`px-3 py-2 text-sm cursor-pointer ${idx === highlightedIndex ? 'bg-primary-50 text-primary-700' : 'hover:bg-slate-50'}`}
+                  onClick={() => {
+                    onChange(opt.id);
+                    setIsOpen(false);
+                    setSearch('');
+                    setHighlightedIndex(-1);
+                  }}
+                >
+                  {opt.label}
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * Rekap Kehadiran Mahasiswa (dosen) — persentase kehadiran per mahasiswa per kelas.
@@ -39,7 +159,7 @@ export function DosenAttendanceRecap() {
       const data = await getAttendanceRecap(selectedClassId);
       setRecap(data);
     } catch {
-      setError('Gagal memuat rekap kehadiran');
+      setError('Belum Ada Data');
     } finally {
       setRecapLoading(false);
     }
@@ -72,21 +192,19 @@ export function DosenAttendanceRecap() {
 
       {error && <FormAlert>{error}</FormAlert>}
 
-      {/* Pilih Kelas */}
+      {/* Pilih Kelas - SearchableSelect */}
       <div className="bg-white rounded-lg shadow-sm p-4">
         <label className="block text-sm font-medium text-slate-700 mb-2">Pilih Kelas</label>
-        <select
-          value={selectedClassId ?? ''}
-          onChange={(e) => setSelectedClassId(e.target.value ? Number(e.target.value) : null)}
-          className="w-full max-w-md px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="">-- Pilih Kelas --</option>
-          {classes.map((cls) => (
-            <option key={cls.id} value={cls.id}>
-              {cls.courseName} - {cls.classCode} (Semester {cls.semesterNumber})
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          options={classes.map((cls) => ({
+            id: cls.id,
+            label: `${cls.courseName} - ${cls.classCode} (Semester ${cls.semesterNumber})`,
+          }))}
+          value={selectedClassId}
+          onChange={setSelectedClassId}
+          placeholder="Pilih Kelas"
+          maxHeight={180}
+        />
         {classes.length === 0 && (
           <p className="mt-2 text-sm text-slate-500">Anda tidak mengampu kelas manapun.</p>
         )}
