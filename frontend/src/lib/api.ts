@@ -732,6 +732,59 @@ export async function downloadSalarySlipPdf(
   URL.revokeObjectURL(url);
 }
 
+/* ==== Payroll Admin (admin keuangan) ==== */
+
+/** GET /payroll — daftar payroll semua dosen, filter periode/status (admin keuangan). */
+export async function getPayrolls(
+  filters: {
+    periodStart?: string;
+    periodEnd?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  } = {},
+): Promise<PayrollsResponse> {
+  const params = new URLSearchParams();
+  if (filters.periodStart) params.set('period_start', filters.periodStart);
+  if (filters.periodEnd) params.set('period_end', filters.periodEnd);
+  if (filters.status) params.set('status', filters.status);
+  params.set('page', String(filters.page ?? 1));
+  params.set('limit', String(filters.limit ?? 100));
+  const data = await apiRequest<PayrollsResponse & { pagination: PayrollsResponse }>(
+    `/payroll?${params.toString()}`,
+  );
+  // Backend: { success, data: items[], pagination: {...} } — normalisasi jadi satu objek
+  return {
+    items: (data as unknown as SalarySlip[]) ?? data.items,
+    total: data.pagination?.total ?? 0,
+    page: data.pagination?.page ?? 1,
+    limit: data.pagination?.limit ?? 100,
+    totalPages: data.pagination?.totalPages ?? 0,
+  };
+}
+
+/** POST /payroll/generate — generate payroll semua dosen aktif untuk periode tsb. */
+export async function generatePayrollBatch(
+  periodStart: string,
+  periodEnd: string,
+): Promise<string> {
+  const res = await apiRequest<{ message?: string }>('/payroll/generate', {
+    method: 'POST',
+    body: { period_start: periodStart, period_end: periodEnd },
+  });
+  return res.message ?? 'Payroll generated';
+}
+
+/** POST /payroll/:id/approve — setujui payroll (draft → approved). */
+export async function approvePayroll(id: number): Promise<void> {
+  await apiRequest(`/payroll/${id}/approve`, { method: 'POST' });
+}
+
+/** POST /payroll/:id/pay — tandai dibayar (approved → paid). */
+export async function payPayroll(id: number): Promise<void> {
+  await apiRequest(`/payroll/${id}/pay`, { method: 'POST' });
+}
+
 /** GET /transcript/my/download — unduh PDF transkrip (blob + trigger download). */
 export async function downloadTranscriptPdf(academicYearId?: number): Promise<void> {
   const token = getAccessToken();
@@ -874,7 +927,9 @@ export async function deleteAnnouncement(id: number): Promise<{ message: string 
 
 import type {
   MyClassesResponse,
+  SalarySlip,
   SalarySlipsResponse,
+  PayrollsResponse,
   LecturersResponse,
   ScheduleAvailability,
   AttendanceSession,

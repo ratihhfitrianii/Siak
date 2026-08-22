@@ -33,6 +33,8 @@ export const DEFAULT_PAYROLL_CONFIG: PayrollConfig = {
 export interface PayrollItem {
   id: number;
   lecturerId: number;
+  /** Nama dosen (dari JOIN users) — terisi di endpoint list admin */
+  lecturerName?: string;
   periodStart: string;
   periodEnd: string;
   baseSalary: number;
@@ -122,11 +124,12 @@ export async function generatePayroll(
 
     // 1. Count completed meetings (attendance sessions linked to schedules)
     const meetingsRes = await client.query(
-      `SELECT s.id as schedule_id, c.class_code, cr.course_name, s.meeting_number, 
+      `SELECT s.id as schedule_id, c.class_code, co.name as course_name, s.meeting_number,
               s.scheduled_date, s.is_completed
        FROM schedules s
        JOIN classes c ON c.id = s.class_id
-       JOIN curriculums cr ON cr.id = c.curriculum_id
+       JOIN curricula cr ON cr.id = c.curriculum_id
+       JOIN courses co ON co.id = cr.course_id
        WHERE c.lecturer_id = (SELECT user_id FROM lecturers WHERE id = $1)
          AND s.scheduled_date BETWEEN $2 AND $3
          AND s.is_completed = true
@@ -147,7 +150,7 @@ export async function generatePayroll(
        JOIN users u2 ON u2.id = l2.user_id
        WHERE st.substitute_lecturer_id = $1
          AND s.scheduled_date BETWEEN $2 AND $3
-         AND st.status = 'approved'
+         AND st.status = 'active'   -- modul Substitute pakai 'active'/'cancelled', bukan 'approved'
        ORDER BY s.scheduled_date`,
       [lecturerId, periodStart, periodEnd],
     );
@@ -399,11 +402,12 @@ async function getPayrollBreakdown(
 ): Promise<PayrollBreakdown> {
   // Meetings
   const meetingsRes = await pgPool.query(
-    `SELECT s.id as schedule_id, c.class_code, cr.course_name, s.meeting_number, 
+    `SELECT s.id as schedule_id, c.class_code, co.name as course_name, s.meeting_number,
             s.scheduled_date, s.is_completed
      FROM schedules s
      JOIN classes c ON c.id = s.class_id
-     JOIN curriculums cr ON cr.id = c.curriculum_id
+     JOIN curricula cr ON cr.id = c.curriculum_id
+     JOIN courses co ON co.id = cr.course_id
      WHERE c.lecturer_id = (SELECT user_id FROM lecturers WHERE id = $1)
        AND s.scheduled_date BETWEEN $2 AND $3
        AND s.is_completed = true
@@ -506,10 +510,11 @@ async function getPayrollBreakdown(
 /** Format DB row to PayrollItem */
 function formatPayrollItem(row: Record<string, unknown>, breakdown: PayrollBreakdown): PayrollItem {
   const r = row as {
-    id: number;
-    lecturer_id: number;
-    period_start: string;
-    period_end: string;
+    id: number | string; // bigint → string dari driver pg
+    lecturer_id: number | string;
+    lecturer_name?: string | null;
+    period_start: string | Date; // DATE → Date object (UTC midnight)
+    period_end: string | Date;
     base_salary: string | number;
     honor_per_meeting: string | number;
     total_meetings: number;
@@ -524,11 +529,23 @@ function formatPayrollItem(row: Record<string, unknown>, breakdown: PayrollBreak
     created_at: string;
     updated_at: string;
   };
+  // DATE kolom dikembalikan pg sebagai Date pada MIDNIGHT LOKAL (bukan UTC) —
+  // toISOString() bisa mundur sehari untuk TZ positif. Pakai komponen lokal.
+  const toDateString = (v: string | Date): string => {
+    if (v instanceof Date) {
+      const y = v.getFullYear();
+      const m = String(v.getMonth() + 1).padStart(2, '0');
+      const d = String(v.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return String(v).slice(0, 10);
+  };
   return {
-    id: r.id,
-    lecturerId: r.lecturer_id,
-    periodStart: r.period_start,
-    periodEnd: r.period_end,
+    id: Number(r.id),
+    lecturerId: Number(r.lecturer_id),
+    lecturerName: r.lecturer_name ?? undefined,
+    periodStart: toDateString(r.period_start),
+    periodEnd: toDateString(r.period_end),
     baseSalary: Number(r.base_salary),
     honorPerMeeting: Number(r.honor_per_meeting),
     totalMeetings: r.total_meetings,

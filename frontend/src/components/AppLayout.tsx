@@ -150,6 +150,14 @@ const MENU_ITEMS: {
     icon: 'receipt',
     description: 'Kelola tagihan pembayaran',
   },
+  // Payroll — admin keuangan generate/approve/pay slip gaji dosen
+  {
+    permissions: ['payroll.input'],
+    label: 'Payroll',
+    path: '/keuangan/payroll',
+    icon: 'wallet',
+    description: 'Generate & kelola slip gaji dosen',
+  },
   // 'Nilai' & 'Audit' sengaja TIDAK di-menu: route-nya masih ComingSoon (dead-end). Dosen memakai tab Nilai di dashboard.
   // ---- Submenu Dashboard Dosen (keluhan #5): menu teks horizontal di halaman dipindah ke sidebar ikon ----
   {
@@ -310,6 +318,7 @@ const HIDDEN_MENU_BY_ROLE: Record<string, string[]> = {
     '/transkrip',
     '/pembayaran',
     '/keuangan/tagihan',
+    '/keuangan/payroll',
     '/admin/jadwal',
     '/dosen/absensi',
     '/dosen/bimbingan',

@@ -646,6 +646,8 @@ export interface MyClassesResponse {
 export interface SalarySlip {
   id: number;
   lecturerId: number;
+  /** Nama dosen — terisi di list admin (GET /payroll), kosong di /payroll/my */
+  lecturerName?: string;
   periodStart: string;
   periodEnd: string;
   baseSalary: number;
@@ -659,6 +661,14 @@ export interface SalarySlip {
 
 export interface SalarySlipsResponse {
   items: SalarySlip[];
+}
+
+export interface PayrollsResponse {
+  items: SalarySlip[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 // --- Kelas belum diklaim (GET /dosen/available-classes) — dosen pilih via checkbox (T3.9, F-21) ---

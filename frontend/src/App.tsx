@@ -84,6 +84,9 @@ const DosenAttendanceRecap = lazy(() =>
 const DosenSalarySlip = lazy(() =>
   import('./pages/DosenSalarySlip').then((m) => ({ default: m.DosenSalarySlip })),
 );
+const FinancePayrollPage = lazy(() =>
+  import('./pages/FinancePayrollPage').then((m) => ({ default: m.FinancePayrollPage })),
+);
 
 const AdminCourseReviewPage = lazy(() =>
   import('./pages/AdminCourseReviewPage').then((m) => ({ default: m.AdminCourseReviewPage })),
@@ -316,6 +319,17 @@ export default function App() {
               <ProtectedRoute perm="payroll.view">
                 <AppLayout>
                   <DosenSalarySlip />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Admin Keuangan — Payroll */}
+          <Route
+            path="/keuangan/payroll"
+            element={
+              <ProtectedRoute perm="payroll.view">
+                <AppLayout>
+                  <FinancePayrollPage />
                 </AppLayout>
               </ProtectedRoute>
             }
