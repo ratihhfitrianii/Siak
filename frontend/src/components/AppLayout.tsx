@@ -328,8 +328,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  // Halaman /users pakai tema sidebar gelap (abu-abu kebiruan)
-  const isDarkSidebar = location.pathname.startsWith('/users');
+  // Sidebar gelap (abu-abu kebiruan) untuk SEMUA halaman
+  const isDarkSidebar = true;
   const [unread, setUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
