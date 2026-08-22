@@ -172,15 +172,16 @@ describe('T-Payroll — Slip Gaji (generate → approve → pay → dosen lihat)
   });
 
   it('approve → pay: transisi status draft → approved → paid', async () => {
-    const approved = await approvePayroll(createdPayrollIds[0], 1);
+    const firstId = createdPayrollIds[0]!;
+    const approved = await approvePayroll(firstId, 1);
     expect(approved.status).toBe('approved');
 
-    const paid = await payPayroll(createdPayrollIds[0]);
+    const paid = await payPayroll(firstId);
     expect(paid.status).toBe('paid');
   });
 
   it('approve gagal 404 jika sudah paid (bukan draft lagi)', async () => {
-    await expect(approvePayroll(createdPayrollIds[0], 1)).rejects.toMatchObject({
+    await expect(approvePayroll(createdPayrollIds[0]!, 1)).rejects.toMatchObject({
       statusCode: 404,
     });
   });
