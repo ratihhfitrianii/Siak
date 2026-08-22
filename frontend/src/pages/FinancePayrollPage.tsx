@@ -401,9 +401,9 @@ export function FinancePayrollPage() {
         )}
       </div>
 
-      {/* Toolbar mode pilih */}
+      {/* Toolbar mode pilih — tombol rata kanan */}
       {!loading && items.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {!selectMode ? (
             <button
               type="button"
