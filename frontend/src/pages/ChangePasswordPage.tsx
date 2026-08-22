@@ -156,13 +156,23 @@ export function ChangePasswordPage() {
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-2 w-full rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? 'Memproses…' : 'Simpan Password Baru'}
-          </button>
+          <div className="mt-2 flex gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              disabled={loading}
+              className="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? 'Memproses…' : 'Simpan Password Baru'}
+            </button>
+          </div>
         </form>
       </div>
     </div>

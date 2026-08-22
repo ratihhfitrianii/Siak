@@ -327,6 +327,8 @@ function MenuIcon({ path }: { path: string }) {
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  // Halaman /users pakai tema sidebar gelap (abu-abu kebiruan)
+  const isDarkSidebar = window.location.pathname.startsWith('/users');
   const [unread, setUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -454,8 +456,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
       sidebarCollapsed ? 'w-10 justify-center' : 'w-full justify-start gap-2 px-2.5'
     } ${
       isActive
-        ? 'bg-primary-50 text-primary-700'
-        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+        ? isDarkSidebar
+          ? 'bg-slate-700 text-white'
+          : 'bg-primary-50 text-primary-700'
+        : isDarkSidebar
+          ? 'text-slate-300 hover:bg-slate-700 hover:text-white'
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
     }`;
 
   return (
@@ -463,11 +469,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {/* Sidebar — desktop: kolom vertikal di kiri (expand: label inline; collapse: ikon + tooltip hover);
           mobile: bar horizontal di bawah header. */}
       <aside
-        className={`fixed inset-x-0 top-14 z-30 border-b border-slate-200 bg-white md:inset-y-0 md:left-0 md:flex-col md:border-b-0 md:border-r transition-all duration-200 ${
+        className={`fixed inset-x-0 top-14 z-30 border-b md:inset-y-0 md:left-0 md:flex-col md:border-b-0 md:border-r transition-all duration-200 ${
           sidebarCollapsed ? 'md:w-16' : 'md:w-64'
-        }`}
+        } ${isDarkSidebar ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-white'}`}
       >
-        <div className="hidden items-center justify-center border-b border-slate-100 py-3 md:flex">
+        <div
+          className={`hidden items-center justify-center border-b py-3 md:flex ${
+            isDarkSidebar ? 'border-slate-700' : 'border-slate-100'
+          }`}
+        >
           <NavLink
             to="/"
             aria-label="Beranda"
@@ -508,16 +518,29 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   <button
                     type="button"
                     onClick={() =>
+                      // Keluhan: buka dropdown lain → dropdown sebelumnya tertutup otomatis (accordion)
                       setExpandedMenus((prev) => {
                         const next = new Set(prev);
-                        if (next.has(item.path)) next.delete(item.path);
-                        else next.add(item.path);
+                        if (next.has(item.path)) {
+                          next.delete(item.path);
+                        } else {
+                          next.clear();
+                          next.add(item.path);
+                        }
                         return next;
                       })
                     }
                     className={`group relative flex h-10 shrink-0 w-full items-center rounded-md transition cursor-pointer ${
                       sidebarCollapsed ? 'justify-center' : 'justify-start gap-2 px-2.5'
-                    } text-slate-600 hover:bg-slate-100 hover:text-slate-900 ${isParentActive ? 'bg-primary-50 text-primary-700' : ''}`}
+                    } ${
+                      isDarkSidebar
+                        ? isParentActive
+                          ? 'bg-slate-700 text-white'
+                          : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                        : isParentActive
+                          ? 'bg-primary-50 text-primary-700'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
                   >
                     <MenuIcon path={ICON_PATHS[item.icon]} />
                     {!sidebarCollapsed && (
@@ -542,7 +565,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     )}
                   </button>
                   {isExpanded && !sidebarCollapsed && (
-                    <div className="ml-4 mt-0.5 space-y-0.5 border-l border-slate-200 pl-2">
+                    <div
+                      className={`ml-4 mt-0.5 space-y-0.5 border-l pl-2 ${
+                        isDarkSidebar ? 'border-slate-600' : 'border-slate-200'
+                      }`}
+                    >
                       {visibleChildren.map((child) => (
                         <NavLink
                           key={child.path}
@@ -550,8 +577,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
                           className={({ isActive }) =>
                             `flex h-8 items-center gap-2 rounded-md px-2 text-sm transition ${
                               isActive
-                                ? 'bg-primary-50 text-primary-700 font-medium'
-                                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                                ? isDarkSidebar
+                                  ? 'bg-slate-700 text-white font-medium'
+                                  : 'bg-primary-50 text-primary-700 font-medium'
+                                : isDarkSidebar
+                                  ? 'text-slate-400 hover:bg-slate-700 hover:text-white'
+                                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
                             }`
                           }
                         >
@@ -588,13 +619,21 @@ export function AppLayout({ children }: { children: ReactNode }) {
           })}
         </nav>
         {/* Tombol expand/collapse di ujung bawah sidebar — hanya ikon (tanpa teks). */}
-        <div className="hidden border-t border-slate-100 p-2 md:block">
+        <div
+          className={`hidden border-t p-2 md:block ${
+            isDarkSidebar ? 'border-slate-700' : 'border-slate-100'
+          }`}
+        >
           <button
             type="button"
             onClick={() => setSidebarCollapsed((c) => !c)}
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={`flex items-center rounded-md text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 ${
+            className={`flex items-center rounded-md transition ${
+              isDarkSidebar
+                ? 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            } ${
               sidebarCollapsed ? 'mx-auto h-10 w-10 justify-center' : 'w-full h-10 justify-center'
             }`}
           >

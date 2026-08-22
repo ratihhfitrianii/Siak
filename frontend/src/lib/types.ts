@@ -696,6 +696,7 @@ export interface AttendanceSession {
   meetingNumber: number;
   totalRecords: number;
   hadirCount: number;
+  classId?: number;
 }
 
 export interface CreateAttendanceInput {

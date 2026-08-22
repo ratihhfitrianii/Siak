@@ -1123,6 +1123,7 @@ interface AttendanceSessionRow {
   session_date: string;
   topic: string | null;
   is_open: boolean;
+  class_id?: number;
   class_code: string;
   course_code: string;
   course_name: string;
@@ -1144,6 +1145,7 @@ function normalizeAttendanceSession(r: AttendanceSessionRow): AttendanceSession 
     meetingNumber: Number(r.meeting_number),
     totalRecords: Number(r.total_records),
     hadirCount: Number(r.hadir_count),
+    classId: r.class_id !== undefined ? Number(r.class_id) : undefined,
   };
 }
 

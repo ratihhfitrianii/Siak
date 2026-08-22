@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { getMyClasses, getAttendanceRecap } from '../lib/api';
+import { getMyClasses, getAttendanceRecap, getAttendanceSessions } from '../lib/api';
 import type { MyClass, AttendanceRecapItem } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
@@ -141,15 +141,14 @@ export function DosenAttendanceRecap() {
   const loadClasses = useCallback(async () => {
     try {
       const cls = await getMyClasses();
-      setClasses(cls.items);
-      // Default: pilih kelas pertama
-      if (cls.items.length > 0 && !selectedClassId) {
-        setSelectedClassId(cls.items[0].id);
-      }
+      // Keluhan: hanya kelas yang sudah ada sesi absensinya yang ditampilkan
+      const sessions = await getAttendanceSessions();
+      const classIdsWithSessions = new Set(sessions.map((s) => s.classId));
+      setClasses(cls.items.filter((c) => classIdsWithSessions.has(c.id)));
     } catch {
       setError('Gagal memuat daftar kelas');
     }
-  }, [selectedClassId]);
+  }, []);
 
   const loadRecap = useCallback(async () => {
     if (!selectedClassId) return;
