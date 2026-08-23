@@ -1359,6 +1359,8 @@ export async function checkInAttendance(input: {
 /* --- Skripsi (thesis proposals) --- */
 
 import type {
+  CreateSkripsiGuidanceLogInput,
+  SkripsiGuidanceLog,
   SkripsiProposal,
   SkripsiProposalStatus,
   SkripsiStatus,
@@ -1395,6 +1397,41 @@ export async function updateSkripsiProposal(
 /** GET /skripsi/proposals/:id/statuses — status history. */
 export async function getSkripsiProposalStatuses(proposalId: number) {
   return apiRequest<SkripsiProposalStatus[]>(`/skripsi/proposals/${proposalId}/statuses`);
+}
+
+/** POST /skripsi/proposals/:id/logs — dosen pembimbing catat pertemuan bimbingan. */
+export async function createSkripsiGuidanceLog(
+  proposalId: number,
+  input: CreateSkripsiGuidanceLogInput,
+): Promise<{ id: number }> {
+  return apiRequest(`/skripsi/proposals/${proposalId}/logs`, { method: 'POST', body: input });
+}
+
+/** GET /skripsi/proposals/:id/logs — log bimbingan (pembimbing/mahasiswa ybs/admin). */
+export async function getSkripsiGuidanceLogs(proposalId: number): Promise<SkripsiGuidanceLog[]> {
+  return apiRequest<SkripsiGuidanceLog[]>(`/skripsi/proposals/${proposalId}/logs`);
+}
+
+/** GET /skripsi/eligibility — cek kelayakan skripsi (semester ≥6 + lunas). */
+export async function getSkripsiEligibility() {
+  return apiRequest<{
+    studentId: number;
+    nim: string;
+    fullName: string;
+    prodiName: string;
+    facultyName: string;
+    academicYearCode: string;
+    currentSemesterNumber: number;
+    currentSemesterCode: string;
+    currentSemesterName: string;
+    semesterOk: boolean;
+    paymentOk: boolean;
+    allLunas: boolean;
+    totalPayments: number;
+    lunasPayments: number;
+    eligible: boolean;
+    reason: string;
+  }>('/skripsi/eligibility');
 }
 
 /* --- Bimbingan (GET /guidance/mentees, GET/POST /guidance/sessions) --- */
@@ -1645,10 +1682,12 @@ export async function updateMasterLecturer(
 export async function listFaculties(params?: {
   page?: number;
   limit?: number;
+  search?: string;
 }): Promise<MasterListResponse<Faculty>> {
   const qs = new URLSearchParams();
   if (params?.page) qs.set('page', String(params.page));
   if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.search) qs.set('search', params.search);
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
   return apiRequest<MasterListResponse<Faculty>>(`/admin-master/faculties${suffix}`);
 }
@@ -1676,18 +1715,19 @@ export async function deleteFaculty(id: number): Promise<{ message: string }> {
 export async function listProdis(params?: {
   page?: number;
   limit?: number;
+  search?: string;
+  facultyId?: number;
 }): Promise<MasterListResponse<Prodi>> {
   const qs = new URLSearchParams();
   if (params?.page) qs.set('page', String(params.page));
   if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.search) qs.set('search', params.search);
+  if (params?.facultyId) qs.set('facultyId', String(params.facultyId));
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
   // Use academic module's /prodis endpoint (requires academic.manage which admin_akademik has)
-  // Note: academic module returns { items: [...] } without pagination
-  const res = await apiRequest<{ items: Prodi[] }>(`/prodis${suffix}`);
-  return {
-    items: res.items,
-    pagination: { page: 1, limit: res.items.length, total: res.items.length },
-  };
+  // Note: academic module now returns pagination
+  const res = await apiRequest<MasterListResponse<Prodi>>(`/prodis${suffix}`);
+  return res;
 }
 
 export async function createProdi(input: CreateProdiInput): Promise<Prodi> {
@@ -1774,4 +1814,25 @@ export async function getMyStudentProfile(): Promise<StudentProfile> {
 /** GET /students/me/ips — IP per semester untuk grafik. */
 export async function getMySemesterIps(): Promise<SemesterIps[]> {
   return apiRequest<SemesterIps[]>('/students/me/ips');
+}
+
+/** GET /students/me/ektm — download E-KTM PDF. */
+export async function downloadEktmPdf(): Promise<Blob> {
+  const token = getAccessToken();
+  if (!token) throw new NetworkError('Tidak ada token akses. Silakan login ulang.');
+
+  const res = await fetchWithTimeout(`${API_BASE}/students/me/ektm`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+    throw new ApiError(
+      res.status,
+      'DOWNLOAD_FAILED',
+      err?.error?.message ?? 'Gagal mengunduh E-KTM',
+    );
+  }
+
+  return res.blob();
 }

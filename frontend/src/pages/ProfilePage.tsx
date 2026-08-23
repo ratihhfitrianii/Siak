@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiRequest } from '../lib/api';
+import { apiRequest, downloadEktmPdf } from '../lib/api';
 
 interface StudentProfile {
   id: number;
@@ -43,6 +43,8 @@ export default function ProfilePage() {
     personalEmail: '',
     domicileAddress: '',
   });
+  const [downloadingEktm, setDownloadingEktm] = useState(false);
+  const [ektmError, setEktmError] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -123,6 +125,26 @@ export default function ProfilePage() {
     setEditing(false);
   };
 
+  const handleDownloadEktm = async () => {
+    setDownloadingEktm(true);
+    setEktmError(null);
+    try {
+      const blob = await downloadEktmPdf();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ektm-${profile?.nim}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setEktmError(err instanceof Error ? err.message : 'Gagal mengunduh E-KTM');
+    } finally {
+      setDownloadingEktm(false);
+    }
+  };
+
   if (loading && !profile) {
     return (
       <div className="p-8 text-center text-slate-500">
@@ -151,6 +173,11 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      {ektmError && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {ektmError}
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Photo & Info Card */}
         <div className="lg:col-span-1">
@@ -195,6 +222,35 @@ export default function ProfilePage() {
             <h2 className="text-lg font-semibold text-slate-900 text-center mb-4">
               {profile.fullName}
             </h2>
+
+            {/* Download E-KTM Button */}
+            <div className="text-center mb-4">
+              <button
+                type="button"
+                onClick={handleDownloadEktm}
+                disabled={downloadingEktm}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {downloadingEktm ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Mengunduh…
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
+                    </svg>
+                    Download E-KTM
+                  </>
+                )}
+              </button>
+            </div>
 
             {/* Info list below photo */}
             <div className="space-y-3 text-sm">

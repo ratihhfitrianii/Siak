@@ -862,6 +862,22 @@ export interface CreateGuidanceInput {
   notes?: string;
 }
 
+// --- Skripsi guidance log (POST/GET /skripsi/proposals/:id/logs) ---
+export interface SkripsiGuidanceLog {
+  id: number;
+  proposalId: number;
+  lecturerId: number;
+  lecturerName: string;
+  sessionDate: string;
+  notes: string;
+  createdAt: string;
+}
+
+export interface CreateSkripsiGuidanceLogInput {
+  sessionDate: string; // YYYY-MM-DD
+  notes: string;
+}
+
 // --- Substitute (GET/POST /substitute) ---
 export interface SubstituteRequest {
   id: number;

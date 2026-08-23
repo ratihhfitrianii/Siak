@@ -41,6 +41,25 @@ const PROPOSALS = [
   },
 ];
 
+const ELIGIBILITY_OK = {
+  studentId: 100,
+  nim: '2023110001',
+  fullName: 'Andi Pratama',
+  prodiName: 'Teknik Informatika',
+  facultyName: 'Fakultas Teknik',
+  academicYearCode: '2023/2024',
+  currentSemesterNumber: 7,
+  currentSemesterCode: '2026/2027-1',
+  currentSemesterName: 'Ganjil 2026/2027',
+  semesterOk: true,
+  paymentOk: true,
+  allLunas: true,
+  totalPayments: 5,
+  lunasPayments: 5,
+  eligible: true,
+  reason: 'Memenuhi syarat ajukan skripsi',
+};
+
 describe('MahasiswaAjukanBimbingan', () => {
   const fetchMock = vi.fn();
 
@@ -60,6 +79,9 @@ describe('MahasiswaAjukanBimbingan', () => {
     fetchMock.mockReset();
     fetchMock.mockImplementation((url: string) => {
       const u = String(url);
+      if (u.includes('/skripsi/eligibility')) {
+        return Promise.resolve(jsonResponse({ success: true, data: ELIGIBILITY_OK }));
+      }
       if (u.includes('/skripsi/supervisors')) {
         return Promise.resolve(jsonResponse({ success: true, data: SUPERVISORS }));
       }
@@ -96,6 +118,19 @@ describe('MahasiswaAjukanBimbingan', () => {
 
   it('submit — validasi file proposal belum diupload', async () => {
     const user = userEvent.setup();
+    fetchMock.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.includes('/skripsi/eligibility')) {
+        return Promise.resolve(jsonResponse({ success: true, data: ELIGIBILITY_OK }));
+      }
+      if (u.includes('/skripsi/supervisors')) {
+        return Promise.resolve(jsonResponse({ success: true, data: SUPERVISORS }));
+      }
+      if (u.includes('/skripsi/proposals?limit=100')) {
+        return Promise.resolve(jsonResponse({ success: true, data: PROPOSALS }));
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: [] }));
+    });
     render(
       <MemoryRouter>
         <MahasiswaAjukanBimbingan />
@@ -120,6 +155,19 @@ describe('MahasiswaAjukanBimbingan', () => {
 
   it('submit — validasi supervisor tidak dipilih', async () => {
     const user = userEvent.setup();
+    fetchMock.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.includes('/skripsi/eligibility')) {
+        return Promise.resolve(jsonResponse({ success: true, data: ELIGIBILITY_OK }));
+      }
+      if (u.includes('/skripsi/supervisors')) {
+        return Promise.resolve(jsonResponse({ success: true, data: SUPERVISORS }));
+      }
+      if (u.includes('/skripsi/proposals?limit=100')) {
+        return Promise.resolve(jsonResponse({ success: true, data: PROPOSALS }));
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: [] }));
+    });
     render(
       <MemoryRouter>
         <MahasiswaAjukanBimbingan />
@@ -146,6 +194,9 @@ describe('MahasiswaAjukanBimbingan', () => {
         return Promise.resolve(
           jsonResponse({ success: true, data: { id: 2, message: 'Proposal berhasil' } }),
         );
+      }
+      if (u.includes('/skripsi/eligibility')) {
+        return Promise.resolve(jsonResponse({ success: true, data: ELIGIBILITY_OK }));
       }
       if (u.includes('/skripsi/supervisors')) {
         return Promise.resolve(jsonResponse({ success: true, data: SUPERVISORS }));
@@ -187,6 +238,9 @@ describe('MahasiswaAjukanBimbingan', () => {
   it('empty state — no proposals', async () => {
     fetchMock.mockImplementation((url: string) => {
       const u = String(url);
+      if (u.includes('/skripsi/eligibility')) {
+        return Promise.resolve(jsonResponse({ success: true, data: ELIGIBILITY_OK }));
+      }
       if (u.includes('/skripsi/supervisors')) {
         return Promise.resolve(jsonResponse({ success: true, data: SUPERVISORS }));
       }
@@ -205,6 +259,19 @@ describe('MahasiswaAjukanBimbingan', () => {
   });
 
   it('file upload — shows file name confirmation', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.includes('/skripsi/eligibility')) {
+        return Promise.resolve(jsonResponse({ success: true, data: ELIGIBILITY_OK }));
+      }
+      if (u.includes('/skripsi/supervisors')) {
+        return Promise.resolve(jsonResponse({ success: true, data: SUPERVISORS }));
+      }
+      if (u.includes('/skripsi/proposals?limit=100')) {
+        return Promise.resolve(jsonResponse({ success: true, data: PROPOSALS }));
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: [] }));
+    });
     render(
       <MemoryRouter>
         <MahasiswaAjukanBimbingan />
@@ -222,6 +289,19 @@ describe('MahasiswaAjukanBimbingan', () => {
   });
 
   it('file upload — rejects non-PDF', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.includes('/skripsi/eligibility')) {
+        return Promise.resolve(jsonResponse({ success: true, data: ELIGIBILITY_OK }));
+      }
+      if (u.includes('/skripsi/supervisors')) {
+        return Promise.resolve(jsonResponse({ success: true, data: SUPERVISORS }));
+      }
+      if (u.includes('/skripsi/proposals?limit=100')) {
+        return Promise.resolve(jsonResponse({ success: true, data: PROPOSALS }));
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: [] }));
+    });
     render(
       <MemoryRouter>
         <MahasiswaAjukanBimbingan />
@@ -242,6 +322,9 @@ describe('MahasiswaAjukanBimbingan', () => {
     const user = userEvent.setup();
     fetchMock.mockImplementation((url: string) => {
       const u = String(url);
+      if (u.includes('/skripsi/eligibility')) {
+        return Promise.resolve(jsonResponse({ success: true, data: ELIGIBILITY_OK }));
+      }
       if (u.includes('/skripsi/supervisors')) {
         return Promise.resolve(jsonResponse({ success: true, data: SUPERVISORS }));
       }

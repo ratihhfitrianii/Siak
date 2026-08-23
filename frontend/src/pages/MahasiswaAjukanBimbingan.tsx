@@ -3,6 +3,7 @@ import {
   getSkripsiProposals,
   getSkripsiProposalStatuses,
   getSkripsiSupervisors,
+  getSkripsiEligibility,
   submitSkripsiProposal,
 } from '../lib/api';
 import type { SkripsiProposal, SkripsiProposalStatus, SkripsiSupervisor } from '../lib/types';
@@ -12,6 +13,7 @@ import { FormAlert } from '../components/ErrorInline';
  * Halaman Mahasiswa — Ajukan Bimbingan Skripsi.
  * Form: judul + dosen pembimbing + file proposal (PDF, base64, max 10MB).
  * Daftar: proposal sendiri + riwayat status (expandable timeline).
+ * Akses hanya untuk mahasiswa semester ≥6 dan sudah lunas semua tagihan.
  */
 
 const STATUS_LABELS: Record<string, string> = {
@@ -58,6 +60,8 @@ export function MahasiswaAjukanBimbingan() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [eligible, setEligible] = useState(false);
+  const [eligibilityReason, setEligibilityReason] = useState('');
 
   // Riwayat status per proposal (lazy load saat expand)
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -70,6 +74,16 @@ export function MahasiswaAjukanBimbingan() {
     setIsLoading(true);
     setError(null);
     try {
+      // Check eligibility first
+      const eligibility = await getSkripsiEligibility();
+      setEligible(eligibility.eligible);
+      setEligibilityReason(eligibility.reason);
+
+      if (!eligibility.eligible) {
+        setIsLoading(false);
+        return;
+      }
+
       const [supervisorList, proposalList] = await Promise.all([
         getSkripsiSupervisors(),
         getSkripsiProposals(),
@@ -195,6 +209,25 @@ export function MahasiswaAjukanBimbingan() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      {/* Eligibility Check Result */}
+      {!eligible && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 text-red-700">
+            <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div>
+              <p className="font-medium">Tidak memenuhi syarat pengajuan skripsi</p>
+              <p className="text-sm">{eligibilityReason || 'Silakan hubungi admin akademik.'}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Form */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-medium text-slate-900 mb-4">Form Pengajuan Proposal</h3>

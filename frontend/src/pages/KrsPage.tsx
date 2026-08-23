@@ -76,16 +76,27 @@ export function KrsPage() {
       setPicked(myRes.items);
 
       let avail: AvailableClass[] = [];
+      let paymentError: string | null = null;
       if (periodRes.status === 'open') {
         try {
           const data = await apiRequest<{ items: AvailableClass[] }>('/krs/available-classes');
           avail = data.items;
         } catch (err) {
-          if (!(err instanceof ApiError && err.code === 'KRS_PERIOD_CLOSED')) throw err;
+          if (err instanceof ApiError && err.code === 'KRS_PERIOD_CLOSED') {
+            // period closed, ignore
+          } else if (err instanceof ApiError && err.code === 'PAYMENT_UNPAID') {
+            paymentError = err.message; // Capture payment unpaid error
+          } else {
+            throw err;
+          }
         }
       }
       setAvailable(avail);
       setPage(1);
+      // Set error if payment unpaid but period is open
+      if (paymentError) {
+        setError(paymentError);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Gagal memuat data KRS');
     } finally {

@@ -45,7 +45,8 @@ export function TranscriptPage() {
     apiRequest<Array<{ id: number; code: string }>>('/academic-years')
       .then((data) => {
         setAcademicYears(data);
-        if (data.length > 0) setSelectedAcademicYearId(data[0].id);
+        // Default: "Semua Tahun Akademik" (null value)
+        setSelectedAcademicYearId(null);
       })
       .catch(() => {
         // Silently ignore - dropdown will just be empty
@@ -65,9 +66,9 @@ export function TranscriptPage() {
     setDownloading(true);
     setDownloadError(null);
     try {
+      // null = Semua Tahun Akademik
       await downloadTranscriptPdf(selectedAcademicYearId ?? undefined);
     } catch (err) {
-      // Keluhan lama: pesan error generik menyembunyikan penyebab sebenarnya.
       setDownloadError(err instanceof ApiError ? err.message : 'Gagal mengunduh PDF. Coba lagi.');
     } finally {
       setDownloading(false);
