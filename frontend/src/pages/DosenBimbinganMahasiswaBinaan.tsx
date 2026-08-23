@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { getSkripsiProposals } from '../lib/api';
-import type { SkripsiProposal, SkripsiStatus } from '../lib/types';
+import { getSkripsiProposals, createSkripsiGuidanceLog, getSkripsiGuidanceLogs } from '../lib/api';
+import type { SkripsiProposal, SkripsiStatus, SkripsiGuidanceLog } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
 
@@ -58,6 +58,69 @@ export function DosenBimbinganMahasiswaBinaan() {
   // Pencarian (judul/NIM/nama/prodi)
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Catat Bimbingan modal state
+  const [catatProposal, setCatatProposal] = useState<SkripsiProposal | null>(null);
+  const [logDate, setLogDate] = useState('');
+  const [logNotes, setLogNotes] = useState('');
+  const [catatSaving, setCatatSaving] = useState(false);
+  const [catatError, setCatatError] = useState<string | null>(null);
+  const [catatSuccess, setCatatSuccess] = useState<string | null>(null);
+
+  // Lihat Log modal state
+  const [logProposal, setLogProposal] = useState<SkripsiProposal | null>(null);
+  const [logs, setLogs] = useState<SkripsiGuidanceLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsError, setLogsError] = useState<string | null>(null);
+
+  const openCatat = (p: SkripsiProposal) => {
+    setCatatProposal(p);
+    setLogDate(new Date().toISOString().slice(0, 10));
+    setLogNotes('');
+    setCatatError(null);
+    setCatatSuccess(null);
+  };
+
+  const handleCatatSubmit = async () => {
+    if (!catatProposal) return;
+    if (!logDate) {
+      setCatatError('Tanggal bimbingan wajib diisi');
+      return;
+    }
+    if (!logNotes.trim()) {
+      setCatatError('Catatan bimbingan wajib diisi');
+      return;
+    }
+    setCatatSaving(true);
+    setCatatError(null);
+    try {
+      await createSkripsiGuidanceLog(catatProposal.id, {
+        sessionDate: logDate,
+        notes: logNotes.trim(),
+      });
+      setCatatSuccess('Catatan bimbingan berhasil disimpan');
+      setLogNotes('');
+    } catch {
+      setCatatError('Gagal menyimpan catatan bimbingan');
+    } finally {
+      setCatatSaving(false);
+    }
+  };
+
+  const openLog = async (p: SkripsiProposal) => {
+    setLogProposal(p);
+    setLogs([]);
+    setLogsLoading(true);
+    setLogsError(null);
+    try {
+      const data = await getSkripsiGuidanceLogs(p.id);
+      setLogs(data);
+    } catch {
+      setLogsError('Gagal memuat log bimbingan');
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
   const filteredProposals = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return proposals;
@@ -95,6 +158,199 @@ export function DosenBimbinganMahasiswaBinaan() {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Spinner label="Memuat mahasiswa binaan..." />
+      </div>
+    );
+  }
+
+  // Catat Bimbingan Modal
+  if (catatProposal) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+        onClick={() => setCatatProposal(null)}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="catat-title"
+      >
+        <div
+          className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <h2 id="catat-title" className="text-lg font-semibold text-slate-900">
+              Catat Bimbingan
+            </h2>
+            <button
+              onClick={() => setCatatProposal(null)}
+              className="text-slate-400 hover:text-slate-600"
+              aria-label="Tutup"
+            >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <p className="text-sm text-slate-600">
+            {catatProposal.title} — {catatProposal.studentName} ({catatProposal.nim})
+          </p>
+
+          {catatError && <FormAlert>{catatError}</FormAlert>}
+          {catatSuccess && (
+            <div
+              role="status"
+              className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700"
+            >
+              {catatSuccess}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div>
+              <label htmlFor="logDate" className="block text-sm font-medium text-slate-700 mb-1">
+                Tanggal Bimbingan
+              </label>
+              <input
+                id="logDate"
+                type="date"
+                value={logDate}
+                onChange={(e) => setLogDate(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="logNotes" className="block text-sm font-medium text-slate-700 mb-1">
+                Catatan Bimbingan
+              </label>
+              <textarea
+                id="logNotes"
+                value={logNotes}
+                onChange={(e) => setLogNotes(e.target.value)}
+                rows={4}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Tulis catatan pertemuan bimbingan di sini..."
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => setCatatProposal(null)}
+              className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleCatatSubmit}
+              disabled={catatSaving}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition disabled:opacity-50"
+            >
+              {catatSaving ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Lihat Log Modal
+  if (logProposal) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+        onClick={() => setLogProposal(null)}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="log-title"
+      >
+        <div
+          className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <h2 id="log-title" className="text-lg font-semibold text-slate-900">
+              Log Bimbingan
+            </h2>
+            <button
+              onClick={() => setLogProposal(null)}
+              className="text-slate-400 hover:text-slate-600"
+              aria-label="Tutup"
+            >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <p className="text-sm text-slate-600">
+            {logProposal.title} — {logProposal.studentName} ({logProposal.nim})
+          </p>
+
+          {logsError && <FormAlert>{logsError}</FormAlert>}
+
+          {logsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Spinner label="Memuat log bimbingan..." />
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              <svg
+                className="mx-auto h-10 w-10 text-slate-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              <p className="mt-2">Belum ada catatan bimbingan</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {logs.map((log) => (
+                <div key={log.id} className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-900">{log.notes}</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {new Date(log.sessionDate).toLocaleDateString('id-ID', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                        {log.lecturerName && ` — ${log.lecturerName}`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-end pt-2 border-t border-slate-100">
+            <button
+              onClick={() => setLogProposal(null)}
+              className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -258,10 +514,16 @@ export function DosenBimbinganMahasiswaBinaan() {
                     </div>
 
                     <div className="flex gap-2 pt-2 border-t border-slate-100">
-                      <button className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition">
+                      <button
+                        onClick={() => openCatat(p)}
+                        className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition"
+                      >
                         Catat Bimbingan
                       </button>
-                      <button className="flex-1 px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
+                      <button
+                        onClick={() => openLog(p)}
+                        className="flex-1 px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition"
+                      >
                         Lihat Log
                       </button>
                     </div>
