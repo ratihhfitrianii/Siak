@@ -141,6 +141,93 @@ export function createAttendanceRouter(): Router {
     },
   );
 
+  // ============================================================
+  // DOSEN: Rekap Kehadiran per kelas
+  // ============================================================
+
+  // GET /attendance/recap?classId= — rekap kehadiran per mahasiswa (dosen pengampu, admin)
+  router.get(
+    '/recap',
+    authenticate,
+    authorize('attendance.recap'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const isAdmin =
+          req.user!.roleCode === 'admin_akademik' || req.user!.roleCode === 'admin_sistem';
+        const classId = parseInt(req.query.classId as string, 10);
+        if (isNaN(classId) || classId <= 0) {
+          throw new AppError('VALIDATION_ERROR', 'classId wajib diisi', 400);
+        }
+
+        // Kelas harus ada; dosen hanya boleh lihat kelas yang dia ampu
+        const classRes = await pgPool.query(
+          `SELECT cl.id, cl.lecturer_id FROM classes cl WHERE cl.id = $1`,
+          [classId],
+        );
+        if (classRes.rows.length === 0) {
+          throw new AppError('NOT_FOUND', 'Kelas tidak ditemukan', 404);
+        }
+        if (!isAdmin && Number(classRes.rows[0].lecturer_id) !== req.user!.id) {
+          throw new AppError('FORBIDDEN', 'Anda bukan pengampu kelas ini', 403);
+        }
+
+        // Semua mahasiswa terdaftar (submitted/approved) + agregat status dari record.
+        // Mahasiswa tanpa record = belum absen di sesi manapun → semua counter 0,
+        // totalSessions = jumlah sesi kelas (attendance_rate dihitung dari hadir/total).
+        const result = await pgPool.query(
+          `SELECT s.id as student_id, s.nim, u.full_name,
+             COUNT(ar.id) FILTER (WHERE ar.status = 'hadir') AS hadir_count,
+             COUNT(ar.id) FILTER (WHERE ar.status = 'izin') AS izin_count,
+             COUNT(ar.id) FILTER (WHERE ar.status = 'sakit') AS sakit_count,
+             COUNT(ar.id) FILTER (WHERE ar.status = 'tidak_hadir') AS alpha_count,
+             (
+               SELECT COUNT(*) FROM attendance_sessions sess
+               JOIN schedules sch2 ON sch2.id = sess.schedule_id
+               WHERE sch2.class_id = $1
+             ) AS total_sessions
+           FROM students s
+           JOIN users u ON u.id = s.user_id
+           JOIN krs_items ki ON ki.class_id = $1
+           JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
+           LEFT JOIN attendance_records ar ON ar.student_id = s.id
+             AND ar.session_id IN (
+               SELECT sess.id FROM attendance_sessions sess
+               JOIN schedules sch3 ON sch3.id = sess.schedule_id
+               WHERE sch3.class_id = $1
+             )
+           WHERE ks.student_id = s.id AND ks.status IN ('submitted', 'approved')
+           GROUP BY s.id, s.nim, u.full_name
+           ORDER BY u.full_name`,
+          [classId],
+        );
+
+        const items = result.rows.map((r) => {
+          const hadir = parseInt(r.hadir_count, 10);
+          const izin = parseInt(r.izin_count, 10);
+          const sakit = parseInt(r.sakit_count, 10);
+          const alpha = parseInt(r.alpha_count, 10);
+          const totalSessions = parseInt(r.total_sessions, 10);
+          const rate = totalSessions > 0 ? Math.round((hadir / totalSessions) * 100) : 0;
+          return {
+            studentId: Number(r.student_id),
+            nim: r.nim,
+            studentName: r.full_name,
+            hadirCount: hadir,
+            izinCount: izin,
+            sakitCount: sakit,
+            alphaCount: alpha,
+            totalSessions,
+            attendanceRate: rate,
+          };
+        });
+
+        res.json({ success: true, data: items });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // POST /attendance/sessions — create session (dosen, schedule owner)
   router.post(
     '/sessions',

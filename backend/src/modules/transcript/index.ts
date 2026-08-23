@@ -288,9 +288,9 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
     y += 10;
 
     // SEMESTER TABLES
-    // Kolom: No, Kode MK, Mata Kuliah, SKS, Angka, Huruf, Status
-    const colWidths = [30, 70, 180, 40, 60, 50, 60];
-    const headers = ['No', 'Kode MK', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
+    // Kolom: No, Mata Kuliah, SKS, Angka, Huruf, Status (Kode MK dihapus per keluhan)
+    const colWidths = [30, 250, 40, 60, 50, 60];
+    const headers = ['No', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
     // Cumulative x-position per column for pdfkit (base 50 margin).
     const colStarts: number[] = [];
     for (const w of colWidths) {
@@ -326,7 +326,6 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
         const status = course.isRepeated ? 'Diulang' : course.isRemedial ? 'Remedial' : '';
         const rowData = [
           String(rowNum),
-          course.courseCode,
           course.courseName,
           String(course.credits),
           course.finalScore !== null ? course.finalScore.toFixed(2) : '-',

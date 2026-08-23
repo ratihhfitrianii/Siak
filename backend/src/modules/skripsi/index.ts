@@ -29,6 +29,9 @@ function authorizeAny(...permissions: Permission[]) {
  *   PUT    /skripsi/proposals/:id   — dosen/admin update status
  *   GET    /skripsi/supervisors     — list dosen pembimbing per prodi
  *   GET    /skripsi/proposals/:id/statuses — status history
+ *   GET    /skripsi/eligibility     — cek kelayakan skripsi (semester ≥6 + lunas)
+ *   POST   /skripsi/proposals/:id/logs — dosen pembimbing catat pertemuan bimbingan
+ *   GET    /skripsi/proposals/:id/logs  — log bimbingan (pembimbing/mahasiswa ybs/admin)
  */
 
 const proposalCreateSchema = z.object({
@@ -52,6 +55,11 @@ const proposalUpdateSchema = z.object({
     'tidak_lulus',
   ]),
   statusNotes: z.string().max(2000).optional(),
+});
+
+const logCreateSchema = z.object({
+  sessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal YYYY-MM-DD'),
+  notes: z.string().min(1).max(2000),
 });
 
 export function createSkripsiRouter(): Router {
@@ -94,6 +102,118 @@ export function createSkripsiRouter(): Router {
             nik: r.nik,
             prodiName: r.prodi_name,
           })),
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────
+  // GET /skripsi/eligibility — cek kelayakan skripsi (semester ≥6 + lunas)
+  // ──────────────────────────────────────────────────
+  router.get(
+    '/eligibility',
+    authenticate,
+    authorize('thesis.submit'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!req.user?.studentId) {
+          throw new AppError('FORBIDDEN', 'Akun bukan mahasiswa aktif', 403);
+        }
+
+        const studentId = req.user.studentId;
+
+        // Get student's current semester and payment status
+        const studentRes = await pgPool.query(
+          `SELECT s.id, s.nim, u.full_name, s.academic_year_id,
+                  ay.code as academic_year_code,
+                  p.name as prodi_name,
+                  f.name as faculty_name
+           FROM students s
+           JOIN users u ON u.id = s.user_id
+           JOIN academic_years ay ON ay.id = s.academic_year_id
+           JOIN prodis p ON p.id = s.prodi_id
+           JOIN faculties f ON f.id = p.faculty_id
+           WHERE s.id = $1`,
+          [studentId],
+        );
+
+        if (studentRes.rows.length === 0) {
+          throw new AppError('NOT_FOUND', 'Data mahasiswa tidak ditemukan', 404);
+        }
+
+        const student = studentRes.rows[0];
+
+        // Get latest KRS submission to determine current semester
+        const krsRes = await pgPool.query(
+          `SELECT ks.id, kp.semester_id, s.code as semester_code, s.name as semester_name, s.number as semester_number
+           FROM krs_submissions ks
+           JOIN krs_periods kp ON kp.id = ks.krs_period_id
+           JOIN semesters s ON s.id = kp.semester_id
+           WHERE ks.student_id = $1 AND ks.status IN ('submitted', 'approved')
+           ORDER BY s.number DESC, kp.start_date DESC
+           LIMIT 1`,
+          [studentId],
+        );
+
+        let currentSemesterNumber = 0;
+        let currentSemesterCode = '';
+        let currentSemesterName = '';
+
+        if (krsRes.rows.length > 0) {
+          currentSemesterNumber = parseInt(krsRes.rows[0].semester_number, 10);
+          currentSemesterCode = krsRes.rows[0].semester_code;
+          currentSemesterName = krsRes.rows[0].semester_name;
+        }
+
+        // Check payment status - all semesters must be lunas
+        const paymentRes = await pgPool.query(
+          `SELECT COUNT(*) as total_payments,
+                  COUNT(*) FILTER (WHERE p.status = 'lunas') as lunas_payments
+           FROM payments p
+           WHERE p.student_id = $1`,
+          [studentId],
+        );
+
+        const totalPayments = parseInt(paymentRes.rows[0].total_payments, 10);
+        const lunasPayments = parseInt(paymentRes.rows[0].lunas_payments, 10);
+        const allLunas = totalPayments > 0 && totalPayments === lunasPayments;
+
+        // Eligibility: semester >= 6 AND all payments lunas
+        const semesterOk = currentSemesterNumber >= 6;
+        const paymentOk = allLunas;
+        const eligible = semesterOk && paymentOk;
+
+        let reason = '';
+        if (!semesterOk && !paymentOk) {
+          reason = `Semester ${currentSemesterNumber} < 6 dan masih ada tagihan belum lunas`;
+        } else if (!semesterOk) {
+          reason = `Semester ${currentSemesterNumber} < 6 (minimal semester 6)`;
+        } else if (!paymentOk) {
+          reason = `Masih ada ${totalPayments - lunasPayments} tagihan belum lunas`;
+        }
+
+        res.json({
+          success: true,
+          data: {
+            studentId: Number(student.id),
+            nim: student.nim,
+            fullName: student.full_name,
+            prodiName: student.prodi_name,
+            facultyName: student.faculty_name,
+            academicYearCode: student.academic_year_code,
+            currentSemesterNumber,
+            currentSemesterCode,
+            currentSemesterName,
+            semesterOk,
+            paymentOk,
+            allLunas,
+            totalPayments,
+            lunasPayments,
+            eligible,
+            reason: eligible ? 'Memenuhi syarat ajukan skripsi' : reason,
+          },
         });
       } catch (err) {
         next(err);
@@ -373,6 +493,139 @@ export function createSkripsiRouter(): Router {
         });
 
         res.json({ success: true, data: result.rows[0] });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────
+  // POST /skripsi/proposals/:id/logs — dosen pembimbing catat pertemuan bimbingan
+  // ──────────────────────────────────────────────────
+  router.post(
+    '/proposals/:id/logs',
+    authenticate,
+    authorizeAny('thesis.review', 'thesis.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const proposalId = parseInt(req.params.id ?? '', 10);
+        if (isNaN(proposalId)) {
+          throw new AppError('VALIDATION_ERROR', 'Invalid proposal ID', 400);
+        }
+        const parsed = logCreateSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data log tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const { sessionDate, notes } = parsed.data;
+
+        // Proposal harus ada
+        const propRes = await pgPool.query(`SELECT id FROM skripsi_proposals WHERE id = $1`, [
+          proposalId,
+        ]);
+        if (propRes.rows.length === 0) {
+          throw new AppError('NOT_FOUND', 'Proposal tidak ditemukan', 404);
+        }
+
+        // Hanya pembimbing proposal ini (atau admin) yang boleh mencatat.
+        // Catatan: dosen non-pembimbing dengan thesis.review ditolak di sini.
+        const isAdmin =
+          req.user!.roleCode === 'admin_akademik' || req.user!.roleCode === 'admin_sistem';
+        if (!isAdmin) {
+          const supRes = await pgPool.query(
+            `SELECT 1 FROM skripsi_proposal_supervisors
+             WHERE proposal_id = $1 AND supervisor_id = $2`,
+            [proposalId, req.user!.id],
+          );
+          if (supRes.rows.length === 0) {
+            throw new AppError('FORBIDDEN', 'Anda bukan pembimbing proposal ini', 403);
+          }
+        }
+
+        const ins = await pgPool.query(
+          `INSERT INTO skripsi_guidance_logs (proposal_id, lecturer_id, session_date, notes)
+           VALUES ($1, $2, $3, $4) RETURNING id`,
+          [proposalId, req.user!.id, sessionDate, notes],
+        );
+        const id = Number(ins.rows[0].id);
+
+        await auditFromRequest(req.user!, req, {
+          tableName: 'skripsi_guidance_logs',
+          recordId: id,
+          action: 'INSERT',
+          newValues: { proposal_id: proposalId, session_date: sessionDate },
+        });
+
+        res.status(201).json({ success: true, data: { id } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // ──────────────────────────────────────────────────
+  // GET /skripsi/proposals/:id/logs — log bimbingan
+  // Akses: pembimbing proposal, mahasiswa pemilik, admin
+  // ──────────────────────────────────────────────────
+  router.get(
+    '/proposals/:id/logs',
+    authenticate,
+    authorizeAny('thesis.submit', 'thesis.review', 'thesis.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const proposalId = parseInt(req.params.id ?? '', 10);
+        if (isNaN(proposalId)) {
+          throw new AppError('VALIDATION_ERROR', 'Invalid proposal ID', 400);
+        }
+
+        const propRes = await pgPool.query(
+          `SELECT sp.id, sp.student_id FROM skripsi_proposals sp WHERE sp.id = $1`,
+          [proposalId],
+        );
+        if (propRes.rows.length === 0) {
+          throw new AppError('NOT_FOUND', 'Proposal tidak ditemukan', 404);
+        }
+        const proposal = propRes.rows[0];
+
+        const roleCode = req.user!.roleCode;
+        const isAdmin = roleCode === 'admin_akademik' || roleCode === 'admin_sistem';
+        const isOwnerStudent =
+          roleCode === 'mahasiswa' && Number(proposal.student_id) === req.user!.studentId;
+        let isSupervisor = false;
+        if (roleCode === 'dosen') {
+          const supRes = await pgPool.query(
+            `SELECT 1 FROM skripsi_proposal_supervisors
+             WHERE proposal_id = $1 AND supervisor_id = $2`,
+            [proposalId, req.user!.id],
+          );
+          isSupervisor = supRes.rows.length > 0;
+        }
+        if (!isAdmin && !isOwnerStudent && !isSupervisor) {
+          throw new AppError('FORBIDDEN', 'Tidak berhak melihat log bimbingan ini', 403);
+        }
+
+        const result = await pgPool.query(
+          `SELECT gl.*, u.full_name AS lecturer_name
+           FROM skripsi_guidance_logs gl
+           JOIN users u ON u.id = gl.lecturer_id
+           WHERE gl.proposal_id = $1
+           ORDER BY gl.session_date DESC, gl.id DESC`,
+          [proposalId],
+        );
+
+        res.json({
+          success: true,
+          data: result.rows.map((r) => ({
+            id: Number(r.id),
+            proposalId: Number(r.proposal_id),
+            lecturerId: Number(r.lecturer_id),
+            lecturerName: r.lecturer_name,
+            sessionDate: r.session_date,
+            notes: r.notes,
+            createdAt: r.created_at.toISOString(),
+          })),
+        });
       } catch (err) {
         next(err);
       }

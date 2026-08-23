@@ -1,6 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { z } from 'zod';
 import { pgPool } from '../../lib/pg';
+import { AppError } from '../../middleware/error-handler';
 import { authenticate, authorize } from '../../lib/auth-middleware';
 import { auditFromRequest } from '../../lib/audit-service';
 
@@ -36,6 +37,19 @@ const courseSchema = z.object({
   description: z.string().optional(),
 });
 
+const prodiQuerySchema = z.object({
+  search: z.string().max(100).optional(),
+  facultyId: z.coerce.number().int().positive().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+const facultyQuerySchema = z.object({
+  search: z.string().max(100).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 export function createAcademicRouter(): Router {
   const router = Router();
 
@@ -45,8 +59,42 @@ export function createAcademicRouter(): Router {
     authenticate,
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const result = await pgPool.query('SELECT * FROM faculties WHERE is_active ORDER BY code');
-        res.json({ success: true, data: { items: result.rows } });
+        const q = facultyQuerySchema.safeParse(req.query);
+        if (!q.success) {
+          throw new AppError('VALIDATION_ERROR', 'Parameter tidak valid', 400);
+        }
+        const { search, page, limit } = q.data;
+        const where: string[] = ['is_active'];
+        const params: unknown[] = [];
+
+        if (search) {
+          params.push(`%${search}%`);
+          where.push(`(code ILIKE $${params.length} OR name ILIKE $${params.length})`);
+        }
+        const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+        const offset = (page - 1) * limit;
+
+        const countResult = await pgPool.query(
+          `SELECT count(*)::int AS total FROM faculties ${whereSql}`,
+          params,
+        );
+
+        const listResult = await pgPool.query(
+          `SELECT * FROM faculties ${whereSql} ORDER BY code LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+          [...params, limit, offset],
+        );
+
+        res.json({
+          success: true,
+          data: {
+            items: listResult.rows,
+            pagination: {
+              page,
+              limit,
+              total: countResult.rows[0].total,
+            },
+          },
+        });
       } catch (err) {
         next(err);
       }
@@ -81,13 +129,46 @@ export function createAcademicRouter(): Router {
   // --- PRODI ---
   router.get('/prodis', authenticate, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await pgPool.query(`
-        SELECT p.*, f.name as faculty_name 
-        FROM prodis p 
-        JOIN faculties f ON f.id = p.faculty_id 
-        WHERE p.is_active ORDER BY p.code
-      `);
-      res.json({ success: true, data: { items: result.rows } });
+      const q = prodiQuerySchema.safeParse(req.query);
+      if (!q.success) {
+        throw new AppError('VALIDATION_ERROR', 'Parameter tidak valid', 400);
+      }
+      const { search, facultyId, page, limit } = q.data;
+      const where: string[] = ['p.is_active'];
+      const params: unknown[] = [];
+
+      if (search) {
+        params.push(`%${search}%`);
+        where.push(`(p.code ILIKE $${params.length} OR p.name ILIKE $${params.length})`);
+      }
+      if (facultyId) {
+        params.push(facultyId);
+        where.push(`p.faculty_id = $${params.length}`);
+      }
+      const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+      const offset = (page - 1) * limit;
+
+      const countResult = await pgPool.query(
+        `SELECT count(*)::int AS total FROM prodis p JOIN faculties f ON f.id = p.faculty_id ${whereSql}`,
+        params,
+      );
+
+      const listResult = await pgPool.query(
+        `SELECT p.*, f.name as faculty_name FROM prodis p JOIN faculties f ON f.id = p.faculty_id ${whereSql} ORDER BY p.code LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+        [...params, limit, offset],
+      );
+
+      res.json({
+        success: true,
+        data: {
+          items: listResult.rows,
+          pagination: {
+            page,
+            limit,
+            total: countResult.rows[0].total,
+          },
+        },
+      });
     } catch (err) {
       next(err);
     }
