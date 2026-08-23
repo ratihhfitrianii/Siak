@@ -1,0 +1,42 @@
+ALUR SIAK :
+
+User Admin Sistem :
+1. Admin Sistem dapat mengelola user siak, seperti tambah user, edit dan hapus akses user, memberikan akses ke mahasiswa, dosen, admin keuangan dan admin akademik
+2. admin sistem juga bisa mengelola master fakultas, prodi, mahasiswa dan dosen
+3. admin sistem juga dapat menambahkan Infromasi penting yang bisa diatur akan ditampilkan pada halaman user sispa, misalnya informasi tentang pengisian KRS, hanya dapat dilihat oleh mahasiswa.
+
+User Akademik :
+1. admin akademik bisa menyetujui KRS yang sudah di submit oleh mahasiswa
+2. bisa mengelola jadwal untuk dosen, yang nantinya jadwal ini akan dipilih oleh dosen sesuai matkul yang diampu oleh dosen tersebut
+3. bisa menyetujui piliham Matkul dari dosen
+4. bisa meninjau proposal mahasiswa yang telah selesai ditinjau oleh dosen yang bersangkutan.
+
+user Keuangan :
+1. bisa mengelola tagihan mahasiswa, seperti mengupdate pembayaran yang telah dilakukan oleh mahasiswa
+2. bisa mengelola SLip Gaji dosen, seperti mengupdate status gaji dosen, jika sudah di bayarkan maka nantinya akan tampil di halaman SLip Gaji Dosen
+
+Dosen:
+1. Dosen memilik matkul apa saja yang mau diampu selama 1 semester ini, harusnya menu ini bisa diakses selama periode yang ditentukan misalkan sebulan sebelum semester tersebut dimulai, tapi belum ditambahkan periodenya (bisa jadi fitur selanjutnya)
+2. dosen bisa menentukan jadwal mereka sendiri, jadwal sudah dibuatkan oleh admin akademik, dosen tinggal memilih jadm dan harinya saja (fitur ini masih pengembangan, karena butuh masukan real time)
+3. ada menu Substitute, berguna untuk dosen mengganti dosen jika mereka berhalangan untuk mengajar 
+	(fitur selanjutnya : perubahan dosen ini akan langsung di kirimkan ke kontak mahasiswa yang terdaftar pada matkul tersebut, jd mahasiwa dapat mengetahui dosen baru yang akan menggantikan dosen sebelumnya).
+4. dosen dapat kelola absensi. tambahkan sesi absensi sesuai jadwal yang telah di buat pada menu jadwal, dan kelas yang terdaftar pada jadwal tersebut, list kelas akan muncul secara otomatis.
+	setelah membuat sesi absensi, maka akan muncul ID, ID tersebut akan dosen berikan kepada mahasiswa yang hadir, dan mereka bisa absen mandiri.
+	pada halaman absensi ini, dosen juga bisa absen manual setiap mahasiswa atau data akan terupdate sendiri jika mahasiswa absen secara mandiri.
+5. halaman Rekap Kehadiran Mahasiswa, disini dosen bisa lihat presentase kehadiran setiap mahasiswa per kelasnya
+6. pada menu bimbingan, dosen bisa melihat proposal yang diajukan mahasiswa kepada dosen yang bersangkutan. di halaman ini dosen bisa setuju atau menolak proposal tersebut.
+	jika di terima nanti akan ditinjau lagi oleh admin akademik.
+7. pada halaman Bimbingan Mahasiswa Binaan, dosen dapat mencatatn hasil bimbingan, jika bimbingan sudah lebih dari 5x, dan siap untuk sidang, dosen bisa menyarankan untuk sidang pada halaman ini.
+8. halaman nilai digunakan untuk mengelola nilai mahasiswa per kelas 
+9. halaman slip gaji digunaka untuk dosen melihat semua pembayaran gaji beserta detailnya yang masuk, dosen juga bisa mendownload slip gajinya.
+
+Mahasiswa :
+1. halaman profi digunakan untuk mengelola informasi mahasiswa, mahasiswa hanya bisa mengedit data pribadi (bukan data universitas). pada halaman ini juga mahasiswabisa melihat grafik IP nya di setiap semester.
+	fitur yang sedang dijalankan (download E- KTM)
+2. halaman checkin digunakan untuk absensi mandiri oleh mahasiswa, jadi dia tinggal input ID yang dosen berikan dan dia langsung checkinsecara otomatis, dan akan dianggap hadir oleh dosen yang bersangkutan.
+	fitur yang sedang di kerjakan adalam absensi melalui QR Code
+3. menu skripsi -> ajukan proposal digunakan untuk mahasiswa yang ingin mengajukan proposal ke dosen yang di tuju, mahasiswa juga bisa upload proposalnya yang nantinya akan di review oleh dosen dan admin akademik.
+4. menu skripsi -> sidang digunakan untuk proses sidang, seperti jadwal sidang, hasil revisi, dll (sedang dalam pengembangan)
+5. menu KRS ini digunakan untuk mahaswa mengisi KRS, dia bisa simpan sebagai draft dulu atau langsung submit, yang nantinya akan di review oleh admin akademik.
+6. menu transkip diguunakan untuk melihat transkip per semester, mahasiswajuga dapat mendownload transkipnya.
+7.menu pembyaran digunakan untuk melihat pembayaran setiap semester. 
