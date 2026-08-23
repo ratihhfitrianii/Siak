@@ -148,6 +148,8 @@ const MENU_ITEMS: {
   },
   {
     permissions: ['transcript.view_own', 'transcript.view_mentee'],
+    // Hanya mahasiswa — dosen wali punya transcript.view_mentee tapi tidak perlu menu ini
+    roles: ['mahasiswa'],
     label: 'Hasil Studi',
     path: '/hasil-studi',
     icon: 'star',

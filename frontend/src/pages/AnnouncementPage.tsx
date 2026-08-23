@@ -32,6 +32,29 @@ const ROLE_OPTIONS = [
   { code: 'admin_sistem', label: 'Admin Sistem' },
 ];
 
+/**
+ * Keluhan: pilih 13:36 → muncul 06:36. Penyebabnya nilai <input datetime-local>
+ * di-prefill dengan potongan mentah string ISO UTC (slice(0,16)) saat mode edit,
+ * jadi jam tampil dalam UTC bukan waktu lokal. Dua helper ini menormalkan
+ * konversi dua arah antara input (waktu LOKAL user) dan penyimpanan (ISO UTC).
+ */
+
+/** Nilai <input type="datetime-local"> (waktu lokal) → ISO UTC untuk disimpan. */
+function datetimeLocalToIso(value: string): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/** ISO UTC → "yyyy-MM-ddTHH:mm" waktu LOKAL untuk prefill <input datetime-local>. */
+function isoToDatetimeLocal(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /** Halaman Informasi Penting (Admin Sistem) — CRUD Announcements. */
 export function AnnouncementPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -262,16 +285,18 @@ export function AnnouncementPage() {
               </label>
               <input
                 type="datetime-local"
-                value={form.publishedAt ? form.publishedAt.slice(0, 16) : ''}
+                value={isoToDatetimeLocal(form.publishedAt)}
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    publishedAt: e.target.value ? new Date(e.target.value).toISOString() : null,
+                    publishedAt: datetimeLocalToIso(e.target.value),
                   })
                 }
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
-              <p className="mt-1 text-xs text-slate-500">Kosong = segera (sebelum sekarang)</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Kosong = segera (sebelum sekarang). Waktu per zona lokal browser.
+              </p>
             </div>
 
             <div>
@@ -280,11 +305,11 @@ export function AnnouncementPage() {
               </label>
               <input
                 type="datetime-local"
-                value={form.expiresAt ? form.expiresAt.slice(0, 16) : ''}
+                value={isoToDatetimeLocal(form.expiresAt)}
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    expiresAt: e.target.value ? new Date(e.target.value).toISOString() : null,
+                    expiresAt: datetimeLocalToIso(e.target.value),
                   })
                 }
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -365,12 +390,12 @@ export function AnnouncementPage() {
                     </td>
                     <td className="py-3 text-slate-600">
                       {a.publishedAt
-                        ? new Date(a.publishedAt).toLocaleDateString('id-ID')
+                        ? `${new Date(a.publishedAt).toLocaleDateString('id-ID')} ${new Date(a.publishedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
                         : 'Segera'}
                     </td>
                     <td className="py-3 text-slate-600">
                       {a.expiresAt
-                        ? new Date(a.expiresAt).toLocaleDateString('id-ID')
+                        ? `${new Date(a.expiresAt).toLocaleDateString('id-ID')} ${new Date(a.expiresAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
                         : 'Tidak ada'}
                     </td>
                     <td className="py-3">

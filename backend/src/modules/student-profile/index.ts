@@ -46,12 +46,19 @@ async function generateEktmPDF(data: {
       } = {},
     ) => {
       const { size = 10, bold = false, align = 'left', color = '#000', width = pageWidth } = o;
-      doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size).fillColor(color);
+      doc
+        .font(bold ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(size)
+        .fillColor(color);
       doc.text(t, x, yPos, { width, align });
     };
 
     const line = (yPos: number, stroke = '#ccc') => {
-      doc.moveTo(50, yPos).lineTo(doc.page.width - 50, yPos).strokeColor(stroke).stroke();
+      doc
+        .moveTo(50, yPos)
+        .lineTo(doc.page.width - 50, yPos)
+        .strokeColor(stroke)
+        .stroke();
     };
 
     // HEADER
@@ -65,7 +72,6 @@ async function generateEktmPDF(data: {
     // PHOTO + INFO
     const photoX = 50;
     const infoX = 180;
-    const infoWidth = pageWidth - 130;
 
     // Photo placeholder / actual photo
     if (data.photoUrl && data.photoUrl.startsWith('data:image')) {
@@ -81,12 +87,20 @@ async function generateEktmPDF(data: {
       } catch {
         // Draw placeholder
         doc.rect(photoX, y, 100, 120).strokeColor('#ccc').stroke();
-        doc.font('Helvetica').fontSize(8).fillColor('#999').text('FOTO', photoX + 25, y + 50);
+        doc
+          .font('Helvetica')
+          .fontSize(8)
+          .fillColor('#999')
+          .text('FOTO', photoX + 25, y + 50);
       }
     } else {
       // Draw placeholder
       doc.rect(photoX, y, 100, 120).strokeColor('#ccc').stroke();
-      doc.font('Helvetica').fontSize(8).fillColor('#999').text('FOTO', photoX + 25, y + 50);
+      doc
+        .font('Helvetica')
+        .fontSize(8)
+        .fillColor('#999')
+        .text('FOTO', photoX + 25, y + 50);
     }
 
     // Student info next to photo
@@ -101,10 +115,19 @@ async function generateEktmPDF(data: {
       ['Email Kampus', data.email],
     ];
 
+    // Keluhan: label "Angkatan / Tahun Akademik" tumpang tindih dengan nilainya.
+    // Lebar kolom label dihitung dari teks TERPANJANG (bukan angka tetap 120)
+    // + jarak minimal, lalu nilai mulai setelahnya — tidak pernah bertabrakan.
+    // (widthOfString dipakai setelah font Helvetica-Bold diset — ukuran 10.)
+    const LABEL_GAP = 14;
+    doc.font('Helvetica-Bold').fontSize(10);
+    const labelWidth = Math.max(...infoRows.map(([label]) => doc.widthOfString(label))) + 8;
+    const valueX = infoX + labelWidth + LABEL_GAP;
+
     let infoY = y;
     for (const [label, value] of infoRows) {
       text(label, infoX, infoY, { size: 10, bold: true });
-      text(value, infoX + 120, infoY, { size: 10, width: infoWidth - 120 });
+      text(value, valueX, infoY, { size: 10, width: pageWidth - (valueX - 50) });
       infoY += 18;
     }
 
@@ -117,7 +140,11 @@ async function generateEktmPDF(data: {
     text('Kode QR / Verifikasi', 50, y, { size: 10, bold: true });
     y += 18;
     doc.rect(50, y, 80, 80).strokeColor('#ccc').stroke();
-    doc.font('Helvetica').fontSize(8).fillColor('#999').text('QR CODE', 65, y + 35);
+    doc
+      .font('Helvetica')
+      .fontSize(8)
+      .fillColor('#999')
+      .text('QR CODE', 65, y + 35);
     text('Silakan scan untuk verifikasi keaslian kartu', 140, y + 30, { size: 9, color: '#666' });
 
     y += 100;
@@ -126,9 +153,17 @@ async function generateEktmPDF(data: {
     y += 10;
 
     // Footer
-    text('Kartu ini berlaku sebagai bukti identitas mahasiswa Universitas Siak.', 50, y, { size: 9, align: 'center', color: '#666' });
+    text('Kartu ini berlaku sebagai bukti identitas mahasiswa Universitas Siak.', 50, y, {
+      size: 9,
+      align: 'center',
+      color: '#666',
+    });
     y += 16;
-    text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 50, y, { size: 9, align: 'center', color: '#666' });
+    text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 50, y, {
+      size: 9,
+      align: 'center',
+      color: '#666',
+    });
 
     doc.end();
   });
@@ -462,10 +497,7 @@ export function createStudentProfileRouter(): Router {
         });
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader(
-          'Content-Disposition',
-          `attachment; filename="ektm-${row.nim}.pdf"`,
-        );
+        res.setHeader('Content-Disposition', `attachment; filename="ektm-${row.nim}.pdf"`);
         res.send(pdf);
       } catch (err) {
         next(err);

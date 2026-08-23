@@ -321,6 +321,8 @@ export function createKrsRouter(): Router {
         if (!period) {
           throw new AppError('KRS_PERIOD_CLOSED', 'Periode KRS tidak sedang buka', 403);
         }
+        // Keluhan: halaman Kelola KRS harus benar-benar terkunci saat tagihan belum lunas
+        await assertPaymentStatus(studentId, Number(period.semester_id));
 
         const client = await pgPool.connect();
         try {
@@ -442,6 +444,8 @@ export function createKrsRouter(): Router {
         if (!period) {
           throw new AppError('KRS_PERIOD_CLOSED', 'Periode KRS tidak sedang buka', 403);
         }
+        // Keluhan: submit KRS juga diblokir saat tagihan belum lunas (konsisten dgn draft)
+        await assertPaymentStatus(studentId, Number(period.semester_id));
 
         const client = await pgPool.connect();
         try {

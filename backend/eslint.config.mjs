@@ -19,7 +19,12 @@ export default tseslint.config(
         require: 'readonly',
         process: 'readonly',
         __dirname: 'readonly',
+        console: 'readonly',
       },
+    },
+    rules: {
+      // Script operasional (scripts/*.js) memang pakai CommonJS require
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   {

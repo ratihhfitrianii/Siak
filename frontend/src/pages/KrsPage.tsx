@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ApiError, apiRequest, downloadKrsPdf } from '../lib/api';
+import { Link } from 'react-router';
+import { ApiError, apiRequest, downloadKrsPdf, getKrsAccess } from '../lib/api';
 import type { AvailableClass, KrsPeriod, MyKrs, MyKrsItem } from '../lib/types';
 
 const DAY_LABELS: Record<number, string> = {
@@ -62,6 +63,9 @@ export function KrsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [page, setPage] = useState(1);
+  // Gerbang pembayaran (keluhan: KRS DIBLOKIR tapi halaman masih bisa diakses) —
+  // true = tampilkan layar blokir penuh, bukan hanya error kecil.
+  const [blockedByPayment, setBlockedByPayment] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -76,27 +80,29 @@ export function KrsPage() {
       setPicked(myRes.items);
 
       let avail: AvailableClass[] = [];
-      let paymentError: string | null = null;
+      let paymentBlocked = false;
       if (periodRes.status === 'open') {
-        try {
-          const data = await apiRequest<{ items: AvailableClass[] }>('/krs/available-classes');
-          avail = data.items;
-        } catch (err) {
-          if (err instanceof ApiError && err.code === 'KRS_PERIOD_CLOSED') {
-            // period closed, ignore
-          } else if (err instanceof ApiError && err.code === 'PAYMENT_UNPAID') {
-            paymentError = err.message; // Capture payment unpaid error
-          } else {
-            throw err;
+        // Cek lunas dulu (satu sumber kebenaran: can_access_krs — tanpa tagihan juga blokir)
+        const access = await getKrsAccess(periodRes.semesterId).catch(() => null);
+        paymentBlocked = access !== null && !access.canAccess;
+        if (!paymentBlocked) {
+          try {
+            const data = await apiRequest<{ items: AvailableClass[] }>('/krs/available-classes');
+            avail = data.items;
+          } catch (err) {
+            if (err instanceof ApiError && err.code === 'KRS_PERIOD_CLOSED') {
+              // period closed, ignore
+            } else if (err instanceof ApiError && err.code === 'PAYMENT_UNPAID') {
+              paymentBlocked = true;
+            } else {
+              throw err;
+            }
           }
         }
       }
       setAvailable(avail);
       setPage(1);
-      // Set error if payment unpaid but period is open
-      if (paymentError) {
-        setError(paymentError);
-      }
+      setBlockedByPayment(paymentBlocked);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Gagal memuat data KRS');
     } finally {
@@ -242,6 +248,26 @@ export function KrsPage() {
         >
           Coba lagi
         </button>
+      </div>
+    );
+  }
+
+  // Keluhan: banner "KRS DIBLOKIR" muncul di Pembayaran tapi halaman ini masih terbuka —
+  // sekarang diblokir penuh dengan CTA ke halaman pembayaran.
+  if (blockedByPayment) {
+    return (
+      <div className="rounded-2xl border border-amber-300 bg-amber-50 p-8 text-center">
+        <p className="text-lg font-bold tracking-wide text-amber-800">KRS DIBLOKIR</p>
+        <p className="mx-auto mt-2 max-w-md text-sm text-amber-700">
+          Pengisian KRS tidak dapat dilakukan karena pembayaran semester ini belum lunas. Silakan
+          selesaikan pembayaran terlebih dahulu.
+        </p>
+        <Link
+          to="/pembayaran"
+          className="mt-4 inline-block rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700"
+        >
+          Ke Halaman Pembayaran
+        </Link>
       </div>
     );
   }

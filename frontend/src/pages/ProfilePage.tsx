@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { apiRequest, downloadEktmPdf } from '../lib/api';
+import { useCallback, useEffect, useState } from 'react';
+import { ApiError, apiRequest, downloadEktmPdf } from '../lib/api';
 
 interface StudentProfile {
   id: number;
@@ -36,6 +36,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({
@@ -93,21 +94,30 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (!profile) return;
     setSaving(true);
+    setSaveError(null);
     try {
+      // PENTING: jangan JSON.stringify di sini — apiRequest sudah stringify.
+      // Double-stringify membuat body menjadi string JSON bertingkat → backend
+      // gagal validasi (zod) dan foto/kontak tidak pernah tersimpan.
       const res = await apiRequest<StudentProfile>('/students/me', {
         method: 'PUT',
-        body: JSON.stringify({
+        body: {
           phone: editData.phone || null,
           personalEmail: editData.personalEmail || null,
           domicileAddress: editData.domicileAddress || null,
           photoUrl: photoPreview !== profile.photoUrl ? photoPreview : undefined,
-        }),
+        },
       });
       setProfile({ ...profile, ...res });
       setEditing(false);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Gagal menyimpan';
-      console.error(msg);
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Gagal menyimpan profil';
+      setSaveError(msg);
     } finally {
       setSaving(false);
     }
@@ -332,6 +342,11 @@ export default function ProfilePage() {
 
                 {editing ? (
                   <div className="space-y-3">
+                    {saveError && (
+                      <p role="alert" className="rounded-md bg-red-50 p-2 text-xs text-red-700">
+                        {saveError}
+                      </p>
+                    )}
                     <div>
                       <label className="block text-xs text-slate-500 mb-1">No. HP</label>
                       <input

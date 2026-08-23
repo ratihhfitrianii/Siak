@@ -298,8 +298,11 @@ describe('AnnouncementPage (Informasi Penting)', () => {
     await screen.findByText('Jadwal UTS Semester Ganjil');
     fireEvent.click(screen.getAllByText('Edit')[0]);
 
-    // expiresAt tampil di input datetime-local
-    expect(screen.getByDisplayValue('2026-09-01T00:00')).toBeInTheDocument();
+    // expiresAt tampil di input datetime-local dalam waktu LOKAL (bukan slice UTC mentah)
+    const d = new Date('2026-09-01T00:00:00Z');
+    const pad = (n: number): string => String(n).padStart(2, '0');
+    const expectedLocal = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    expect(screen.getByDisplayValue(expectedLocal)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Update' }));
 
@@ -327,7 +330,7 @@ describe('AnnouncementPage (Informasi Penting)', () => {
     render(<AnnouncementPage />);
 
     expect(await screen.findByText('Jadwal UTS Semester Ganjil')).toBeInTheDocument();
-    // Tanggal 1 September 2026 dalam locale id-ID
-    expect(screen.getByText('1/9/2026')).toBeInTheDocument();
+    // Tanggal 1 September 2026 dalam locale id-ID (jam ikut ditampilkan, jadi pakai regex)
+    expect(screen.getByText(/1\/9\/2026/)).toBeInTheDocument();
   });
 });

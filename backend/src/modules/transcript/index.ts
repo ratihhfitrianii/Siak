@@ -289,7 +289,8 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
 
     // SEMESTER TABLES
     // Kolom: No, Mata Kuliah, SKS, Angka, Huruf, Status (Kode MK dihapus per keluhan)
-    const colWidths = [30, 250, 40, 60, 50, 60];
+    // Keluhan: kolom "No." terlalu lebar — cukup 16pt untuk nomor urut 1-2 digit.
+    const colWidths = [16, 264, 40, 60, 50, 60];
     const headers = ['No', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
     // Cumulative x-position per column for pdfkit (base 50 margin).
     const colStarts: number[] = [];
