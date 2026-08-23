@@ -11,7 +11,8 @@ test.describe('Login — critical path (T5.7)', () => {
     await page.getByLabel('Password', { exact: true }).fill('E2ePass123!');
     await page.getByRole('button', { name: 'Masuk' }).click();
 
-    await expect(page.getByText(/Selamat datang, E2E Mahasiswa/)).toBeVisible({ timeout: 10_000 });
+    // Dashboard tanpa header sapaan — kartu "Info Penting" jadi penanda login sukses
+    await expect(page.getByText('Periode Pengisian KRS')).toBeVisible({ timeout: 10_000 });
     await expect(page).toHaveURL(/$/);
   });
 
@@ -41,7 +42,8 @@ test.describe('Login — critical path (T5.7)', () => {
     await page.getByLabel('NIM / NIK / Email', { exact: true }).fill('E2E0001');
     await page.getByLabel('Password', { exact: true }).fill('E2ePass123!');
     await page.getByRole('button', { name: 'Masuk' }).click();
-    await expect(page.getByText(/Selamat datang/)).toBeVisible({ timeout: 10_000 });
+    // Kartu "Periode Pengisian KRS" = penanda dashboard mahasiswa sudah render
+    await expect(page.getByText('Periode Pengisian KRS')).toBeVisible({ timeout: 10_000 });
 
     // Buka menu dropdown terlebih dahulu
     await page.getByRole('button', { name: 'Menu pengguna' }).click();

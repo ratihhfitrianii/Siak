@@ -14,10 +14,13 @@ async function login(page: import('@playwright/test').Page, identifier: string, 
   await page.getByRole('button', { name: 'Masuk' }).click();
 }
 
+/** Penanda dashboard mahasiswa sudah render (header sapaan dihapus dari desain dashboard). */
+const DASHBOARD_READY = 'Periode Pengisian KRS';
+
 test.describe('Critical path: bayar (T5.7)', () => {
   test('mahasiswa lihat tagihan lunas di halaman Pembayaran', async ({ page }) => {
     await login(page, MHS.identifier, MHS.pass);
-    await expect(page.getByText(/Selamat datang, E2E Mahasiswa/)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(DASHBOARD_READY)).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole('link', { name: 'Pembayaran', exact: true }).click();
     await expect(page).toHaveURL(/\/pembayaran/);
@@ -28,9 +31,10 @@ test.describe('Critical path: bayar (T5.7)', () => {
 test.describe('Critical path: KRS + PDF (T5.7)', () => {
   test('mahasiswa lihat KRS approved + download PDF', async ({ page }) => {
     await login(page, MHS.identifier, MHS.pass);
-    await expect(page.getByText(/Selamat datang, E2E Mahasiswa/)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(DASHBOARD_READY)).toBeVisible({ timeout: 10_000 });
 
-    await page.getByRole('link', { name: 'KRS', exact: true }).click();
+    // Menu KRS direname "Kelola KRS" (task m6)
+    await page.getByRole('link', { name: 'Kelola KRS', exact: true }).click();
     await expect(page).toHaveURL(/\/krs/);
     // Status badge "Disetujui" dari STATUS_LABEL['approved']
     await expect(page.getByText('Disetujui')).toBeVisible({ timeout: 10_000 });
@@ -45,7 +49,7 @@ test.describe('Critical path: KRS + PDF (T5.7)', () => {
 test.describe('Critical path: transkrip (T5.7)', () => {
   test('mahasiswa lihat transkrip (semester + nilai) + tombol download', async ({ page }) => {
     await login(page, MHS.identifier, MHS.pass);
-    await expect(page.getByText(/Selamat datang, E2E Mahasiswa/)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(DASHBOARD_READY)).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole('link', { name: 'Transkrip', exact: true }).click();
     await expect(page).toHaveURL(/\/transkrip/);
@@ -60,9 +64,10 @@ test.describe('Critical path: absensi & nilai dosen (T5.7)', () => {
     // Header "Dashboard Dosen" dihapus — pakai kartu ringkasan sebagai penanda login sukses
     await expect(page.getByText('Total Pertemuan')).toBeVisible({ timeout: 10_000 });
 
-    // Keluhan #5: tab teks diganti menu sidebar ikon → navigasi via sidebar link /dosen/absensi
-    // Gunakan link di sidebar (aria-label) untuk menghindari collision dengan card/link lain
-    await page.locator('aside nav a[aria-label="Absensi"]').click();
+    // Keluhan #5: navigasi via sidebar. Menu "Absensi" kini parent dropdown (punya anak
+    // Rekap Kehadiran) → expand parent dulu, lalu klik link anak "Kelola Absensi".
+    await page.getByRole('button', { name: 'Absensi' }).click();
+    await page.locator('aside nav a[aria-label="Kelola Absensi"]').click();
     await expect(page).toHaveURL(/\/dosen\/absensi/);
     await expect(page.getByText(/Kelas|Pilih kelas/i).first()).toBeVisible({ timeout: 10_000 });
 

@@ -723,6 +723,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
                         <NavLink
                           key={child.path}
                           to={child.path}
+                          aria-label={child.label}
+                          title={child.label}
                           className={({ isActive }) =>
                             `flex h-8 items-center gap-2 rounded-md px-2 text-sm transition ${
                               isActive

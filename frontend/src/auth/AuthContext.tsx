@@ -79,10 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }>('/auth/login', { method: 'POST', body: { identifier, password }, auth: false });
 
     setTokens(data.accessToken, data.refreshToken);
-    console.log('DEBUG: Token persisted', {
-      access: localStorage.getItem('siak.access_token'),
-      refresh: localStorage.getItem('siak.refresh_token'),
-    });
     const me = await apiRequest<MeUser>('/users/me');
     const merged = {
       ...me,

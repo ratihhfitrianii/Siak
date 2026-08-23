@@ -14,7 +14,6 @@ import { generatePayroll, listPayrolls, approvePayroll, payPayroll } from './pay
 
 describe('T-Payroll — Slip Gaji (generate → approve → pay → dosen lihat)', () => {
   let app: ReturnType<typeof createApp>;
-  let keuanganToken: string;
   let dosenToken: string;
   let dosenLecturerId: number;
   let dosenUserId: number;
@@ -31,9 +30,7 @@ describe('T-Payroll — Slip Gaji (generate → approve → pay → dosen lihat)
   beforeAll(async () => {
     app = createApp({}, { waitingRoom: null });
 
-    // Admin keuangan
-    keuanganToken = await login('keuangan@siak.local', 'Admin123!');
-
+    // Admin keuangan (token tidak dipakai langsung — endpoint payroll pakai auth service)
     // Seed dosen aktif pertama
     const seedDosenRes = await pgPool.query(
       `SELECT u.id as user_id, l.id as lecturer_id

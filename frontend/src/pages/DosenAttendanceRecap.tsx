@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '../auth/AuthContext';
 import { getMyClasses, getAttendanceRecap, getAttendanceSessions } from '../lib/api';
 import type { MyClass, AttendanceRecapItem } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
@@ -131,7 +130,6 @@ function SearchableSelect({
  * Hanya dosen pengampu kelas yang bisa akses (backend enforce).
  */
 export function DosenAttendanceRecap() {
-  const { user: _user } = useAuth();
   const [classes, setClasses] = useState<MyClass[]>([]);
   const [recap, setRecap] = useState<AttendanceRecapItem[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);

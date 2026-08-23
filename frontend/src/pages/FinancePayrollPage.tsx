@@ -280,7 +280,6 @@ export function FinancePayrollPage() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return arr.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, sortKey, sortDir, page]);
 
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
