@@ -100,7 +100,7 @@ export function MyPaymentPage() {
         <div
           className={`p-3 rounded-lg border ${krsAccess.canAccess ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className={krsAccess.canAccess ? 'text-green-600' : 'text-red-600'}>
               {krsAccess.canAccess ? '✓' : '✕'}
             </span>
@@ -119,71 +119,73 @@ export function MyPaymentPage() {
           <div className="px-6 py-4 border-b border-slate-200">
             <h3 className="font-semibold text-slate-900">Semua Tagihan</h3>
           </div>
-          <table className="w-full">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Semester
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Total Tagihan
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Terbayar
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Bukti
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Aksi
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {payments.map((payment) => (
-                <tr key={payment.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                    {payment.semesterName} ({payment.semesterCode})
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-900">
-                    {formatRupiah(payment.totalAmount)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-900">
-                    {formatRupiah(payment.paidAmount)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    {getStatusBadge(payment.status)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                    {payment.status === 'lunas' && payment.proofUrl ? (
-                      <a
-                        href={payment.proofUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-primary-600 hover:underline"
-                      >
-                        Lihat
-                      </a>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPayment(payment)}
-                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-800 underline"
-                    >
-                      Detail
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Semester
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Total Tagihan
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Terbayar
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Bukti
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Aksi
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {payments.map((payment) => (
+                  <tr key={payment.id} className="hover:bg-slate-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                      {payment.semesterName} ({payment.semesterCode})
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-900">
+                      {formatRupiah(payment.totalAmount)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-900">
+                      {formatRupiah(payment.paidAmount)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {getStatusBadge(payment.status)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                      {payment.status === 'lunas' && payment.proofUrl ? (
+                        <a
+                          href={payment.proofUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary-600 hover:underline"
+                        >
+                          Lihat
+                        </a>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPayment(payment)}
+                        className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-800 underline"
+                      >
+                        Detail
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="text-center py-12">
@@ -250,7 +252,7 @@ export function MyPaymentPage() {
 
             {/* Summary */}
             <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-sm text-slate-500">Total Tagihan</p>
                   <p className="text-xl font-bold text-slate-900">
@@ -272,49 +274,51 @@ export function MyPaymentPage() {
 
             {/* Items Table */}
             <div className="p-6">
-              <table className="w-full">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Jenis
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Keterangan
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Jumlah
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Wajib
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {selectedPayment.items.map((item, idx) => (
-                    <tr key={item.id ?? idx} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
-                        {item.type.toUpperCase()}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{item.description}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-slate-900">
-                        {formatRupiah(item.amount)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">
-                        {item.isMandatory ? '✓' : '—'}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Jenis
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Keterangan
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Jumlah
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Wajib
+                      </th>
                     </tr>
-                  ))}
-                  <tr className="bg-slate-50 font-semibold">
-                    <td colSpan={2} className="px-4 py-3 text-right text-sm text-slate-900">
-                      TOTAL
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm text-slate-900">
-                      {formatRupiah(selectedPayment.totalAmount)}
-                    </td>
-                    <td className="px-4 py-3 text-center"></td>
-                  </tr>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {selectedPayment.items.map((item, idx) => (
+                      <tr key={item.id ?? idx} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
+                          {item.type.toUpperCase()}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600">{item.description}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-slate-900">
+                          {formatRupiah(item.amount)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-slate-500">
+                          {item.isMandatory ? '✓' : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-slate-50 font-semibold">
+                      <td colSpan={2} className="px-4 py-3 text-right text-sm text-slate-900">
+                        TOTAL
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-slate-900">
+                        {formatRupiah(selectedPayment.totalAmount)}
+                      </td>
+                      <td className="px-4 py-3 text-center"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
               {/* Progress bar untuk partial */}
               {selectedPayment.status === 'partial' && selectedPayment.paidAmount > 0 && (

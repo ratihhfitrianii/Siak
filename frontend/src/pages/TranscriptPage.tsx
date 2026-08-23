@@ -140,7 +140,7 @@ export function TranscriptPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm text-slate-600">
             Total SKS: <span className="font-bold text-slate-900">{overall.sks}</span> · IPK:{' '}
             <span className="font-bold text-slate-900">
@@ -210,7 +210,7 @@ export function TranscriptPage() {
               key={semester}
               className={`rounded-2xl bg-white p-5 shadow-sm ${isOpen ? 'ring-1 ring-primary-100' : ''}`}
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h2 className="font-semibold text-slate-900">Semester {semester}</h2>
                   <p className="text-sm text-slate-600">

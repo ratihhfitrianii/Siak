@@ -115,7 +115,7 @@ export function DosenSalarySlip() {
     <div className="space-y-6">
       {/* Filter + tombol download */}
       <div className="bg-white rounded-lg shadow-sm p-4">
-        <div className="flex flex-wrap items-end gap-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
           <div>
             <label htmlFor="filter-tahun" className="block text-sm font-medium text-slate-700 mb-1">
               Tahun
@@ -180,56 +180,62 @@ export function DosenSalarySlip() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-slate-700">Periode</th>
-                <th className="px-4 py-3 text-right font-medium text-slate-700">Gaji Pokok</th>
-                <th className="px-4 py-3 text-right font-medium text-slate-700">Honor Mengajar</th>
-                <th className="px-4 py-3 text-right font-medium text-slate-700">Potongan</th>
-                <th className="px-4 py-3 text-right font-medium text-slate-700">Total Diterima</th>
-                <th className="px-4 py-3 text-center font-medium text-slate-700">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {slips.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">
-                    {periodeLabel(s.periodStart)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-slate-700">
-                    {formatRupiah(s.baseSalary)}
-                  </td>
-                  <td className="px-4 py-3 text-right text-slate-700">
-                    {formatRupiah(
-                      s.totalHonor > 0 ? s.totalHonor : s.honorPerMeeting * s.totalMeetings,
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right text-red-700">
-                    {formatRupiah(s.deductions)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-slate-900">
-                    {formatRupiah(s.netAmount)}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      {STATUS_LABEL[s.status] ?? s.status}
-                    </span>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">Periode</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-700">Gaji Pokok</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-700">
+                    Honor Mengajar
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-700">Potongan</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-700">
+                    Total Diterima
+                  </th>
+                  <th className="px-4 py-3 text-center font-medium text-slate-700">Status</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot className="border-t border-slate-200 bg-slate-50">
-              <tr>
-                <td className="px-4 py-3 font-medium text-slate-700">Total</td>
-                <td colSpan={3} />
-                <td className="px-4 py-3 text-right font-bold text-primary-700">
-                  {formatRupiah(totalNet)}
-                </td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {slips.map((s) => (
+                  <tr key={s.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      {periodeLabel(s.periodStart)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-slate-700">
+                      {formatRupiah(s.baseSalary)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-slate-700">
+                      {formatRupiah(
+                        s.totalHonor > 0 ? s.totalHonor : s.honorPerMeeting * s.totalMeetings,
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right text-red-700">
+                      {formatRupiah(s.deductions)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold text-slate-900">
+                      {formatRupiah(s.netAmount)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        {STATUS_LABEL[s.status] ?? s.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t border-slate-200 bg-slate-50">
+                <tr>
+                  <td className="px-4 py-3 font-medium text-slate-700">Total</td>
+                  <td colSpan={3} />
+                  <td className="px-4 py-3 text-right font-bold text-primary-700">
+                    {formatRupiah(totalNet)}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       )}
     </div>

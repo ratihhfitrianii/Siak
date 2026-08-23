@@ -369,7 +369,7 @@ export function DosenProposalReview() {
                     {p.proposalFile && (
                       <div className="p-4 bg-white rounded-lg border border-slate-100">
                         <p className="text-xs text-slate-400 mb-2">Lampiran Proposal</p>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => {
                               if (!openProposalFile(p.proposalFile!)) {

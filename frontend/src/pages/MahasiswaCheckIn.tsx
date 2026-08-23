@@ -54,7 +54,7 @@ export function MahasiswaCheckIn() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       {/* Input Mode Toggle */}
-      <div className="bg-white rounded-lg shadow-sm p-1 flex gap-1">
+      <div className="bg-white rounded-lg shadow-sm p-1 flex flex-wrap gap-1">
         <button
           type="button"
           onClick={() => {

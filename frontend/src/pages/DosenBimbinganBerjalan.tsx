@@ -322,7 +322,7 @@ export function DosenBimbinganBerjalan() {
           onClick={() => setCatatProposal(null)}
         >
           <div
-            className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4"
+            className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-label="Catat Bimbingan"

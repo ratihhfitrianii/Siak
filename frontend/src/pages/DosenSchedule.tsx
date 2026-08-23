@@ -285,9 +285,9 @@ export function DosenSchedule() {
         </div>
       ) : (
         /* ===== 2-PANEL LAYOUT ===== */
-        <div className="flex gap-6 items-start">
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* --- Panel Kiri: To-Do List --- */}
-          <div className="w-72 shrink-0">
+          <div className="w-full lg:w-72 shrink-0">
             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
               Daftar Mata Kuliah
             </h3>
@@ -401,9 +401,9 @@ export function DosenSchedule() {
               </p>
             </div>
 
-            <div className="overflow-auto max-h-[620px]">
+            <div className="overflow-x-auto max-h-[620px]">
               <div
-                className="grid relative"
+                className="grid relative min-w-[720px]"
                 style={{
                   gridTemplateColumns: '56px repeat(6, 1fr)',
                   gridTemplateRows: `36px repeat(${TIME_SLOTS.length - 1}, minmax(28px, auto))`,

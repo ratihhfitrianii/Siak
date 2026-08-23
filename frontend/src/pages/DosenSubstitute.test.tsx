@@ -139,10 +139,10 @@ describe('DosenSubstitute (T3.8)', () => {
     // Dropdown pengganti TIDAK memuat dosen asli (diri sendiri, id 1)
     // SearchableSelect: klik button → buka dropdown → cari option
     await userEvent.setup().click(screen.getByRole('button', { name: 'Pilih Dosen Pengganti' }));
-    
+
     // Dropdown list items (hanya untuk dosen pengganti)
     const subOptions = await screen.findAllByRole('option');
-    const subValues = subOptions.map(o => o.textContent);
+    const subValues = subOptions.map((o) => o.textContent);
     expect(subValues).not.toContain('Dosen Satu (TI)');
     expect(subValues).toContain('Dosen Dua (TI)');
     // Tutup dropdown

@@ -233,7 +233,7 @@ export function DosenAttendance() {
     <div className="space-y-6">
       {/* Sessions list */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
           <h3 className="text-lg font-medium text-slate-900">Sesi Absensi</h3>
           <button
             type="button"
@@ -261,32 +261,32 @@ export function DosenAttendance() {
         ) : (
           <div className="space-y-3">
             {sessions.map((s) => (
-                          <div
-                            key={s.id}
-                            className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors"
-                          >
-                            <div className="flex justify-between items-start gap-4">
-                              <button
-                                type="button"
-                                onClick={() => handleSelectSession(String(s.id))}
-                                className="text-left flex-1"
-                              >
-                                <h4 className="font-semibold text-slate-900">
-                                  {s.courseName} - {s.classCode}
-                                </h4>
-                                <p className="text-sm text-slate-500 mt-0.5">
-                                  Pertemuan {s.meetingNumber} / {formatTanggalID(s.sessionDate)}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="inline-flex items-center gap-1 text-xs font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
-                                    ID: {s.id}
-                                  </span>
-                                  <span className="text-xs text-slate-400">•</span>
-                                  <span className="text-xs text-slate-500">
-                                    {s.topic ?? 'Tanpa topik'} · Hadir {s.hadirCount}/{s.totalRecords}
-                                  </span>
-                                </div>
-                              </button>
+              <div
+                key={s.id}
+                className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectSession(String(s.id))}
+                    className="text-left flex-1"
+                  >
+                    <h4 className="font-semibold text-slate-900">
+                      {s.courseName} - {s.classCode}
+                    </h4>
+                    <p className="text-sm text-slate-500 mt-0.5">
+                      Pertemuan {s.meetingNumber} / {formatTanggalID(s.sessionDate)}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="inline-flex items-center gap-1 text-xs font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                        ID: {s.id}
+                      </span>
+                      <span className="text-xs text-slate-400">•</span>
+                      <span className="text-xs text-slate-500">
+                        {s.topic ?? 'Tanpa topik'} · Hadir {s.hadirCount}/{s.totalRecords}
+                      </span>
+                    </div>
+                  </button>
                   <div className="flex items-center gap-2 shrink-0">
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${

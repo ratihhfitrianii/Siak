@@ -264,33 +264,33 @@ export default function ProfilePage() {
 
             {/* Info list below photo */}
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                 <span className="text-slate-500">NIM</span>
                 <span className="font-medium text-slate-900">{profile.nim}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                 <span className="text-slate-500">Program Studi</span>
                 <span className="font-medium text-slate-900 text-right">{profile.prodiName}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                 <span className="text-slate-500">Fakultas</span>
                 <span className="font-medium text-slate-900 text-right">{profile.facultyName}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                 <span className="text-slate-500">Angkatan</span>
                 <span className="font-medium text-slate-900">{profile.academicYearCode}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                 <span className="text-slate-500">Jalur Masuk</span>
                 <span className="font-medium text-slate-900">{profile.entryType}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 items-center">
                 <span className="text-slate-500">Status</span>
                 <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full capitalize">
                   {profile.status}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                 <span className="text-slate-500">Email Kampus</span>
                 <span className="font-medium text-slate-900 text-right text-xs break-all">
                   {profile.email}
@@ -384,19 +384,19 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
+                    <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                       <span className="text-slate-500">No. HP</span>
                       <span className="font-medium text-slate-900">{profile.phone || '-'}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                       <span className="text-slate-500">Email Pribadi</span>
                       <span className="font-medium text-slate-900 text-right text-xs">
                         {profile.personalEmail || '-'}
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                       <span className="text-slate-500">Alamat Domisili</span>
-                      <span className="font-medium text-slate-900 text-right text-xs max-w-[180px]">
+                      <span className="font-medium text-slate-900 text-right text-xs break-all sm:max-w-[180px]">
                         {profile.domicileAddress || '-'}
                       </span>
                     </div>
@@ -435,52 +435,54 @@ export default function ProfilePage() {
                 const yTicks = [4, 3, 2, 1, 0];
                 return (
                   <div className="relative" data-testid="ips-chart">
-                    <div className="flex" style={{ height: '280px' }}>
-                      <div className="w-10 flex flex-col justify-between text-right pr-3 text-[11px] text-slate-400 font-medium pt-1 pb-6">
-                        {yTicks.map((tick) => (
-                          <span key={tick}>{tick.toFixed(1)}</span>
-                        ))}
-                      </div>
-                      <div className="flex-1 relative border-l border-b border-slate-200">
-                        {yTicks.map((tick) => (
-                          <div
-                            key={`grid-${tick}`}
-                            className="absolute left-0 right-0 border-t border-slate-100"
-                            style={{ bottom: `${(tick / 4) * 100}%` }}
-                          />
-                        ))}
-                        <div className="absolute inset-0 flex justify-around px-4 pb-6">
-                          {ipsData.map((sem, idx) => {
-                            const barPct = (sem.ips / 4) * 100;
-                            return (
-                              <div key={idx} className="relative flex-1 max-w-[64px] mx-1 h-full">
-                                <div
-                                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 rounded-t-lg transition-all"
-                                  style={{
-                                    height: `${barPct}%`,
-                                    backgroundColor: sem.ips === 0 ? '#e2e8f0' : '#3b82f6',
-                                  }}
-                                >
-                                  {sem.ips > 0 && (
-                                    <span className="absolute inset-x-0 top-2 text-center text-[11px] font-bold text-white">
-                                      {sem.ips.toFixed(2)}
-                                    </span>
-                                  )}
+                    <div className="-mx-6 px-6 overflow-x-auto">
+                      <div className="flex min-w-[320px]" style={{ height: '280px' }}>
+                        <div className="w-10 flex flex-col justify-between text-right pr-3 text-[11px] text-slate-400 font-medium pt-1 pb-6">
+                          {yTicks.map((tick) => (
+                            <span key={tick}>{tick.toFixed(1)}</span>
+                          ))}
+                        </div>
+                        <div className="flex-1 relative border-l border-b border-slate-200">
+                          {yTicks.map((tick) => (
+                            <div
+                              key={`grid-${tick}`}
+                              className="absolute left-0 right-0 border-t border-slate-100"
+                              style={{ bottom: `${(tick / 4) * 100}%` }}
+                            />
+                          ))}
+                          <div className="absolute inset-0 flex justify-around px-4 pb-6">
+                            {ipsData.map((sem, idx) => {
+                              const barPct = (sem.ips / 4) * 100;
+                              return (
+                                <div key={idx} className="relative flex-1 max-w-[64px] mx-1 h-full">
+                                  <div
+                                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 rounded-t-lg transition-all"
+                                    style={{
+                                      height: `${barPct}%`,
+                                      backgroundColor: sem.ips === 0 ? '#e2e8f0' : '#3b82f6',
+                                    }}
+                                  >
+                                    {sem.ips > 0 && (
+                                      <span className="absolute inset-x-0 top-2 text-center text-[11px] font-bold text-white">
+                                        {sem.ips.toFixed(2)}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex justify-around ml-10 mt-2">
-                      {ipsData.map((sem, idx) => (
-                        <div key={idx} className="flex-1 max-w-[64px] mx-1 text-center">
-                          <span className="text-[10px] text-slate-500 leading-tight block">
-                            {sem.semesterCode}
-                          </span>
-                        </div>
-                      ))}
+                      <div className="flex justify-around ml-10 mt-2 min-w-[320px]">
+                        {ipsData.map((sem, idx) => (
+                          <div key={idx} className="flex-1 max-w-[64px] mx-1 text-center">
+                            <span className="text-[10px] text-slate-500 leading-tight block">
+                              {sem.semesterCode}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 );

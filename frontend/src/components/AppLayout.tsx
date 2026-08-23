@@ -717,8 +717,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   </button>
                   {isExpanded && !sidebarCollapsed && (
                     <div
-                      className={`ml-4 mt-0.5 space-y-0.5 border-l pl-2 ${
-                        isDarkSidebar ? 'border-slate-600' : 'border-slate-200'
+                      className={`mt-0.5 flex shrink-0 items-center space-x-1 md:ml-4 md:flex-col md:items-stretch md:space-x-0 md:space-y-0.5 md:border-l md:pl-2 ${
+                        isDarkSidebar ? 'md:border-slate-600' : 'md:border-slate-200'
                       }`}
                     >
                       {visibleChildren.map((child) => (
@@ -728,7 +728,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                           aria-label={child.label}
                           title={child.label}
                           className={({ isActive }) =>
-                            `flex h-8 items-center gap-2 rounded-md px-2 text-sm transition ${
+                            `flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-sm transition ${
                               isActive
                                 ? isDarkSidebar
                                   ? 'bg-slate-700 text-white font-medium'

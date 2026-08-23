@@ -139,49 +139,69 @@ export function AdminMasterPage() {
   });
   const [editingLecturerId, setEditingLecturerId] = useState<number | null>(null);
 
-  const loadFaculties = useCallback(async (page = 1) => {
-    try {
-      const data = await listFaculties({ page, limit: PAGE_SIZE, search: facultySearch });
-      setFaculties(data.items);
-      setFacultyTotal(data.pagination.total);
-      setFacultyPage(page);
-    } catch {
-      setError('Gagal memuat data fakultas');
-    }
-  }, [facultySearch]);
+  const loadFaculties = useCallback(
+    async (page = 1) => {
+      try {
+        const data = await listFaculties({ page, limit: PAGE_SIZE, search: facultySearch });
+        setFaculties(data.items);
+        setFacultyTotal(data.pagination.total);
+        setFacultyPage(page);
+      } catch {
+        setError('Gagal memuat data fakultas');
+      }
+    },
+    [facultySearch],
+  );
 
-  const loadProdis = useCallback(async (page = 1) => {
-    try {
-      const data = await listProdis({ page, limit: PAGE_SIZE, search: prodiSearch });
-      setProdis(data.items);
-      setProdiTotal(data.pagination.total);
-      setProdiPage(page);
-    } catch {
-      setError('Gagal memuat data prodi');
-    }
-  }, [prodiSearch]);
+  const loadProdis = useCallback(
+    async (page = 1) => {
+      try {
+        const data = await listProdis({ page, limit: PAGE_SIZE, search: prodiSearch });
+        setProdis(data.items);
+        setProdiTotal(data.pagination.total);
+        setProdiPage(page);
+      } catch {
+        setError('Gagal memuat data prodi');
+      }
+    },
+    [prodiSearch],
+  );
 
-  const loadStudents = useCallback(async (page = 1) => {
-    try {
-      const response = await listMasterStudents({ page, limit: PAGE_SIZE, search: studentSearch });
-      setStudents(response.items);
-      setStudentTotal(response.pagination.total);
-      setStudentPage(page);
-    } catch {
-      setError('Gagal memuat data mahasiswa');
-    }
-  }, [studentSearch]);
+  const loadStudents = useCallback(
+    async (page = 1) => {
+      try {
+        const response = await listMasterStudents({
+          page,
+          limit: PAGE_SIZE,
+          search: studentSearch,
+        });
+        setStudents(response.items);
+        setStudentTotal(response.pagination.total);
+        setStudentPage(page);
+      } catch {
+        setError('Gagal memuat data mahasiswa');
+      }
+    },
+    [studentSearch],
+  );
 
-  const loadLecturers = useCallback(async (page = 1) => {
-    try {
-      const response = await listMasterLecturers({ page, limit: PAGE_SIZE, search: lecturerSearch });
-      setLecturers(response.items);
-      setLecturerTotal(response.pagination.total);
-      setLecturerPage(page);
-    } catch {
-      setError('Gagal memuat data dosen');
-    }
-  }, [lecturerSearch]);
+  const loadLecturers = useCallback(
+    async (page = 1) => {
+      try {
+        const response = await listMasterLecturers({
+          page,
+          limit: PAGE_SIZE,
+          search: lecturerSearch,
+        });
+        setLecturers(response.items);
+        setLecturerTotal(response.pagination.total);
+        setLecturerPage(page);
+      } catch {
+        setError('Gagal memuat data dosen');
+      }
+    },
+    [lecturerSearch],
+  );
 
   useEffect(() => {
     setLoading(true);

@@ -30,9 +30,9 @@ function SearchableSelect<T extends { id: number; label: string }>({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = useMemo(() =>
-    options.filter(o => o.label.toLowerCase().includes(search.toLowerCase())),
-    [options, search]
+  const filtered = useMemo(
+    () => options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase())),
+    [options, search],
   );
 
   useEffect(() => {
@@ -51,10 +51,10 @@ function SearchableSelect<T extends { id: number; label: string }>({
     if (!isOpen) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setHighlightedIndex(i => Math.min(i + 1, filtered.length - 1));
+      setHighlightedIndex((i) => Math.min(i + 1, filtered.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setHighlightedIndex(i => Math.max(i - 1, -1));
+      setHighlightedIndex((i) => Math.max(i - 1, -1));
     } else if (e.key === 'Enter' && highlightedIndex >= 0) {
       e.preventDefault();
       onChange(filtered[highlightedIndex].id);
@@ -68,13 +68,16 @@ function SearchableSelect<T extends { id: number; label: string }>({
     }
   };
 
-  const selectedOption = options.find(o => o.id === value);
+  const selectedOption = options.find((o) => o.id === value);
 
   return (
     <div ref={containerRef} className="relative w-full max-w-xs">
       <button
         type="button"
-        onClick={() => { setIsOpen(!isOpen); if (!isOpen) setHighlightedIndex(-1); }}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen) setHighlightedIndex(-1);
+        }}
         className={`w-full px-3 py-1.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm text-left ${value ? 'text-slate-900' : 'text-slate-500'}`}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -91,7 +94,10 @@ function SearchableSelect<T extends { id: number; label: string }>({
             ref={inputRef}
             type="text"
             value={search}
-            onChange={e => { setSearch(e.target.value); setHighlightedIndex(-1); }}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setHighlightedIndex(-1);
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Cari..."
             className="w-full px-3 py-2 border-b border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
@@ -322,7 +328,10 @@ export function DosenSubstitute() {
                   label: `${cls.courseCode} — ${cls.classCode}`,
                 }))}
                 value={classId}
-                onChange={(val) => { setClassId(val); setScheduleId(null); }}
+                onChange={(val) => {
+                  setClassId(val);
+                  setScheduleId(null);
+                }}
                 placeholder="Pilih Kelas"
               />
               {classes.length === 0 && (
@@ -337,10 +346,12 @@ export function DosenSubstitute() {
                 Jadwal Pertemuan
               </label>
               <SearchableSelect
-                options={selectedClass?.schedules.map((s) => ({
-                  id: s.id,
-                  label: `Pertemuan ${s.meetingNumber} — ${s.scheduledDate}${s.topic ? ` (${s.topic})` : ''}`,
-                })) ?? []}
+                options={
+                  selectedClass?.schedules.map((s) => ({
+                    id: s.id,
+                    label: `Pertemuan ${s.meetingNumber} — ${s.scheduledDate}${s.topic ? ` (${s.topic})` : ''}`,
+                  })) ?? []
+                }
                 value={scheduleId}
                 onChange={setScheduleId}
                 placeholder="Pilih Jadwal"
@@ -409,7 +420,7 @@ export function DosenSubstitute() {
                 key={req.id}
                 className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors"
               >
-                <div className="flex justify-between items-start gap-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                   <div>
                     <h4 className="font-semibold text-slate-900">
                       {req.courseCode} — {req.classCode} · Pertemuan {req.meetingNumber}

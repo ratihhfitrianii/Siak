@@ -328,7 +328,7 @@ export function AdminCourseReviewPage() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-max text-sm">
                 <thead className="bg-slate-50">
                   <tr className="text-left text-slate-500 border-b border-slate-200">
                     <th className="pb-2 font-medium px-4">NIK</th>

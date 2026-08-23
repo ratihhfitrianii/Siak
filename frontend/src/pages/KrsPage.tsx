@@ -276,8 +276,8 @@ export function KrsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Keluhan lama: "KRS yang sudah disetujui bisa di download PDF" — tombol hanya utk approved */}
           {status === 'approved' && (
             <button
@@ -513,7 +513,7 @@ export function KrsPage() {
           aria-modal="true"
           aria-label="Konfirmasi submit KRS"
         >
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+          <div className="w-full max-h-[90vh] overflow-y-auto max-w-sm rounded-2xl bg-white p-5 shadow-xl">
             <h3 className="text-base font-bold text-slate-900">Submit KRS?</h3>
             <p className="mt-2 text-sm text-slate-600">
               Setelah dikirim, KRS Anda terkunci dan menunggu persetujuan Admin Akademik. Anda tidak
