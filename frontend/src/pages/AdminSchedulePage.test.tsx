@@ -116,8 +116,17 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     classSelect.value = '10';
     classSelect.dispatchEvent(new Event('change', { bubbles: true }));
 
-    // Jadwal tampil (normalisasi snake→camel)
-    expect(await screen.findByText('1')).toBeInTheDocument(); // meeting number
+    // Jadwal tampil (kolom Pertemuan dihapus — verifikasi via tanggal & topik)
+    expect(
+      await screen.findByText(
+        new Date('2026-02-02').toLocaleDateString('id-ID', {
+          weekday: 'short',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }),
+      ),
+    ).toBeInTheDocument();
     expect(await screen.findByRole('cell', { name: /Pemrograman Dasar/ })).toBeInTheDocument();
     expect(screen.getByText('Terjadwal')).toBeInTheDocument(); // is_completed=false
   });

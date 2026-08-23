@@ -95,6 +95,12 @@ export function AdminMasterPage() {
   const [modalTab, setModalTab] = useState<ModalTab>(null);
   const [saving, setSaving] = useState(false);
 
+  // Search states
+  const [facultySearch, setFacultySearch] = useState('');
+  const [prodiSearch, setProdiSearch] = useState('');
+  const [studentSearch, setStudentSearch] = useState('');
+  const [lecturerSearch, setLecturerSearch] = useState('');
+
   // Form Faculty
   const [facultyForm, setFacultyForm] = useState<CreateFacultyInput>({
     code: '',
@@ -135,47 +141,47 @@ export function AdminMasterPage() {
 
   const loadFaculties = useCallback(async (page = 1) => {
     try {
-      const data = await listFaculties({ page, limit: PAGE_SIZE });
+      const data = await listFaculties({ page, limit: PAGE_SIZE, search: facultySearch });
       setFaculties(data.items);
       setFacultyTotal(data.pagination.total);
       setFacultyPage(page);
     } catch {
       setError('Gagal memuat data fakultas');
     }
-  }, []);
+  }, [facultySearch]);
 
   const loadProdis = useCallback(async (page = 1) => {
     try {
-      const data = await listProdis({ page, limit: PAGE_SIZE });
+      const data = await listProdis({ page, limit: PAGE_SIZE, search: prodiSearch });
       setProdis(data.items);
       setProdiTotal(data.pagination.total);
       setProdiPage(page);
     } catch {
       setError('Gagal memuat data prodi');
     }
-  }, []);
+  }, [prodiSearch]);
 
   const loadStudents = useCallback(async (page = 1) => {
     try {
-      const response = await listMasterStudents({ page, limit: PAGE_SIZE });
+      const response = await listMasterStudents({ page, limit: PAGE_SIZE, search: studentSearch });
       setStudents(response.items);
       setStudentTotal(response.pagination.total);
       setStudentPage(page);
     } catch {
       setError('Gagal memuat data mahasiswa');
     }
-  }, []);
+  }, [studentSearch]);
 
   const loadLecturers = useCallback(async (page = 1) => {
     try {
-      const response = await listMasterLecturers({ page, limit: PAGE_SIZE });
+      const response = await listMasterLecturers({ page, limit: PAGE_SIZE, search: lecturerSearch });
       setLecturers(response.items);
       setLecturerTotal(response.pagination.total);
       setLecturerPage(page);
     } catch {
       setError('Gagal memuat data dosen');
     }
-  }, []);
+  }, [lecturerSearch]);
 
   useEffect(() => {
     setLoading(true);
@@ -514,6 +520,20 @@ export function AdminMasterPage() {
             </button>
           </div>
 
+          {/* Search Fakultas */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Cari kode/nama fakultas..."
+              value={facultySearch}
+              onChange={(e) => {
+                setFacultySearch(e.target.value);
+                loadFaculties(1);
+              }}
+              className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
           {/* Table Fakultas */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -591,6 +611,20 @@ export function AdminMasterPage() {
             >
               Tambah Prodi
             </button>
+          </div>
+
+          {/* Search Prodi */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Cari kode/nama prodi..."
+              value={prodiSearch}
+              onChange={(e) => {
+                setProdiSearch(e.target.value);
+                loadProdis(1);
+              }}
+              className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
           </div>
 
           {/* Table Prodi */}
@@ -674,6 +708,20 @@ export function AdminMasterPage() {
             </button>
           </div>
 
+          {/* Search Mahasiswa */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Cari NIM/nama/email mahasiswa..."
+              value={studentSearch}
+              onChange={(e) => {
+                setStudentSearch(e.target.value);
+                loadStudents(1);
+              }}
+              className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
           {/* Table Mahasiswa */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -751,6 +799,20 @@ export function AdminMasterPage() {
             >
               Tambah Dosen
             </button>
+          </div>
+
+          {/* Search Dosen */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Cari NIDN/nama/email dosen..."
+              value={lecturerSearch}
+              onChange={(e) => {
+                setLecturerSearch(e.target.value);
+                loadLecturers(1);
+              }}
+              className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
           </div>
 
           {/* Table Dosen */}

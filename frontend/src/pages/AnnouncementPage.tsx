@@ -8,6 +8,22 @@ import {
 import type { Announcement, CreateAnnouncementInput } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
+/** Real-time clock component — updates every second. */
+function RealTimeClock() {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <time dateTime={time.toISOString()} className="font-mono text-lg tabular-nums">
+      {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+    </time>
+  );
+}
+
 const ROLE_OPTIONS = [
   { code: 'mahasiswa', label: 'Mahasiswa' },
   { code: 'dosen', label: 'Dosen' },
@@ -124,6 +140,17 @@ export function AnnouncementPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Real-time Clock */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Informasi Penting</h1>
+          <p className="text-slate-600">Kelola pengumuman untuk seluruh kampus</p>
+        </div>
+        <div className="bg-slate-900 text-green-400 px-4 py-2 rounded-lg font-mono text-lg tabular-nums">
+          <RealTimeClock />
+        </div>
+      </div>
+
       {error && <FormAlert>{error}</FormAlert>}
       {success && (
         <p

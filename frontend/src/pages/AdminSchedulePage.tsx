@@ -244,22 +244,6 @@ export function AdminSchedulePage() {
             <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Pertemuan Ke-
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="30"
-                  value={formData.meetingNumber}
-                  onChange={(e) =>
-                    setFormData({ ...formData, meetingNumber: Number(e.target.value) })
-                  }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Tanggal (YYYY-MM-DD)
                 </label>
                 <input
@@ -345,9 +329,6 @@ export function AdminSchedulePage() {
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
-                        Pertemuan
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
                         Tanggal
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
@@ -364,16 +345,13 @@ export function AdminSchedulePage() {
                   <tbody className="divide-y divide-slate-200">
                     {schedules.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                        <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
                           Belum ada jadwal untuk kelas ini
                         </td>
                       </tr>
                     ) : (
                       schedules.map((s) => (
                         <tr key={s.id} className="hover:bg-slate-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                            {s.meetingNumber}
-                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                             {new Date(s.scheduledDate).toLocaleDateString('id-ID', {
                               weekday: 'short',
