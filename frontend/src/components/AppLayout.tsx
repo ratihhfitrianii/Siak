@@ -43,7 +43,9 @@ const ICON_PATHS: Record<string, string> = {
 };
 
 /** Mapping permission → item menu (RBAC UI: menu disaring dari /users/me, bukan hardcode per role).
- *  Field `roles` opsional: jika ada, item HANYA tampil untuk role tsb (submenu dosen — keluhan #5). */
+ *  Field `roles` opsional: jika ada, item HANYA tampil untuk role tsb (submenu dosen — keluhan #5).
+ *  Field `requiresWali`: hanya tampil untuk dosen wali.
+ *  Field `visible`: optional async function (user) => boolean untuk cek tambahan (mis. eligibility skripsi). */
 const MENU_ITEMS: {
   permissions: string[];
   label: string;
@@ -52,6 +54,7 @@ const MENU_ITEMS: {
   description: string;
   roles?: string[];
   requiresWali?: boolean;
+  visible?: (user: { role: string; menu: string[]; isWali: boolean }) => boolean | Promise<boolean>;
   children?: {
     permissions: string[];
     label: string;
@@ -60,6 +63,11 @@ const MENU_ITEMS: {
     description: string;
     roles?: string[];
     requiresWali?: boolean;
+    visible?: (user: {
+      role: string;
+      menu: string[];
+      isWali: boolean;
+    }) => boolean | Promise<boolean>;
   }[];
 }[] = [
   // Profil mahasiswa — di bawah Dashboard di sidebar
@@ -88,6 +96,25 @@ const MENU_ITEMS: {
     path: '/skripsi',
     icon: 'document',
     description: 'Manajemen skripsi',
+    visible: async (user) => {
+      // Cek eligibility skripsi via API
+      if (user.role !== 'mahasiswa') return false;
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE || '/api/v1'}/skripsi/eligibility`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('siak.access_token')}`,
+            },
+          },
+        );
+        if (!res.ok) return false;
+        const data = await res.json();
+        return data.data?.eligible === true;
+      } catch {
+        return false;
+      }
+    },
     children: [
       {
         permissions: ['thesis.submit'],
@@ -107,7 +134,7 @@ const MENU_ITEMS: {
   },
   {
     permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
-    label: 'KRS',
+    label: 'Kelola KRS',
     path: '/krs',
     icon: 'document',
     description: 'Isi dan lihat Kartu Rencana Studi',
@@ -118,6 +145,13 @@ const MENU_ITEMS: {
     path: '/transkrip',
     icon: 'clipboard',
     description: 'Lihat transkrip nilai',
+  },
+  {
+    permissions: ['transcript.view_own', 'transcript.view_mentee'],
+    label: 'Hasil Studi',
+    path: '/hasil-studi',
+    icon: 'star',
+    description: 'Lihat hasil studi & IPK',
   },
   {
     permissions: ['user.manage'],
@@ -211,6 +245,15 @@ const MENU_ITEMS: {
     icon: 'clipboard',
     description: 'Review & setujui/tolak pilihan MK dosen',
   },
+  // ---- Admin Akademik: Ajuan Proposal Skripsi (thesis.manage) ----
+  {
+    permissions: ['thesis.manage'],
+    roles: ['admin_akademik'],
+    label: 'Ajuan Proposal',
+    path: '/admin/skripsi/proposal',
+    icon: 'document',
+    description: 'Review & setujui/tolak proposal skripsi mahasiswa',
+  },
   // ---- Admin Sistem: Informasi Penting (Announcements) ----
   {
     permissions: ['user.manage'],
@@ -255,18 +298,18 @@ const MENU_ITEMS: {
     description: 'Kelola bimbingan mahasiswa binaan & review proposal',
     children: [
       {
-        permissions: ['guidance.manage'],
-        label: 'Bimbingan Mahasiswa Binaan',
-        path: '/dosen/bimbingan/mahasiswa-binaan',
-        icon: 'users',
-        description: 'Daftar mahasiswa yang proposalnya disetujui',
-      },
-      {
         permissions: ['thesis.review'],
         label: 'Pengajuan Proposal',
         path: '/dosen/bimbingan/proposal',
         icon: 'clipboard',
         description: 'Review & setujui/tolak proposal skripsi',
+      },
+      {
+        permissions: ['guidance.manage'],
+        label: 'Bimbingan Mahasiswa Binaan',
+        path: '/dosen/bimbingan/mahasiswa-binaan',
+        icon: 'users',
+        description: 'Daftar mahasiswa yang proposalnya disetujui',
       },
     ],
   },
@@ -451,20 +494,105 @@ export function AppLayout({ children }: { children: ReactNode }) {
     }
   }
 
+  // Menu visibility state for async visible checks
+  const [menuVisibility, setMenuVisibility] = useState<Record<string, boolean>>({});
+  const [menuReady, setMenuReady] = useState(false);
+
+  // Resolve async visible checks for menus
+  useEffect(() => {
+    if (!user) {
+      setMenuVisibility({});
+      setMenuReady(true);
+      return;
+    }
+    let cancelled = false;
+
+    const resolveVisibility = async () => {
+      const hidden = HIDDEN_MENU_BY_ROLE[user.role] ?? [];
+      const menuItems = MENU_ITEMS.filter(
+        (item) =>
+          !hidden.includes(item.path) &&
+          (!item.roles || item.roles.includes(user.role)) &&
+          (!item.requiresWali || user.isWali) &&
+          item.permissions.some((p) => user.menu.includes(p)),
+      );
+
+      const visibility: Record<string, boolean> = {};
+
+      for (const item of menuItems) {
+        if (item.visible) {
+          const visible = await item.visible({
+            role: user.role,
+            menu: user.menu,
+            isWali: user.isWali,
+          });
+          if (!cancelled) visibility[item.path] = visible;
+        } else {
+          if (!cancelled) visibility[item.path] = true;
+        }
+
+        if (item.children) {
+          for (const child of item.children) {
+            if (child.visible) {
+              const visible = await child.visible({
+                role: user.role,
+                menu: user.menu,
+                isWali: user.isWali,
+              });
+              if (!cancelled) visibility[child.path] = visible;
+            } else {
+              if (!cancelled)
+                visibility[child.path] = child.permissions.some((p) => user.menu.includes(p));
+            }
+          }
+        }
+      }
+
+      if (!cancelled) {
+        setMenuVisibility(visibility);
+        setMenuReady(true);
+      }
+    };
+
+    resolveVisibility();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   if (!user) {
     return null;
   }
 
   const hidden = HIDDEN_MENU_BY_ROLE[user.role] ?? [];
-  const menu = MENU_ITEMS.filter(
+  const menuItems = MENU_ITEMS.filter(
     (item) =>
       !hidden.includes(item.path) &&
       (!item.roles || item.roles.includes(user.role)) &&
       (!item.requiresWali || user.isWali) &&
-      (item.children
-        ? item.children.some((c) => c.permissions.some((p) => user.menu.includes(p)))
-        : item.permissions.some((p) => user.menu.includes(p))),
+      item.permissions.some((p) => user.menu.includes(p)),
   );
+
+  // Show loading skeleton while resolving async visibility
+  if (!menuReady) {
+    return (
+      <div className="min-h-screen bg-slate-100">
+        <header className="h-14 border-b bg-white sticky top-0 z-20">
+          <div className="flex h-full items-center justify-between px-4" />
+        </header>
+        <main className="p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-slate-200 rounded w-1/4" />
+            <div className="h-8 bg-slate-200 rounded w-1/3" />
+            <div className="h-8 bg-slate-200 rounded w-1/2" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Filter menu based on resolved visibility
+  const menu = menuItems.filter((item) => menuVisibility[item.path] !== false);
 
   async function handleLogout() {
     setMenuOpen(false);

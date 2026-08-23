@@ -191,13 +191,14 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('menu disaring dari permission user (mahasiswa → KRS, Transkrip & Pembayaran)', () => {
+  it('menu disaring dari permission user (mahasiswa → Kelola KRS, Transkrip, Hasil Studi & Pembayaran)', () => {
     mockUser = MAHASISWA;
     renderLayout();
 
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'KRS' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Kelola KRS' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Transkrip' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Hasil Studi' })).toBeInTheDocument();
     // T5.3: mahasiswa punya krs.fill → menu Pembayaran (tagihan sendiri) muncul
     expect(screen.getByRole('link', { name: 'Pembayaran' })).toBeInTheDocument();
     // tanpa permission → menu tak muncul
@@ -214,7 +215,7 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     renderLayout();
 
     // Expanded: label inline tampil (bukan tooltip).
-    expect(screen.getByText('KRS')).toBeInTheDocument();
+    expect(screen.getByText('Kelola KRS')).toBeInTheDocument();
     expect(screen.getByText('Transkrip')).toBeInTheDocument();
     // Tooltip deskripsi TIDAK dirender saat expanded.
     expect(screen.queryByText('Isi dan lihat Kartu Rencana Studi')).not.toBeInTheDocument();
@@ -259,8 +260,8 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
     // role dosen → menu Transkrip di-sembunyikan per role (HIDDEN_MENU_BY_ROLE)
     expect(screen.queryByRole('link', { name: 'Transkrip' })).not.toBeInTheDocument();
-    // tanpa permission krs.* → KRS tidak muncul
-    expect(screen.queryByRole('link', { name: 'KRS' })).not.toBeInTheDocument();
+    // tanpa permission krs.* → Kelola KRS tidak muncul
+    expect(screen.queryByRole('link', { name: 'Kelola KRS' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'User' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Pembayaran' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Tagihan' })).not.toBeInTheDocument();
@@ -472,9 +473,9 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     mockUser = MAHASISWA;
     renderLayout();
 
-    // Expanded: label inline terlihat (KRS, Transkrip, Pembayaran)
-    expect(screen.getByRole('link', { name: 'KRS' })).toBeInTheDocument();
-    expect(screen.getByText('KRS')).toBeInTheDocument();
+    // Expanded: label inline terlihat (Kelola KRS, Transkrip, Pembayaran)
+    expect(screen.getByRole('link', { name: 'Kelola KRS' })).toBeInTheDocument();
+    expect(screen.getByText('Kelola KRS')).toBeInTheDocument();
     expect(screen.getByText('Transkrip')).toBeInTheDocument();
     // Tooltip (label+deskripsi) TIDAK dirender saat expanded
     expect(screen.queryByText('Isi dan lihat Kartu Rencana Studi')).not.toBeInTheDocument();

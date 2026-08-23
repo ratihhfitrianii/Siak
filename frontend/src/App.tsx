@@ -91,6 +91,9 @@ const FinancePayrollPage = lazy(() =>
 const AdminCourseReviewPage = lazy(() =>
   import('./pages/AdminCourseReviewPage').then((m) => ({ default: m.AdminCourseReviewPage })),
 );
+const AdminProposalReview = lazy(() =>
+  import('./pages/AdminProposalReview').then((m) => ({ default: m.AdminProposalReview })),
+);
 
 /** Fallback saat chunk halaman di-download (T5.6) — spinner konsisten dengan pola loading existing. */
 function PageFallback() {
@@ -206,13 +209,24 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          {/* Dosen — Pengajuan Proposal */}
+          // Dosen — Pengajuan Proposal
           <Route
             path="/dosen/bimbingan/proposal"
             element={
               <ProtectedRoute perm="thesis.review">
                 <AppLayout>
                   <DosenProposalReview />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Admin Akademik — Ajuan Proposal Skripsi */}
+          <Route
+            path="/admin/skripsi/proposal"
+            element={
+              <ProtectedRoute perm="thesis.manage">
+                <AppLayout>
+                  <AdminProposalReview />
                 </AppLayout>
               </ProtectedRoute>
             }
@@ -241,6 +255,16 @@ export default function App() {
           />
           <Route
             path="/transkrip"
+            element={
+              <ProtectedRoute perm="transcript.view_own">
+                <AppLayout>
+                  <TranscriptPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hasil-studi"
             element={
               <ProtectedRoute perm="transcript.view_own">
                 <AppLayout>

@@ -71,13 +71,18 @@ export function DosenGrades() {
       setIsLoading(true);
       setError(null);
       try {
-        const results = await Promise.all(
+        // allSettled: satu kelas ditolak (403 bukan pengampu) tidak menggagalkan
+        // kelas lain dalam penawaran yang sama — kelas tak berhak dilewati saja.
+        const results = await Promise.allSettled(
           targets.map(async (cls) => {
             const res = await getGradesByClass(cls.id);
             return res.items.map((g) => ({ ...g, classCode: cls.classCode }));
           }),
         );
-        const items = results.flat();
+        const items = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+        if (items.length === 0 && results.every((r) => r.status === 'rejected')) {
+          throw new Error('no-access');
+        }
         setGrades(items);
         setScores(
           Object.fromEntries(
