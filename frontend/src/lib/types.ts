@@ -45,6 +45,29 @@ export interface SemesterIps {
   sksDiambil: number;
 }
 
+/** Dosen Profile — detail dosen untuk halaman Profile dosen */
+export interface LecturerProfile {
+  id: number;
+  nik: string;
+  nidn: string | null;
+  photoUrl: string | null;
+  phone: string | null;
+  personalEmail: string | null;
+  fullName: string;
+  email: string;
+  facultyName: string;
+  facultyCode: string;
+  prodiName: string;
+  prodiCode: string;
+}
+
+/** Input update profil dosen (HANYA field yang bisa diedit mahasiswa/dosen sendiri) */
+export interface UpdateLecturerProfileInput {
+  phone?: string | null;
+  personalEmail?: string | null;
+  photoUrl?: string | null;
+}
+
 export interface KrsPeriod {
   id: number;
   semesterId: number;

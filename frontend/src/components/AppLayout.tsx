@@ -332,6 +332,15 @@ const MENU_ITEMS: {
     icon: 'wallet',
     description: 'Lihat & unduh slip gaji per periode',
   },
+  // Profile — dosen lihat & ubah foto/kontak sendiri
+  {
+    permissions: ['lecturer.select_course'],
+    roles: ['dosen'],
+    label: 'Profile',
+    path: '/dosen/profile',
+    icon: 'user',
+    description: 'Foto profil & detail dosen',
+  },
 ];
 
 const ROLE_LABEL: Record<string, string> = {

@@ -91,6 +91,9 @@ const FinancePayrollPage = lazy(() =>
 const AdminCourseReviewPage = lazy(() =>
   import('./pages/AdminCourseReviewPage').then((m) => ({ default: m.AdminCourseReviewPage })),
 );
+const DosenProfilePage = lazy(() =>
+  import('./pages/DosenProfilePage').then((m) => ({ default: m.DosenProfilePage })),
+);
 const AdminProposalReview = lazy(() =>
   import('./pages/AdminProposalReview').then((m) => ({ default: m.AdminProposalReview })),
 );
@@ -343,6 +346,17 @@ export default function App() {
               <ProtectedRoute perm="payroll.view">
                 <AppLayout>
                   <DosenSalarySlip />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Dosen — Profile (semua dosen, permission lecturer.select_course) */}
+          <Route
+            path="/dosen/profile"
+            element={
+              <ProtectedRoute perm="lecturer.select_course">
+                <AppLayout>
+                  <DosenProfilePage />
                 </AppLayout>
               </ProtectedRoute>
             }

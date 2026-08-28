@@ -1,6 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { z } from 'zod';
 import { pgPool } from '../../lib/pg';
+import { AppError } from '../../middleware/error-handler';
 import { authenticate, authorize } from '../../lib/auth-middleware';
 import { auditFromRequest } from '../../lib/audit-service';
 
@@ -695,6 +696,89 @@ export function createDosenRouter(): Router {
           [classId],
         );
         res.json({ success: true, data: { message: 'Klaim kelas dibatalkan' } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // --- DOSEN: Profil sendiri (GET /dosen/profile) ---
+  router.get(
+    '/profile',
+    authenticate,
+    authorize('lecturer.select_course'), // semua dosen punya permission ini
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const user = req.user!;
+        const result = await pgPool.query(
+          `SELECT
+             l.id,
+             l.nik,
+             l.nidn,
+             l.photo_url,
+             l.phone,
+             l.personal_email,
+             u.full_name AS "fullName",
+             u.email AS "email",
+             f.name AS "facultyName",
+             f.code AS "facultyCode",
+             p.name AS "prodiName",
+             p.code AS "prodiCode"
+           FROM lecturers l
+           JOIN users u ON u.id = l.user_id
+           JOIN prodis p ON p.id = l.prodi_id
+           JOIN faculties f ON f.id = p.faculty_id
+           WHERE l.user_id = $1 AND l.is_active`,
+          [user.id],
+        );
+        if (result.rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Profil dosen tidak ditemukan' });
+        }
+        res.json({ success: true, data: result.rows[0] });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // --- DOSEN: Update profil sendiri (PUT /dosen/profile) ---
+  const updateDosenProfileSchema = z.object({
+    phone: z.string().max(20).optional().nullable(),
+    personalEmail: z.string().max(255).optional().nullable(),
+    photoUrl: z.string().max(10000000).optional().nullable(),
+  });
+
+  router.put(
+    '/profile',
+    authenticate,
+    authorize('lecturer.select_course'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const user = req.user!;
+        const parsed = updateDosenProfileSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data profil tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const { phone, personalEmail, photoUrl } = parsed.data;
+        const result = await pgPool.query(
+          `UPDATE lecturers
+           SET phone = COALESCE($1, phone),
+               personal_email = COALESCE($2, personal_email),
+               photo_url = COALESCE($3, photo_url),
+               updated_at = now()
+           WHERE user_id = $4 AND is_active
+           RETURNING id, nik, nidn, phone, personal_email, photo_url`,
+          [phone ?? null, personalEmail ?? null, photoUrl ?? null, user.id],
+        );
+        if (result.rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Profil dosen tidak ditemukan' });
+        }
+        res.json({
+          success: true,
+          data: { ...result.rows[0], message: 'Profil dosen berhasil diperbarui' },
+        });
       } catch (err) {
         next(err);
       }

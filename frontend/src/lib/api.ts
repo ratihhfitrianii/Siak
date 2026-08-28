@@ -46,6 +46,8 @@ import type {
   CourseSelectionsForReviewResponse,
   StudentProfile,
   SemesterIps,
+  LecturerProfile,
+  UpdateLecturerProfileInput,
 } from './types';
 
 export class ApiError extends Error {
@@ -1809,6 +1811,21 @@ export async function updateMyContact(
 /** GET /students/me — profil mahasiswa lengkap (untuk halaman Profile). */
 export async function getMyStudentProfile(): Promise<StudentProfile> {
   return apiRequest<StudentProfile>('/students/me');
+}
+
+/** GET /dosen/profile — profil dosen sendiri (untuk halaman Profile dosen). */
+export async function getMyLecturerProfile(): Promise<LecturerProfile> {
+  return apiRequest<LecturerProfile>('/dosen/profile');
+}
+
+/** PUT /dosen/profile — update profil dosen sendiri (phone, personal_email, photo). */
+export async function updateLecturerProfile(
+  input: UpdateLecturerProfileInput,
+): Promise<{ id: number; message: string }> {
+  return apiRequest<{ id: number; message: string }>('/dosen/profile', {
+    method: 'PUT',
+    body: input,
+  });
 }
 
 /** GET /students/me/ips — IP per semester untuk grafik. */
