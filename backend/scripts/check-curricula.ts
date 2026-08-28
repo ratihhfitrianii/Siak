@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 
 async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  
+
   // Check existing curricula for 2024/2025-1
   const cur = await pool.query(`
     SELECT c.id, c.prodi_id, c.semester_id, c.course_id, c.is_mandatory, c.semester_number,
@@ -16,8 +16,18 @@ async function main() {
     ORDER BY c.id
   `);
   console.log('Curricula 2024/2025-1:', cur.rows.length);
-  cur.rows.forEach(r => console.log(r.course_code, r.semester_number, r.is_mandatory, 'prodi:', r.prodi_code, 'sem:', r.sem_code));
-  
+  cur.rows.forEach((r) =>
+    console.log(
+      r.course_code,
+      r.semester_number,
+      r.is_mandatory,
+      'prodi:',
+      r.prodi_code,
+      'sem:',
+      r.sem_code,
+    ),
+  );
+
   // Check for 2026/2027-1
   const cur2 = await pool.query(`
     SELECT c.id, c.prodi_id, c.semester_id, c.course_id, c.is_mandatory, c.semester_number,
@@ -30,8 +40,18 @@ async function main() {
     ORDER BY c.id
   `);
   console.log('\nCurricula 2026/2027-1:', cur2.rows.length);
-  cur2.rows.forEach(r => console.log(r.course_code, r.semester_number, r.is_mandatory, 'prodi:', r.prodi_code, 'sem:', r.sem_code));
-  
+  cur2.rows.forEach((r) =>
+    console.log(
+      r.course_code,
+      r.semester_number,
+      r.is_mandatory,
+      'prodi:',
+      r.prodi_code,
+      'sem:',
+      r.sem_code,
+    ),
+  );
+
   // Check lecturer_course_selections for 2024/2025-1
   const sel = await pool.query(`
     SELECT lcs.id, lcs.lecturer_id, lcs.semester_id, lcs.curriculum_id, lcs.status, lcs.priority,
@@ -45,9 +65,14 @@ async function main() {
     ORDER BY lcs.id
   `);
   console.log('\nSelections 2024/2025-1:', sel.rows.length);
-  sel.rows.forEach(r => console.log(r.lecturer_name, r.course_code, r.status, 'priority:', r.priority));
-  
+  sel.rows.forEach((r) =>
+    console.log(r.lecturer_name, r.course_code, r.status, 'priority:', r.priority),
+  );
+
   await pool.end();
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

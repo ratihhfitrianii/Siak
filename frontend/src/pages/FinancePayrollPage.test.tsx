@@ -112,11 +112,11 @@ describe('FinancePayrollPage', () => {
 
   it('tombol Generate memanggil API dgn periode bulan terpilih lalu reload', async () => {
     const user = userEvent.setup();
-    mockedGenerate.mockResolvedValue('Payroll generated untuk 3 dosen');
+    mockedGenerate.mockResolvedValue('Daftar gaji digenerate untuk 3 dosen');
     render(<FinancePayrollPage />);
     await screen.findByText('Dosen 01');
 
-    await user.click(screen.getByRole('button', { name: /Generate Payroll/ }));
+    await user.click(screen.getByRole('button', { name: /Generate Daftar Gaji/ }));
     expect(mockedGenerate).toHaveBeenCalledTimes(1);
     const [start, end] = mockedGenerate.mock.calls[0];
     expect(start).toMatch(/-01$/);
@@ -127,7 +127,7 @@ describe('FinancePayrollPage', () => {
   it('kosong → pesan ajak generate', async () => {
     mockedGet.mockResolvedValue({ items: [], total: 0, page: 1, limit: 100, totalPages: 0 });
     render(<FinancePayrollPage />);
-    expect(await screen.findByText(/Belum ada payroll untuk/)).toBeInTheDocument();
+    expect(await screen.findByText(/Belum ada daftar gaji untuk/)).toBeInTheDocument();
   });
 
   it('error load → pesan gagal memuat', async () => {

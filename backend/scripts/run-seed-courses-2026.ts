@@ -5,7 +5,10 @@ import { Pool } from 'pg';
 
 async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const sql = readFileSync(resolve(__dirname, '../migrations/V20260822_002__seed_courses_2026_2027.sql'), 'utf-8');
+  const sql = readFileSync(
+    resolve(__dirname, '../migrations/V20260822_002__seed_courses_2026_2027.sql'),
+    'utf-8',
+  );
   await pool.query(sql);
   console.log('Migration applied');
 
@@ -21,7 +24,17 @@ async function main() {
     ORDER BY c.id
   `);
   console.log('Curricula 2026/2027-1:', cur.rows.length);
-  cur.rows.forEach(r => console.log(r.course_code, r.semester_number, r.is_mandatory, 'prodi:', r.prodi_code, 'sem:', r.sem_code));
+  cur.rows.forEach((r) =>
+    console.log(
+      r.course_code,
+      r.semester_number,
+      r.is_mandatory,
+      'prodi:',
+      r.prodi_code,
+      'sem:',
+      r.sem_code,
+    ),
+  );
 
   const cls = await pool.query(`
     SELECT cl.id, cl.class_code, cl.curriculum_id, cl.lecturer_id,
@@ -35,9 +48,14 @@ async function main() {
     ORDER BY cl.id
   `);
   console.log('Classes 2026/2027-1:', cls.rows.length);
-  cls.rows.forEach(r => console.log('  kelas', r.class_code, r.course_code, 'prodi:', r.prodi_code, 'sem:', r.sem_code));
+  cls.rows.forEach((r) =>
+    console.log('  kelas', r.class_code, r.course_code, 'prodi:', r.prodi_code, 'sem:', r.sem_code),
+  );
 
   await pool.end();
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
