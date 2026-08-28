@@ -441,13 +441,14 @@ describe('T2.6 Finance — Payments & KRS Gate', () => {
     expect(res.body.data.payment.status).toBe('belum_lunas');
   });
 
-  it('GET /krs-access — tanpa tagihan → can_access false + payment null', async () => {
+  it('GET /krs-access — tanpa tagihan → can_access true + payment null', async () => {
+    // Kebijakan (2026-08-28): tidak ada tagihan = tidak ada tunggakan → boleh akses KRS.
     const res = await request(app)
       .get(`/api/v1/finance/krs-access?semester_id=${semesterId}`)
       .set('Authorization', `Bearer ${mhsToken2}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.data.can_access).toBe(false);
+    expect(res.body.data.can_access).toBe(true);
     expect(res.body.data.payment).toBeNull();
   });
 
