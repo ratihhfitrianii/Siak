@@ -1,6 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { getSkripsiProposals, createSkripsiGuidanceLog, getSkripsiGuidanceLogs } from '../lib/api';
+import {
+  getSkripsiProposals,
+  createSkripsiGuidanceLog,
+  getSkripsiGuidanceLogs,
+  updateSkripsiProposal,
+} from '../lib/api';
 import type { SkripsiProposal, SkripsiStatus, SkripsiGuidanceLog } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
@@ -106,6 +111,7 @@ export function DosenBimbinganBerjalan() {
     try {
       const data = await getSkripsiGuidanceLogs(p.id);
       setLogs(data);
+      if (data.length === 0) setLogsError('Data belum ada');
     } catch {
       setLogsError('Gagal memuat log bimbingan');
     } finally {
@@ -295,7 +301,8 @@ export function DosenBimbinganBerjalan() {
                     <div className="flex gap-2 pt-2 border-t border-slate-100">
                       <button
                         onClick={() => openCatat(p)}
-                        className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition"
+                        disabled={p.status === 'lulus'}
+                        className={`flex-1 px-4 py-2 text-sm font-medium ${p.status === 'lulus' ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'text-white bg-primary-600 hover:bg-primary-700'} rounded-lg transition`}
                       >
                         Catat Bimbingan
                       </button>
@@ -415,6 +422,25 @@ export function DosenBimbinganBerjalan() {
                 ))}
               </ol>
             )}
+
+            {/* Tombol Izinkan Sidang */}
+            {logs.length > 5 && (
+              <div className="pt-4 border-t border-slate-100 text-right">
+                <button
+                  onClick={async () => {
+                    if (confirm('Izinkan mahasiswa untuk sidang?')) {
+                      await updateSkripsiProposal(logProposal!.id, { status: 'siap_sidang' });
+                      setLogProposal(null);
+                      loadProposals();
+                    }
+                  }}
+                  className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700"
+                >
+                  Izinkan Sidang
+                </button>
+              </div>
+            )}
+
             <div className="flex justify-end">
               <button
                 onClick={() => setLogProposal(null)}

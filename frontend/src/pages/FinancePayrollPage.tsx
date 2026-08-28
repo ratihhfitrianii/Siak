@@ -362,7 +362,7 @@ export function FinancePayrollPage() {
             disabled={generating}
             className="px-4 py-2 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60 transition ml-auto"
           >
-            {generating ? 'Memproses…' : '⚡ Generate Payroll'}
+            {generating ? 'Memproses…' : '⚡ Generate Daftar Gaji'}
           </button>
         </div>
         {notice && (
@@ -450,7 +450,8 @@ export function FinancePayrollPage() {
         </div>
       ) : items.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm p-8 text-center text-slate-500">
-          Belum ada payroll untuk {BULAN[bulan]} {tahun}. Klik "Generate Payroll" untuk membuat.
+          Belum ada daftar gaji untuk {BULAN[bulan]} {tahun}. Klik "Generate Daftar Gaji" untuk
+          membuat.
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">

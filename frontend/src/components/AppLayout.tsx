@@ -157,28 +157,19 @@ const MENU_ITEMS: {
       },
     ],
   },
-  // Hasil Studi — Parent dropdown (termasuk Transkrip)
+  // Riwayat Studi — Parent dropdown (termasuk KHS)
   {
     permissions: ['transcript.view_own', 'transcript.view_mentee'],
     roles: ['mahasiswa'],
-    label: 'Hasil Studi',
+    label: 'Riwayat Studi',
     path: '/hasil-studi',
-    icon: 'star',
-    description: 'Lihat hasil studi, IPK & transkrip',
+    icon: 'clipboard',
+    description: 'Riwayat dan transkrip nilai',
     children: [
       {
         permissions: ['transcript.view_own', 'transcript.view_mentee'],
-        label: 'Transkrip',
+        label: 'Kartu Hasil Studi (KHS)',
         path: '/hasil-studi/transkrip',
-        icon: 'clipboard',
-        description: 'Lihat transkrip nilai',
-      },
-      {
-        permissions: ['transcript.view_own'],
-        label: 'Hasil Studi',
-        path: '/hasil-studi',
-        icon: 'star',
-        description: 'Lihat hasil studi & IPK',
       },
     ],
   },
@@ -229,10 +220,10 @@ const MENU_ITEMS: {
     icon: 'receipt',
     description: 'Kelola tagihan pembayaran',
   },
-  // Payroll — admin keuangan generate/approve/pay slip gaji dosen
+  // Daftar Gaji — admin keuangan generate/approve/pay slip gaji dosen
   {
     permissions: ['payroll.input'],
-    label: 'Payroll',
+    label: 'Daftar Gaji',
     path: '/keuangan/payroll',
     icon: 'wallet',
     description: 'Generate & kelola slip gaji dosen',
