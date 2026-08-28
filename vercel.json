@@ -1,9 +1,10 @@
 {
   "name": "siak-frontend",
   "rootDirectory": "frontend",
-  "buildCommand": "npm ci && npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "installCommand": "npm ci",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://siak-backend.onrender.com/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
