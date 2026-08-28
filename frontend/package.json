@@ -6,8 +6,8 @@
   "description": "Siak — Sistem Informasi Akademik (frontend SPA)",
   "license": "UNLICENSED",
   "engines": {
-    "node": ">=22.0.0"
-  },
+      "node": "22.x"
+    },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

@@ -1,0 +1,31 @@
+{
+  "name": "siak",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Siak — Sistem Informasi Akademik (monorepo: frontend + backend)",
+  "license": "Apache-2.0",
+  "author": "Ratih Fitriani",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ratihhfitrianii/Siak.git"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "format": "npm run format --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test --workspaces",
+    "test:coverage": "npm run test:coverage --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "engines": {
+  		"node": "22.x"
+  	}
+}
