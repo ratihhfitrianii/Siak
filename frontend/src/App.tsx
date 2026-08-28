@@ -30,6 +30,12 @@ const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default:
 const MyPaymentPage = lazy(() =>
   import('./pages/MyPaymentPage').then((m) => ({ default: m.MyPaymentPage })),
 );
+const TagihanPage = lazy(() =>
+  import('./pages/TagihanPage').then((m) => ({ default: m.TagihanPage })),
+);
+const KurikulumPage = lazy(() =>
+  import('./pages/KurikulumPage').then((m) => ({ default: m.KurikulumPage })),
+);
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
@@ -277,11 +283,62 @@ export default function App() {
             }
           />
           <Route
+            path="/hasil-studi/transkrip"
+            element={
+              <ProtectedRoute perm="transcript.view_own">
+                <AppLayout>
+                  <TranscriptPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hasil-studi"
+            element={
+              <ProtectedRoute perm="transcript.view_own">
+                <AppLayout>
+                  <TranscriptPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/keuangan/tagihan-saya"
+            element={
+              <ProtectedRoute perm="krs.fill">
+                <AppLayout>
+                  <TagihanPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/keuangan/pembayaran"
+            element={
+              <ProtectedRoute perm="krs.fill">
+                <AppLayout>
+                  <MyPaymentPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Kompatibilitas: /pembayaran lama → riwayat pembayaran */}
+          <Route
             path="/pembayaran"
             element={
               <ProtectedRoute perm="krs.fill">
                 <AppLayout>
                   <MyPaymentPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/krs/kurikulum"
+            element={
+              <ProtectedRoute perm="transcript.view_own">
+                <AppLayout>
+                  <KurikulumPage />
                 </AppLayout>
               </ProtectedRoute>
             }

@@ -79,11 +79,11 @@ const MENU_ITEMS: {
     icon: 'user',
     description: 'Lihat & edit profil mahasiswa',
   },
-  // Mahasiswa Check-In Absensi
+  // Virtual Absensi (sebelumnya "Check-In")
   {
     permissions: ['krs.fill'],
     roles: ['mahasiswa'],
-    label: 'Check-In',
+    label: 'Virtual Absensi',
     path: '/absensi/check-in',
     icon: 'check',
     description: 'Absensi check-in kehadiran',
@@ -132,28 +132,55 @@ const MENU_ITEMS: {
       },
     ],
   },
+  // KRS — Parent dropdown
   {
     permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
-    label: 'Kelola KRS',
+    label: 'KRS',
     path: '/krs',
     icon: 'document',
-    description: 'Isi dan lihat Kartu Rencana Studi',
+    description: 'Kartu Rencana Studi',
+    children: [
+      {
+        permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
+        label: 'Kelola KRS',
+        path: '/krs',
+        icon: 'document',
+        description: 'Isi dan lihat Kartu Rencana Studi',
+      },
+      {
+        permissions: ['transcript.view_own'],
+        roles: ['mahasiswa'],
+        label: 'Kurikulum',
+        path: '/krs/kurikulum',
+        icon: 'clipboard',
+        description: 'Mata kuliah yang telah diambil',
+      },
+    ],
   },
+  // Hasil Studi — Parent dropdown (termasuk Transkrip)
   {
     permissions: ['transcript.view_own', 'transcript.view_mentee'],
-    label: 'Transkrip',
-    path: '/transkrip',
-    icon: 'clipboard',
-    description: 'Lihat transkrip nilai',
-  },
-  {
-    permissions: ['transcript.view_own', 'transcript.view_mentee'],
-    // Hanya mahasiswa — dosen wali punya transcript.view_mentee tapi tidak perlu menu ini
     roles: ['mahasiswa'],
     label: 'Hasil Studi',
     path: '/hasil-studi',
     icon: 'star',
-    description: 'Lihat hasil studi & IPK',
+    description: 'Lihat hasil studi, IPK & transkrip',
+    children: [
+      {
+        permissions: ['transcript.view_own', 'transcript.view_mentee'],
+        label: 'Transkrip',
+        path: '/hasil-studi/transkrip',
+        icon: 'clipboard',
+        description: 'Lihat transkrip nilai',
+      },
+      {
+        permissions: ['transcript.view_own'],
+        label: 'Hasil Studi',
+        path: '/hasil-studi',
+        icon: 'star',
+        description: 'Lihat hasil studi & IPK',
+      },
+    ],
   },
   {
     permissions: ['user.manage'],
@@ -170,14 +197,30 @@ const MENU_ITEMS: {
     icon: 'database',
     description: 'Master data mahasiswa & dosen',
   },
-  // T5.3: 'Pembayaran' = tagihan mahasiswa (krs.fill); 'Tagihan' = kelola pembayaran admin keuangan (payment.update).
-  // Sebelumnya keduanya digabung ke 'Pembayaran' (payment.*) → admin keuangan dapat 403 di /pembayaran.
+  // Keuangan mahasiswa — parent dropdown (Tagihan = tagihan semester aktif; Pembayaran = riwayat)
   {
     permissions: ['krs.fill'],
-    label: 'Pembayaran',
-    path: '/pembayaran',
+    roles: ['mahasiswa'],
+    label: 'Keuangan',
+    path: '/keuangan/tagihan-saya',
     icon: 'card',
-    description: 'Tagihan pembayaran Anda',
+    description: 'Tagihan & riwayat pembayaran',
+    children: [
+      {
+        permissions: ['krs.fill'],
+        label: 'Tagihan',
+        path: '/keuangan/tagihan-saya',
+        icon: 'receipt',
+        description: 'Detail tagihan semester berjalan',
+      },
+      {
+        permissions: ['krs.fill'],
+        label: 'Pembayaran',
+        path: '/keuangan/pembayaran',
+        icon: 'card',
+        description: 'Riwayat pembayaran',
+      },
+    ],
   },
   {
     permissions: ['payment.update'],
