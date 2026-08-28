@@ -38,6 +38,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({
     phone: '',
@@ -84,8 +85,16 @@ export default function ProfilePage() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 2 * 1024 * 1024) return;
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('File harus berupa gambar (JPG/PNG).');
+      return;
+    }
+    // Backend menerima hingga 10MB (zod .max(10000000)); frontend wajib cocok.
+    if (file.size > 10 * 1024 * 1024) {
+      setPhotoError('Ukuran foto maksimal 10MB.');
+      return;
+    }
+    setPhotoError(null);
     const reader = new FileReader();
     reader.onload = () => setPhotoPreview(reader.result as string);
     reader.readAsDataURL(file);
@@ -226,6 +235,11 @@ export default function ProfilePage() {
                   id="photo-upload"
                 />
               </div>
+              {photoError && (
+                <p role="alert" className="mt-2 text-xs text-red-600">
+                  {photoError}
+                </p>
+              )}
             </div>
 
             {/* Name */}

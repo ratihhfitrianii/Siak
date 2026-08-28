@@ -477,6 +477,16 @@ export function createTranscriptRouter(): Router {
           ? Number(req.query.academicYearId as string)
           : undefined;
         const data = await fetchTranscriptData(req.user.studentId, academicYearId);
+        if (data.semesters.length === 0) {
+          // Tahun akademik yang dipilih tidak punya nilai → pesan jelas, bukan 500.
+          throw new AppError(
+            'NOT_FOUND',
+            academicYearId
+              ? 'Belum ada nilai untuk tahun akademik yang dipilih.'
+              : 'Belum ada nilai yang tercatat untuk transkrip.',
+            404,
+          );
+        }
         const pdf = await generateTranscriptPDF(data);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
