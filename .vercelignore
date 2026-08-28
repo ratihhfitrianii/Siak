@@ -1,0 +1,3 @@
+# Vercel ignore - exclude backend from frontend deployment
+backend/**
+*.tsbuildinfo
