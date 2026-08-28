@@ -9,10 +9,10 @@ keuangan@siak.local							Admin123!			Admin Keuangan
 dosen.TI1@siak.local 						Dosen123!			Dosen (TI, SI, MNJ, AKT, HKM, KN)
 e2e.dosen@siak.local						E2ePass123!			Dosen E2E (kelas TI diampu)
 
-mhs.TI_20232024_1@siak.local				Mhs123!				Mahasiswa
+mhs.TI_20232024_1@siak.local				Mhs123!				Mahasiswa belum bayar
 e2e.mahasiswa@siak.local					E2ePass123!			Mahasiswa E2E (payment lunas, KRS approved, 2 grades)
 20240001									Mhs1234!
-20240108									Mhs1234!
+20240108 (AKT)								Mhs1234!
 20241681									Mhs1234!
 
 test.mahasiswa@siak.local (TEST25001)		password123
