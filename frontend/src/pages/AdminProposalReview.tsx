@@ -278,182 +278,186 @@ export function AdminProposalReview() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Mahasiswa
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Prodi
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Judul
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Dosen Pembimbing
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Diajukan
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Aksi
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {filteredProposals.map((p) => (
-                <Fragment key={p.id}>
-                  <tr className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium text-slate-900">{p.studentName}</p>
-                        <p className="text-sm text-slate-500">{p.nim}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{p.prodiName}</td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-slate-900 max-w-xs truncate" title={p.title}>
-                        {p.title}
-                      </p>
-                      {p.proposalFile && (
-                        <div className="flex items-center gap-2 mt-1">
-                          <button
-                            onClick={() => openProposalFile(p.proposalFile!)}
-                            className="text-xs text-primary-600 hover:underline"
-                          >
-                            Lihat PDF
-                          </button>
-                          <button
-                            onClick={() =>
-                              downloadProposalFile(p.proposalFile!, `proposal-${p.nim}.pdf`)
-                            }
-                            className="text-xs text-primary-600 hover:underline"
-                          >
-                            Unduh
-                          </button>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Mahasiswa
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Prodi
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Judul
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Dosen Pembimbing
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Diajukan
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                    Aksi
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {filteredProposals.map((p) => (
+                  <Fragment key={p.id}>
+                    <tr className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-medium text-slate-900">{p.studentName}</p>
+                          <p className="text-sm text-slate-500">{p.nim}</p>
                         </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLOR[p.status]}`}
-                      >
-                        {STATUS_LABEL[p.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {p.supervisors?.map((s) => (
-                        <span key={s.id} className="block">
-                          {s.fullName} ({s.nidn})
-                        </span>
-                      ))}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">{formatDate(p.createdAt)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {/* Expand/Collapse */}
-                        <button
-                          onClick={() => toggleExpand(p.id)}
-                          className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-                          aria-label={expandedId === p.id ? 'Tutup detail' : 'Lihat detail'}
-                        >
-                          {expandedId === p.id ? (
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M5 15l7-7 7 7"
-                              />
-                            </svg>
-                          ) : (
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          )}
-                        </button>
-
-                        {/* Action Buttons */}
-                        {canAct(p.status) && !updatingId && (
-                          <div className="flex items-center gap-1">
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{p.prodiName}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-slate-900 max-w-xs truncate" title={p.title}>
+                          {p.title}
+                        </p>
+                        {p.proposalFile && (
+                          <div className="flex items-center gap-2 mt-1">
                             <button
-                              onClick={() => handleUpdateStatus(p.id, 'approve')}
-                              className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                              disabled={updatingId === p.id}
+                              onClick={() => openProposalFile(p.proposalFile!)}
+                              className="text-xs text-primary-600 hover:underline"
                             >
-                              Setujui
+                              Lihat PDF
                             </button>
                             <button
-                              onClick={() => handleUpdateStatus(p.id, 'reject')}
-                              className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                              disabled={updatingId === p.id}
+                              onClick={() =>
+                                downloadProposalFile(p.proposalFile!, `proposal-${p.nim}.pdf`)
+                              }
+                              className="text-xs text-primary-600 hover:underline"
                             >
-                              Tolak
+                              Unduh
                             </button>
                           </div>
                         )}
-                        {updatingId === p.id && <Spinner label="Menyimpan..." />}
-                      </div>
-                    </td>
-                  </tr>
-                  {/* Expanded Row - Status History */}
-                  {expandedId === p.id && (
-                    <tr className="bg-slate-50">
-                      <td colSpan={7} className="px-4 py-2">
-                        <div className="ml-4 mt-2 border-l-2 border-slate-200 pl-4 space-y-2">
-                          {historyLoadingId === p.id ? (
-                            <div className="flex justify-center py-4">
-                              <Spinner label="Memuat riwayat..." />
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLOR[p.status]}`}
+                        >
+                          {STATUS_LABEL[p.status]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {p.supervisors?.map((s) => (
+                          <span key={s.id} className="block">
+                            {s.fullName} ({s.nidn})
+                          </span>
+                        ))}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-500">
+                        {formatDate(p.createdAt)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                          {/* Expand/Collapse */}
+                          <button
+                            onClick={() => toggleExpand(p.id)}
+                            className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                            aria-label={expandedId === p.id ? 'Tutup detail' : 'Lihat detail'}
+                          >
+                            {expandedId === p.id ? (
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 15l7-7 7 7"
+                                />
+                              </svg>
+                            ) : (
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 9l-7 7-7-7"
+                                />
+                              </svg>
+                            )}
+                          </button>
+
+                          {/* Action Buttons */}
+                          {canAct(p.status) && !updatingId && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleUpdateStatus(p.id, 'approve')}
+                                className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                                disabled={updatingId === p.id}
+                              >
+                                Setujui
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(p.id, 'reject')}
+                                className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                                disabled={updatingId === p.id}
+                              >
+                                Tolak
+                              </button>
                             </div>
-                          ) : statusHistories[p.id]?.length ? (
-                            statusHistories[p.id]!.map((h) => (
-                              <div key={h.id} className="relative">
-                                <div className="absolute left-[-6px] top-0 w-2 h-2 rounded-full bg-slate-400" />
-                                <div className="text-sm">
-                                  <p className="font-medium text-slate-900">
-                                    <span
-                                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLOR[h.status]}`}
-                                    >
-                                      {STATUS_LABEL[h.status as SkripsiStatus]}
-                                    </span>
-                                  </p>
-                                  <p className="text-slate-600">{h.notes ?? '-'}</p>
-                                  <p className="text-xs text-slate-400">
-                                    Oleh: {h.changedByName} • {formatDate(h.changedAt)}
-                                  </p>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-sm text-slate-500">Belum ada riwayat status</p>
                           )}
+                          {updatingId === p.id && <Spinner label="Menyimpan..." />}
                         </div>
                       </td>
                     </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+                    {/* Expanded Row - Status History */}
+                    {expandedId === p.id && (
+                      <tr className="bg-slate-50">
+                        <td colSpan={7} className="px-4 py-2">
+                          <div className="ml-4 mt-2 border-l-2 border-slate-200 pl-4 space-y-2">
+                            {historyLoadingId === p.id ? (
+                              <div className="flex justify-center py-4">
+                                <Spinner label="Memuat riwayat..." />
+                              </div>
+                            ) : statusHistories[p.id]?.length ? (
+                              statusHistories[p.id]!.map((h) => (
+                                <div key={h.id} className="relative">
+                                  <div className="absolute left-[-6px] top-0 w-2 h-2 rounded-full bg-slate-400" />
+                                  <div className="text-sm">
+                                    <p className="font-medium text-slate-900">
+                                      <span
+                                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLOR[h.status]}`}
+                                      >
+                                        {STATUS_LABEL[h.status as SkripsiStatus]}
+                                      </span>
+                                    </p>
+                                    <p className="text-slate-600">{h.notes ?? '-'}</p>
+                                    <p className="text-xs text-slate-400">
+                                      Oleh: {h.changedByName} • {formatDate(h.changedAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-sm text-slate-500">Belum ada riwayat status</p>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

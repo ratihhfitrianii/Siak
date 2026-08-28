@@ -208,11 +208,11 @@ export function FinancePaymentsPage() {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <select
           value={filters.prodi_id}
           onChange={(e) => setFilters((f) => ({ ...f, prodi_id: e.target.value, page: 1 }))}
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          className="w-full sm:w-auto border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
           <option value="">Semua Prodi</option>
           {prodis.map((p) => (
@@ -226,13 +226,13 @@ export function FinancePaymentsPage() {
           placeholder="Cari NIM/Nama..."
           value={filters.search}
           onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value, page: 1 }))}
-          className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48 sm:w-64"
+          className="w-full sm:w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
         <button
           type="button"
           onClick={handleGeneratePayments}
           disabled={generating}
-          className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {generating ? 'Generating...' : 'Generate Tagihan'}
         </button>
@@ -250,7 +250,7 @@ export function FinancePaymentsPage() {
         {loading && <div className="h-4 bg-slate-100 animate-pulse" />}
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-max">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -321,7 +321,7 @@ export function FinancePaymentsPage() {
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="text-sm text-slate-600">
               Menampilkan {(filters.page - 1) * filters.limit + 1} -{' '}
               {Math.min(filters.page * filters.limit, pagination.total)} dari {pagination.total}
@@ -357,7 +357,7 @@ export function FinancePaymentsPage() {
           aria-modal="true"
         >
           <div
-            className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
@@ -422,83 +422,85 @@ export function FinancePaymentsPage() {
 
                   {/* Payments Table */}
                   <div className="rounded-lg border border-slate-200 overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                            Semester
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                            Total
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                            Dibayar
-                          </th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                            Status
-                          </th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                            Bukti
-                          </th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                            Aksi
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200">
-                        {detailPayments.map((p) => (
-                          <tr key={p.id} className="hover:bg-slate-50">
-                            <td className="px-4 py-3 text-sm font-medium text-slate-900">
-                              {p.semesterName}
-                            </td>
-                            <td className="px-4 py-3 text-right text-sm text-slate-900">
-                              {formatRupiah(p.totalAmount)}
-                            </td>
-                            <td className="px-4 py-3 text-right text-sm text-slate-900">
-                              {formatRupiah(p.paidAmount)}
-                            </td>
-                            <td className="px-4 py-3 text-center">{getStatusBadge(p.status)}</td>
-                            <td className="px-4 py-3 text-center text-sm">
-                              {p.proofUrl ? (
-                                <a
-                                  href={p.proofUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-primary-600 hover:underline"
-                                >
-                                  Lihat
-                                </a>
-                              ) : (
-                                <span className="text-slate-400">—</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              {p.status === 'lunas' ? (
-                                <span className="text-sm text-green-600">✓ Lunas</span>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setUpdateModal({
-                                      paymentId: p.id,
-                                      currentPaid: p.paidAmount,
-                                      totalAmount: p.totalAmount,
-                                      existingProof: p.proofUrl,
-                                    });
-                                    setUpdatePaidAmount(String(p.paidAmount));
-                                    setUpdateProofFile(null);
-                                  }}
-                                  disabled={updating.has(p.id)}
-                                  className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-800 disabled:opacity-50 transition-colors"
-                                >
-                                  {updating.has(p.id) ? 'Menyimpan...' : 'Update'}
-                                </button>
-                              )}
-                            </td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-max">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Semester
+                            </th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Total
+                            </th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Dibayar
+                            </th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Bukti
+                            </th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Aksi
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {detailPayments.map((p) => (
+                            <tr key={p.id} className="hover:bg-slate-50">
+                              <td className="px-4 py-3 text-sm font-medium text-slate-900">
+                                {p.semesterName}
+                              </td>
+                              <td className="px-4 py-3 text-right text-sm text-slate-900">
+                                {formatRupiah(p.totalAmount)}
+                              </td>
+                              <td className="px-4 py-3 text-right text-sm text-slate-900">
+                                {formatRupiah(p.paidAmount)}
+                              </td>
+                              <td className="px-4 py-3 text-center">{getStatusBadge(p.status)}</td>
+                              <td className="px-4 py-3 text-center text-sm">
+                                {p.proofUrl ? (
+                                  <a
+                                    href={p.proofUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-primary-600 hover:underline"
+                                  >
+                                    Lihat
+                                  </a>
+                                ) : (
+                                  <span className="text-slate-400">—</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {p.status === 'lunas' ? (
+                                  <span className="text-sm text-green-600">✓ Lunas</span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setUpdateModal({
+                                        paymentId: p.id,
+                                        currentPaid: p.paidAmount,
+                                        totalAmount: p.totalAmount,
+                                        existingProof: p.proofUrl,
+                                      });
+                                      setUpdatePaidAmount(String(p.paidAmount));
+                                      setUpdateProofFile(null);
+                                    }}
+                                    disabled={updating.has(p.id)}
+                                    className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-800 disabled:opacity-50 transition-colors"
+                                  >
+                                    {updating.has(p.id) ? 'Menyimpan...' : 'Update'}
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </>
               )}
@@ -519,8 +521,8 @@ export function FinancePaymentsPage() {
 
       {/* Update Payment Modal */}
       {updateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Update Pembayaran</h3>
             <div className="space-y-4">
               <div className="bg-slate-50 rounded-lg p-4">

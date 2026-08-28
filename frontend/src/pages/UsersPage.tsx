@@ -246,11 +246,11 @@ export function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <button
           type="button"
           onClick={openCreate}
-          className="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700"
+          className="w-full sm:w-auto rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700"
         >
           + Buat User
         </button>
@@ -267,7 +267,7 @@ export function UsersPage() {
       {actionError && <FormAlert>{actionError}</FormAlert>}
 
       {/* Filter */}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
         <input
           type="search"
           value={search}
@@ -277,7 +277,7 @@ export function UsersPage() {
           }}
           placeholder="Cari nama atau email…"
           aria-label="Cari pengguna"
-          className="w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          className="w-full sm:w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
         <select
           value={roleFilter}
@@ -286,7 +286,7 @@ export function UsersPage() {
             setPage(1);
           }}
           aria-label="Filter peran"
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          className="w-full sm:w-auto rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
         >
           <option value="">Semua peran</option>
           {ROLE_OPTIONS.map((o) => (
@@ -316,85 +316,87 @@ export function UsersPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left">
-              <tr>
-                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                  Nama
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                  Email
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                  Peran
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                  Wali
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                  Status
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                  Aksi
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {items.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-left">
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
-                    Tidak ada pengguna yang cocok.
-                  </td>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    Nama
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    Email
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    Peran
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    Wali
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    Status
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    Aksi
+                  </th>
                 </tr>
-              ) : (
-                items.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-900">{u.fullName}</td>
-                    <td className="px-4 py-3 text-slate-600">{u.email}</td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">
-                        {ROLE_LABEL[u.roleCode] ?? u.roleCode}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{u.isWali ? 'Ya' : '—'}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          u.isActive
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-slate-200 text-slate-600'
-                        }`}
-                      >
-                        {u.isActive ? 'Aktif' : 'Nonaktif'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(u)}
-                          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                        >
-                          Ubah Peran
-                        </button>
-                        {u.isActive && (
-                          <button
-                            type="button"
-                            onClick={() => void handleDelete(u)}
-                            disabled={deletingId === u.id}
-                            className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                          >
-                            {deletingId === u.id ? 'Menghapus…' : 'Hapus'}
-                          </button>
-                        )}
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                      Tidak ada pengguna yang cocok.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
+                ) : (
+                  items.map((u) => (
+                    <tr key={u.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-medium text-slate-900">{u.fullName}</td>
+                      <td className="px-4 py-3 text-slate-600">{u.email}</td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">
+                          {ROLE_LABEL[u.roleCode] ?? u.roleCode}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{u.isWali ? 'Ya' : '—'}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            u.isActive
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {u.isActive ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(u)}
+                            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                          >
+                            Ubah Peran
+                          </button>
+                          {u.isActive && (
+                            <button
+                              type="button"
+                              onClick={() => void handleDelete(u)}
+                              disabled={deletingId === u.id}
+                              className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                            >
+                              {deletingId === u.id ? 'Menghapus…' : 'Hapus'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-200 px-4 py-3">
             <span className="text-xs text-slate-500">
               Halaman {page} dari {totalPages} · {total} pengguna
             </span>
@@ -428,7 +430,7 @@ export function UsersPage() {
           aria-modal="true"
           aria-label="Buat user"
         >
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-white p-4 sm:p-6 shadow-xl">
             <h2 className="text-lg font-bold text-slate-900">Buat User Baru</h2>
             <p className="mt-1 text-sm text-slate-500">
               {useNimNik
@@ -628,7 +630,7 @@ export function UsersPage() {
           aria-modal="true"
           aria-label="Ubah peran"
         >
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-white p-4 sm:p-6 shadow-xl">
             <h2 className="text-lg font-bold text-slate-900">Ubah Peran</h2>
             <p className="mt-1 text-sm text-slate-500">
               {editTarget.fullName} · {editTarget.email}

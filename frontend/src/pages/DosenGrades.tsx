@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { getGradesByClass, submitGrades, updateGrade, getMyClasses } from '../lib/api';
+import {
+  getGradesByClass,
+  submitGrades,
+  updateGrade,
+  getMyClasses,
+  getDosenSemesters,
+} from '../lib/api';
 import type { GradeClassItem, GradeInput, MyClass } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
@@ -26,6 +32,9 @@ interface CourseGroup {
 export function DosenGrades() {
   const [selectedGroup, setSelectedGroup] = useState<CourseGroup | null>(null);
   const [classes, setClasses] = useState<MyClass[]>([]);
+  // Id semester aktif (dari /dosen/semesters) — dipakai memfilter kelas diampu agar
+  // hanya semester berjalan yang tampil.
+  const [activeSemesterIds, setActiveSemesterIds] = useState<number[]>([]);
   const [grades, setGrades] = useState<GradeRow[]>([]);
   const [scores, setScores] = useState<Record<number, { tugas: string; uts: string; uas: string }>>(
     {},
@@ -41,12 +50,30 @@ export function DosenGrades() {
       .catch(() => {
         /* dropdown tetap kosong */
       });
+    // Filter ke semester aktif: hanya tampilkan kelas yang diampu di semester yang
+    // sedang berjalan (is_active), bukan semua semester histori. Ambil daftar semester
+    // aktif dari backend, lalu simpan id-nya untuk memfilter kelas.
+    getDosenSemesters()
+      .then((sems) => setActiveSemesterIds(sems.map((s) => s.id)))
+      .catch(() => {
+        /* bila gagal, jangan filter (fallback: tampilkan semua) */
+      });
   }, []);
+
+  // Kelas yang diampu HANYA di semester aktif (user: "hanya menampilkan kelas yang
+  // dosen login ampu" → kelas diampu aktif, bukan histori semester lampau).
+  const visibleClasses = useMemo(
+    () =>
+      activeSemesterIds.length > 0
+        ? classes.filter((c) => activeSemesterIds.includes(c.semesterId))
+        : classes,
+    [classes, activeSemesterIds],
+  );
 
   // Satu opsi per courseCode+semester — paralel (A/B) digabung, antar-semester terpisah
   const courseOptions = useMemo<CourseGroup[]>(() => {
     const seen = new Map<string, CourseGroup>();
-    for (const cls of classes) {
+    for (const cls of visibleClasses) {
       const key = `${cls.courseCode}#${cls.semesterId}`;
       if (!seen.has(key)) {
         seen.set(key, {
@@ -59,12 +86,12 @@ export function DosenGrades() {
       }
     }
     return [...seen.values()];
-  }, [classes]);
+  }, [visibleClasses]);
 
   // Load grades SEMUA kelas paralel dalam penawaran terpilih, digabung jadi satu daftar
   const loadGrades = useCallback(
     async (group: CourseGroup) => {
-      const targets = classes.filter(
+      const targets = visibleClasses.filter(
         (c) => c.courseCode === group.code && c.semesterId === group.semesterId,
       );
       if (targets.length === 0) return;
@@ -102,7 +129,7 @@ export function DosenGrades() {
         setIsLoading(false);
       }
     },
-    [classes],
+    [visibleClasses],
   );
 
   const handleSelectCourse = (key: string) => {
@@ -188,7 +215,7 @@ export function DosenGrades() {
 
   // Kelas paralel dalam penawaran terpilih (untuk info baris di bawah dropdown)
   const mergedClasses = selectedGroup
-    ? classes.filter(
+    ? visibleClasses.filter(
         (c) => c.courseCode === selectedGroup.code && c.semesterId === selectedGroup.semesterId,
       )
     : [];

@@ -96,7 +96,7 @@ export function AdminKrsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <button
           type="button"
           onClick={() => void load()}
@@ -114,65 +114,67 @@ export function AdminKrsPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left">
-              <tr>
-                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                  NIM
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                  Mahasiswa
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                  Prodi
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                  Diajukan
-                </th>
-                <th scope="col" className="px-4 py-3 text-center font-medium text-slate-600">
-                  Kelas
-                </th>
-                <th scope="col" className="px-4 py-3 text-center font-medium text-slate-600">
-                  SKS
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                  Aksi
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {pending.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono text-xs text-slate-600">{item.nim}</td>
-                  <td className="px-4 py-3 font-medium text-slate-900">{item.studentName}</td>
-                  <td className="px-4 py-3 text-slate-600">{item.prodiCode}</td>
-                  <td className="px-4 py-3 text-slate-600">{formatDate(item.submittedAt)}</td>
-                  <td className="px-4 py-3 text-center text-slate-600">{item.itemCount}</td>
-                  <td className="px-4 py-3 text-center text-slate-600">{item.totalCredits}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void approve(item.id)}
-                        disabled={busyId !== null}
-                        className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
-                      >
-                        {busyId === item.id ? 'Memproses…' : 'Setujui'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRejectId(item.id)}
-                        disabled={busyId !== null}
-                        className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                      >
-                        Tolak
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max text-sm">
+              <thead className="border-b border-slate-200 bg-slate-50 text-left">
+                <tr>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    NIM
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    Mahasiswa
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    Prodi
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    Diajukan
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center font-medium text-slate-600">
+                    Kelas
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center font-medium text-slate-600">
+                    SKS
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    Aksi
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {pending.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-mono text-xs text-slate-600">{item.nim}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">{item.studentName}</td>
+                    <td className="px-4 py-3 text-slate-600">{item.prodiCode}</td>
+                    <td className="px-4 py-3 text-slate-600">{formatDate(item.submittedAt)}</td>
+                    <td className="px-4 py-3 text-center text-slate-600">{item.itemCount}</td>
+                    <td className="px-4 py-3 text-center text-slate-600">{item.totalCredits}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void approve(item.id)}
+                          disabled={busyId !== null}
+                          className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                        >
+                          {busyId === item.id ? 'Memproses…' : 'Setujui'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRejectId(item.id)}
+                          disabled={busyId !== null}
+                          className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                        >
+                          Tolak
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -183,7 +185,7 @@ export function AdminKrsPage() {
           aria-modal="true"
           aria-label="Tolak KRS"
         >
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-white p-4 sm:p-6 shadow-xl">
             <h2 className="text-lg font-bold text-slate-900">Tolak KRS</h2>
             <p className="mt-1 text-sm text-slate-500">
               Mahasiswa akan menerima notifikasi berisi alasan ini (min. 5 karakter).

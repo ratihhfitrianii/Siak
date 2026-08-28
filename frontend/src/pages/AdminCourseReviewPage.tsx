@@ -238,8 +238,8 @@ export function AdminCourseReviewPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[200px]">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+          <div className="w-full sm:flex-1 min-w-[200px]">
             <label
               htmlFor="filter-semester"
               className="block text-sm font-medium text-slate-700 mb-1"
@@ -262,7 +262,7 @@ export function AdminCourseReviewPage() {
               ))}
             </select>
           </div>
-          <div className="flex-1 min-w-[200px]">
+          <div className="w-full sm:flex-1 min-w-[200px]">
             <label htmlFor="filter-prodi" className="block text-sm font-medium text-slate-700 mb-1">
               Program Studi
             </label>
@@ -282,7 +282,7 @@ export function AdminCourseReviewPage() {
               ))}
             </select>
           </div>
-          <div className="flex-1 min-w-[200px]">
+          <div className="w-full sm:flex-1 min-w-[200px]">
             <label
               htmlFor="filter-status"
               className="block text-sm font-medium text-slate-700 mb-1"
@@ -307,11 +307,11 @@ export function AdminCourseReviewPage() {
               <option value="belum_diajukan">Belum Diajukan</option>
             </select>
           </div>
-          <div className="flex items-end">
+          <div className="w-full sm:flex-none">
             <button
               onClick={handleApplyFilter}
               disabled={loading}
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+              className="w-full sm:w-auto px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
             >
               {loading ? 'Memuat...' : 'Terapkan Filter'}
             </button>
@@ -417,7 +417,7 @@ export function AdminCourseReviewPage() {
           role="dialog"
           aria-modal="true"
         >
-          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-900">Detail Pilihan MK</h2>
               <button
@@ -470,88 +470,90 @@ export function AdminCourseReviewPage() {
               <div>
                 <h3 className="font-medium text-slate-900 mb-2">Mata Kuliah yang Diajukan</h3>
                 <div className="border border-slate-200 rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50">
-                      <tr className="text-left text-slate-500 border-b border-slate-200">
-                        <th className="pb-2 font-medium px-4 py-2">Kode MK</th>
-                        <th className="pb-2 font-medium px-4 py-2">Nama MK</th>
-                        <th className="pb-2 font-medium px-4 py-2">SKS</th>
-                        <th className="pb-2 font-medium px-4 py-2">Semester</th>
-                        <th className="pb-2 font-medium px-4 py-2">Jenis</th>
-                        <th className="pb-2 font-medium px-4 py-2">Prioritas</th>
-                        <th className="pb-2 font-medium px-4 py-2">Catatan Dosen</th>
-                        <th className="pb-2 font-medium px-4 py-2">Status & Reviewer</th>
-                        <th className="pb-2 font-medium px-4 py-2">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detailGroup.courses.map((s) => (
-                        <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="py-3 px-4 font-mono text-slate-700">{s.courseCode}</td>
-                          <td className="py-3 px-4 text-slate-900">{s.courseName}</td>
-                          <td className="py-3 px-4 text-center text-slate-700">{s.credits}</td>
-                          <td className="py-3 px-4 text-slate-700">
-                            {s.semesterCode} (Sem {s.semesterNumber})
-                          </td>
-                          <td className="py-3 px-4 text-center text-slate-700">
-                            {s.isMandatory ? 'Wajib' : 'Pilihan'}
-                          </td>
-                          <td className="py-3 px-4 text-center text-slate-700">{s.priority}</td>
-                          <td
-                            className="py-3 px-4 text-slate-600 max-w-xs truncate"
-                            title={s.notes || ''}
-                          >
-                            {s.notes || '-'}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="space-y-1">
-                              <span
-                                className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusColors[s.status as keyof typeof statusColors]}`}
-                              >
-                                {statusLabels[s.status as keyof typeof statusLabels]}
-                              </span>
-                              {(s.status === 'diterima' || s.status === 'ditolak') &&
-                                s.reviewedByName && (
-                                  <div className="text-xs text-slate-500">
-                                    {s.status === 'diterima' ? 'Disetujui' : 'Ditolak'} oleh{' '}
-                                    <span className="font-medium">{s.reviewedByName}</span>
-                                    {s.reviewedAt && (
-                                      <>
-                                        {' '}
-                                        •{' '}
-                                        <span>
-                                          {new Date(s.reviewedAt).toLocaleString('id-ID')}
-                                        </span>
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            {s.status === 'diajukan' ? (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleReview(s.id, 'diterima')}
-                                  className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
-                                >
-                                  Setujui
-                                </button>
-                                <button
-                                  onClick={() => handleReview(s.id, 'ditolak')}
-                                  className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                                >
-                                  Tolak
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-slate-500">Selesai</span>
-                            )}
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-max text-sm">
+                      <thead className="bg-slate-50">
+                        <tr className="text-left text-slate-500 border-b border-slate-200">
+                          <th className="pb-2 font-medium px-4 py-2">Kode MK</th>
+                          <th className="pb-2 font-medium px-4 py-2">Nama MK</th>
+                          <th className="pb-2 font-medium px-4 py-2">SKS</th>
+                          <th className="pb-2 font-medium px-4 py-2">Semester</th>
+                          <th className="pb-2 font-medium px-4 py-2">Jenis</th>
+                          <th className="pb-2 font-medium px-4 py-2">Prioritas</th>
+                          <th className="pb-2 font-medium px-4 py-2">Catatan Dosen</th>
+                          <th className="pb-2 font-medium px-4 py-2">Status & Reviewer</th>
+                          <th className="pb-2 font-medium px-4 py-2">Aksi</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {detailGroup.courses.map((s) => (
+                          <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4 font-mono text-slate-700">{s.courseCode}</td>
+                            <td className="py-3 px-4 text-slate-900">{s.courseName}</td>
+                            <td className="py-3 px-4 text-center text-slate-700">{s.credits}</td>
+                            <td className="py-3 px-4 text-slate-700">
+                              {s.semesterCode} (Sem {s.semesterNumber})
+                            </td>
+                            <td className="py-3 px-4 text-center text-slate-700">
+                              {s.isMandatory ? 'Wajib' : 'Pilihan'}
+                            </td>
+                            <td className="py-3 px-4 text-center text-slate-700">{s.priority}</td>
+                            <td
+                              className="py-3 px-4 text-slate-600 max-w-xs truncate"
+                              title={s.notes || ''}
+                            >
+                              {s.notes || '-'}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="space-y-1">
+                                <span
+                                  className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusColors[s.status as keyof typeof statusColors]}`}
+                                >
+                                  {statusLabels[s.status as keyof typeof statusLabels]}
+                                </span>
+                                {(s.status === 'diterima' || s.status === 'ditolak') &&
+                                  s.reviewedByName && (
+                                    <div className="text-xs text-slate-500">
+                                      {s.status === 'diterima' ? 'Disetujui' : 'Ditolak'} oleh{' '}
+                                      <span className="font-medium">{s.reviewedByName}</span>
+                                      {s.reviewedAt && (
+                                        <>
+                                          {' '}
+                                          •{' '}
+                                          <span>
+                                            {new Date(s.reviewedAt).toLocaleString('id-ID')}
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              {s.status === 'diajukan' ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleReview(s.id, 'diterima')}
+                                    className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                                  >
+                                    Setujui
+                                  </button>
+                                  <button
+                                    onClick={() => handleReview(s.id, 'ditolak')}
+                                    className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                                  >
+                                    Tolak
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-500">Selesai</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
