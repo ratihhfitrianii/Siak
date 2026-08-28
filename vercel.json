@@ -3,6 +3,7 @@
   "outputDirectory": "frontend/dist",
   "framework": "vite",
   "installCommand": "npm ci --workspaces --legacy-peer-deps",
+  "nodeVersion": "22.x",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://siak-backend.onrender.com/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
