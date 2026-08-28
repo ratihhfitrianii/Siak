@@ -1,8 +1,10 @@
 {
-  "buildCommand": "npm run build --workspace=frontend",
-  "outputDirectory": "frontend/dist",
+  "name": "siak-frontend",
+  "rootDirectory": "frontend",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "framework": "vite",
-  "installCommand": "npm ci --workspaces --legacy-peer-deps",
+  "installCommand": "npm ci --legacy-peer-deps",
   "nodeVersion": "22.x",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://siak-backend.onrender.com/api/$1" },
