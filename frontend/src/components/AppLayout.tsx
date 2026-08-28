@@ -170,6 +170,8 @@ const MENU_ITEMS: {
         permissions: ['transcript.view_own', 'transcript.view_mentee'],
         label: 'Kartu Hasil Studi (KHS)',
         path: '/hasil-studi/transkrip',
+        icon: 'clipboard',
+        description: 'Kartu Hasil Studi (KHS)',
       },
     ],
   },
