@@ -275,21 +275,30 @@
       text-align: center; flex: 1; min-width: 140px; max-width: 100%;
       position: relative;
     }
+    .flow-arrow {
+      display: none; /* Hidden by default, shown on mobile via media query */
+      color: var(--accent); font-size: 1.5rem; font-weight: 700;
+      padding: 4px 0; line-height: 1;
+    }
     /* Mobile: vertical arrows between steps */
     @media (max-width: 599px) {
-      .flow-step:not(:last-child)::after {
-        content: '↓'; position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
-        color: var(--accent); font-size: 1.5rem; font-weight: 700;
+      .flow { gap: 8px; }
+      .flow-arrow {
+        display: block;
         animation: bounce 2s infinite;
       }
-      @keyframes bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(4px); } }
+      @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+      .flow-step:last-child { margin-bottom: 0; }
     }
-    /* Desktop: horizontal arrows */
+    /* Desktop: horizontal arrows between steps */
     @media (min-width: 600px) {
-      .flow-step:not(:last-child)::after {
-        content: '→'; position: absolute; right: -18px; top: 50%; transform: translateY(-50%);
-        color: var(--accent); font-size: 1.25rem; font-weight: 700;
+      .flow-arrow {
+        display: block;
+        align-self: center;
+        font-size: 1.25rem;
+        margin: 0 4px;
       }
+      .flow-step:last-child + .flow-arrow { display: none; }
     }
     .flow-step .step-num { color: var(--accent); font-weight: 800; font-size: clamp(0.6rem, 1.8vw, 0.75rem); text-transform: uppercase; letter-spacing: 0.06em; }
     .flow-step .step-title { font-weight: 700; margin-top: 6px; font-size: clamp(0.8rem, 2.2vw, 0.95rem); line-height: 1.3; }
@@ -410,18 +419,18 @@
 <div class="deck" id="deck">
 
   <!-- SLIDE 1: JUDUL -->
-  <section class="slide active" data-slide="0">
-    <div class="logo">SIAK</div>
-    <div class="badge">Sistem Informasi Akademik</div>
-    <h1>Digitalisasi Kampus<br>Satu Platform, Semua Layanan</h1>
-    <p class="subtitle">Solusi terintegrasi untuk akademik, keuangan, kehadiran, dan pelaporan — siap pakai untuk kampus Anda.</p>
-    <div class="stat-row" role="list" aria-label="Statistik produk">
-      <div class="stat" role="listitem"><div class="num">5.000+</div><div class="label">Kapasitas Pengguna</div></div>
-      <div class="stat" role="listitem"><div class="num">24</div><div class="label">Modul Lengkap</div></div>
-      <div class="stat" role="listitem"><div class="num">165+</div><div class="label">Endpoint API</div></div>
-      <div class="stat" role="listitem"><div class="num">72</div><div class="label">Automated Tests</div></div>
-    </div>
-  </section>
+    <section class="slide active" data-slide="0">
+      <div class="logo">SIAK</div>
+      <div class="badge">Sistem Informasi Akademik</div>
+      <h1>Digitalisasi Kampus<br>Satu Platform, Semua Layanan</div>
+      <p class="subtitle">Solusi terintegrasi untuk akademik, keuangan, kehadiran, dan pelaporan — siap pakai untuk kampus Anda.</p>
+      <div class="stat-row" role="list" aria-label="Statistik produk" style="margin-top: auto;">
+        <div class="stat" role="listitem"><div class="num">5.000+</div><div class="label">Kapasitas Pengguna</div></div>
+        <div class="stat" role="listitem"><div class="num">24</div><div class="label">Modul Lengkap</div></div>
+        <div class="stat" role="listitem"><div class="num">165+</div><div class="label">Endpoint API</div></div>
+        <div class="stat" role="listitem"><div class="num">72</div><div class="label">Automated Tests</div></div>
+      </div>
+    </section>
 
   <!-- SLIDE 2: MASALAH & SOLUSI -->
   <section class="slide" data-slide="1">
@@ -555,22 +564,26 @@
   </section>
 
   <!-- SLIDE 9: PROSES IMPLEMENTASI -->
-  <section class="slide" data-slide="8">
-    <div class="badge">Proses</div>
-    <h2>Roadmap Implementasi</h2>
-    <div class="flow" role="list" aria-label="Langkah implementasi">
-      <div class="flow-step" role="listitem"><div class="step-num">Langkah 1</div><div class="step-title">Assessment &<br>Setup Server</div></div>
-      <div class="flow-step" role="listitem"><div class="step-num">Langkah 2</div><div class="step-title">Instalasi &<br>Konfigurasi</div></div>
-      <div class="flow-step" role="listitem"><div class="step-num">Langkah 3</div><div class="step-title">Migrasi Data<br>Master</div></div>
-      <div class="flow-step" role="listitem"><div class="step-num">Langkah 4</div><div class="step-title">Pelatihan<br>Staf</div></div>
-      <div class="flow-step" role="listitem"><div class="step-num">Langkah 5</div><div class="step-title">Go-Live &<br>Support</div></div>
-    </div>
-    <div class="grid" style="margin-top: 28px;" role="list" aria-label="Detail implementasi">
-      <div class="card" role="listitem"><div class="icon">⏱️</div><div class="title">Estimasi Waktu</div><div class="desc">2–4 minggu untuk kampus kecil-menengah (asumsi data master siap).</div></div>
-      <div class="card" role="listitem"><div class="icon">🎓</div><div class="title">Pelatihan</div><div class="desc">2 sesi: admin sistem + staf akademik/keuangan. Bisa ditambah sesuai kebutuhan.</div></div>
-      <div class="card" role="listitem"><div class="icon">🛟</div><div class="title">Dukungan Pasca</div><div class="desc">Garansi bug 3 bulan, support tahunan opsional (Rp 10–25 juta/tahun).</div></div>
-    </div>
-  </section>
+    <section class="slide" data-slide="8">
+      <div class="badge">Proses</div>
+      <h2>Roadmap Implementasi</h2>
+      <div class="flow" role="list" aria-label="Langkah implementasi">
+        <div class="flow-step" role="listitem"><div class="step-num">Langkah 1</div><div class="step-title">Assessment &<br>Setup Server</div></div>
+        <div class="flow-arrow" aria-hidden="true">↓</div>
+        <div class="flow-step" role="listitem"><div class="step-num">Langkah 2</div><div class="step-title">Instalasi &<br>Konfigurasi</div></div>
+        <div class="flow-arrow" aria-hidden="true">↓</div>
+        <div class="flow-step" role="listitem"><div class="step-num">Langkah 3</div><div class="step-title">Migrasi Data<br>Master</div></div>
+        <div class="flow-arrow" aria-hidden="true">↓</div>
+        <div class="flow-step" role="listitem"><div class="step-num">Langkah 4</div><div class="step-title">Pelatihan<br>Staf</div></div>
+        <div class="flow-arrow" aria-hidden="true">↓</div>
+        <div class="flow-step" role="listitem"><div class="step-num">Langkah 5</div><div class="step-title">Go-Live &<br>Support</div></div>
+      </div>
+      <div class="grid" style="margin-top: 28px;" role="list" aria-label="Detail implementasi">
+        <div class="card" role="listitem"><div class="icon">⏱️</div><div class="title">Estimasi Waktu</div><div class="desc">2–4 minggu untuk kampus kecil-menengah (asumsi data master siap).</div></div>
+        <div class="card" role="listitem"><div class="icon">🎓</div><div class="title">Pelatihan</div><div class="desc">2 sesi: admin sistem + staf akademik/keuangan. Bisa ditambah sesuai kebutuhan.</div></div>
+        <div class="card" role="listitem"><div class="icon">🛟</div><div class="title">Dukungan Pasca</div><div class="desc">Garansi bug 3 bulan, support tahunan opsional (Rp 10–25 juta/tahun).</div></div>
+      </div>
+    </section>
 
   <!-- SLIDE 10: PENUTUP / KONTAK -->
   <section class="slide" data-slide="9">
