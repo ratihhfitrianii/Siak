@@ -35,16 +35,18 @@
     --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
     --shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
     --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --max-width: 720px;
   }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }
 
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
   html { scroll-behavior: smooth; }
+
   body {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg-dark);
@@ -53,50 +55,32 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    min-height: 100vh;
   }
 
   /* ============================================
-     LAYOUT: Mobile = Vertical Stack, Desktop = Horizontal Slides
+     LAYOUT - Single centered column, natural flow
      ============================================ */
-  .deck { width: 100%; }
+  .deck {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: clamp(24px, 5vh, 48px) clamp(16px, 4vw, 32px);
+  }
 
   .slide {
-    padding: clamp(24px, 5vh, 48px) clamp(16px, 4vw, 32px);
-    min-height: 100vh;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
     text-align: center;
+    padding: clamp(32px, 6vh, 56px) 0;
     border-bottom: 1px solid var(--border);
-    opacity: 1;
-    transform: none;
-    transition: none;
   }
-
   .slide:last-child { border-bottom: none; }
 
-  @media (min-width: 769px) {
-    .deck { height: 100vh; height: 100dvh; overflow: hidden; position: relative; }
-    .slide {
-      position: absolute; inset: 0;
-      display: none;
-      min-height: auto;
-      border-bottom: none;
-      justify-content: center;
-    }
-    .slide.active { display: flex; animation: fadeIn 0.4s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-  }
-
   /* ============================================
-     TYPOGRAPHY - Mobile-first scaling
+     TYPOGRAPHY - Clean scaling
      ============================================ */
   h1 { font-size: clamp(1.75rem, 6vw, 3rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 12px; }
   h2 { font-size: clamp(1.35rem, 5vw, 2.25rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 20px; }
   h3 { font-size: clamp(1.1rem, 3.5vw, 1.5rem); font-weight: 600; color: var(--accent); margin-bottom: 10px; }
-  .subtitle { font-size: clamp(0.95rem, 2.8vw, 1.25rem); color: var(--text-dim); max-width: 90%; line-height: 1.6; }
+  .subtitle { font-size: clamp(0.95rem, 2.8vw, 1.25rem); color: var(--text-dim); max-width: 100%; line-height: 1.6; margin: 0 auto 24px; }
   .badge {
     display: inline-block; background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: #fff; padding: 6px 16px; border-radius: 999px;
@@ -107,15 +91,8 @@
   .logo { font-size: clamp(2.25rem, 8vw, 4rem); font-weight: 900; color: var(--accent); letter-spacing: -0.04em; margin-bottom: 6px; }
 
   /* ============================================
-     GRID & CARDS - Stack on mobile, grid on desktop
+     CARDS - Single column, centered
      ============================================ */
-  .grid {
-    display: grid; gap: clamp(12px, 2.5vw, 16px); width: 100%; max-width: 100%;
-    grid-template-columns: 1fr; /* Mobile: single column */
-  }
-  @media (min-width: 480px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (min-width: 769px) { .grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
-
   .card {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -123,8 +100,7 @@
     padding: clamp(16px, 3vw, 20px);
     text-align: left;
     transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
-    position: relative;
-    overflow: hidden;
+    margin-bottom: clamp(12px, 2.5vw, 16px);
     width: 100%;
     max-width: 100%;
   }
@@ -143,48 +119,23 @@
   .card .title { font-weight: 700; font-size: clamp(0.9rem, 2.5vw, 1.1rem); margin-bottom: 6px; color: var(--text); }
   .card .desc { font-size: clamp(0.8rem, 2.2vw, 0.95rem); color: var(--text-dim); line-height: 1.55; }
 
+  /* Card grid - single column on mobile, 2-col on wider screens */
+  .card-grid { display: grid; gap: clamp(12px, 2.5vw, 16px); width: 100%; }
+  @media (min-width: 600px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
+  .card-grid .card { margin-bottom: 0; }
+
   /* ============================================
-       STAT GRID - Responsive grid for stats (replaces stat-row)
-       ============================================ */
-    .stat-grid {
-      display: grid; gap: clamp(12px, 2.5vw, 16px); width: 100%; max-width: 100%;
-      grid-template-columns: repeat(2, 1fr); /* Mobile: 2 columns */
-      justify-items: center;
-    }
-    @media (min-width: 480px) { .stat-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media (min-width: 769px) { .stat-grid { grid-template-columns: repeat(6, 1fr); } }
-    .stat-grid .stat { text-align: center; width: 100%; }
-    .stat-grid .stat .num { font-size: clamp(1.25rem, 4vw, 2rem); font-weight: 800; color: var(--accent); line-height: 1.1; }
-    .stat-grid .stat .label { font-size: clamp(0.65rem, 1.8vw, 0.8rem); color: var(--text-muted); margin-top: 4px; line-height: 1.3; }
-
-    /* ============================================
-       STAT ROW - Horizontal scroll on mobile (legacy, kept for other uses)
-       ============================================ */
-    .stat-row {
-    display: flex; gap: 12px; justify-content: center; flex-wrap: nowrap;
-    overflow-x: auto; padding: 4px 4px 12px;
-    scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; -ms-overflow-style: none;
-    width: 100%; max-width: 100%;
+     STAT GRID - Centered, responsive columns
+     ============================================ */
+  .stat-grid {
+    display: grid; gap: clamp(12px, 2.5vw, 16px); width: 100%; max-width: 100%;
+    grid-template-columns: repeat(2, 1fr); justify-items: center;
   }
-  .stat-row::-webkit-scrollbar { display: none; }
-  .stat {
-    flex: 0 0 auto; min-width: 110px; max-width: 140px; text-align: center;
-    scroll-snap-align: center;
-  }
-  .stat .num { font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 800; color: var(--accent); line-height: 1.1; }
-  .stat .label { font-size: clamp(0.7rem, 2vw, 0.85rem); color: var(--text-muted); margin-top: 4px; line-height: 1.3; }
-
-  .stat-row::after {
-    content: '↔ Geser'; display: block; text-align: center;
-    font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;
-    opacity: 0.6;
-  }
-  @media (min-width: 769px) {
-    .stat-row { overflow-x: visible; padding-bottom: 0; }
-    .stat-row::after { display: none; }
-    .stat { min-width: auto; max-width: none; }
-  }
+  @media (min-width: 480px) { .stat-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 769px) { .stat-grid { grid-template-columns: repeat(6, 1fr); } }
+  .stat { text-align: center; width: 100%; }
+  .stat .num { font-size: clamp(1.25rem, 4vw, 2rem); font-weight: 800; color: var(--accent); line-height: 1.1; }
+  .stat .label { font-size: clamp(0.65rem, 1.8vw, 0.8rem); color: var(--text-muted); margin-top: 4px; line-height: 1.3; }
 
   /* ============================================
      CHECK LIST
@@ -220,31 +171,23 @@
   tr:nth-child(even) td { background: var(--bg-dark-elevated); }
 
   /* ============================================
-     PRICING - Stack on mobile, side-by-side on desktop
+     PRICING - Single column stack
      ============================================ */
-  .pricing {
-    display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 100%;
-  }
-  @media (min-width: 769px) {
-    .pricing { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; }
-  }
+  .pricing { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 100%; }
+  @media (min-width: 769px) { .pricing { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; } }
   .price-card {
     background: var(--bg-card); border: 2px solid var(--border);
     border-radius: var(--radius-xl); padding: clamp(20px, 4vw, 28px);
     text-align: left; flex: 1; min-width: 0;
     transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
-    position: relative; overflow: hidden;
-    width: 100%;
+    position: relative; overflow: hidden; width: 100%;
   }
   .price-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
     background: linear-gradient(90deg, var(--primary), var(--accent));
     opacity: 0.5;
   }
-  .price-card.featured {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg);
-  }
+  .price-card.featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg); }
   .price-card.featured::before { opacity: 1; }
   .price-card:hover { transform: translateY(-4px); border-color: var(--accent); }
   .price-card .plan { font-size: clamp(0.85rem, 2.5vw, 1rem); font-weight: 700; color: var(--accent); margin-bottom: 4px; }
@@ -265,53 +208,29 @@
   }
 
   /* ============================================
-       FLOW STEPS - Stack on mobile, horizontal on desktop
-       ============================================ */
-    .flow { display: flex; flex-direction: column; gap: 0; align-items: center; width: 100%; max-width: 100%; }
-    @media (min-width: 600px) { .flow { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 12px; } }
-    .flow-step {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
-      padding: clamp(14px, 3vw, 18px) clamp(16px, 3vw, 22px); min-width: 0;
-      text-align: center; flex: 1; min-width: 140px; max-width: 100%;
-      position: relative;
-    }
-    .flow-arrow {
-      display: none; /* Hidden by default, shown via media query */
-      color: var(--accent); font-size: 1.5rem; font-weight: 700;
-      padding: 4px 0; line-height: 1;
-    }
-    /* Mobile: vertical arrows between steps */
-    @media (max-width: 599px) {
-      .flow { gap: 8px; }
-      .flow-arrow {
-        display: block;
-        animation: bounce 2s infinite;
-      }
-      .flow-arrow::before { content: '↓'; }
-      @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
-      .flow-step:last-child { margin-bottom: 0; }
-    }
-    /* Desktop: horizontal arrows between steps */
-    @media (min-width: 600px) {
-      .flow-arrow {
-        display: block;
-        align-self: center;
-        font-size: 1.25rem;
-        margin: 0 4px;
-        animation: none !important; /* Reset mobile animation */
-        transform: none !important; /* Reset mobile transform */
-      }
-      .flow-arrow::before { content: '→'; }
-      .flow-step:last-child + .flow-arrow { display: none; }
-    }
-    .flow-step .step-num { color: var(--accent); font-weight: 800; font-size: clamp(0.6rem, 1.8vw, 0.75rem); text-transform: uppercase; letter-spacing: 0.06em; }
-    .flow-step .step-title { font-weight: 700; margin-top: 6px; font-size: clamp(0.8rem, 2.2vw, 0.95rem); line-height: 1.3; }
+     FLOW STEPS - Single column vertical, arrows between
+     ============================================ */
+  .flow { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 100%; gap: 8px; }
+  .flow-step {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: clamp(14px, 3vw, 18px) clamp(16px, 3vw, 22px); min-width: 0;
+    text-align: center; width: 100%; max-width: 400px;
+    position: relative;
+  }
+  .flow-arrow {
+    display: block; color: var(--accent); font-size: 1.5rem; font-weight: 700;
+    padding: 4px 0; line-height: 1; animation: bounce 2s infinite;
+  }
+  .flow-arrow::before { content: '↓'; }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+  .flow-step .step-num { color: var(--accent); font-weight: 800; font-size: clamp(0.6rem, 1.8vw, 0.75rem); text-transform: uppercase; letter-spacing: 0.06em; }
+  .flow-step .step-title { font-weight: 700; margin-top: 6px; font-size: clamp(0.8rem, 2.2vw, 0.95rem); line-height: 1.3; }
 
   /* ============================================
      CONTACT BAR
      ============================================ */
   .contact-bar {
-    margin-top: 24px; width: 100%; max-width: 600px;
+    margin-top: 24px; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto;
     background: var(--bg-card); border: 1px solid var(--border);
     border-radius: var(--radius-lg); padding: 16px 20px;
     display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center;
@@ -320,7 +239,7 @@
   .contact-bar strong { color: var(--text); }
 
   /* ============================================
-     NAVIGATION
+     NAVIGATION - Dots only (simple)
      ============================================ */
   .progress {
     position: fixed; top: 0; left: 0; right: 0; height: 3px;
@@ -346,51 +265,21 @@
   }
   .slide-indicator button.active { background: var(--accent); transform: scale(1.3); }
 
-  @media (min-width: 769px) {
-    .slide-indicator { display: none; }
-  }
-
-  /* Desktop nav arrows */
-  .nav-btn {
-    position: fixed; top: 50%; transform: translateY(-50%);
-    width: 48px; height: 48px; border-radius: 50%;
-    background: var(--bg-card); border: 1px solid var(--border);
-    color: var(--accent); font-size: 1.5rem; cursor: pointer;
-    display: none; align-items: center; justify-content: center;
-    z-index: 200; box-shadow: var(--shadow-lg);
-    transition: all var(--transition);
-  }
-  .nav-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); transform: translateY(-50%) scale(1.05); }
-  .nav-btn:active { transform: translateY(-50%) scale(0.95); }
-  .nav-btn.prev { left: 20px; }
-  .nav-btn.next { right: 20px; }
-  @media (min-width: 769px) { .nav-btn { display: flex; } }
-
-  /* Nav hint desktop */
-  .nav-hint {
-    position: fixed; bottom: 20px; right: 20px; color: var(--text-muted);
-    font-size: 0.75rem; opacity: 0.5; z-index: 100; pointer-events: none;
-    background: rgba(15, 23, 42, 0.8); padding: 8px 12px; border-radius: 8px;
-    border: 1px solid var(--border);
-  }
-  @media (max-width: 768px) { .nav-hint { display: none; } }
-
   /* ============================================
      TOUCH FEEDBACK
      ============================================ */
   @media (hover: none) {
     .card:active { transform: scale(0.98); }
     .price-card:active { transform: scale(0.98); }
-    .stat:active .num { color: var(--accent-light); }
   }
 
   /* ============================================
      PRINT / PDF STYLES
      ============================================ */
   @media print {
-    .progress, .nav-btn, .slide-indicator, .nav-hint { display: none !important; }
-    .deck { height: auto; overflow: visible; }
-    .slide { position: relative !important; display: block !important; page-break-after: always; min-height: auto; border-bottom: none; }
+    .progress, .slide-indicator { display: none !important; }
+    .deck { max-width: none; padding: 24px; }
+    .slide { page-break-after: always; border-bottom: none; padding: 32px 0; }
     .slide:last-child { page-break-after: avoid; }
     body { background: #fff !important; color: #111 !important; }
     .card, .price-card, .table-wrap { background: #f8fafc !important; border-color: #e2e8f0 !important; box-shadow: none !important; }
@@ -406,41 +295,36 @@
     .table-wrap { border: 1px solid #e2e8f0 !important; overflow: visible; }
     table { min-width: 100%; }
     .flow-step { border: 1px solid #e2e8f0 !important; }
-    .flow-step::after { color: #1d4ed8 !important; }
+    .flow-arrow { color: #1d4ed8 !important; }
+    .flow-arrow::before { content: '→' !important; }
   }
 </style>
 </head>
 <body>
 <div class="progress" id="progress"><div class="bar"></div></div>
-
-<!-- Desktop nav arrows -->
-<button class="nav-btn prev" id="btnPrev" aria-label="Slide sebelumnya">‹</button>
-<button class="nav-btn next" id="btnNext" aria-label="Slide selanjutnya">›</button>
-
-<!-- Mobile slide indicator (dots) -->
 <div class="slide-indicator" id="slideIndicator" aria-label="Navigasi slide"></div>
 
 <div class="deck" id="deck">
 
   <!-- SLIDE 1: JUDUL -->
-    <section class="slide active" data-slide="0">
-      <div class="logo">SIAK</div>
-      <div class="badge">Sistem Informasi Akademik</div>
-      <h1>Digitalisasi Kampus<br>Satu Platform, Semua Layanan</div>
-      <p class="subtitle">Solusi terintegrasi untuk akademik, keuangan, kehadiran, dan pelaporan — siap pakai untuk kampus Anda.</p>
-      <div class="stat-row" role="list" aria-label="Statistik produk" style="margin-top: auto;">
-        <div class="stat" role="listitem"><div class="num">5.000+</div><div class="label">Kapasitas Pengguna</div></div>
-        <div class="stat" role="listitem"><div class="num">24</div><div class="label">Modul Lengkap</div></div>
-        <div class="stat" role="listitem"><div class="num">165+</div><div class="label">Endpoint API</div></div>
-        <div class="stat" role="listitem"><div class="num">72</div><div class="label">Automated Tests</div></div>
-      </div>
-    </section>
+  <section class="slide" data-slide="0">
+    <div class="logo">SIAK</div>
+    <div class="badge">Sistem Informasi Akademik</div>
+    <h1>Digitalisasi Kampus<br>Satu Platform, Semua Layanan</h1>
+    <p class="subtitle">Solusi terintegrasi untuk akademik, keuangan, kehadiran, dan pelaporan — siap pakai untuk kampus Anda.</p>
+    <div class="stat-grid" role="list" aria-label="Statistik produk">
+      <div class="stat" role="listitem"><div class="num">5.000+</div><div class="label">Kapasitas Pengguna</div></div>
+      <div class="stat" role="listitem"><div class="num">24</div><div class="label">Modul Lengkap</div></div>
+      <div class="stat" role="listitem"><div class="num">165+</div><div class="label">Endpoint API</div></div>
+      <div class="stat" role="listitem"><div class="num">72</div><div class="label">Automated Tests</div></div>
+    </div>
+  </section>
 
   <!-- SLIDE 2: MASALAH & SOLUSI -->
   <section class="slide" data-slide="1">
     <div class="badge">Latar Belakang</div>
     <h2>Masalah yang Sering Dihadapi Kampus</h2>
-    <div class="grid" role="list" aria-label="Daftar masalah">
+    <div class="card-grid" role="list" aria-label="Daftar masalah">
       <div class="card" role="listitem"><div class="icon">📋</div><div class="title">Administrasi Manual</div><div class="desc">KRS, nilai, dan absensi masih pakai kertas / Excel — rawan salah dan lambat.</div></div>
       <div class="card" role="listitem"><div class="icon">🔓</div><div class="title">Data Tersebar</div><div class="desc">Data mahasiswa, dosen, dan keuangan tercerai-berai di banyak file dan aplikasi.</div></div>
       <div class="card" role="listitem"><div class="icon">🚫</div><div class="title">Tunggakan Tak Terkontrol</div><div class="desc">Sulit mengendalikan pembayaran — mahasiswa bisa isi KRS meski belum lunas.</div></div>
@@ -453,7 +337,7 @@
   <section class="slide" data-slide="2">
     <div class="badge">Modul Akademik</div>
     <h2>Fitur Inti: Akademik & Kehadiran</h2>
-    <div class="grid" role="list" aria-label="Modul akademik">
+    <div class="card-grid" role="list" aria-label="Modul akademik">
       <div class="card" role="listitem"><div class="icon">🎓</div><div class="title">KRS Online</div><div class="desc">Pengisian KRS mahasiswa dengan validasi prasyarat, batas SKS, dan antrian waiting room.</div></div>
       <div class="card" role="listitem"><div class="icon">📚</div><div class="title">Kurikulum & Mata Kuliah</div><div class="desc">Manajemen kurikulum per prodi, MK prasyarat, bobot SKS, dan pilihan.</div></div>
       <div class="card" role="listitem"><div class="icon">🏫</div><div class="title">Kelas & Jadwal</div><div class="desc">Pembuatan kelas otomatis, penugasan dosen, jadwal mingguan, deteksi bentrok.</div></div>
@@ -467,7 +351,7 @@
   <section class="slide" data-slide="3">
     <div class="badge">Modul Bisnis & Pelaporan</div>
     <h2>Fitur Inti: Keuangan, Payroll & PDDikti</h2>
-    <div class="grid" role="list" aria-label="Modul bisnis">
+    <div class="card-grid" role="list" aria-label="Modul bisnis">
       <div class="card" role="listitem"><div class="icon">💳</div><div class="title">Keuangan & Tagihan</div><div class="desc">Generate tagihan per semester, pembayaran online, upload bukti bayar, verifikasi admin.</div></div>
       <div class="card" role="listitem"><div class="icon">🔒</div><div class="title">Blokir KRS Otomatis</div><div class="desc">3-layer gate: mahasiswa tunggakan tidak bisa isi KRS — kontrol pembayaran ketat.</div></div>
       <div class="card" role="listitem"><div class="icon">💰</div><div class="title">Payroll Dosen</div><div class="desc">Hitung gaji otomatis dari MK & SKS yang diampu; batch approve, slip gaji PDF.</div></div>
@@ -481,7 +365,7 @@
   <section class="slide" data-slide="4">
     <div class="badge">Keamanan</div>
     <h2>Keamanan Level Produksi</h2>
-    <div class="grid" role="list" aria-label="Fitur keamanan">
+    <div class="card-grid" role="list" aria-label="Fitur keamanan">
       <div class="card" role="listitem"><div class="icon">🛡️</div><div class="title">RBAC Granular</div><div class="desc">5 peran × 33 permission — di-enforce di backend, bukan sekadar UI.</div></div>
       <div class="card" role="listitem"><div class="icon">🔐</div><div class="title">JWT Auth Modern</div><div class="desc">Access token 15 menit + refresh token rotasi. Password bcrypt 12 round.</div></div>
       <div class="card" role="listitem"><div class="icon">📜</div><div class="title">Audit Log Lengkap</div><div class="desc">Semua aksi penting tercatat: siapa, kapan, apa — traceable penuh.</div></div>
@@ -495,7 +379,7 @@
   <section class="slide" data-slide="5">
     <div class="badge">Teknologi</div>
     <h2>Arsitektur Modern & Teruji</h2>
-    <div class="grid" role="list" aria-label="Stack teknologi">
+    <div class="card-grid" role="list" aria-label="Stack teknologi">
       <div class="card" role="listitem"><div class="icon">⚛️</div><div class="title">React 19 + Vite</div><div class="desc">SPA modern, code-splitting, bundle ≤200 kB gzip, Tailwind CSS.</div></div>
       <div class="card" role="listitem"><div class="icon">🟢</div><div class="title">Node.js + Express</div><div class="desc">Monolith modular 24 modul, TypeScript strict mode, Pino logging.</div></div>
       <div class="card" role="listitem"><div class="icon">🐘</div><div class="title">PostgreSQL 16</div><div class="desc">32 tabel relasional, migrasi versioned (30 file), indexing optimal.</div></div>
@@ -506,19 +390,19 @@
   </section>
 
   <!-- SLIDE 7: STATISTIK -->
-    <section class="slide" data-slide="6">
-      <div class="badge">Skala Produk</div>
-      <h2>Angka yang Berbicara</h2>
-      <div class="stat-grid" role="list" aria-label="Statistik kode">
-        <div class="stat" role="listitem"><div class="num">33K</div><div class="label">Baris Kode Produksi</div></div>
-        <div class="stat" role="listitem"><div class="num">22.5K</div><div class="label">Baris Kode Test</div></div>
-        <div class="stat" role="listitem"><div class="num">72</div><div class="label">File Automated Test</div></div>
-        <div class="stat" role="listitem"><div class="num">165+</div><div class="label">Endpoint API</div></div>
-        <div class="stat" role="listitem"><div class="num">32</div><div class="label">Tabel Database</div></div>
-        <div class="stat" role="listitem"><div class="num">42+</div><div class="label">Halaman Aplikasi</div></div>
-      </div>
-      <p class="subtitle" style="margin-top: 24px;">Coverage test: Backend ≥75% branch, Frontend ≥80% — kualitas teruji, bukan prototype.</p>
-    </section>
+  <section class="slide" data-slide="6">
+    <div class="badge">Skala Produk</div>
+    <h2>Angka yang Berbicara</h2>
+    <div class="stat-grid" role="list" aria-label="Statistik kode">
+      <div class="stat" role="listitem"><div class="num">33K</div><div class="label">Baris Kode Produksi</div></div>
+      <div class="stat" role="listitem"><div class="num">22.5K</div><div class="label">Baris Kode Test</div></div>
+      <div class="stat" role="listitem"><div class="num">72</div><div class="label">File Automated Test</div></div>
+      <div class="stat" role="listitem"><div class="num">165+</div><div class="label">Endpoint API</div></div>
+      <div class="stat" role="listitem"><div class="num">32</div><div class="label">Tabel Database</div></div>
+      <div class="stat" role="listitem"><div class="num">42+</div><div class="label">Halaman Aplikasi</div></div>
+    </div>
+    <p class="subtitle" style="margin-top: 24px;">Coverage test: Backend ≥75% branch, Frontend ≥80% — kualitas teruji, bukan prototype.</p>
+  </section>
 
   <!-- SLIDE 8: PAKET & HARGA -->
   <section class="slide" data-slide="7">
@@ -568,26 +452,26 @@
   </section>
 
   <!-- SLIDE 9: PROSES IMPLEMENTASI -->
-    <section class="slide" data-slide="8">
-      <div class="badge">Proses</div>
-      <h2>Roadmap Implementasi</h2>
-      <div class="flow" role="list" aria-label="Langkah implementasi">
-        <div class="flow-step" role="listitem"><div class="step-num">Langkah 1</div><div class="step-title">Assessment &<br>Setup Server</div></div>
-        <div class="flow-arrow" aria-hidden="true"></div>
-        <div class="flow-step" role="listitem"><div class="step-num">Langkah 2</div><div class="step-title">Instalasi &<br>Konfigurasi</div></div>
-        <div class="flow-arrow" aria-hidden="true"></div>
-        <div class="flow-step" role="listitem"><div class="step-num">Langkah 3</div><div class="step-title">Migrasi Data<br>Master</div></div>
-        <div class="flow-arrow" aria-hidden="true"></div>
-        <div class="flow-step" role="listitem"><div class="step-num">Langkah 4</div><div class="step-title">Pelatihan<br>Staf</div></div>
-        <div class="flow-arrow" aria-hidden="true"></div>
-        <div class="flow-step" role="listitem"><div class="step-num">Langkah 5</div><div class="step-title">Go-Live &<br>Support</div></div>
-      </div>
-      <div class="grid" style="margin-top: 28px;" role="list" aria-label="Detail implementasi">
-        <div class="card" role="listitem"><div class="icon">⏱️</div><div class="title">Estimasi Waktu</div><div class="desc">2–4 minggu untuk kampus kecil-menengah (asumsi data master siap).</div></div>
-        <div class="card" role="listitem"><div class="icon">🎓</div><div class="title">Pelatihan</div><div class="desc">2 sesi: admin sistem + staf akademik/keuangan. Bisa ditambah sesuai kebutuhan.</div></div>
-        <div class="card" role="listitem"><div class="icon">🛟</div><div class="title">Dukungan Pasca</div><div class="desc">Garansi bug 3 bulan, support tahunan opsional (Rp 10–25 juta/tahun).</div></div>
-      </div>
-    </section>
+  <section class="slide" data-slide="8">
+    <div class="badge">Proses</div>
+    <h2>Roadmap Implementasi</h2>
+    <div class="flow" role="list" aria-label="Langkah implementasi">
+      <div class="flow-step" role="listitem"><div class="step-num">Langkah 1</div><div class="step-title">Assessment &<br>Setup Server</div></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step" role="listitem"><div class="step-num">Langkah 2</div><div class="step-title">Instalasi &<br>Konfigurasi</div></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step" role="listitem"><div class="step-num">Langkah 3</div><div class="step-title">Migrasi Data<br>Master</div></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step" role="listitem"><div class="step-num">Langkah 4</div><div class="step-title">Pelatihan<br>Staf</div></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step" role="listitem"><div class="step-num">Langkah 5</div><div class="step-title">Go-Live &<br>Support</div></div>
+    </div>
+    <div class="card-grid" style="margin-top: 28px;" role="list" aria-label="Detail implementasi">
+      <div class="card" role="listitem"><div class="icon">⏱️</div><div class="title">Estimasi Waktu</div><div class="desc">2–4 minggu untuk kampus kecil-menengah (asumsi data master siap).</div></div>
+      <div class="card" role="listitem"><div class="icon">🎓</div><div class="title">Pelatihan</div><div class="desc">2 sesi: admin sistem + staf akademik/keuangan. Bisa ditambah sesuai kebutuhan.</div></div>
+      <div class="card" role="listitem"><div class="icon">🛟</div><div class="title">Dukungan Pasca</div><div class="desc">Garansi bug 3 bulan, support tahunan opsional (Rp 10–25 juta/tahun).</div></div>
+    </div>
+  </section>
 
   <!-- SLIDE 10: PENUTUP / KONTAK -->
   <section class="slide" data-slide="9">
@@ -610,24 +494,17 @@
 
 </div>
 
-<!-- Desktop nav hint -->
-<div class="nav-hint" id="navHint">← → navigasi • Home/End untuk lompat</div>
-
 <script>
 (function() {
   'use strict';
 
   const slides = document.querySelectorAll('.slide');
   const progressBar = document.querySelector('#progress .bar');
-  const btnPrev = document.getElementById('btnPrev');
-  const btnNext = document.getElementById('btnNext');
   const indicator = document.getElementById('slideIndicator');
-  const isDesktop = window.matchMedia('(min-width: 769px)').matches;
   const totalSlides = slides.length;
   let current = 0;
-  let touchStartX = 0;
   let touchStartY = 0;
-  let isScrolling = false;
+  let touchStartX = 0;
 
   // Create indicator dots
   if (indicator) {
@@ -638,7 +515,7 @@
       dot.setAttribute('role', 'tab');
       dot.setAttribute('aria-label', 'Slide ' + (i + 1));
       dot.setAttribute('aria-selected', i === 0);
-      dot.addEventListener('click', () => show(i));
+      dot.addEventListener('click', () => scrollToSlide(i));
       indicator.appendChild(dot);
     }
   }
@@ -655,116 +532,59 @@
 
   function updateProgress() {
     if (!progressBar) return;
-    const pct = ((current + 1) / totalSlides * 100);
-    progressBar.style.width = pct + '%';
+    const slide = slides[current];
+    const slideTop = slide.offsetTop;
+    const slideHeight = slide.offsetHeight;
+    const viewportHeight = window.innerHeight;
+    const deckTop = document.getElementById('deck').offsetTop;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const progress = Math.min(1, Math.max(0, (scrollTop - deckTop + viewportHeight * 0.5) / (document.getElementById('deck').scrollHeight - viewportHeight)));
+    progressBar.style.width = (progress * 100) + '%';
   }
 
-  function show(n) {
-    if (isDesktop) {
-      slides[current].classList.remove('active');
-      current = Math.max(0, Math.min(totalSlides - 1, n));
-      slides[current].classList.add('active');
-    } else {
-      current = Math.max(0, Math.min(totalSlides - 1, n));
-      slides[current].scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    updateProgress();
-    updateIndicator();
+  function scrollToSlide(n) {
+    n = Math.max(0, Math.min(totalSlides - 1, n));
+    slides[n].scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function nextSlide() { show(current + 1); }
-  function prevSlide() { show(current - 1); }
-
-  // Keyboard navigation (desktop)
-  document.addEventListener('keydown', (e) => {
-    if (!isDesktop) return;
-    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
-    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
-    if (e.key === 'Home') show(0);
-    if (e.key === 'End') show(totalSlides - 1);
-  });
-
-  // Desktop nav buttons
-  if (btnNext) btnNext.addEventListener('click', nextSlide);
-  if (btnPrev) btnPrev.addEventListener('click', prevSlide);
-
-  // Touch/swipe support (mobile)
-  document.addEventListener('touchstart', (e) => {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    isScrolling = false;
-  }, { passive: true });
-
-  document.addEventListener('touchmove', (e) => {
-    if (!touchStartX) return;
-    const dx = e.touches[0].clientX - touchStartX;
-    const dy = e.touches[0].clientY - touchStartY;
-    if (!isScrolling && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
-      isScrolling = true;
-    }
-  }, { passive: true });
-
-  document.addEventListener('touchend', (e) => {
-    if (!isScrolling || touchStartX === 0) return;
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    if (Math.abs(dx) > 50) {
-      show(current + (dx < 0 ? 1 : -1));
-    }
-    touchStartX = 0;
-  }, { passive: true });
-
-  // Click zones (desktop only)
-  document.addEventListener('click', (e) => {
-    if (!isDesktop) return;
-    if (e.target.closest('button, a, input, select, textarea')) return;
-    if (e.clientX > window.innerWidth * 0.7) nextSlide();
-    else if (e.clientX < window.innerWidth * 0.3) prevSlide();
-  });
-
-  // Scroll spy for mobile - update current slide based on scroll position
-  if (!isDesktop) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-          const slideIndex = parseInt(entry.target.dataset.slide, 10);
-          if (slideIndex !== current) {
-            current = slideIndex;
-            updateProgress();
-            updateIndicator();
-          }
+  // Scroll spy - update current slide based on scroll position
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && entry.intersectionRatio > 0.4) {
+        const slideIndex = parseInt(entry.target.dataset.slide, 10);
+        if (slideIndex !== current) {
+          current = slideIndex;
+          updateProgress();
+          updateIndicator();
         }
-      });
-    }, { rootMargin: '0px', threshold: [0.5] });
-
-    slides.forEach(slide => observer.observe(slide));
-  }
-
-  // Handle resize (desktop <-> mobile switch)
-  let resizeTimer;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      const newIsDesktop = window.matchMedia('(min-width: 769px)').matches;
-      if (newIsDesktop !== isDesktop) {
-        location.reload();
       }
-    }, 250);
+    });
+  }, { rootMargin: '0px', threshold: [0.4] });
+
+  slides.forEach(slide => observer.observe(slide));
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault(); scrollToSlide(current + 1);
+    }
+    if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault(); scrollToSlide(current - 1);
+    }
+    if (e.key === 'Home') scrollToSlide(0);
+    if (e.key === 'End') scrollToSlide(totalSlides - 1);
   });
+
+  // Scroll progress update
+  let scrollTimer;
+  window.addEventListener('scroll', () => {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(updateProgress, 50);
+  }, { passive: true });
 
   // Initialize
   updateProgress();
   updateIndicator();
-
-  // Prevent pull-to-refresh on iOS when at top
-  let lastTouchY = 0;
-  document.addEventListener('touchstart', (e) => { lastTouchY = e.touches[0].clientY; }, { passive: true });
-  document.addEventListener('touchmove', (e) => {
-    const y = e.touches[0].clientY;
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    if (scrollTop === 0 && y > lastTouchY && y - lastTouchY > 50) {
-      e.preventDefault();
-    }
-  }, { passive: false });
 
 })();
 </script>
