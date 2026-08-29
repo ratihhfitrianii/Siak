@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIAK — Sistem Informasi Akademik | Proposal</title>
+<style>
+    :root {
+      --primary: #1d4ed8;
+      --primary-dark: #1e3a8a;
+      --accent: #3b82f6;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --text: #f1f5f9;
+      --text-dim: #94a3b8;
+      --border: #334155;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      overflow-x: hidden;
+      height: 100vh;
+    }
+    .deck { position: relative; width: 100%; height: 100%; }
+    .slide {
+      position: absolute; inset: 0;
+      display: none; flex-direction: column;
+      justify-content: center; align-items: center;
+      padding: clamp(24px, 4vw, 60px) clamp(16px, 3vw, 80px);
+      text-align: center;
+    }
+    .slide.active { display: flex; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    h1 { font-size: clamp(1.8rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 16px; line-height: 1.2; }
+    h2 { font-size: clamp(1.4rem, 4vw, 2.2rem); font-weight: 700; margin-bottom: 24px; line-height: 1.3; }
+    h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); font-weight: 600; color: var(--accent); margin-bottom: 12px; }
+    .subtitle { font-size: clamp(0.95rem, 2.5vw, 1.35rem); color: var(--text-dim); margin-bottom: 32px; max-width: 90%; line-height: 1.6; }
+    .badge {
+      display: inline-block; background: var(--primary); color: #fff;
+      padding: 6px 16px; border-radius: 999px; font-weight: 600; font-size: clamp(0.75rem, 2vw, 1rem);
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 20px;
+    }
+    .logo {
+      font-size: clamp(2.5rem, 8vw, 4.5rem); font-weight: 900; color: var(--accent);
+      letter-spacing: -0.03em; margin-bottom: 8px;
+    }
+    .grid {
+      display: grid; gap: clamp(12px, 2vw, 20px); width: 100%; max-width: 1100px;
+      grid-template-columns: repeat(auto-fit, minmax(clamp(160px, 40vw, 240px), 1fr));
+    }
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: clamp(16px, 3vw, 24px); text-align: left;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .card:hover { transform: translateY(-4px); border-color: var(--accent); }
+    .card .icon { font-size: clamp(1.5rem, 4vw, 2rem); margin-bottom: 12px; }
+    .card .title { font-weight: 700; font-size: clamp(0.9rem, 2.5vw, 1.1rem); margin-bottom: 8px; color: var(--text); }
+    .card .desc { font-size: clamp(0.8rem, 2vw, 0.9rem); color: var(--text-dim); line-height: 1.5; }
+    .stat-row { display: flex; gap: clamp(16px, 4vw, 40px); justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+    .stat { text-align: center; }
+    .stat .num { font-size: clamp(1.6rem, 5vw, 2.8rem); font-weight: 800; color: var(--accent); }
+    .stat .label { font-size: clamp(0.75rem, 2vw, 0.95rem); color: var(--text-dim); margin-top: 4px; }
+    .check-list { text-align: left; max-width: 100%; width: 100%; }
+    .check-list li {
+      list-style: none; font-size: clamp(0.9rem, 2.5vw, 1.15rem); line-height: 2; color: var(--text);
+      padding-left: clamp(28px, 6vw, 36px); position: relative;
+    }
+    .check-list li::before {
+      content: '✓'; position: absolute; left: 0; color: var(--success);
+      font-weight: 800; font-size: clamp(1rem, 2.5vw, 1.2rem);
+    }
+    .nav-hint {
+      position: fixed; bottom: 12px; right: 16px; color: var(--text-dim);
+      font-size: 0.75rem; opacity: 0.6; z-index: 100;
+    }
+    .progress {
+      position: fixed; top: 0; left: 0; height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transition: width 0.3s; z-index: 100;
+    }
+    .table-wrap { width: 100%; max-width: 1000px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: clamp(0.8rem, 2vw, 1rem); }
+    th { background: var(--primary); color: #fff; padding: 12px 14px; text-align: left; font-weight: 600; }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left; color: var(--text); }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
+    .highlight { color: var(--success); font-weight: 700; }
+    .contact-bar {
+      margin-top: 24px; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 24px; display: flex; gap: 16px;
+      align-items: center; justify-content: center; flex-wrap: wrap;
+    }
+    .contact-bar span { color: var(--text-dim); }
+    .contact-bar strong { color: var(--text); }
+    .pricing { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; width: 100%; max-width: 1100px; }
+    .price-card {
+      background: var(--bg-card); border: 2px solid var(--border);
+      border-radius: 16px; padding: clamp(20px, 4vw, 32px) clamp(16px, 3vw, 28px);
+      flex: 1 1 clamp(240px, 80vw, 360px); text-align: left;
+      position: relative; transition: border-color 0.2s, transform 0.2s;
+    }
+    .price-card:hover { transform: translateY(-4px); }
+    .price-card.featured { border-color: var(--accent); }
+    .price-card .plan { font-size: clamp(0.9rem, 2.5vw, 1.1rem); font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+    .price-card .price { font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 800; margin: 12px 0; }
+    .price-card .period { font-size: clamp(0.75rem, 2vw, 0.9rem); color: var(--text-dim); }
+    .price-card ul { list-style: none; margin-top: 16px; }
+    .price-card ul li { font-size: clamp(0.8rem, 2vw, 0.95rem); color: var(--text-dim); line-height: 2; padding-left: clamp(20px, 5vw, 24px); position: relative; }
+    .price-card ul li::before { content: '✓'; position: absolute; left: 0; color: var(--success); }
+    .price-card .footnote { margin-top: 16px; font-size: clamp(0.7rem, 1.8vw, 0.8rem); color: var(--text-dim); }
+    .flow { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; width: 100%; max-width: 1000px; }
+    .flow-step {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+      padding: clamp(12px, 3vw, 18px) clamp(14px, 3vw, 22px);
+      min-width: clamp(120px, 25vw, 150px); text-align: center;
+    }
+    .flow-step .step-num { color: var(--accent); font-weight: 800; font-size: clamp(0.65rem, 1.8vw, 0.8rem); text-transform: uppercase; letter-spacing: 0.06em; }
+    .flow-step .step-title { font-weight: 700; margin-top: 6px; font-size: clamp(0.8rem, 2.2vw, 1rem); }
+    .arrow { color: var(--accent); font-size: clamp(1.2rem, 3vw, 1.6rem); font-weight: 700; }
+    
+    /* Mobile nav buttons */
+    .nav-btn {
+      position: fixed; top: 50%; transform: translateY(-50%);
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--accent); font-size: 1.4rem; cursor: pointer;
+      display: none; align-items: center; justify-content: center;
+      z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .nav-btn.prev { left: 12px; }
+    .nav-btn.next { right: 12px; }
+    .nav-btn:active { background: var(--primary); color: #fff; }
+    
+    @media (max-width: 768px) {
+      .nav-btn { display: flex; }
+      .slide { padding-top: clamp(60px, 15vw, 80px); padding-bottom: clamp(60px, 15vw, 80px); }
+      .stat-row { gap: 20px; }
+      .flow-step { min-width: 100px; }
+    }
+    
+    /* Print styles for PDF */
+    @media print {
+      .progress, .nav-hint, .nav-btn { display: none !important; }
+      .slide { position: relative !important; display: block !important; page-break-after: always; min-height: auto; }
+      .slide:last-child { page-break-after: avoid; }
+      body { background: #fff !important; color: #111 !important; }
+      .card, .price-card { background: #f8f9fa !important; border-color: #ddd !important; }
+      h1, h2, h3, .title, .plan, .price { color: #111 !important; }
+      .subtitle, .desc, .label, .period, .footnote { color: #444 !important; }
+      .badge { background: #1d4ed8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .logo { color: #1d4ed8 !important; }
+      .stat .num { color: #1d4ed8 !important; }
+      .price-card.featured { border-color: #1d4ed8 !important; }
+      .check-list li::before { color: #22c55e !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<!-- Mobile nav buttons -->
+<button class="nav-btn prev" id="btnPrev" aria-label="Slide sebelumnya">‹</button>
+<button class="nav-btn next" id="btnNext" aria-label="Slide selanjutnya">›</button>
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: JUDUL -->
+  <section class="slide active">
+    <div class="logo">SIAK</div>
+    <div class="badge">Sistem Informasi Akademik</div>
+    <h1>Digitalisasi Kampus<br>Satu Platform, Semua Layanan</h1>
+    <p class="subtitle">Solusi terintegrasi untuk akademik, keuangan, kehadiran, dan pelaporan — siap digunakan untuk kampus Anda.</p>
+    <div class="stat-row">
+      <div class="stat"><div class="num">5.000+</div><div class="label">Kapasitas Pengguna</div></div>
+      <div class="stat"><div class="num">24</div><div class="label">Modul Lengkap</div></div>
+      <div class="stat"><div class="num">165+</div><div class="label">Endpoint API</div></div>
+      <div class="stat"><div class="num">72</div><div class="label">Automated Tests</div></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2: MASALAH & SOLUSI -->
+  <section class="slide">
+    <div class="badge">Latar Belakang</div>
+    <h2>Masalah yang Sering Dihadapi Kampus</h2>
+    <div class="grid">
+      <div class="card"><div class="icon">📋</div><div class="title">Administrasi Manual</div><div class="desc">KRS, nilai, dan absensi masih pakai kertas / Excel — rawan salah dan lambat.</div></div>
+      <div class="card"><div class="icon">🔓</div><div class="title">Data Tersebar</div><div class="desc">Data mahasiswa, dosen, dan keuangan tercerai-berai di banyak file dan aplikasi.</div></div>
+      <div class="card"><div class="icon">🚫</div><div class="title">Tunggakan Tak Terkontrol</div><div class="desc">Sulit mengendalikan pembayaran — mahasiswa bisa isi KRS meski belum lunas.</div></div>
+      <div class="card"><div class="icon">📊</div><div class="title">Pelaporan PDDikti Ribet</div><div class="desc">Sinkronisasi data ke PDDikti manual dan rawan error.</div></div>
+    </div>
+    <h3 style="margin-top: 36px;">→ Solusi: satu platform terintegrasi, semua beres</h3>
+  </section>
+
+  <!-- SLIDE 3: FITUR INTI -->
+  <section class="slide">
+    <div class="badge">Modul</div>
+    <h2>Fitur Inti SIAK</h2>
+    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+      <div class="card"><div class="icon">🎓</div><div class="title">Akademik</div><div class="desc">KRS online, kurikulum, kelas & jadwal, penilai su, transkrip & IPK otomatis.</div></div>
+      <div class="card"><div class="icon">📅</div><div class="title">Penjadwalan</div><div class="desc">Kalender grid per minggu, dosen pilih MK, persetujuan admin.</div></div>
+      <div class="card"><div class="icon">✅</div><div class="title">Absensi Real-time</div><div class="desc">Check-in via ID Sesi / QR code, rekap otomatis, sinkron WebSocket.</div></div>
+      <div class="card"><div class="icon">📝</div><div class="title">Skripsi / TA</div><div class="desc">Ajukan proposal online, review dosen, log bimbingan, mahasiswa binaan.</div></div>
+      <div class="card"><div class="icon">💳</div><div class="title">Keuangan</div><div class="desc">Tagihan per semester, pembayaran online, bukti bayar, blokir KRS otomatis.</div></div>
+      <div class="card"><div class="icon">💰</div><div class="title">Payroll Dosen</div><div class="desc">Hitung gaji otomatis, batch approve, slip gaji PDF.</div></div>
+      <div class="card"><div class="icon">🔄</div><div class="title">PDDikti Sync</div><div class="desc">Modul sinkronisasi ke PDDikti / Neo Feeder.</div></div>
+      <div class="card"><div class="icon">📢</div><div class="title">Informasi & Notifikasi</div><div class="desc">Pengumuman kampus, pusat notifikasi per pengguna.</div></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: KEUANGAN & PAYROLL -->
+  <section class="slide">
+    <div class="badge">Keunggulan</div>
+    <h2>Keuangan & Payroll Otomatis</h2>
+    <div class="grid">
+      <div class="card"><div class="icon">🔒</div><div class="title">Blokir KRS Otomatis</div><div class="desc">3-layer gate: mahasiswa tunggakan tidak bisa isi KRS — kontrol pembayaran ketat.</div></div>
+      <div class="card"><div class="icon">🧾</div><div class="title">Tagihan Terstruktur</div><div class="desc">Generate tagihan per semester; mahasiswa lihat status & riwayat semua semester.</div></div>
+      <div class="card"><div class="icon">👨‍💼</div><div class="title">Payroll Dosen Terhitung</div><div class="desc">Otomatis dari MK & SKS yang diampu; slip gaji PDF langsung terbit.</div></div>
+      <div class="card"><div class="icon">📤</div><div class="title">Export & Rekap</div><div class="desc">Export Excel rekap pembayaran, import data massal CSV/Excel.</div></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 5: SKRIPSI & BIMBINGAN -->
+  <section class="slide">
+    <div class="badge">Akademik Tingkat Akhir</div>
+    <h2>Manajemen Skripsi & Bimbingan</h2>
+    <div class="check-list">
+      <ul>
+        <li>Mahasiswa mengajukan proposal skripsi online — upload file, pilih maksimal 2 dosen pembimbing</li>
+        <li>Dosen & Admin Akademik review: setujui / tolak dengan catatan, riwayat status lengkap</li>
+        <li>Log bimbingan dosen wali (akademik) & dosen pembimbing (proposal) — dua domain terpisah</li>
+        <li>Dosen wali melihat daftar mahasiswa binaan dan progres akademik mereka</li>
+        <li>Menuju fitur sidang (jadwal, penguji, nilai) — roadmap</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: KEAMANAN -->
+  <section class="slide">
+    <div class="badge">Keamanan</div>
+    <h2>Keamanan Level Produksi</h2>
+    <div class="grid">
+      <div class="card"><div class="icon">🛡️</div><div class="title">RBAC Granular</div><div class="desc">5 peran × 33 permission — di-enforce di backend, bukan sekadar UI.</div></div>
+      <div class="card"><div class="icon">🔐</div><div class="title">JWT Auth</div><div class="desc">Access token 15 menit + refresh token rotasi. Password bcrypt 12 round.</div></div>
+      <div class="card"><div class="icon">📜</div><div class="title">Audit Log Lengkap</div><div class="desc">Semua aksi penting tercatat: siapa, kapan, apa — traceable penuh.</div></div>
+      <div class="card"><div class="icon">🚦</div><div class="title">Rate Limiting + Waiting Room</div><div class="desc">Antrian otomatis saat beban puncak KRS massal — server tetap stabil.</div></div>
+      <div class="card"><div class="icon">📝</div><div class="title">Validasi Semua Input</div><div class="desc">Zod schema validation di setiap endpoint — anti-injection & anti-malformed data.</div></div>
+      <div class="card"><div class="icon">🔏</div><div class="title">Password Policy Kuat</div><div class="desc">Min 12 karakter, must-change-first-login, lockout setelah gagal berkali-kali.</div></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: TEKNOLOGI -->
+  <section class="slide">
+    <div class="badge">Teknologi</div>
+    <h2>Arsitektur Modern & Teruji</h2>
+    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="card"><div class="icon">⚛️</div><div class="title">React 19 + Vite</div><div class="desc">SPA modern, code-splitting, bundle ≤200 kB gzip.</div></div>
+      <div class="card"><div class="icon">🟢</div><div class="title">Node.js + Express</div><div class="desc">Monolith modular 24 modul, TypeScript strict.</div></div>
+      <div class="card"><div class="icon">🐘</div><div class="title">PostgreSQL</div><div class="desc">32 tabel relasional, migrasi versioned, indexing.</div></div>
+      <div class="card"><div class="icon">⚡</div><div class="title">Redis</div><div class="desc">Session, rate-limit, queue, waiting room.</div></div>
+      <div class="card"><div class="icon">🔌</div><div class="title">Socket.IO</div><div class="desc">Real-time: absensi & notifikasi.</div></div>
+      <div class="card"><div class="icon">🧪</div><div class="title">Quality Gates</div><div class="desc">Lint + typecheck + build + test (coverage) wajib hijau di CI.</div></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 8: STATISTIK -->
+  <section class="slide">
+    <div class="badge">Skala Produk</div>
+    <h2>Angka yang Berbicara</h2>
+    <div class="stat-row" style="gap: 60px;">
+      <div class="stat"><div class="num">33.000</div><div class="label">Baris Kode Produksi</div></div>
+      <div class="stat"><div class="num">22.500</div><div class="label">Baris Kode Test</div></div>
+      <div class="stat"><div class="num">72</div><div class="label">File Automated Test</div></div>
+      <div class="stat"><div class="num">165+</div><div class="label">Endpoint API</div></div>
+      <div class="stat"><div class="num">32</div><div class="label">Tabel Database</div></div>
+      <div class="stat"><div class="num">42+</div><div class="label">Halaman Aplikasi</div></div>
+    </div>
+    <p class="subtitle" style="margin-top: 30px;">Coverage test: Backend ≥75% branch, Frontend ≥80% — kualitas teruji, bukan prototype.</p>
+  </section>
+
+  <!-- SLIDE 9: PAKET & HARGA -->
+  <section class="slide">
+    <div class="badge">Penawaran</div>
+    <h2>Paket & Skema Harga</h2>
+    <div class="pricing">
+      <div class="price-card">
+        <div class="plan">A — Lisensi + Implementasi</div>
+        <div class="price">Rp 200–400 juta</div>
+        <div class="period">Sekali bayar (beli putus)</div>
+        <ul>
+          <li>Source code lengkap + lisensi Apache 2.0</li>
+          <li>Instalasi & konfigurasi server</li>
+          <li>Migrasi data awal (CSV/Excel)</li>
+          <li>Pelatihan admin & staf</li>
+          <li>Garansi bug 3 bulan + support 1 tahun</li>
+        </ul>
+        <div class="footnote">Paling cocok: kampus menengah yang punya tim IT / butuh kustomisasi</div>
+      </div>
+      <div class="price-card featured">
+        <div class="plan">B — SaaS Tahunan</div>
+        <div class="price">Rp 40–120 juta/thn</div>
+        <div class="period">Per tahun, hosting kami</div>
+        <ul>
+          <li>Semua modul aktif (unlimited user)</li>
+          <li>Hosting, maintenance, backup terjadwal</li>
+          <li>Update regulasi & fitur</li>
+          <li>Support teknis penuh</li>
+          <li>Tanpa investasi awal besar</li>
+        </ul>
+        <div class="footnote">Paling cocok: kampus kecil-menengah, tanpa tim IT internal</div>
+      </div>
+      <div class="price-card">
+        <div class="plan">C — Source Code Saja</div>
+        <div class="price">Rp 100–250 juta</div>
+        <div class="period">Sekali bayar</div>
+        <ul>
+          <li>Source code lengkap + dokumentasi</li>
+          <li>Lisensi Apache 2.0</li>
+          <li>Bimbingan instalasi (1 sesi remote)</li>
+          <li>Untuk kampus dengan tim developer sendiri</li>
+        </ul>
+        <div class="footnote">Harga negosiasi; all prices exclude PPN</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 10: PROSES IMPLEMENTASI -->
+  <section class="slide">
+    <div class="badge">Proses</div>
+    <h2>Roadmap Implementasi</h2>
+    <div class="flow">
+      <div class="flow-step"><div class="step-num">Langkah 1</div><div class="step-title">Assessment & Setup</div></div>
+      <div class="arrow">→</div>
+      <div class="flow-step"><div class="step-num">Langkah 2</div><div class="step-title">Instalasi & Konfigurasi</div></div>
+      <div class="arrow">→</div>
+      <div class="flow-step"><div class="step-num">Langkah 3</div><div class="step-title">Migrasi Data</div></div>
+      <div class="arrow">→</div>
+      <div class="flow-step"><div class="step-num">Langkah 4</div><div class="step-title">Pelatihan Staf</div></div>
+      <div class="arrow">→</div>
+      <div class="flow-step"><div class="step-num">Langkah 5</div><div class="step-title">Go-Live & Support</div></div>
+    </div>
+    <div class="grid" style="margin-top: 36px;">
+      <div class="card"><div class="icon">⏱️</div><div class="title">Estimasi</div><div class="desc">Implementasi 2–4 minggu untuk kampus kecil-menengah (dengan data siap).</div></div>
+      <div class="card"><div class="icon">🎓</div><div class="title">Pelatihan</div><div class="desc">2 sesi: admin sistem + staf akademik/keuangan. Bisa ditambah sesuai kebutuhan.</div></div>
+      <div class="card"><div class="icon">🛟</div><div class="title">Dukungan</div><div class="desc">Garansi bug 3 bulan, support tahunan opsional (Rp 10–25 juta/tahun).</div></div>
+    </div>
+  </section>
+
+  <!-- SLIDE 11: PENUTUP / KONTAK -->
+  <section class="slide">
+    <div class="logo">SIAK</div>
+    <div class="badge">Siap Memulai</div>
+    <h2>Wujudkan Kampus Digital dengan SIAK</h2>
+    <p class="subtitle">Satu platform. Semua terintegrasi. Siap digunakan.</p>
+    <div class="check-list" style="max-width: 520px; margin: 0 auto;">
+      <ul>
+        <li>Bebas custom module tambahan (PMB, LMS, E-Library, dll)</li>
+        <li>Source code milik penuh kampus (Opsi A/C)</li>
+        <li>Dokumentasi & pelatihan lengkap</li>
+        <li>Harga transparan, tanpa biaya tersembunyi</li>
+      </ul>
+    </div>
+    <div class="contact-bar">
+      <span>📱 <strong>Untuk info Lebih lanjut, Hubungi kami IRMA (+62 852-2888-8296)</strong></span>
+    </div>
+  </section>
+
+</div>
+<div class="nav-hint">← → navigasi • Esc untuk ringkasan</div>
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  let current = 0;
+
+  function show(n) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(slides.length - 1, n));
+    slides[current].classList.add('active');
+    progress.style.width = ((current + 1) / slides.length * 100) + '%';
+  }
+
+  function nextSlide() { show(current + 1); }
+  function prevSlide() { show(current - 1); }
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+  });
+
+  // Mobile nav buttons
+  if (btnNext) btnNext.addEventListener('click', nextSlide);
+  if (btnPrev) btnPrev.addEventListener('click', prevSlide);
+
+  // Touch/swipe support
+  let touchX = 0;
+  document.addEventListener('touchstart', e => touchX = e.touches[0].clientX, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) show(current + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  // Click zones (desktop only - disabled on mobile since nav-btns handle it)
+  document.addEventListener('click', e => {
+    if (window.innerWidth <= 768) return; // skip on mobile
+    if (e.clientX > window.innerWidth * 0.7) nextSlide();
+    else if (e.clientX < window.innerWidth * 0.3) prevSlide();
+  });
+
+  show(0);
+</script>
+</body>
+</html>
