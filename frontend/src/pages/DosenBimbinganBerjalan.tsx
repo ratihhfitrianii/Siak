@@ -38,7 +38,7 @@ const STATUS_COLOR: Record<SkripsiStatus, string> = {
   tidak_lulus: 'bg-red-100 text-red-800 font-medium',
 };
 
-const ACTIVE_STATUSES: SkripsiStatus[] = ['dalam_bimbingan', 'siap_sidang', 'lulus'];
+const ACTIVE_STATUSES: SkripsiStatus[] = ['dalam_bimbingan', 'siap_sidang'];
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('id-ID', {
