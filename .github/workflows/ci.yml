@@ -32,7 +32,11 @@ jobs:
           --health-timeout 5s
           --health-retries 12
     env:
-      DATABASE_URL: postgres://siak:***@localhost:5432/siak
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: siak
+      PGPASSWORD: siak_dev_password
+      PGDATABASE: siak
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -108,7 +112,11 @@ jobs:
           --health-timeout 5s
           --health-retries 12
     env:
-      DATABASE_URL: postgres://siak:***@localhost:5432/siak
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: siak
+      PGPASSWORD: siak_dev_password
+      PGDATABASE: siak
       JWT_SECRET: ci-e2e-secret-min-16-chars
     steps:
       - uses: actions/checkout@v4
