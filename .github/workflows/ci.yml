@@ -164,12 +164,6 @@ jobs:
         run: |
           echo "Deploy staging diimplementasikan pada T1.15."
           echo "Menggunakan secrets: STAGING_HOST, STAGING_USER, STAGING_SSH_KEY"
-          # Contoh (aktifkan saat T1.15):
-          # rsync -az --delete ./ "$STAGING_USER@$STAGING_HOST:/opt/siak" \
-          #   -e "ssh -i $STAGING_SSH_KEY -o StrictHostKeyChecking=no"
-          # ssh "$STAGING_USER@$STAGING_HOST" \
-          #   -i "$STAGING_SSH_KEY" \
-          #   "cd /opt/siak && docker compose -f infra/docker-compose.prod.yml up -d --build"
         env:
           STAGING_HOST: ${{ secrets.STAGING_HOST }}
           STAGING_USER: ${{ secrets.STAGING_USER }}
