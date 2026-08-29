@@ -22,21 +22,40 @@ Implementasi **SIAK (Sistem Informasi Akademik)** — platform terintegrasi untu
 1. Manajemen Akademik (KRS Online, Kurikulum, Kelas & Jadwal, Penilaian, Transkrip & IPK)
 2. Kehadiran / Absensi Real-time (Check-in ID Sesi & QR Code, Rekap)
 3. Skripsi & Bimbingan (Pengajuan Proposal, Review, Log Bimbingan, Mahasiswa Binaan)
-4. Keuangan (Tagihan, Pembayaran, Verifikasi, Bukti Bayar, Blokir KRS Otomatis)
+4. Keuangan (Tagihan, Pembayaran, Verifikasi, Bukti Bayar, **Blokir KRS Otomatis**)
 5. Payroll Dosen (Perhitungan Gaji, Approval, Slip Gaji PDF)
 6. Manajemen Pengguna & Master Data (Fakultas, Prodi, Mahasiswa, Dosen, MK)
 7. Komunikasi (Informasi Penting, Notifikasi)
 8. Keamanan & Tata Kelola (RBAC, JWT, Audit Log, Rate Limiting, Waiting Room)
 9. Integrasi (PDDikti Sync, Payment Gateway, Email)
 
-**Teknologi:** React 19 + Node.js (Express) + PostgreSQL + Redis
+**Teknologi:** React 19 + Node.js (Express) + PostgreSQL + Redis  
 **Kapasitas:** 5.000+ pengguna aktif
 
 ---
 
 ## 2. Rincian Harga
 
-### Opsi A — Lisensi + Implementasi (Beli Putus) ★ REKOMENDASI
+### ⭐ Opsi B — SaaS / Langganan Tahunan **(REKOMENDASI UNIVERSITAS DANA TERBATAS)**
+
+> **Mengapa Paket B?**  
+> - **Zero Capex**: Tidak perlu beli server, lisensi permanen, atau rekrut tim IT  
+> - **Biaya Terprediksi**: Fix per tahun, mudah dianggarapkan  
+> - **Fully Managed**: Hosting, backup, security, update, support — semua kami urus  
+> - **Quick Deploy**: Go-live 2–4 minggu (data master siap)  
+> - **TCO 3 Tahun Lebih Rendah** vs beli lisensi + kelola sendiri (lihat perbandingan di bawah)
+
+| No | Item | Keterangan | Harga/Tahun |
+|----|------|------------|-------------|
+| 1 | Langganan SIAK (semua modul, unlimited user) | Hosting, maintenance, backup, SSL, monitoring | Rp 60.000.000 |
+| 2 | Implementasi & migrasi data (tahun pertama) | Setup, konfigurasi, migrasi CSV/Excel (max 5.000 record) | Rp 25.000.000 |
+| 3 | Support teknis & update regulasi/fitur | Penuh (telepon, email, remote), update otomatis | Termasuk |
+| | **TOTAL TAHUN PERTAMA** | | **Rp 85.000.000** |
+| | **TOTAL TAHUN BERIKUTNYA** | | **Rp 60.000.000 / tahun** |
+
+---
+
+### Opsi A — Lisensi + Implementasi (Beli Putus)
 
 | No | Item | Jumlah | Satuan | Harga Satuan | Subtotal |
 |----|------|--------|--------|--------------|----------|
@@ -49,15 +68,9 @@ Implementasi **SIAK (Sistem Informasi Akademik)** — platform terintegrasi untu
 | 7 | Dukungan teknis | 12 | Bulan | Inklusif | Rp 0 |
 | | **TOTAL OPSI A** | | | | **Rp 205.000.000** |
 
-### Opsi B — SaaS / Langganan Tahunan (Hosting Vendor)
+> Cocok: Universitas dengan **tim IT internal** & ingin **full control** (source code, kustomisasi bebas, data on-premise)
 
-| No | Item | Keterangan | Harga/Tahun |
-|----|------|-----------|-------------|
-| 1 | Langganan SIAK (semua modul, unlimited user) | Hosting, maintenance, backup | Rp 60.000.000 |
-| 2 | Implementasi & migrasi data (tahun pertama) | Sekali bayar | Rp 25.000.000 |
-| 3 | Support teknis & update regulasi | Termasuk | Rp 0 |
-| | **TOTAL TAHUN PERTAMA** | | **Rp 85.000.000** |
-| | **TOTAL TAHUN BERIKUTNYA** | | **Rp 60.000.000 / tahun** |
+---
 
 ### Opsi C — Source Code Saja
 
@@ -66,6 +79,23 @@ Implementasi **SIAK (Sistem Informasi Akademik)** — platform terintegrasi untu
 | 1 | Source code lengkap + dokumentasi | Rp 150.000.000 |
 | 2 | Bimbingan instalasi (1 sesi remote) | Inklusif |
 | | **TOTAL OPSI C** | **Rp 150.000.000** |
+
+> Cocok: Universitas dengan **tim developer sendiri** yang mau custom & hosting mandiri
+
+---
+
+## 📊 Perbandingan Total Cost of Ownership (3 Tahun)
+
+| Biaya | **Paket B (SaaS)** | Paket A (Lisensi + Self-Host) |
+|-------|-------------------|------------------------------|
+| Tahun 1 (Implementasi + Lisensi/Subs) | Rp 85.000.000 | Rp 205.000.000 |
+| Tahun 2 (Hosting/Support) | Rp 60.000.000 | Rp 30.000.000* (server + support opsional) |
+| Tahun 3 | Rp 60.000.000 | Rp 30.000.000* |
+| **Total 3 Tahun** | **Rp 205.000.000** | **~Rp 265.000.000+** |
+| Tim IT Internal Diperlukan | **Tidak** | **Ya (min 1-2 orang)** |
+| Maintenance & Security | **Kami** | **Universitas** |
+
+> *Estimasi biaya server cloud (VPS 4 vCPU/8GB), SSL, backup, monitoring, support opsional Rp 10-25jt/thn. Belum termasuk gaji staff IT.
 
 ---
 
@@ -106,7 +136,7 @@ Implementasi **SIAK (Sistem Informasi Akademik)** — platform terintegrasi untu
 | **Go-Live** | **± 4–6 minggu sejak data diterima** |
 
 ### Garansi & Support
-- Garansi perbaikan bug **3 bulan** (Opsi A) / inklusif (Opsi B)
+- Garansi perbaikan bug **3 bulan** (Opsi A) / inklusif selama berlangganan (Opsi B)
 - Support teknis **12 bulan** (telepon, email, remote) — Opsi A
 - Response time: 1×24 jam untuk non-urgent, 4 jam untuk critical
 
@@ -120,7 +150,7 @@ Implementasi **SIAK (Sistem Informasi Akademik)** — platform terintegrasi untu
 ## 5. Catatan
 
 1. Harga **belum termasuk PPN 11%** (jika vendor ber-NPWP dan wajib pungut)
-2. Harga belum termasuk biaya lisensi OS/server & domain (ditanggung kampus)
+2. Harga belum termasuk biaya lisensi OS/server & domain (ditanggung kampus — untuk Opsi A/C)
 3. Kustomisasi di luar modul standar dihitung per add-on (bagian 3)
 4. Migrasi data > 5.000 record dikenakan biaya tambahan
 5. Quotation berlaku 30 hari sejak tanggal terbit
