@@ -16,6 +16,8 @@
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
     "build": "npm run build --workspaces",
+    "build:backend": "npm ci --workspaces --include-workspace-root && npm run build --workspace=backend",
+    "build:frontend": "npm ci --workspaces --include-workspace-root && npm run build --workspace=frontend",
     "lint": "npm run lint --workspaces",
     "format": "npm run format --workspaces",
     "typecheck": "npm run typecheck --workspaces",

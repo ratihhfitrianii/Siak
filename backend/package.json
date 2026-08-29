@@ -5,8 +5,8 @@
   "description": "Siak — Sistem Informasi Akademik (backend, monolith modular)",
   "license": "UNLICENSED",
   "engines": {
-    "node": ">=22.0.0"
-  },
+      "node": "22.x"
+    },
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
