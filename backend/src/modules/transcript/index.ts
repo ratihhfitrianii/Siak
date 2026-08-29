@@ -288,106 +288,106 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
     y += 10;
 
     // SEMESTER TABLES
-        // Kolom: No, Mata Kuliah, SKS, Angka, Huruf, Status (Kode MK dihapus per keluhan)
-        // Keluhan: kolom "No." terlalu lebar — cukup 16pt untuk nomor urut 1-2 digit.
-        // Fixed: gunakan kolom No 16pt dengan absolute positioning, manual truncate (no wrap)
-        const colWidths = [16, 264, 40, 60, 50, 60];
-        const headers = ['No', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
-        // Cumulative x-position per column for pdfkit (base 50 margin).
-        const colStarts: number[] = [];
-        for (const w of colWidths) {
-          colStarts.push(colStarts.length === 0 ? 50 : colStarts[colStarts.length - 1]! + w);
+    // Kolom: No, Mata Kuliah, SKS, Angka, Huruf, Status (Kode MK dihapus per keluhan)
+    // Keluhan: kolom "No." terlalu lebar — cukup 16pt untuk nomor urut 1-2 digit.
+    // Fixed: gunakan kolom No 16pt dengan absolute positioning, manual truncate (no wrap)
+    const colWidths = [16, 264, 40, 60, 50, 60];
+    const headers = ['No', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
+    // Cumulative x-position per column for pdfkit (base 50 margin).
+    const colStarts: number[] = [];
+    for (const w of colWidths) {
+      colStarts.push(colStarts.length === 0 ? 50 : colStarts[colStarts.length - 1]! + w);
+    }
+
+    // Helper: truncate text to fit width (approx 1 char = 4.8pt at fontSize 8)
+    const truncate = (value: string, maxWidth: number): string => {
+      const charWidth = 4.8; // approximate for Helvetica 8pt
+      const maxChars = Math.floor(maxWidth / charWidth);
+      if (value.length <= maxChars) return value;
+      return value.slice(0, maxChars - 1) + '…';
+    };
+
+    // Helper: draw table cell (no wrap, single line, truncated)
+    const drawCell = (
+      value: string,
+      colIndex: number,
+      yPos: number,
+      options: { bold?: boolean; color?: string; align?: 'left' | 'center' | 'right' } = {},
+    ) => {
+      const { bold = false, color = '#000', align = 'left' } = options;
+      const x = colStarts[colIndex]!;
+      const w = colWidths[colIndex]!;
+      const padding = 2;
+      const textX =
+        align === 'center' ? x + w / 2 : align === 'right' ? x + w - padding : x + padding;
+      const textAlign = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
+      const maxWidth = w - padding * 2;
+
+      doc
+        .font(bold ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(8)
+        .fillColor(color);
+
+      // Truncate to fit column width (single line)
+      const truncated = truncate(value, maxWidth);
+      doc.text(truncated, textX, yPos, {
+        width: maxWidth,
+        align: textAlign,
+      });
+    };
+
+    for (const sem of data.semesters) {
+      if (y > 700) {
+        doc.addPage();
+        y = 50;
+      }
+      text(`${sem.semesterName} (${sem.semesterCode})`, 50, y, { size: 12, bold: true });
+      y += 20;
+
+      // Header row
+      headers.forEach((h, i) => {
+        drawCell(h, i, y, { bold: true, align: i === 0 || i >= 3 ? 'center' : 'left' });
+      });
+      y += 16;
+      line(y, '#333');
+      y += 4;
+
+      let rowNum = 0;
+      for (const course of sem.courses) {
+        rowNum++;
+        if (y > 720) {
+          doc.addPage();
+          y = 50;
         }
-
-        // Helper: truncate text to fit width (approx 1 char = 4.8pt at fontSize 8)
-        const truncate = (value: string, maxWidth: number): string => {
-          const charWidth = 4.8; // approximate for Helvetica 8pt
-          const maxChars = Math.floor(maxWidth / charWidth);
-          if (value.length <= maxChars) return value;
-          return value.slice(0, maxChars - 1) + '…';
-        };
-
-        // Helper: draw table cell (no wrap, single line, truncated)
-        const drawCell = (
-          value: string,
-          colIndex: number,
-          yPos: number,
-          options: { bold?: boolean; color?: string; align?: 'left' | 'center' | 'right' } = {}
-        ) => {
-          const { bold = false, color = '#000', align = 'left' } = options;
-          const x = colStarts[colIndex]!;
-          const w = colWidths[colIndex]!;
-          const padding = 2;
-          const textX =
-            align === 'center' ? x + w / 2 : align === 'right' ? x + w - padding : x + padding;
-          const textAlign = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
-          const maxWidth = w - padding * 2;
-
-          doc
-            .font(bold ? 'Helvetica-Bold' : 'Helvetica')
-            .fontSize(8)
-            .fillColor(color);
-
-          // Truncate to fit column width (single line)
-          const truncated = truncate(value, maxWidth);
-          doc.text(truncated, textX, yPos, {
-            width: maxWidth,
-            align: textAlign,
+        const status = course.isRepeated ? 'Diulang' : course.isRemedial ? 'Remedial' : '';
+        const rowData = [
+          String(rowNum),
+          course.courseName,
+          String(course.credits),
+          course.finalScore !== null ? course.finalScore.toFixed(2) : '-',
+          course.gradeLetter || '-',
+          status,
+        ];
+        rowData.forEach((v, i) => {
+          drawCell(v, i, y, {
+            align: i === 0 || i >= 3 ? 'center' : 'left',
+            color: course.isRepeated ? '#dc2626' : '#000',
           });
-        };
+        });
+        y += 14;
+      }
 
-        for (const sem of data.semesters) {
-          if (y > 700) {
-            doc.addPage();
-            y = 50;
-          }
-          text(`${sem.semesterName} (${sem.semesterCode})`, 50, y, { size: 12, bold: true });
-          y += 20;
-
-          // Header row
-          headers.forEach((h, i) => {
-            drawCell(h, i, y, { bold: true, align: i === 0 || i >= 3 ? 'center' : 'left' });
-          });
-          y += 16;
-          line(y, '#333');
-          y += 4;
-
-          let rowNum = 0;
-          for (const course of sem.courses) {
-            rowNum++;
-            if (y > 720) {
-              doc.addPage();
-              y = 50;
-            }
-            const status = course.isRepeated ? 'Diulang' : course.isRemedial ? 'Remedial' : '';
-            const rowData = [
-              String(rowNum),
-              course.courseName,
-              String(course.credits),
-              course.finalScore !== null ? course.finalScore.toFixed(2) : '-',
-              course.gradeLetter || '-',
-              status,
-            ];
-            rowData.forEach((v, i) => {
-              drawCell(v, i, y, {
-                align: i === 0 || i >= 3 ? 'center' : 'left',
-                color: course.isRepeated ? '#dc2626' : '#000',
-              });
-            });
-            y += 14;
-          }
-
-          y += 6;
-          text(
-            `IPS: ${sem.ips.toFixed(2)}  |  SKS Lulus: ${sem.sksLulus}  |  SKS Diambil: ${sem.sksDiambil}`,
-            50,
-            y,
-            { size: 9, bold: true },
-          );
-          y += 20;
-          line(y);
-          y += 10;
-        }
+      y += 6;
+      text(
+        `IPS: ${sem.ips.toFixed(2)}  |  SKS Lulus: ${sem.sksLulus}  |  SKS Diambil: ${sem.sksDiambil}`,
+        50,
+        y,
+        { size: 9, bold: true },
+      );
+      y += 20;
+      line(y);
+      y += 10;
+    }
 
     // SUMMARY
     if (y > 650) {
