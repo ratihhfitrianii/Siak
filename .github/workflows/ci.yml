@@ -41,11 +41,14 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci --workspaces --include-workspace-root
+      - name: Approve install scripts
+        run: npm install-scripts approve bcrypt
       - run: npm run lint --workspace=backend
       - run: npm run format:check --workspace=backend
       - run: npm run typecheck --workspace=backend
       - name: Run DB migrations (V001–V018)
         run: npx node-pg-migrate up -f database.json --config-value db
+        working-directory: backend
       - run: npm run test:coverage --workspace=backend
       - run: npm run build --workspace=backend
 
@@ -60,6 +63,8 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci --workspaces --include-workspace-root
+      - name: Approve install scripts
+        run: npm install-scripts approve bcrypt
       - run: npm run lint --workspace=frontend
       - run: npm run format:check --workspace=frontend
       - run: npm run typecheck --workspace=frontend
@@ -78,6 +83,8 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci --workspaces --include-workspace-root
+      - name: Approve install scripts
+        run: npm install-scripts approve bcrypt
       - name: Audit backend (production deps only)
         run: npm audit --audit-level=high --omit=dev --workspace=backend
       - name: Audit frontend (production deps only)
@@ -111,6 +118,8 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci --workspaces --include-workspace-root
+      - name: Approve install scripts
+        run: npm install-scripts approve bcrypt
       - name: Run DB migrations
         run: npx node-pg-migrate up -f database.json --config-value db
         working-directory: backend
