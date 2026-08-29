@@ -27,8 +27,8 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/multer": "^2.2.0",
     "@types/nodemailer": "^8.0.1",
-    "@types/pg": "^8.11.10",
     "@types/pdfkit": "^0.17.6",
+    "@types/pg": "^8.11.10",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "csv-parse": "^7.0.2",
@@ -66,6 +66,9 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.2"
+  },
+  "dependencies": {
+    "node-pg-migrate": "^7.9.0"
   },
   "overrides": {
     "tar": "^7.5.22",
