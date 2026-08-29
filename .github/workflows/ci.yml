@@ -32,46 +32,40 @@ jobs:
           --health-timeout 5s
           --health-retries 12
     env:
-      DATABASE_URL: postgres://siak:siak_dev_password@localhost:5432/siak
-    defaults:
-      run:
-        working-directory: backend
+      DATABASE_URL: postgres://siak:***@localhost:5432/siak
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: backend/package-lock.json
-      - run: npm ci
+          cache-dependency-path: package-lock.json
+      - run: npm ci --workspaces --include-workspace-root
+      - run: npm run lint --workspace=backend
+      - run: npm run format:check --workspace=backend
+      - run: npm run typecheck --workspace=backend
       - name: Run DB migrations (V001–V018)
         run: npx node-pg-migrate up -f database.json --config-value db
-      - run: npm run lint
-      - run: npm run format:check
-      - run: npm run typecheck
-      - run: npm run test:coverage
-      - run: npm run build
+      - run: npm run test:coverage --workspace=backend
+      - run: npm run build --workspace=backend
 
   frontend-quality:
     name: Frontend — lint, typecheck, test, build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run format:check
-      - run: npm run typecheck
+          cache-dependency-path: package-lock.json
+      - run: npm ci --workspaces --include-workspace-root
+      - run: npm run lint --workspace=frontend
+      - run: npm run format:check --workspace=frontend
+      - run: npm run typecheck --workspace=frontend
       # T1.11d: coverage threshold ≥80% (vite.config.ts) — konsisten dengan backend
-      - run: npm run test:coverage
-      - run: npm run build
+      - run: npm run test:coverage --workspace=frontend
+      - run: npm run build --workspace=frontend
 
   security-scan:
     name: Security scan (npm audit)
@@ -81,12 +75,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --workspaces --include-workspace-root
       - name: Audit backend (production deps only)
-        working-directory: backend
-        run: npm audit --audit-level=high --omit=dev
+        run: npm audit --audit-level=high --omit=dev --workspace=backend
       - name: Audit frontend (production deps only)
-        working-directory: frontend
-        run: npm audit --audit-level=high --omit=dev
+        run: npm audit --audit-level=high --omit=dev --workspace=frontend
 
   e2e:
     name: E2E (Playwright — critical path login)
@@ -106,7 +101,7 @@ jobs:
           --health-timeout 5s
           --health-retries 12
     env:
-      DATABASE_URL: postgres://siak:siak_dev_password@localhost:5432/siak
+      DATABASE_URL: postgres://siak:***@localhost:5432/siak
       JWT_SECRET: ci-e2e-secret-min-16-chars
     steps:
       - uses: actions/checkout@v4
@@ -114,25 +109,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: backend/package-lock.json
-      - name: Install backend deps
-        working-directory: backend
-        run: npm ci
+          cache-dependency-path: package-lock.json
+      - run: npm ci --workspaces --include-workspace-root
       - name: Run DB migrations
-        working-directory: backend
         run: npx node-pg-migrate up -f database.json --config-value db
-      - name: Seed E2E users
         working-directory: backend
+      - name: Seed E2E users
         run: npx tsx scripts/seed-e2e.ts
-      - name: Install frontend deps
-        working-directory: frontend
-        run: npm ci
+        working-directory: backend
       - name: Install Playwright browsers
-        working-directory: frontend
         run: npx playwright install --with-deps chromium
-      - name: Run E2E tests
         working-directory: frontend
+      - name: Run E2E tests
         run: npm run test:e2e
+        working-directory: frontend
 
   build-docker:
     name: Build Docker images
