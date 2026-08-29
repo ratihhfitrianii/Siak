@@ -2,289 +2,483 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1d4ed8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SIAK — Sistem Informasi Akademik | Proposal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-    :root {
-      --primary: #1d4ed8;
-      --primary-dark: #1e3a8a;
-      --accent: #3b82f6;
-      --bg-dark: #0f172a;
-      --bg-card: #1e293b;
-      --text: #f1f5f9;
-      --text-dim: #94a3b8;
-      --border: #334155;
-      --success: #22c55e;
-      --warning: #f59e0b;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg-dark);
-      color: var(--text);
-      overflow-x: hidden;
-      height: 100vh;
-    }
-    .deck { position: relative; width: 100%; height: 100%; }
+  :root {
+    --primary: #1d4ed8;
+    --primary-dark: #1e3a8a;
+    --accent: #3b82f6;
+    --accent-light: #60a5fa;
+    --bg-dark: #0f172a;
+    --bg-dark-elevated: #141e35;
+    --bg-card: #1e293b;
+    --bg-card-hover: #253047;
+    --text: #f1f5f9;
+    --text-dim: #94a3b8;
+    --text-muted: #64748b;
+    --border: #334155;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
+    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ============================================
+     LAYOUT: Desktop = Horizontal Slides, Mobile = Vertical Scroll
+     ============================================ */
+  .deck { width: 100%; }
+
+  .slide {
+    padding: clamp(32px, 6vh, 56px) clamp(16px, 4vw, 32px);
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport for mobile */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .slide:last-child { border-bottom: none; }
+
+  @media (min-width: 769px) {
+    .deck { height: 100vh; height: 100dvh; overflow: hidden; position: relative; }
     .slide {
       position: absolute; inset: 0;
-      display: none; flex-direction: column;
-      justify-content: center; align-items: center;
-      padding: clamp(24px, 4vw, 60px) clamp(16px, 3vw, 80px);
-      text-align: center;
+      display: none;
+      min-height: auto;
+      border-bottom: none;
     }
     .slide.active { display: flex; animation: fadeIn 0.4s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-    h1 { font-size: clamp(1.8rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 16px; line-height: 1.2; }
-    h2 { font-size: clamp(1.4rem, 4vw, 2.2rem); font-weight: 700; margin-bottom: 24px; line-height: 1.3; }
-    h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); font-weight: 600; color: var(--accent); margin-bottom: 12px; }
-    .subtitle { font-size: clamp(0.95rem, 2.5vw, 1.35rem); color: var(--text-dim); margin-bottom: 32px; max-width: 90%; line-height: 1.6; }
-    .badge {
-      display: inline-block; background: var(--primary); color: #fff;
-      padding: 6px 16px; border-radius: 999px; font-weight: 600; font-size: clamp(0.75rem, 2vw, 1rem);
-      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 20px;
-    }
-    .logo {
-      font-size: clamp(2.5rem, 8vw, 4.5rem); font-weight: 900; color: var(--accent);
-      letter-spacing: -0.03em; margin-bottom: 8px;
-    }
-    .grid {
-      display: grid; gap: clamp(12px, 2vw, 20px); width: 100%; max-width: 1100px;
-      grid-template-columns: repeat(auto-fit, minmax(clamp(160px, 40vw, 240px), 1fr));
-    }
-    .card {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 14px; padding: clamp(16px, 3vw, 24px); text-align: left;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-    .card:hover { transform: translateY(-4px); border-color: var(--accent); }
-    .card .icon { font-size: clamp(1.5rem, 4vw, 2rem); margin-bottom: 12px; }
-    .card .title { font-weight: 700; font-size: clamp(0.9rem, 2.5vw, 1.1rem); margin-bottom: 8px; color: var(--text); }
-    .card .desc { font-size: clamp(0.8rem, 2vw, 0.9rem); color: var(--text-dim); line-height: 1.5; }
-    .stat-row { display: flex; gap: clamp(16px, 4vw, 40px); justify-content: center; flex-wrap: wrap; margin: 20px 0; }
-    .stat { text-align: center; }
-    .stat .num { font-size: clamp(1.6rem, 5vw, 2.8rem); font-weight: 800; color: var(--accent); }
-    .stat .label { font-size: clamp(0.75rem, 2vw, 0.95rem); color: var(--text-dim); margin-top: 4px; }
-    .check-list { text-align: left; max-width: 100%; width: 100%; }
-    .check-list li {
-      list-style: none; font-size: clamp(0.9rem, 2.5vw, 1.15rem); line-height: 2; color: var(--text);
-      padding-left: clamp(28px, 6vw, 36px); position: relative;
-    }
-    .check-list li::before {
-      content: '✓'; position: absolute; left: 0; color: var(--success);
-      font-weight: 800; font-size: clamp(1rem, 2.5vw, 1.2rem);
-    }
-    .nav-hint {
-      position: fixed; bottom: 12px; right: 16px; color: var(--text-dim);
-      font-size: 0.75rem; opacity: 0.6; z-index: 100;
-    }
-    .progress {
-      position: fixed; top: 0; left: 0; height: 3px;
-      background: linear-gradient(90deg, var(--primary), var(--accent));
-      transition: width 0.3s; z-index: 100;
-    }
-    .table-wrap { width: 100%; max-width: 1000px; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: clamp(0.8rem, 2vw, 1rem); }
-    th { background: var(--primary); color: #fff; padding: 12px 14px; text-align: left; font-weight: 600; }
-    td { padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left; color: var(--text); }
-    tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
-    .highlight { color: var(--success); font-weight: 700; }
-    .contact-bar {
-      margin-top: 24px; background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 12px; padding: 16px 24px; display: flex; gap: 16px;
-      align-items: center; justify-content: center; flex-wrap: wrap;
-    }
-    .contact-bar span { color: var(--text-dim); }
-    .contact-bar strong { color: var(--text); }
-    .pricing { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; width: 100%; max-width: 1100px; }
-    .price-card {
-      background: var(--bg-card); border: 2px solid var(--border);
-      border-radius: 16px; padding: clamp(20px, 4vw, 32px) clamp(16px, 3vw, 28px);
-      flex: 1 1 clamp(240px, 80vw, 360px); text-align: left;
-      position: relative; transition: border-color 0.2s, transform 0.2s;
-    }
-    .price-card:hover { transform: translateY(-4px); }
-    .price-card.featured { border-color: var(--accent); }
-    .price-card .plan { font-size: clamp(0.9rem, 2.5vw, 1.1rem); font-weight: 700; color: var(--accent); margin-bottom: 4px; }
-    .price-card .price { font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 800; margin: 12px 0; }
-    .price-card .period { font-size: clamp(0.75rem, 2vw, 0.9rem); color: var(--text-dim); }
-    .price-card ul { list-style: none; margin-top: 16px; }
-    .price-card ul li { font-size: clamp(0.8rem, 2vw, 0.95rem); color: var(--text-dim); line-height: 2; padding-left: clamp(20px, 5vw, 24px); position: relative; }
-    .price-card ul li::before { content: '✓'; position: absolute; left: 0; color: var(--success); }
-    .price-card .footnote { margin-top: 16px; font-size: clamp(0.7rem, 1.8vw, 0.8rem); color: var(--text-dim); }
-    .flow { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; width: 100%; max-width: 1000px; }
-    .flow-step {
-      background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
-      padding: clamp(12px, 3vw, 18px) clamp(14px, 3vw, 22px);
-      min-width: clamp(120px, 25vw, 150px); text-align: center;
-    }
-    .flow-step .step-num { color: var(--accent); font-weight: 800; font-size: clamp(0.65rem, 1.8vw, 0.8rem); text-transform: uppercase; letter-spacing: 0.06em; }
-    .flow-step .step-title { font-weight: 700; margin-top: 6px; font-size: clamp(0.8rem, 2.2vw, 1rem); }
-    .arrow { color: var(--accent); font-size: clamp(1.2rem, 3vw, 1.6rem); font-weight: 700; }
-    
-    /* Mobile nav buttons */
-    .nav-btn {
-      position: fixed; top: 50%; transform: translateY(-50%);
-      width: 44px; height: 44px; border-radius: 50%;
-      background: var(--bg-card); border: 1px solid var(--border);
-      color: var(--accent); font-size: 1.4rem; cursor: pointer;
-      display: none; align-items: center; justify-content: center;
-      z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .nav-btn.prev { left: 12px; }
-    .nav-btn.next { right: 12px; }
-    .nav-btn:active { background: var(--primary); color: #fff; }
-    
-    @media (max-width: 768px) {
-      .nav-btn { display: flex; }
-      .slide { padding-top: clamp(60px, 15vw, 80px); padding-bottom: clamp(60px, 15vw, 80px); }
-      .stat-row { gap: 20px; }
-      .flow-step { min-width: 100px; }
-    }
-    
-    /* Print styles for PDF */
-    @media print {
-      .progress, .nav-hint, .nav-btn { display: none !important; }
-      .slide { position: relative !important; display: block !important; page-break-after: always; min-height: auto; }
-      .slide:last-child { page-break-after: avoid; }
-      body { background: #fff !important; color: #111 !important; }
-      .card, .price-card { background: #f8f9fa !important; border-color: #ddd !important; }
-      h1, h2, h3, .title, .plan, .price { color: #111 !important; }
-      .subtitle, .desc, .label, .period, .footnote { color: #444 !important; }
-      .badge { background: #1d4ed8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .logo { color: #1d4ed8 !important; }
-      .stat .num { color: #1d4ed8 !important; }
-      .price-card.featured { border-color: #1d4ed8 !important; }
-      .check-list li::before { color: #22c55e !important; }
-    }
-  </style>
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  }
+
+  /* ============================================
+     TYPOGRAPHY - Mobile-first scaling
+     ============================================ */
+  h1 { font-size: clamp(1.75rem, 6vw, 3rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 12px; }
+  h2 { font-size: clamp(1.35rem, 5vw, 2.25rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 20px; }
+  h3 { font-size: clamp(1.1rem, 3.5vw, 1.5rem); font-weight: 600; color: var(--accent); margin-bottom: 10px; }
+  .subtitle { font-size: clamp(0.95rem, 2.8vw, 1.25rem); color: var(--text-dim); max-width: 90%; line-height: 1.6; }
+  .badge {
+    display: inline-block; background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff; padding: 6px 16px; border-radius: 999px;
+    font-weight: 600; font-size: clamp(0.7rem, 2vw, 0.85rem);
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .logo { font-size: clamp(2.25rem, 8vw, 4rem); font-weight: 900; color: var(--accent); letter-spacing: -0.04em; margin-bottom: 6px; }
+
+  /* ============================================
+     GRID & CARDS - Stack on mobile, grid on desktop
+     ============================================ */
+  .grid {
+    display: grid; gap: clamp(12px, 2.5vw, 16px); width: 100%; max-width: 100%;
+    grid-template-columns: 1fr; /* Mobile: single column */
+  }
+  @media (min-width: 480px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 769px) { .grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); } }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: clamp(16px, 3vw, 20px);
+    text-align: left;
+    transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    opacity: 0; transition: opacity var(--transition);
+  }
+  .card:hover, .card:active {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-lg);
+  }
+  .card:hover::before, .card:active::before { opacity: 1; }
+  .card .icon { font-size: clamp(1.5rem, 4vw, 2rem); margin-bottom: 10px; line-height: 1; }
+  .card .title { font-weight: 700; font-size: clamp(0.9rem, 2.5vw, 1.1rem); margin-bottom: 6px; color: var(--text); }
+  .card .desc { font-size: clamp(0.8rem, 2.2vw, 0.95rem); color: var(--text-dim); line-height: 1.55; }
+
+  /* ============================================
+     STAT ROW - Horizontal scroll on mobile
+     ============================================ */
+  .stat-row {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: nowrap;
+    overflow-x: auto; padding: 4px 4px 12px;
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; -ms-overflow-style: none;
+  }
+  .stat-row::-webkit-scrollbar { display: none; }
+  .stat {
+    flex: 0 0 auto; min-width: 110px; max-width: 140px; text-align: center;
+    scroll-snap-align: center;
+  }
+  .stat .num { font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 800; color: var(--accent); line-height: 1.1; }
+  .stat .label { font-size: clamp(0.7rem, 2vw, 0.85rem); color: var(--text-muted); margin-top: 4px; line-height: 1.3; }
+
+  /* Scroll hint for mobile */
+  .stat-row::after {
+    content: '↔ Geser'; display: block; text-align: center;
+    font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;
+    opacity: 0.6;
+  }
+  @media (min-width: 769px) {
+    .stat-row { overflow-x: visible; padding-bottom: 0; }
+    .stat-row::after { display: none; }
+    .stat { min-width: auto; max-width: none; }
+  }
+
+  /* ============================================
+     CHECK LIST - Better spacing
+     ============================================ */
+  .check-list { text-align: left; width: 100%; max-width: 100%; }
+  .check-list ul { list-style: none; }
+  .check-list li {
+    font-size: clamp(0.9rem, 2.5vw, 1.1rem); line-height: 1.7; color: var(--text);
+    padding-left: clamp(28px, 5vw, 36px); position: relative; margin-bottom: 8px;
+  }
+  .check-list li::before {
+    content: '✓'; position: absolute; left: 0; top: 0; color: var(--success);
+    font-weight: 800; font-size: clamp(1rem, 2.5vw, 1.2rem);
+    width: 24px; text-align: center;
+  }
+
+  /* ============================================
+     TABLE - Horizontal scroll with shadow hint
+     ============================================ */
+  .table-wrap {
+    width: 100%; max-width: 100%; overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-md); border: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+  .table-wrap::-webkit-scrollbar { height: 6px; }
+  .table-wrap::-webkit-scrollbar-track { background: var(--bg-dark); }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  table { width: max-content; min-width: 600px; border-collapse: collapse; font-size: clamp(0.8rem, 2.2vw, 0.95rem); }
+  th { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; padding: 12px 16px; text-align: left; font-weight: 600; white-space: nowrap; }
+  td { padding: 10px 16px; border-bottom: 1px solid var(--border); text-align: left; color: var(--text); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: var(--bg-dark-elevated); }
+
+  /* ============================================
+     PRICING - Stack on mobile, side-by-side on desktop
+     ============================================ */
+  .pricing {
+    display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 100%;
+  }
+  @media (min-width: 769px) {
+    .pricing { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; }
+  }
+  .price-card {
+    background: var(--bg-card); border: 2px solid var(--border);
+    border-radius: var(--radius-xl); padding: clamp(20px, 4vw, 28px);
+    text-align: left; flex: 1; min-width: 0; /* Prevent flex overflow */
+    transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+    position: relative; overflow: hidden;
+  }
+  .price-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    opacity: 0.5;
+  }
+  .price-card.featured {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg);
+  }
+  .price-card.featured::before { opacity: 1; }
+  .price-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+  .price-card .plan { font-size: clamp(0.85rem, 2.5vw, 1rem); font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+  .price-card .price { font-size: clamp(1.5rem, 5vw, 2.25rem); font-weight: 800; line-height: 1.1; margin: 8px 0 4px; }
+  .price-card .period { font-size: clamp(0.7rem, 2vw, 0.85rem); color: var(--text-muted); margin-bottom: 16px; }
+  .price-card ul { list-style: none; margin-top: 16px; }
+  .price-card ul li {
+    font-size: clamp(0.8rem, 2.2vw, 0.9rem); color: var(--text-dim); line-height: 1.9;
+    padding-left: clamp(22px, 4vw, 26px); position: relative;
+  }
+  .price-card ul li::before { content: '✓'; position: absolute; left: 0; color: var(--success); font-weight: 700; }
+  .price-card .footnote { margin-top: 16px; font-size: clamp(0.65rem, 1.8vw, 0.75rem); color: var(--text-muted); }
+  .price-card .popular-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--accent); color: #fff; font-size: 0.65rem; font-weight: 700;
+    padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  /* ============================================
+     FLOW STEPS - Stack on mobile
+     ============================================ */
+  .flow { display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%; max-width: 100%; }
+  @media (min-width: 600px) { .flow { flex-direction: row; flex-wrap: wrap; justify-content: center; } }
+  .flow-step {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: clamp(14px, 3vw, 18px) clamp(16px, 3vw, 22px); min-width: 0;
+    text-align: center; flex: 1; min-width: 140px; max-width: 100%;
+    position: relative;
+  }
+  @media (min-width: 600px) { .flow-step::after { content: '→'; position: absolute; right: -18px; top: 50%; transform: translateY(-50%); color: var(--accent); font-size: 1.25rem; font-weight: 700; } .flow-step:last-child::after { display: none; } }
+  .flow-step .step-num { color: var(--accent); font-weight: 800; font-size: clamp(0.6rem, 1.8vw, 0.75rem); text-transform: uppercase; letter-spacing: 0.06em; }
+  .flow-step .step-title { font-weight: 700; margin-top: 6px; font-size: clamp(0.8rem, 2.2vw, 0.95rem); line-height: 1.3; }
+
+  /* ============================================
+     CONTACT BAR - Full width on mobile
+     ============================================ */
+  .contact-bar {
+    margin-top: 24px; width: 100%; max-width: 600px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px 20px;
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center;
+  }
+  .contact-bar span { color: var(--text-dim); font-size: clamp(0.8rem, 2.5vw, 0.95rem); }
+  .contact-bar strong { color: var(--text); }
+
+  /* ============================================
+     NAVIGATION - Mobile: dots + swipe, Desktop: arrows + keys
+     ============================================ */
+  .progress {
+    position: fixed; top: 0; left: 0; right: 0; height: 3px;
+    background: transparent; z-index: 100; pointer-events: none;
+  }
+  .progress::after {
+    content: ''; display: block; height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    width: 0%; transition: width 0.3s ease;
+  }
+
+  .slide-indicator {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 100; padding: 8px 12px;
+    background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px);
+    border-radius: 999px; border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+  }
+  .slide-indicator dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-muted); transition: all var(--transition);
+    cursor: pointer; border: none; padding: 0;
+  }
+  .slide-indicator dot.active { background: var(--accent); transform: scale(1.3); }
+
+  @media (min-width: 769px) {
+    .slide-indicator { display: none; }
+  }
+
+  /* Desktop nav arrows */
+  .nav-btn {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--accent); font-size: 1.5rem; cursor: pointer;
+    display: none; align-items: center; justify-content: center;
+    z-index: 200; box-shadow: var(--shadow-lg);
+    transition: all var(--transition);
+  }
+  .nav-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); transform: translateY(-50%) scale(1.05); }
+  .nav-btn:active { transform: translateY(-50%) scale(0.95); }
+  .nav-btn.prev { left: 20px; }
+  .nav-btn.next { right: 20px; }
+  @media (min-width: 769px) { .nav-btn { display: flex; } }
+
+  /* Nav hint desktop */
+  .nav-hint {
+    position: fixed; bottom: 20px; right: 20px; color: var(--text-muted);
+    font-size: 0.75rem; opacity: 0.5; z-index: 100; pointer-events: none;
+    background: rgba(15, 23, 42, 0.8); padding: 8px 12px; border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  @media (max-width: 768px) { .nav-hint { display: none; } }
+
+  /* ============================================
+     TOUCH FEEDBACK
+     ============================================ */
+  @media (hover: none) {
+    .card:active { transform: scale(0.98); }
+    .price-card:active { transform: scale(0.98); }
+    .stat:active .num { color: var(--accent-light); }
+  }
+
+  /* ============================================
+     PRINT / PDF STYLES
+     ============================================ */
+  @media print {
+    .progress, .nav-btn, .slide-indicator, .nav-hint { display: none !important; }
+    .deck { height: auto; overflow: visible; }
+    .slide { position: relative !important; display: block !important; page-break-after: always; min-height: auto; border-bottom: none; }
+    .slide:last-child { page-break-after: avoid; }
+    body { background: #fff !important; color: #111 !important; }
+    .card, .price-card, .table-wrap { background: #f8fafc !important; border-color: #e2e8f0 !important; box-shadow: none !important; }
+    .card::before, .price-card::before { display: none !important; }
+    h1, h2, h3, .title, .plan, .price, .stat .num, .logo { color: #111 !important; }
+    .subtitle, .desc, .label, .period, .footnote, .contact-bar span { color: #475569 !important; }
+    .badge { background: #1d4ed8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo { color: #1d4ed8 !important; }
+    .price-card.featured { border-color: #1d4ed8 !important; }
+    .check-list li::before { color: #22c55e !important; }
+    .price-card ul li::before { color: #22c55e !important; }
+    th { background: #1d4ed8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .table-wrap { border: 1px solid #e2e8f0 !important; overflow: visible; }
+    table { min-width: 100%; }
+    .flow-step { border: 1px solid #e2e8f0 !important; }
+    .flow-step::after { color: #1d4ed8 !important; }
+  }
+</style>
 </head>
 <body>
 <div class="progress" id="progress"></div>
-<!-- Mobile nav buttons -->
+
+<!-- Desktop nav arrows -->
 <button class="nav-btn prev" id="btnPrev" aria-label="Slide sebelumnya">‹</button>
 <button class="nav-btn next" id="btnNext" aria-label="Slide selanjutnya">›</button>
+
+<!-- Mobile slide indicator (dots) -->
+<div class="slide-indicator" id="slideIndicator" aria-label="Navigasi slide"></div>
+
 <div class="deck" id="deck">
 
   <!-- SLIDE 1: JUDUL -->
-  <section class="slide active">
+  <section class="slide active" data-slide="0">
     <div class="logo">SIAK</div>
     <div class="badge">Sistem Informasi Akademik</div>
     <h1>Digitalisasi Kampus<br>Satu Platform, Semua Layanan</h1>
-    <p class="subtitle">Solusi terintegrasi untuk akademik, keuangan, kehadiran, dan pelaporan — siap digunakan untuk kampus Anda.</p>
-    <div class="stat-row">
-      <div class="stat"><div class="num">5.000+</div><div class="label">Kapasitas Pengguna</div></div>
-      <div class="stat"><div class="num">24</div><div class="label">Modul Lengkap</div></div>
-      <div class="stat"><div class="num">165+</div><div class="label">Endpoint API</div></div>
-      <div class="stat"><div class="num">72</div><div class="label">Automated Tests</div></div>
+    <p class="subtitle">Solusi terintegrasi untuk akademik, keuangan, kehadiran, dan pelaporan — siap pakai untuk kampus Anda.</p>
+    <div class="stat-row" role="list" aria-label="Statistik produk">
+      <div class="stat" role="listitem"><div class="num">5.000+</div><div class="label">Kapasitas Pengguna</div></div>
+      <div class="stat" role="listitem"><div class="num">24</div><div class="label">Modul Lengkap</div></div>
+      <div class="stat" role="listitem"><div class="num">165+</div><div class="label">Endpoint API</div></div>
+      <div class="stat" role="listitem"><div class="num">72</div><div class="label">Automated Tests</div></div>
     </div>
   </section>
 
   <!-- SLIDE 2: MASALAH & SOLUSI -->
-  <section class="slide">
+  <section class="slide" data-slide="1">
     <div class="badge">Latar Belakang</div>
     <h2>Masalah yang Sering Dihadapi Kampus</h2>
-    <div class="grid">
-      <div class="card"><div class="icon">📋</div><div class="title">Administrasi Manual</div><div class="desc">KRS, nilai, dan absensi masih pakai kertas / Excel — rawan salah dan lambat.</div></div>
-      <div class="card"><div class="icon">🔓</div><div class="title">Data Tersebar</div><div class="desc">Data mahasiswa, dosen, dan keuangan tercerai-berai di banyak file dan aplikasi.</div></div>
-      <div class="card"><div class="icon">🚫</div><div class="title">Tunggakan Tak Terkontrol</div><div class="desc">Sulit mengendalikan pembayaran — mahasiswa bisa isi KRS meski belum lunas.</div></div>
-      <div class="card"><div class="icon">📊</div><div class="title">Pelaporan PDDikti Ribet</div><div class="desc">Sinkronisasi data ke PDDikti manual dan rawan error.</div></div>
+    <div class="grid" role="list" aria-label="Daftar masalah">
+      <div class="card" role="listitem"><div class="icon">📋</div><div class="title">Administrasi Manual</div><div class="desc">KRS, nilai, dan absensi masih pakai kertas / Excel — rawan salah dan lambat.</div></div>
+      <div class="card" role="listitem"><div class="icon">🔓</div><div class="title">Data Tersebar</div><div class="desc">Data mahasiswa, dosen, dan keuangan tercerai-berai di banyak file dan aplikasi.</div></div>
+      <div class="card" role="listitem"><div class="icon">🚫</div><div class="title">Tunggakan Tak Terkontrol</div><div class="desc">Sulit mengendalikan pembayaran — mahasiswa bisa isi KRS meski belum lunas.</div></div>
+      <div class="card" role="listitem"><div class="icon">📊</div><div class="title">Pelaporan PDDikti Ribet</div><div class="desc">Sinkronisasi data ke PDDikti manual dan rawan error.</div></div>
     </div>
-    <h3 style="margin-top: 36px;">→ Solusi: satu platform terintegrasi, semua beres</h3>
+    <h3 style="margin-top: 28px;">→ Solusi: satu platform terintegrasi, semua beres</h3>
   </section>
 
-  <!-- SLIDE 3: FITUR INTI -->
-  <section class="slide">
-    <div class="badge">Modul</div>
-    <h2>Fitur Inti SIAK</h2>
-    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-      <div class="card"><div class="icon">🎓</div><div class="title">Akademik</div><div class="desc">KRS online, kurikulum, kelas & jadwal, penilai su, transkrip & IPK otomatis.</div></div>
-      <div class="card"><div class="icon">📅</div><div class="title">Penjadwalan</div><div class="desc">Kalender grid per minggu, dosen pilih MK, persetujuan admin.</div></div>
-      <div class="card"><div class="icon">✅</div><div class="title">Absensi Real-time</div><div class="desc">Check-in via ID Sesi / QR code, rekap otomatis, sinkron WebSocket.</div></div>
-      <div class="card"><div class="icon">📝</div><div class="title">Skripsi / TA</div><div class="desc">Ajukan proposal online, review dosen, log bimbingan, mahasiswa binaan.</div></div>
-      <div class="card"><div class="icon">💳</div><div class="title">Keuangan</div><div class="desc">Tagihan per semester, pembayaran online, bukti bayar, blokir KRS otomatis.</div></div>
-      <div class="card"><div class="icon">💰</div><div class="title">Payroll Dosen</div><div class="desc">Hitung gaji otomatis, batch approve, slip gaji PDF.</div></div>
-      <div class="card"><div class="icon">🔄</div><div class="title">PDDikti Sync</div><div class="desc">Modul sinkronisasi ke PDDikti / Neo Feeder.</div></div>
-      <div class="card"><div class="icon">📢</div><div class="title">Informasi & Notifikasi</div><div class="desc">Pengumuman kampus, pusat notifikasi per pengguna.</div></div>
+  <!-- SLIDE 3: FITUR INTI (split into 2 slides for mobile) -->
+  <section class="slide" data-slide="2">
+    <div class="badge">Modul Akademik</div>
+    <h2>Fitur Inti: Akademik & Kehadiran</h2>
+    <div class="grid" role="list" aria-label="Modul akademik">
+      <div class="card" role="listitem"><div class="icon">🎓</div><div class="title">KRS Online</div><div class="desc">Pengisian KRS mahasiswa dengan validasi prasyarat, batas SKS, dan antrian waiting room.</div></div>
+      <div class="card" role="listitem"><div class="icon">📚</div><div class="title">Kurikulum & Mata Kuliah</div><div class="desc">Manajemen kurikulum per prodi, MK prasyarat, bobot SKS, dan pilihan.</div></div>
+      <div class="card" role="listitem"><div class="icon">🏫</div><div class="title">Kelas & Jadwal</div><div class="desc">Pembuatan kelas otomatis, penugasan dosen, jadwal mingguan, deteksi bentrok.</div></div>
+      <div class="card" role="listitem"><div class="icon">📝</div><div class="title">Penilaian & Transkrip</div><div class="desc">Input nilai komponen, konversi bobot, IPK otomatis, cetak transkrip resmi.</div></div>
+      <div class="card" role="listitem"><div class="icon">📅</div><div class="title">Penjadwalan Dosen</div><div class="desc">Dosen pilih MK & jadwal, persetujuan admin, kalender grid per minggu.</div></div>
+      <div class="card" role="listitem"><div class="icon">✅</div><div class="title">Absensi Real-time</div><div class="desc">Check-in via ID Sesi / QR code, rekap otomatis, sinkron WebSocket ke backend.</div></div>
     </div>
   </section>
 
-  <!-- SLIDE 4: KEUANGAN & PAYROLL -->
-  <section class="slide">
-    <div class="badge">Keunggulan</div>
-    <h2>Keuangan & Payroll Otomatis</h2>
-    <div class="grid">
-      <div class="card"><div class="icon">🔒</div><div class="title">Blokir KRS Otomatis</div><div class="desc">3-layer gate: mahasiswa tunggakan tidak bisa isi KRS — kontrol pembayaran ketat.</div></div>
-      <div class="card"><div class="icon">🧾</div><div class="title">Tagihan Terstruktur</div><div class="desc">Generate tagihan per semester; mahasiswa lihat status & riwayat semua semester.</div></div>
-      <div class="card"><div class="icon">👨‍💼</div><div class="title">Payroll Dosen Terhitung</div><div class="desc">Otomatis dari MK & SKS yang diampu; slip gaji PDF langsung terbit.</div></div>
-      <div class="card"><div class="icon">📤</div><div class="title">Export & Rekap</div><div class="desc">Export Excel rekap pembayaran, import data massal CSV/Excel.</div></div>
+  <section class="slide" data-slide="3">
+    <div class="badge">Modul Bisnis & Pelaporan</div>
+    <h2>Fitur Inti: Keuangan, Payroll & PDDikti</h2>
+    <div class="grid" role="list" aria-label="Modul bisnis">
+      <div class="card" role="listitem"><div class="icon">💳</div><div class="title">Keuangan & Tagihan</div><div class="desc">Generate tagihan per semester, pembayaran online, upload bukti bayar, verifikasi admin.</div></div>
+      <div class="card" role="listitem"><div class="icon">🔒</div><div class="title">Blokir KRS Otomatis</div><div class="desc">3-layer gate: mahasiswa tunggakan tidak bisa isi KRS — kontrol pembayaran ketat.</div></div>
+      <div class="card" role="listitem"><div class="icon">💰</div><div class="title">Payroll Dosen</div><div class="desc">Hitung gaji otomatis dari MK & SKS yang diampu; batch approve, slip gaji PDF.</div></div>
+      <div class="card" role="listitem"><div class="icon">🔄</div><div class="title">PDDikti / Neo Feeder Sync</div><div class="desc">Modul sinkronisasi data ke PDDikti — mahasiswa, dosen, MK, nilai, lulusan.</div></div>
+      <div class="card" role="listitem"><div class="icon">📝</div><div class="title">Skripsi & Bimbingan</div><div class="desc">Ajukan proposal online, review dosen, log bimbingan wali & pembimbing, mahasiswa binaan.</div></div>
+      <div class="card" role="listitem"><div class="icon">📢</div><div class="title">Informasi & Notifikasi</div><div class="desc">Pengumuman kampus, pusat notifikasi per pengguna, real-time via Socket.IO.</div></div>
     </div>
   </section>
 
-  <!-- SLIDE 5: SKRIPSI & BIMBINGAN -->
-  <section class="slide">
-    <div class="badge">Akademik Tingkat Akhir</div>
-    <h2>Manajemen Skripsi & Bimbingan</h2>
-    <div class="check-list">
-      <ul>
-        <li>Mahasiswa mengajukan proposal skripsi online — upload file, pilih maksimal 2 dosen pembimbing</li>
-        <li>Dosen & Admin Akademik review: setujui / tolak dengan catatan, riwayat status lengkap</li>
-        <li>Log bimbingan dosen wali (akademik) & dosen pembimbing (proposal) — dua domain terpisah</li>
-        <li>Dosen wali melihat daftar mahasiswa binaan dan progres akademik mereka</li>
-        <li>Menuju fitur sidang (jadwal, penguji, nilai) — roadmap</li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- SLIDE 6: KEAMANAN -->
-  <section class="slide">
+  <!-- SLIDE 4: KEAMANAN -->
+  <section class="slide" data-slide="4">
     <div class="badge">Keamanan</div>
     <h2>Keamanan Level Produksi</h2>
-    <div class="grid">
-      <div class="card"><div class="icon">🛡️</div><div class="title">RBAC Granular</div><div class="desc">5 peran × 33 permission — di-enforce di backend, bukan sekadar UI.</div></div>
-      <div class="card"><div class="icon">🔐</div><div class="title">JWT Auth</div><div class="desc">Access token 15 menit + refresh token rotasi. Password bcrypt 12 round.</div></div>
-      <div class="card"><div class="icon">📜</div><div class="title">Audit Log Lengkap</div><div class="desc">Semua aksi penting tercatat: siapa, kapan, apa — traceable penuh.</div></div>
-      <div class="card"><div class="icon">🚦</div><div class="title">Rate Limiting + Waiting Room</div><div class="desc">Antrian otomatis saat beban puncak KRS massal — server tetap stabil.</div></div>
-      <div class="card"><div class="icon">📝</div><div class="title">Validasi Semua Input</div><div class="desc">Zod schema validation di setiap endpoint — anti-injection & anti-malformed data.</div></div>
-      <div class="card"><div class="icon">🔏</div><div class="title">Password Policy Kuat</div><div class="desc">Min 12 karakter, must-change-first-login, lockout setelah gagal berkali-kali.</div></div>
+    <div class="grid" role="list" aria-label="Fitur keamanan">
+      <div class="card" role="listitem"><div class="icon">🛡️</div><div class="title">RBAC Granular</div><div class="desc">5 peran × 33 permission — di-enforce di backend, bukan sekadar UI.</div></div>
+      <div class="card" role="listitem"><div class="icon">🔐</div><div class="title">JWT Auth Modern</div><div class="desc">Access token 15 menit + refresh token rotasi. Password bcrypt 12 round.</div></div>
+      <div class="card" role="listitem"><div class="icon">📜</div><div class="title">Audit Log Lengkap</div><div class="desc">Semua aksi penting tercatat: siapa, kapan, apa — traceable penuh.</div></div>
+      <div class="card" role="listitem"><div class="icon">🚦</div><div class="title">Rate Limiting + Waiting Room</div><div class="desc">Antrian otomatis saat beban puncak KRS massal — server tetap stabil.</div></div>
+      <div class="card" role="listitem"><div class="icon">📝</div><div class="title">Validasi Semua Input</div><div class="desc">Zod schema validation di setiap endpoint — anti-injection & anti-malformed data.</div></div>
+      <div class="card" role="listitem"><div class="icon">🔏</div><div class="title">Password Policy Kuat</div><div class="desc">Min 12 karakter, must-change-first-login, lockout setelah gagal berkali-kali.</div></div>
     </div>
   </section>
 
-  <!-- SLIDE 7: TEKNOLOGI -->
-  <section class="slide">
+  <!-- SLIDE 5: TEKNOLOGI -->
+  <section class="slide" data-slide="5">
     <div class="badge">Teknologi</div>
     <h2>Arsitektur Modern & Teruji</h2>
-    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-      <div class="card"><div class="icon">⚛️</div><div class="title">React 19 + Vite</div><div class="desc">SPA modern, code-splitting, bundle ≤200 kB gzip.</div></div>
-      <div class="card"><div class="icon">🟢</div><div class="title">Node.js + Express</div><div class="desc">Monolith modular 24 modul, TypeScript strict.</div></div>
-      <div class="card"><div class="icon">🐘</div><div class="title">PostgreSQL</div><div class="desc">32 tabel relasional, migrasi versioned, indexing.</div></div>
-      <div class="card"><div class="icon">⚡</div><div class="title">Redis</div><div class="desc">Session, rate-limit, queue, waiting room.</div></div>
-      <div class="card"><div class="icon">🔌</div><div class="title">Socket.IO</div><div class="desc">Real-time: absensi & notifikasi.</div></div>
-      <div class="card"><div class="icon">🧪</div><div class="title">Quality Gates</div><div class="desc">Lint + typecheck + build + test (coverage) wajib hijau di CI.</div></div>
+    <div class="grid" role="list" aria-label="Stack teknologi">
+      <div class="card" role="listitem"><div class="icon">⚛️</div><div class="title">React 19 + Vite</div><div class="desc">SPA modern, code-splitting, bundle ≤200 kB gzip, Tailwind CSS.</div></div>
+      <div class="card" role="listitem"><div class="icon">🟢</div><div class="title">Node.js + Express</div><div class="desc">Monolith modular 24 modul, TypeScript strict mode, Pino logging.</div></div>
+      <div class="card" role="listitem"><div class="icon">🐘</div><div class="title">PostgreSQL 16</div><div class="desc">32 tabel relasional, migrasi versioned (30 file), indexing optimal.</div></div>
+      <div class="card" role="listitem"><div class="icon">⚡</div><div class="title">Redis 7</div><div class="desc">Session, rate-limit, queue, waiting room, caching.</div></div>
+      <div class="card" role="listitem"><div class="icon">🔌</div><div class="title">Socket.IO</div><div class="desc">Real-time: absensi check-in & notifikasi push ke browser.</div></div>
+      <div class="card" role="listitem"><div class="icon">🧪</div><div class="title">Quality Gates CI</div><div class="desc">Lint + typecheck + build + test (coverage) wajib hijau di GitHub Actions.</div></div>
     </div>
   </section>
 
-  <!-- SLIDE 8: STATISTIK -->
-  <section class="slide">
+  <!-- SLIDE 6: STATISTIK -->
+  <section class="slide" data-slide="6">
     <div class="badge">Skala Produk</div>
     <h2>Angka yang Berbicara</h2>
-    <div class="stat-row" style="gap: 60px;">
-      <div class="stat"><div class="num">33.000</div><div class="label">Baris Kode Produksi</div></div>
-      <div class="stat"><div class="num">22.500</div><div class="label">Baris Kode Test</div></div>
-      <div class="stat"><div class="num">72</div><div class="label">File Automated Test</div></div>
-      <div class="stat"><div class="num">165+</div><div class="label">Endpoint API</div></div>
-      <div class="stat"><div class="num">32</div><div class="label">Tabel Database</div></div>
-      <div class="stat"><div class="num">42+</div><div class="label">Halaman Aplikasi</div></div>
+    <div class="stat-row" role="list" aria-label="Statistik kode">
+      <div class="stat" role="listitem"><div class="num">33K</div><div class="label">Baris Kode Produksi</div></div>
+      <div class="stat" role="listitem"><div class="num">22.5K</div><div class="label">Baris Kode Test</div></div>
+      <div class="stat" role="listitem"><div class="num">72</div><div class="label">File Automated Test</div></div>
+      <div class="stat" role="listitem"><div class="num">165+</div><div class="label">Endpoint API</div></div>
+      <div class="stat" role="listitem"><div class="num">32</div><div class="label">Tabel Database</div></div>
+      <div class="stat" role="listitem"><div class="num">42+</div><div class="label">Halaman Aplikasi</div></div>
     </div>
-    <p class="subtitle" style="margin-top: 30px;">Coverage test: Backend ≥75% branch, Frontend ≥80% — kualitas teruji, bukan prototype.</p>
+    <p class="subtitle" style="margin-top: 24px;">Coverage test: Backend ≥75% branch, Frontend ≥80% — kualitas teruji, bukan prototype.</p>
   </section>
 
-  <!-- SLIDE 9: PAKET & HARGA -->
-  <section class="slide">
+  <!-- SLIDE 7: PAKET & HARGA -->
+  <section class="slide" data-slide="7">
     <div class="badge">Penawaran</div>
     <h2>Paket & Skema Harga</h2>
-    <div class="pricing">
-      <div class="price-card">
+    <div class="pricing" role="list" aria-label="Paket harga">
+      <div class="price-card" role="listitem">
         <div class="plan">A — Lisensi + Implementasi</div>
         <div class="price">Rp 200–400 juta</div>
         <div class="period">Sekali bayar (beli putus)</div>
@@ -295,22 +489,23 @@
           <li>Pelatihan admin & staf</li>
           <li>Garansi bug 3 bulan + support 1 tahun</li>
         </ul>
-        <div class="footnote">Paling cocok: kampus menengah yang punya tim IT / butuh kustomisasi</div>
+        <div class="footnote">Cocok: kampus menengah dengan tim IT / butuh kustomisasi</div>
       </div>
-      <div class="price-card featured">
+      <div class="price-card featured" role="listitem">
+        <span class="popular-badge">Direkomendasikan</span>
         <div class="plan">B — SaaS Tahunan</div>
         <div class="price">Rp 40–120 juta/thn</div>
         <div class="period">Per tahun, hosting kami</div>
         <ul>
           <li>Semua modul aktif (unlimited user)</li>
           <li>Hosting, maintenance, backup terjadwal</li>
-          <li>Update regulasi & fitur</li>
+          <li>Update regulasi & fitur otomatis</li>
           <li>Support teknis penuh</li>
           <li>Tanpa investasi awal besar</li>
         </ul>
-        <div class="footnote">Paling cocok: kampus kecil-menengah, tanpa tim IT internal</div>
+        <div class="footnote">Cocok: kampus kecil-menengah, tanpa tim IT internal</div>
       </div>
-      <div class="price-card">
+      <div class="price-card" role="listitem">
         <div class="plan">C — Source Code Saja</div>
         <div class="price">Rp 100–250 juta</div>
         <div class="period">Sekali bayar</div>
@@ -320,40 +515,36 @@
           <li>Bimbingan instalasi (1 sesi remote)</li>
           <li>Untuk kampus dengan tim developer sendiri</li>
         </ul>
-        <div class="footnote">Harga negosiasi; all prices exclude PPN</div>
+        <div class="footnote">Harga negosiasi; all prices exclude PPN 11%</div>
       </div>
     </div>
   </section>
 
-  <!-- SLIDE 10: PROSES IMPLEMENTASI -->
-  <section class="slide">
+  <!-- SLIDE 8: PROSES IMPLEMENTASI -->
+  <section class="slide" data-slide="8">
     <div class="badge">Proses</div>
     <h2>Roadmap Implementasi</h2>
-    <div class="flow">
-      <div class="flow-step"><div class="step-num">Langkah 1</div><div class="step-title">Assessment & Setup</div></div>
-      <div class="arrow">→</div>
-      <div class="flow-step"><div class="step-num">Langkah 2</div><div class="step-title">Instalasi & Konfigurasi</div></div>
-      <div class="arrow">→</div>
-      <div class="flow-step"><div class="step-num">Langkah 3</div><div class="step-title">Migrasi Data</div></div>
-      <div class="arrow">→</div>
-      <div class="flow-step"><div class="step-num">Langkah 4</div><div class="step-title">Pelatihan Staf</div></div>
-      <div class="arrow">→</div>
-      <div class="flow-step"><div class="step-num">Langkah 5</div><div class="step-title">Go-Live & Support</div></div>
+    <div class="flow" role="list" aria-label="Langkah implementasi">
+      <div class="flow-step" role="listitem"><div class="step-num">Langkah 1</div><div class="step-title">Assessment &<br>Setup Server</div></div>
+      <div class="flow-step" role="listitem"><div class="step-num">Langkah 2</div><div class="step-title">Instalasi &<br>Konfigurasi</div></div>
+      <div class="flow-step" role="listitem"><div class="step-num">Langkah 3</div><div class="step-title">Migrasi Data<br>Master</div></div>
+      <div class="flow-step" role="listitem"><div class="step-num">Langkah 4</div><div class="step-title">Pelatihan<br>Staf</div></div>
+      <div class="flow-step" role="listitem"><div class="step-num">Langkah 5</div><div class="step-title">Go-Live &<br>Support</div></div>
     </div>
-    <div class="grid" style="margin-top: 36px;">
-      <div class="card"><div class="icon">⏱️</div><div class="title">Estimasi</div><div class="desc">Implementasi 2–4 minggu untuk kampus kecil-menengah (dengan data siap).</div></div>
-      <div class="card"><div class="icon">🎓</div><div class="title">Pelatihan</div><div class="desc">2 sesi: admin sistem + staf akademik/keuangan. Bisa ditambah sesuai kebutuhan.</div></div>
-      <div class="card"><div class="icon">🛟</div><div class="title">Dukungan</div><div class="desc">Garansi bug 3 bulan, support tahunan opsional (Rp 10–25 juta/tahun).</div></div>
+    <div class="grid" style="margin-top: 28px;" role="list" aria-label="Detail implementasi">
+      <div class="card" role="listitem"><div class="icon">⏱️</div><div class="title">Estimasi Waktu</div><div class="desc">2–4 minggu untuk kampus kecil-menengah (asumsi data master siap).</div></div>
+      <div class="card" role="listitem"><div class="icon">🎓</div><div class="title">Pelatihan</div><div class="desc">2 sesi: admin sistem + staf akademik/keuangan. Bisa ditambah sesuai kebutuhan.</div></div>
+      <div class="card" role="listitem"><div class="icon">🛟</div><div class="title">Dukungan Pasca</div><div class="desc">Garansi bug 3 bulan, support tahunan opsional (Rp 10–25 juta/tahun).</div></div>
     </div>
   </section>
 
-  <!-- SLIDE 11: PENUTUP / KONTAK -->
-  <section class="slide">
+  <!-- SLIDE 9: PENUTUP / KONTAK -->
+  <section class="slide" data-slide="9">
     <div class="logo">SIAK</div>
     <div class="badge">Siap Memulai</div>
     <h2>Wujudkan Kampus Digital dengan SIAK</h2>
     <p class="subtitle">Satu platform. Semua terintegrasi. Siap digunakan.</p>
-    <div class="check-list" style="max-width: 520px; margin: 0 auto;">
+    <div class="check-list" style="max-width: 100%; margin: 0 auto 24px;">
       <ul>
         <li>Bebas custom module tambahan (PMB, LMS, E-Library, dll)</li>
         <li>Source code milik penuh kampus (Opsi A/C)</li>
@@ -367,52 +558,172 @@
   </section>
 
 </div>
-<div class="nav-hint">← → navigasi • Esc untuk ringkasan</div>
+
+<!-- Desktop nav hint -->
+<div class="nav-hint" id="navHint">← → navigasi • Home/End untuk lompat</div>
+
 <script>
+(function() {
+  'use strict';
+
   const slides = document.querySelectorAll('.slide');
   const progress = document.getElementById('progress');
+  const progressBar = progress.querySelector('::after') || progress;
   const btnPrev = document.getElementById('btnPrev');
   const btnNext = document.getElementById('btnNext');
+  const indicator = document.getElementById('slideIndicator');
+  const navHint = document.getElementById('navHint');
+  const isDesktop = window.matchMedia('(min-width: 769px)').matches;
+  const totalSlides = slides.length;
   let current = 0;
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let isScrolling = false;
+
+  // Create indicator dots
+  if (indicator) {
+    indicator.innerHTML = '';
+    for (let i = 0; i < totalSlides; i++) {
+      const dot = document.createElement('button');
+      dot.className = i === 0 ? 'active' : '';
+      dot.setAttribute('role', 'tab');
+      dot.setAttribute('aria-label', `Slide ${i + 1}`);
+      dot.setAttribute('aria-selected', i === 0);
+      dot.addEventListener('click', () => show(i));
+      indicator.appendChild(dot);
+    }
+  }
+
+  function updateIndicator() {
+    if (!indicator) return;
+    const dots = indicator.querySelectorAll('button');
+    dots.forEach((dot, i) => {
+      const active = i === current;
+      dot.classList.toggle('active', active);
+      dot.setAttribute('aria-selected', active);
+    });
+  }
+
+  function updateProgress() {
+    const pct = ((current + 1) / totalSlides * 100);
+    progress.style.setProperty('--progress-width', pct + '%');
+    // CSS uses ::after with CSS variable
+    progress.style.background = `linear-gradient(90deg, var(--primary), var(--accent))`;
+    progress.style.backgroundSize = `${pct}% 100%`;
+    progress.style.backgroundRepeat = 'no-repeat';
+  }
 
   function show(n) {
-    slides[current].classList.remove('active');
-    current = Math.max(0, Math.min(slides.length - 1, n));
-    slides[current].classList.add('active');
-    progress.style.width = ((current + 1) / slides.length * 100) + '%';
+    if (isDesktop) {
+      // Desktop: horizontal slide mode
+      slides[current].classList.remove('active');
+      current = Math.max(0, Math.min(totalSlides - 1, n));
+      slides[current].classList.add('active');
+    } else {
+      // Mobile: smooth scroll to slide
+      current = Math.max(0, Math.min(totalSlides - 1, n));
+      slides[current].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    updateProgress();
+    updateIndicator();
   }
 
   function nextSlide() { show(current + 1); }
   function prevSlide() { show(current - 1); }
 
-  // Keyboard
+  // Keyboard navigation (desktop)
   document.addEventListener('keydown', (e) => {
+    if (!isDesktop) return;
     if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
     if (e.key === 'Home') show(0);
-    if (e.key === 'End') show(slides.length - 1);
+    if (e.key === 'End') show(totalSlides - 1);
   });
 
-  // Mobile nav buttons
+  // Desktop nav buttons
   if (btnNext) btnNext.addEventListener('click', nextSlide);
   if (btnPrev) btnPrev.addEventListener('click', prevSlide);
 
-  // Touch/swipe support
-  let touchX = 0;
-  document.addEventListener('touchstart', e => touchX = e.touches[0].clientX, { passive: true });
-  document.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].clientX - touchX;
-    if (Math.abs(dx) > 50) show(current + (dx < 0 ? 1 : -1));
+  // Touch/swipe support (mobile)
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    isScrolling = false;
   }, { passive: true });
 
-  // Click zones (desktop only - disabled on mobile since nav-btns handle it)
-  document.addEventListener('click', e => {
-    if (window.innerWidth <= 768) return; // skip on mobile
+  document.addEventListener('touchmove', (e) => {
+    if (!touchStartX) return;
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+    if (!isScrolling && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+      isScrolling = true;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    if (!isScrolling || touchStartX === 0) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) {
+      show(current + (dx < 0 ? 1 : -1));
+    }
+    touchStartX = 0;
+  }, { passive: true });
+
+  // Click zones (desktop only)
+  document.addEventListener('click', (e) => {
+    if (!isDesktop) return;
+    // Don't trigger on buttons/inputs
+    if (e.target.closest('button, a, input, select, textarea')) return;
     if (e.clientX > window.innerWidth * 0.7) nextSlide();
     else if (e.clientX < window.innerWidth * 0.3) prevSlide();
   });
 
-  show(0);
+  // Scroll spy for mobile - update current slide based on scroll position
+  if (!isDesktop) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+          const slideIndex = parseInt(entry.target.dataset.slide, 10);
+          if (slideIndex !== current) {
+            current = slideIndex;
+            updateProgress();
+            updateIndicator();
+          }
+        }
+      });
+    }, { rootMargin: '0px', threshold: [0.5] });
+
+    slides.forEach(slide => observer.observe(slide));
+  }
+
+  // Handle resize (desktop <-> mobile switch)
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      const newIsDesktop = window.matchMedia('(min-width: 769px)').matches;
+      if (newIsDesktop !== isDesktop) {
+        location.reload(); // Simple approach: reload on breakpoint change
+      }
+    }, 250);
+  });
+
+  // Initialize
+  updateProgress();
+  updateIndicator();
+
+  // Prevent pull-to-refresh on iOS when at top
+  let lastTouchY = 0;
+  document.addEventListener('touchstart', (e) => { lastTouchY = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchmove', (e) => {
+    const y = e.touches[0].clientY;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    if (scrollTop === 0 && y > lastTouchY && y - lastTouchY > 50) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+})();
 </script>
 </body>
 </html>
