@@ -276,7 +276,7 @@
       position: relative;
     }
     .flow-arrow {
-      display: none; /* Hidden by default, shown on mobile via media query */
+      display: none; /* Hidden by default, shown via media query */
       color: var(--accent); font-size: 1.5rem; font-weight: 700;
       padding: 4px 0; line-height: 1;
     }
@@ -287,6 +287,7 @@
         display: block;
         animation: bounce 2s infinite;
       }
+      .flow-arrow::before { content: '↓'; }
       @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
       .flow-step:last-child { margin-bottom: 0; }
     }
@@ -297,7 +298,10 @@
         align-self: center;
         font-size: 1.25rem;
         margin: 0 4px;
+        animation: none !important; /* Reset mobile animation */
+        transform: none !important; /* Reset mobile transform */
       }
+      .flow-arrow::before { content: '→'; }
       .flow-step:last-child + .flow-arrow { display: none; }
     }
     .flow-step .step-num { color: var(--accent); font-weight: 800; font-size: clamp(0.6rem, 1.8vw, 0.75rem); text-transform: uppercase; letter-spacing: 0.06em; }
@@ -569,13 +573,13 @@
       <h2>Roadmap Implementasi</h2>
       <div class="flow" role="list" aria-label="Langkah implementasi">
         <div class="flow-step" role="listitem"><div class="step-num">Langkah 1</div><div class="step-title">Assessment &<br>Setup Server</div></div>
-        <div class="flow-arrow" aria-hidden="true">↓</div>
+        <div class="flow-arrow" aria-hidden="true"></div>
         <div class="flow-step" role="listitem"><div class="step-num">Langkah 2</div><div class="step-title">Instalasi &<br>Konfigurasi</div></div>
-        <div class="flow-arrow" aria-hidden="true">↓</div>
+        <div class="flow-arrow" aria-hidden="true"></div>
         <div class="flow-step" role="listitem"><div class="step-num">Langkah 3</div><div class="step-title">Migrasi Data<br>Master</div></div>
-        <div class="flow-arrow" aria-hidden="true">↓</div>
+        <div class="flow-arrow" aria-hidden="true"></div>
         <div class="flow-step" role="listitem"><div class="step-num">Langkah 4</div><div class="step-title">Pelatihan<br>Staf</div></div>
-        <div class="flow-arrow" aria-hidden="true">↓</div>
+        <div class="flow-arrow" aria-hidden="true"></div>
         <div class="flow-step" role="listitem"><div class="step-num">Langkah 5</div><div class="step-title">Go-Live &<br>Support</div></div>
       </div>
       <div class="grid" style="margin-top: 28px;" role="list" aria-label="Detail implementasi">
