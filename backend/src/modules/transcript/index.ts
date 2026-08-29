@@ -290,14 +290,42 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
     // SEMESTER TABLES
     // Kolom: No, Mata Kuliah, SKS, Angka, Huruf, Status (Kode MK dihapus per keluhan)
     // Keluhan: kolom "No." terlalu lebar — cukup 16pt untuk nomor urut 1-2 digit.
-    // Fixed: gunakan kolom No 18pt dengan align center yang benar, perbaiki layout
-    const colWidths = [18, 262, 40, 60, 50, 60];
+    // Fixed: gunakan kolom No 16pt dengan absolute positioning, no text wrap
+    const colWidths = [16, 264, 40, 60, 50, 60];
     const headers = ['No', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
     // Cumulative x-position per column for pdfkit (base 50 margin).
     const colStarts: number[] = [];
     for (const w of colWidths) {
       colStarts.push(colStarts.length === 0 ? 50 : colStarts[colStarts.length - 1]! + w);
     }
+
+    // Helper: draw table cell with clipping (no wrap)
+    const drawCell = (
+      value: string,
+      colIndex: number,
+      yPos: number,
+      options: { bold?: boolean; color?: string; align?: 'left' | 'center' | 'right' } = {}
+    ) => {
+      const { bold = false, color = '#000', align = 'left' } = options;
+      const x = colStarts[colIndex]!;
+      const w = colWidths[colIndex]!;
+      const padding = 2;
+      const textX = align === 'center' ? x + w / 2 : align === 'right' ? x + w - padding : x + padding;
+      const textAlign = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
+      
+      doc
+        .font(bold ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(8)
+        .fillColor(color);
+      
+      // Clip text to column width (no wrap, single line)
+      const maxWidth = w - padding * 2;
+      doc.text(value, textX, yPos, {
+        width: maxWidth,
+        align: textAlign,
+        ellipsis: true, // truncate with ... if too long
+      });
+    };
 
     for (const sem of data.semesters) {
       if (y > 700) {
@@ -307,12 +335,9 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
       text(`${sem.semesterName} (${sem.semesterCode})`, 50, y, { size: 12, bold: true });
       y += 20;
 
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#000');
+      // Header row
       headers.forEach((h, i) => {
-        doc.text(h, colStarts[i]!, y, {
-          width: colWidths[i],
-          align: i === 0 || i >= 3 ? 'center' : 'left',
-        });
+        drawCell(h, i, y, { bold: true, align: i === 0 || i >= 3 ? 'center' : 'left' });
       });
       y += 16;
       line(y, '#333');
@@ -334,14 +359,10 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
           course.gradeLetter || '-',
           status,
         ];
-        doc
-          .font('Helvetica')
-          .fontSize(8)
-          .fillColor(course.isRepeated ? '#dc2626' : '#000');
         rowData.forEach((v, i) => {
-          doc.text(v, colStarts[i]!, y, {
-            width: colWidths[i],
+          drawCell(v, i, y, {
             align: i === 0 || i >= 3 ? 'center' : 'left',
+            color: course.isRepeated ? '#dc2626' : '#000',
           });
         });
         y += 14;
