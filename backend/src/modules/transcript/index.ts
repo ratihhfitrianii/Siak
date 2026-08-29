@@ -304,20 +304,21 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
       value: string,
       colIndex: number,
       yPos: number,
-      options: { bold?: boolean; color?: string; align?: 'left' | 'center' | 'right' } = {}
+      options: { bold?: boolean; color?: string; align?: 'left' | 'center' | 'right' } = {},
     ) => {
       const { bold = false, color = '#000', align = 'left' } = options;
       const x = colStarts[colIndex]!;
       const w = colWidths[colIndex]!;
       const padding = 2;
-      const textX = align === 'center' ? x + w / 2 : align === 'right' ? x + w - padding : x + padding;
+      const textX =
+        align === 'center' ? x + w / 2 : align === 'right' ? x + w - padding : x + padding;
       const textAlign = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
-      
+
       doc
         .font(bold ? 'Helvetica-Bold' : 'Helvetica')
         .fontSize(8)
         .fillColor(color);
-      
+
       // Clip text to column width (no wrap, single line)
       const maxWidth = w - padding * 2;
       doc.text(value, textX, yPos, {
