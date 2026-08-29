@@ -56,17 +56,17 @@
   }
 
   /* ============================================
-     LAYOUT: Desktop = Horizontal Slides, Mobile = Vertical Scroll
+     LAYOUT: Mobile = Vertical Stack, Desktop = Horizontal Slides
      ============================================ */
   .deck { width: 100%; }
 
   .slide {
-    padding: clamp(32px, 6vh, 56px) clamp(16px, 4vw, 32px);
+    padding: clamp(24px, 5vh, 48px) clamp(16px, 4vw, 32px);
     min-height: 100vh;
-    min-height: 100dvh; /* Dynamic viewport for mobile */
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     text-align: center;
     border-bottom: 1px solid var(--border);
@@ -84,6 +84,7 @@
       display: none;
       min-height: auto;
       border-bottom: none;
+      justify-content: center;
     }
     .slide.active { display: flex; animation: fadeIn 0.4s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
@@ -113,7 +114,7 @@
     grid-template-columns: 1fr; /* Mobile: single column */
   }
   @media (min-width: 480px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (min-width: 769px) { .grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); } }
+  @media (min-width: 769px) { .grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
 
   .card {
     background: var(--bg-card);
@@ -124,6 +125,8 @@
     transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
     position: relative;
     overflow: hidden;
+    width: 100%;
+    max-width: 100%;
   }
   .card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
@@ -148,6 +151,7 @@
     overflow-x: auto; padding: 4px 4px 12px;
     scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
     scrollbar-width: none; -ms-overflow-style: none;
+    width: 100%; max-width: 100%;
   }
   .stat-row::-webkit-scrollbar { display: none; }
   .stat {
@@ -157,7 +161,6 @@
   .stat .num { font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 800; color: var(--accent); line-height: 1.1; }
   .stat .label { font-size: clamp(0.7rem, 2vw, 0.85rem); color: var(--text-muted); margin-top: 4px; line-height: 1.3; }
 
-  /* Scroll hint for mobile */
   .stat-row::after {
     content: '↔ Geser'; display: block; text-align: center;
     font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;
@@ -170,7 +173,7 @@
   }
 
   /* ============================================
-     CHECK LIST - Better spacing
+     CHECK LIST
      ============================================ */
   .check-list { text-align: left; width: 100%; max-width: 100%; }
   .check-list ul { list-style: none; }
@@ -185,7 +188,7 @@
   }
 
   /* ============================================
-     TABLE - Horizontal scroll with shadow hint
+     TABLE
      ============================================ */
   .table-wrap {
     width: 100%; max-width: 100%; overflow-x: auto;
@@ -214,9 +217,10 @@
   .price-card {
     background: var(--bg-card); border: 2px solid var(--border);
     border-radius: var(--radius-xl); padding: clamp(20px, 4vw, 28px);
-    text-align: left; flex: 1; min-width: 0; /* Prevent flex overflow */
+    text-align: left; flex: 1; min-width: 0;
     transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
     position: relative; overflow: hidden;
+    width: 100%;
   }
   .price-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
@@ -262,7 +266,7 @@
   .flow-step .step-title { font-weight: 700; margin-top: 6px; font-size: clamp(0.8rem, 2.2vw, 0.95rem); line-height: 1.3; }
 
   /* ============================================
-     CONTACT BAR - Full width on mobile
+     CONTACT BAR
      ============================================ */
   .contact-bar {
     margin-top: 24px; width: 100%; max-width: 600px;
@@ -274,16 +278,16 @@
   .contact-bar strong { color: var(--text); }
 
   /* ============================================
-     NAVIGATION - Mobile: dots + swipe, Desktop: arrows + keys
+     NAVIGATION
      ============================================ */
   .progress {
     position: fixed; top: 0; left: 0; right: 0; height: 3px;
-    background: transparent; z-index: 100; pointer-events: none;
+    background: var(--border); z-index: 100; pointer-events: none;
   }
-  .progress::after {
-    content: ''; display: block; height: 100%;
+  .progress .bar {
+    height: 100%; width: 0%;
     background: linear-gradient(90deg, var(--primary), var(--accent));
-    width: 0%; transition: width 0.3s ease;
+    transition: width 0.3s ease;
   }
 
   .slide-indicator {
@@ -293,12 +297,12 @@
     border-radius: 999px; border: 1px solid var(--border);
     box-shadow: var(--shadow-lg);
   }
-  .slide-indicator dot {
+  .slide-indicator button {
     width: 8px; height: 8px; border-radius: 50%;
     background: var(--text-muted); transition: all var(--transition);
     cursor: pointer; border: none; padding: 0;
   }
-  .slide-indicator dot.active { background: var(--accent); transform: scale(1.3); }
+  .slide-indicator button.active { background: var(--accent); transform: scale(1.3); }
 
   @media (min-width: 769px) {
     .slide-indicator { display: none; }
@@ -365,7 +369,7 @@
 </style>
 </head>
 <body>
-<div class="progress" id="progress"></div>
+<div class="progress" id="progress"><div class="bar"></div></div>
 
 <!-- Desktop nav arrows -->
 <button class="nav-btn prev" id="btnPrev" aria-label="Slide sebelumnya">‹</button>
@@ -403,7 +407,7 @@
     <h3 style="margin-top: 28px;">→ Solusi: satu platform terintegrasi, semua beres</h3>
   </section>
 
-  <!-- SLIDE 3: FITUR INTI (split into 2 slides for mobile) -->
+  <!-- SLIDE 3: FITUR AKADEMIK -->
   <section class="slide" data-slide="2">
     <div class="badge">Modul Akademik</div>
     <h2>Fitur Inti: Akademik & Kehadiran</h2>
@@ -417,6 +421,7 @@
     </div>
   </section>
 
+  <!-- SLIDE 4: FITUR BISNIS -->
   <section class="slide" data-slide="3">
     <div class="badge">Modul Bisnis & Pelaporan</div>
     <h2>Fitur Inti: Keuangan, Payroll & PDDikti</h2>
@@ -430,7 +435,7 @@
     </div>
   </section>
 
-  <!-- SLIDE 4: KEAMANAN -->
+  <!-- SLIDE 5: KEAMANAN -->
   <section class="slide" data-slide="4">
     <div class="badge">Keamanan</div>
     <h2>Keamanan Level Produksi</h2>
@@ -444,7 +449,7 @@
     </div>
   </section>
 
-  <!-- SLIDE 5: TEKNOLOGI -->
+  <!-- SLIDE 6: TEKNOLOGI -->
   <section class="slide" data-slide="5">
     <div class="badge">Teknologi</div>
     <h2>Arsitektur Modern & Teruji</h2>
@@ -458,7 +463,7 @@
     </div>
   </section>
 
-  <!-- SLIDE 6: STATISTIK -->
+  <!-- SLIDE 7: STATISTIK -->
   <section class="slide" data-slide="6">
     <div class="badge">Skala Produk</div>
     <h2>Angka yang Berbicara</h2>
@@ -473,7 +478,7 @@
     <p class="subtitle" style="margin-top: 24px;">Coverage test: Backend ≥75% branch, Frontend ≥80% — kualitas teruji, bukan prototype.</p>
   </section>
 
-  <!-- SLIDE 7: PAKET & HARGA -->
+  <!-- SLIDE 8: PAKET & HARGA -->
   <section class="slide" data-slide="7">
     <div class="badge">Penawaran</div>
     <h2>Paket & Skema Harga</h2>
@@ -520,7 +525,7 @@
     </div>
   </section>
 
-  <!-- SLIDE 8: PROSES IMPLEMENTASI -->
+  <!-- SLIDE 9: PROSES IMPLEMENTASI -->
   <section class="slide" data-slide="8">
     <div class="badge">Proses</div>
     <h2>Roadmap Implementasi</h2>
@@ -538,7 +543,7 @@
     </div>
   </section>
 
-  <!-- SLIDE 9: PENUTUP / KONTAK -->
+  <!-- SLIDE 10: PENUTUP / KONTAK -->
   <section class="slide" data-slide="9">
     <div class="logo">SIAK</div>
     <div class="badge">Siap Memulai</div>
@@ -567,12 +572,10 @@
   'use strict';
 
   const slides = document.querySelectorAll('.slide');
-  const progress = document.getElementById('progress');
-  const progressBar = progress.querySelector('::after') || progress;
+  const progressBar = document.querySelector('#progress .bar');
   const btnPrev = document.getElementById('btnPrev');
   const btnNext = document.getElementById('btnNext');
   const indicator = document.getElementById('slideIndicator');
-  const navHint = document.getElementById('navHint');
   const isDesktop = window.matchMedia('(min-width: 769px)').matches;
   const totalSlides = slides.length;
   let current = 0;
@@ -587,7 +590,7 @@
       const dot = document.createElement('button');
       dot.className = i === 0 ? 'active' : '';
       dot.setAttribute('role', 'tab');
-      dot.setAttribute('aria-label', `Slide ${i + 1}`);
+      dot.setAttribute('aria-label', 'Slide ' + (i + 1));
       dot.setAttribute('aria-selected', i === 0);
       dot.addEventListener('click', () => show(i));
       indicator.appendChild(dot);
@@ -605,22 +608,17 @@
   }
 
   function updateProgress() {
+    if (!progressBar) return;
     const pct = ((current + 1) / totalSlides * 100);
-    progress.style.setProperty('--progress-width', pct + '%');
-    // CSS uses ::after with CSS variable
-    progress.style.background = `linear-gradient(90deg, var(--primary), var(--accent))`;
-    progress.style.backgroundSize = `${pct}% 100%`;
-    progress.style.backgroundRepeat = 'no-repeat';
+    progressBar.style.width = pct + '%';
   }
 
   function show(n) {
     if (isDesktop) {
-      // Desktop: horizontal slide mode
       slides[current].classList.remove('active');
       current = Math.max(0, Math.min(totalSlides - 1, n));
       slides[current].classList.add('active');
     } else {
-      // Mobile: smooth scroll to slide
       current = Math.max(0, Math.min(totalSlides - 1, n));
       slides[current].scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -672,7 +670,6 @@
   // Click zones (desktop only)
   document.addEventListener('click', (e) => {
     if (!isDesktop) return;
-    // Don't trigger on buttons/inputs
     if (e.target.closest('button, a, input, select, textarea')) return;
     if (e.clientX > window.innerWidth * 0.7) nextSlide();
     else if (e.clientX < window.innerWidth * 0.3) prevSlide();
@@ -703,7 +700,7 @@
     resizeTimer = setTimeout(() => {
       const newIsDesktop = window.matchMedia('(min-width: 769px)').matches;
       if (newIsDesktop !== isDesktop) {
-        location.reload(); // Simple approach: reload on breakpoint change
+        location.reload();
       }
     }, 250);
   });
