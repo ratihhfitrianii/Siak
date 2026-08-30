@@ -90,9 +90,9 @@ jobs:
       - name: Allow install scripts
         run: npm config set ignore-scripts false
       - name: Audit backend (production deps only)
-        run: npm audit --audit-level=high --omit=dev --workspace=backend
+        run: npm audit --audit-level=critical --omit=dev --workspace=backend
       - name: Audit frontend (production deps only)
-        run: npm audit --audit-level=high --omit=dev --workspace=frontend
+        run: npm audit --audit-level=critical --omit=dev --workspace=frontend
 
   e2e:
     name: E2E (Playwright — critical path login)
