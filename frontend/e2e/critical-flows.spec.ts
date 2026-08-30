@@ -74,7 +74,8 @@ test.describe('Critical path: absensi & nilai dosen (T5.7)', () => {
     await page.getByRole('button', { name: 'Absensi' }).click();
     await page.locator('aside nav a[aria-label="Kelola Absensi"]').click();
     await expect(page).toHaveURL(/\/dosen\/absensi/);
-    await expect(page.getByText(/Kelas|Pilih kelas/i).first()).toBeVisible({ timeout: 10_000 });
+    // /dosen/absensi = DosenAttendance (halaman "Sesi Absensi"), bukan DosenAttendanceRecap
+    await expect(page.getByText('Sesi Absensi').first()).toBeVisible({ timeout: 10_000 });
 
     // Menu Nilai di sidebar → /dosen/nilai
     await page.locator('aside nav a[aria-label="Nilai"]').click();
