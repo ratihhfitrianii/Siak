@@ -550,7 +550,11 @@ export function createSkripsiRouter(): Router {
           [proposalId],
         );
         if (studentCheck.rows[0]?.status === 'lulus') {
-          throw new AppError('FORBIDDEN', 'Mahasiswa sudah lulus, tidak dapat menambah catatan bimbingan', 403);
+          throw new AppError(
+            'FORBIDDEN',
+            'Mahasiswa sudah lulus, tidak dapat menambah catatan bimbingan',
+            403,
+          );
         }
 
         const ins = await pgPool.query(
