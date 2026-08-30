@@ -4,7 +4,7 @@
   "framework": "vite",
   "installCommand": "npm ci --legacy-peer-deps",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://siak-backend.onrender.com/api/$1" },
+    { "source": "/api/v1/(.*)", "destination": "https://siak-backend.onrender.com/api/v1/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
