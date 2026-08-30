@@ -176,36 +176,101 @@
   .pricing { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 100%; }
   @media (min-width: 769px) { .pricing { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; } }
   .price-card {
-    background: var(--bg-card); border: 2px solid var(--border);
-    border-radius: var(--radius-xl); padding: clamp(20px, 4vw, 28px);
-    text-align: left; flex: 1; min-width: 0;
-    transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
-    position: relative; overflow: hidden; width: 100%;
-  }
-  .price-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
-    opacity: 0.5;
-  }
-  .price-card.featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg); }
-  .price-card.featured::before { opacity: 1; }
-  .price-card:hover { transform: translateY(-4px); border-color: var(--accent); }
-  .price-card .plan { font-size: clamp(0.85rem, 2.5vw, 1rem); font-weight: 700; color: var(--accent); margin-bottom: 4px; }
-  .price-card .price { font-size: clamp(1.5rem, 5vw, 2.25rem); font-weight: 800; line-height: 1.1; margin: 8px 0 4px; }
-  .price-card .period { font-size: clamp(0.7rem, 2vw, 0.85rem); color: var(--text-muted); margin-bottom: 16px; }
-  .price-card ul { list-style: none; margin-top: 16px; }
-  .price-card ul li {
-    font-size: clamp(0.8rem, 2.2vw, 0.9rem); color: var(--text-dim); line-height: 1.9;
-    padding-left: clamp(22px, 4vw, 26px); position: relative;
-  }
-  .price-card ul li::before { content: '✓'; position: absolute; left: 0; color: var(--success); font-weight: 700; }
-  .price-card .footnote { margin-top: 16px; font-size: clamp(0.65rem, 1.8vw, 0.75rem); color: var(--text-muted); }
-  .price-card .popular-badge {
-    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-    background: var(--accent); color: #fff; font-size: 0.65rem; font-weight: 700;
-    padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
+      background: var(--bg-card); border: 2px solid var(--border);
+      border-radius: var(--radius-xl); padding: clamp(20px, 4vw, 28px);
+      text-align: left; flex: 1; min-width: 0;
+      transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+      position: relative; overflow: hidden; width: 100%;
+    }
+    .price-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      opacity: 0.5;
+    }
+    .price-card.featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg); }
+    .price-card.featured::before { opacity: 1; }
+    .price-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+    .price-card .plan { font-size: clamp(0.85rem, 2.5vw, 1rem); font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+    .price-card ul { list-style: none; margin-top: 16px; }
+    .price-card ul li {
+      font-size: clamp(0.8rem, 2.2vw, 0.9rem); color: var(--text-dim); line-height: 1.9;
+      padding-left: clamp(22px, 4vw, 26px); position: relative;
+    }
+    .price-card ul li::before { content: '✓'; position: absolute; left: 0; color: var(--success); font-weight: 700; }
+    .price-card .footnote { margin-top: 16px; font-size: clamp(0.65rem, 1.8vw, 0.75rem); color: var(--text-muted); }
+    .price-card .popular-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff; font-size: 0.65rem; font-weight: 700;
+      padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    /* ============================================
+       PROMO PRICING - sale badge, strikethrough, promo price
+       ============================================ */
+    .promo-badge {
+      position: absolute; top: -14px; left: -10px; z-index: 5;
+      width: 76px; height: 76px;
+      background: radial-gradient(circle at 50% 50%, #ffe066 0%, #ffc400 60%, #f0a500 100%);
+      color: #3d2c00;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border-radius: 50%;
+      font-weight: 900;
+      line-height: 1;
+      transform: rotate(-12deg);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.6);
+      border: 2px dashed rgba(61, 44, 0, 0.4);
+    }
+    .promo-badge .pb-top { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .promo-badge .pb-mid { font-size: 1.15rem; margin: 2px 0; }
+    .promo-badge .pb-pct { font-size: 0.72rem; background: #3d2c00; color: #ffe066; border-radius: 999px; padding: 2px 8px; margin-top: 2px; }
+    .price-box {
+      position: relative; display: flex; align-items: center; justify-content: flex-start;
+      gap: 12px; margin: 12px 0 6px; padding-left: 6px; padding-top: 8px;
+      min-height: 58px; flex-wrap: wrap;
+    }
+    .price-original {
+      background: rgba(148, 163, 184, 0.28); border-radius: 10px;
+      padding: 8px 14px; position: relative;
+      font-size: clamp(0.85rem, 2.5vw, 1rem); font-weight: 700; color: #cbd5e1;
+    }
+    .price-original::after {
+      content: ''; position: absolute; left: -6px; right: -6px; top: 50%;
+      height: 3px; background: var(--danger); transform: translateY(-50%) rotate(-8deg);
+      border-radius: 2px;
+    }
+    .price-promo {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border-radius: 12px; padding: 10px 18px;
+      font-size: clamp(1.15rem, 4vw, 1.7rem); font-weight: 900; color: #fff;
+      box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+      position: relative; z-index: 2;
+      line-height: 1.1; white-space: nowrap;
+    }
+    .price-promo .pp-unit { font-size: 0.6em; font-weight: 700; opacity: 0.9; margin-left: 2px; }
+    .promo-term {
+        margin-top: 14px; font-size: clamp(0.65rem, 1.8vw, 0.75rem);
+        color: var(--text-muted); display: flex; align-items: center; gap: 4px;
+      }
+      .promo-term .star { color: var(--warning); font-size: 0.9rem; }
+      .promo-terms-box {
+        margin-top: 28px; width: 100%; max-width: 100%;
+        background: var(--bg-card); border: 1px solid var(--border);
+        border-left: 4px solid var(--warning);
+        border-radius: var(--radius-md);
+        padding: clamp(16px, 3vw, 20px);
+        text-align: left;
+      }
+      .promo-terms-box .ptb-title {
+        font-size: clamp(0.85rem, 2.5vw, 1rem); font-weight: 700; margin-bottom: 10px;
+        color: var(--warning);
+      }
+      .promo-terms-box ul { list-style: none; }
+      .promo-terms-box ul li {
+        font-size: clamp(0.75rem, 2.2vw, 0.9rem); color: var(--text-dim); line-height: 1.8;
+        padding-left: clamp(22px, 4vw, 26px); position: relative;
+      }
+      .promo-terms-box ul li::before { content: '★'; position: absolute; left: 0; color: var(--warning); font-size: 0.7em; top: 3px; }
 
   /* ============================================
      FLOW STEPS - Single column vertical, arrows between
@@ -405,51 +470,71 @@
   </section>
 
   <!-- SLIDE 8: PAKET & HARGA -->
-  <section class="slide" data-slide="7">
-    <div class="badge">Penawaran</div>
-    <h2>Paket & Skema Harga</h2>
-    <div class="pricing" role="list" aria-label="Paket harga">
-          <div class="price-card" role="listitem">
-            <div class="plan">A — Lisensi + Implementasi</div>
-            <div class="price">Rp 164 juta</div>
-            <div class="period"><s>Rp 205 juta</s> <strong style="color: var(--success);">Diskon 20%</strong></div>
-            <ul>
-              <li>Source code lengkap + lisensi Apache 2.0</li>
-              <li>Instalasi & konfigurasi server</li>
-              <li>Migrasi data awal (CSV/Excel)</li>
-              <li>Pelatihan admin & staf</li>
-              <li>Garansi bug 3 bulan + support 1 tahun</li>
-            </ul>
-            <div class="footnote">Cocok: kampus menengah dengan tim IT / butuh kustomisasi</div>
+    <section class="slide" data-slide="7">
+      <div class="badge">Penawaran</div>
+      <h2>Paket & Skema Harga</h2>
+      <div class="pricing" role="list" aria-label="Paket harga">
+        <div class="price-card" role="listitem">
+          <div class="promo-badge" aria-hidden="true"><span class="pb-top">Promo</span><span class="pb-mid">A</span><span class="pb-pct">-20%</span></div>
+          <div class="plan">A — Lisensi + Implementasi</div>
+          <div class="price-box">
+            <span class="price-original">Rp 205 juta</span>
+            <span class="price-promo">Rp 164 juta</span>
           </div>
-          <div class="price-card featured" role="listitem">
-            <span class="popular-badge">Direkomendasikan</span>
-            <div class="plan">B — SaaS Tahunan</div>
-            <div class="price">Rp 74.8 juta/thn</div>
-            <div class="period"><s>Rp 85 juta</s> <strong style="color: var(--success);">Diskon 12%</strong></div>
-            <ul>
-              <li>Semua modul aktif (unlimited user)</li>
-              <li>Hosting, maintenance, backup terjadwal</li>
-              <li>Update regulasi & fitur otomatis</li>
-              <li>Support teknis penuh</li>
-              <li>Tanpa investasi awal besar</li>
-            </ul>
-            <div class="footnote">Cocok: kampus kecil-menengah, tanpa tim IT internal</div>
-          </div>
-          <div class="price-card" role="listitem">
-            <div class="plan">C — Source Code Saja</div>
-            <div class="price">Rp 120 juta</div>
-            <div class="period"><s>Rp 150 juta</s> <strong style="color: var(--success);">Diskon 20%</strong></div>
-            <ul>
-              <li>Source code lengkap + dokumentasi</li>
-              <li>Lisensi Apache 2.0</li>
-              <li>Bimbingan instalasi (1 sesi remote)</li>
-              <li>Untuk kampus dengan tim developer sendiri</li>
-            </ul>
-            <div class="footnote">Harga promo berlaku s.d. [TANGGAL + 30 HARI]; exclude PPN 11%</div>
-          </div>
+          <div class="promo-term"><span class="star">✦</span> Promo berlaku s.d. [TANGGAL + 30 HARI]</div>
+          <ul>
+            <li>Source code lengkap + lisensi Apache 2.0</li>
+            <li>Instalasi & konfigurasi server</li>
+            <li>Migrasi data awal (CSV/Excel)</li>
+            <li>Pelatihan admin & staf</li>
+            <li>Garansi bug 3 bulan + support 1 tahun</li>
+          </ul>
+          <div class="footnote">Cocok: kampus menengah dengan tim IT / butuh kustomisasi</div>
         </div>
-  </section>
+        <div class="price-card featured" role="listitem">
+          <span class="popular-badge">Direkomendasikan</span>
+          <div class="promo-badge" aria-hidden="true"><span class="pb-top">Promo</span><span class="pb-mid">B</span><span class="pb-pct">-12%</span></div>
+          <div class="plan">B — SaaS Tahunan</div>
+          <div class="price-box">
+            <span class="price-original">Rp 85 juta</span>
+            <span class="price-promo">Rp 74,8 juta<span class="pp-unit">/thn</span></span>
+          </div>
+          <div class="promo-term"><span class="star">✦</span> Promo berlaku s.d. [TANGGAL + 30 HARI]</div>
+          <ul>
+            <li>Semua modul aktif (unlimited user)</li>
+            <li>Hosting, maintenance, backup terjadwal</li>
+            <li>Update regulasi & fitur otomatis</li>
+            <li>Support teknis penuh</li>
+            <li>Tanpa investasi awal besar</li>
+          </ul>
+          <div class="footnote">Tahun berikutnya Rp 52,8 juta/thn (promo)</div>
+        </div>
+        <div class="price-card" role="listitem">
+          <div class="promo-badge" aria-hidden="true"><span class="pb-top">Promo</span><span class="pb-mid">C</span><span class="pb-pct">-20%</span></div>
+          <div class="plan">C — Source Code Saja</div>
+          <div class="price-box">
+            <span class="price-original">Rp 150 juta</span>
+            <span class="price-promo">Rp 120 juta</span>
+          </div>
+          <div class="promo-term"><span class="star">✦</span> Promo berlaku s.d. [TANGGAL + 30 HARI]</div>
+          <ul>
+            <li>Source code lengkap + dokumentasi</li>
+            <li>Lisensi Apache 2.0</li>
+            <li>Bimbingan instalasi (1 sesi remote)</li>
+            <li>Untuk kampus dengan tim developer sendiri</li>
+          </ul>
+          <div class="footnote">Harga exclude PPN 11%</div>
+        </div>
+      </div>
+      <div class="promo-terms-box" role="note" aria-label="Syarat dan ketentuan promo">
+        <div class="ptb-title">★ Syarat dan Ketentuan:</div>
+        <ul>
+          <li>Pembayaran DP dilakukan paling lambat <strong>30 hari setelah kontrak ditandatangani</strong>.</li>
+          <li>Harga promo berlaku untuk penandatanganan kontrak dalam masa promo (s.d. [TANGGAL + 30 HARI]).</li>
+          <li>Harga belum termasuk PPN 11%.</li>
+        </ul>
+      </div>
+    </section>
 
   <!-- SLIDE 9: PROSES IMPLEMENTASI -->
   <section class="slide" data-slide="8">
