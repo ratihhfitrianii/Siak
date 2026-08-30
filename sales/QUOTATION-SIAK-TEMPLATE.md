@@ -45,28 +45,28 @@ Implementasi **SIAK (Sistem Informasi Akademik)** — platform terintegrasi untu
 > - **Quick Deploy**: Go-live 2–4 minggu (data master siap)  
 > - **TCO 3 Tahun Lebih Rendah** vs beli lisensi + kelola sendiri (lihat perbandingan di bawah)
 
-| No | Item | Keterangan | Harga/Tahun |
-|----|------|------------|-------------|
-| 1 | Langganan SIAK (semua modul, unlimited user) | Hosting, maintenance, backup, SSL, monitoring | Rp 60.000.000 |
-| 2 | Implementasi & migrasi data (tahun pertama) | Setup, konfigurasi, migrasi CSV/Excel (max 5.000 record) | Rp 25.000.000 |
-| 3 | Support teknis & update regulasi/fitur | Penuh (telepon, email, remote), update otomatis | Termasuk |
-| | **TOTAL TAHUN PERTAMA** | | **Rp 85.000.000** |
-| | **TOTAL TAHUN BERIKUTNYA** | | **Rp 60.000.000 / tahun** |
+| No | Item | Keterangan | Harga Normal | **Harga Promo (–12%)** |
+|----|------|------------|--------------|------------------------|
+| 1 | Langganan SIAK (semua modul, unlimited user) | Hosting, maintenance, backup, SSL, monitoring | Rp 60.000.000/thn | **Rp 52.800.000/thn** |
+| 2 | Implementasi & migrasi data (tahun pertama) | Setup, konfigurasi, migrasi CSV/Excel (max 5.000 record) | Rp 25.000.000 | **Rp 22.000.000** |
+| 3 | Support teknis & update regulasi/fitur | Penuh (telepon, email, remote), update otomatis | Termasuk | Termasuk |
+| | **TOTAL TAHUN PERTAMA** | | **Rp 85.000.000** | **Rp 74.800.000** |
+| | **TOTAL TAHUN BERIKUTNYA** | | **Rp 60.000.000 / tahun** | **Rp 52.800.000 / tahun** |
 
 ---
 
 ### Opsi A — Lisensi + Implementasi (Beli Putus)
 
-| No | Item | Jumlah | Satuan | Harga Satuan | Subtotal |
-|----|------|--------|--------|--------------|----------|
-| 1 | Lisensi SIAK (source code + hak pakai, Apache 2.0) | 1 | Paket | Rp 150.000.000 | Rp 150.000.000 |
-| 2 | Instalasi & konfigurasi server (on-premise/cloud) | 1 | Paket | Rp 25.000.000 | Rp 25.000.000 |
-| 3 | Migrasi data awal (CSV/Excel, max 5.000 record) | 1 | Paket | Rp 15.000.000 | Rp 15.000.000 |
-| 4 | Pelatihan admin & staf (2 sesi @ 3 jam) | 2 | Sesi | Rp 5.000.000 | Rp 10.000.000 |
-| 5 | Dokumentasi teknis & panduan pengguna | 1 | Paket | Rp 5.000.000 | Rp 5.000.000 |
-| 6 | Garansi perbaikan bug | 3 | Bulan | Inklusif | Rp 0 |
-| 7 | Dukungan teknis | 12 | Bulan | Inklusif | Rp 0 |
-| | **TOTAL OPSI A** | | | | **Rp 205.000.000** |
+| No | Item | Jumlah | Satuan | Harga Normal | **Harga Promo (–20%)** |
+|----|------|--------|--------|--------------|------------------------|
+| 1 | Lisensi SIAK (source code + hak pakai, Apache 2.0) | 1 | Paket | Rp 150.000.000 | **Rp 120.000.000** |
+| 2 | Instalasi & konfigurasi server (on-premise/cloud) | 1 | Paket | Rp 25.000.000 | **Rp 20.000.000** |
+| 3 | Migrasi data awal (CSV/Excel, max 5.000 record) | 1 | Paket | Rp 15.000.000 | **Rp 12.000.000** |
+| 4 | Pelatihan admin & staf (2 sesi @ 3 jam) | 2 | Sesi | Rp 5.000.000 | **Rp 4.000.000** |
+| 5 | Dokumentasi teknis & panduan pengguna | 1 | Paket | Rp 5.000.000 | **Rp 4.000.000** |
+| 6 | Garansi perbaikan bug | 3 | Bulan | Inklusif | Inklusif |
+| 7 | Dukungan teknis | 12 | Bulan | Inklusif | Inklusif |
+| | **TOTAL OPSI A** | | | **Rp 205.000.000** | **Rp 164.000.000** |
 
 > Cocok: Universitas dengan **tim IT internal** & ingin **full control** (source code, kustomisasi bebas, data on-premise)
 
@@ -74,24 +74,24 @@ Implementasi **SIAK (Sistem Informasi Akademik)** — platform terintegrasi untu
 
 ### Opsi C — Source Code Saja
 
-| No | Item | Harga |
-|----|------|-------|
-| 1 | Source code lengkap + dokumentasi | Rp 150.000.000 |
-| 2 | Bimbingan instalasi (1 sesi remote) | Inklusif |
-| | **TOTAL OPSI C** | **Rp 150.000.000** |
+| No | Item | Harga Normal | **Harga Promo (–20%)** |
+|----|------|--------------|------------------------|
+| 1 | Source code lengkap + dokumentasi | Rp 150.000.000 | **Rp 120.000.000** |
+| 2 | Bimbingan instalasi (1 sesi remote) | Inklusif | Inklusif |
+| | **TOTAL OPSI C** | **Rp 150.000.000** | **Rp 120.000.000** |
 
 > Cocok: Universitas dengan **tim developer sendiri** yang mau custom & hosting mandiri
 
 ---
 
-## 📊 Perbandingan Total Cost of Ownership (3 Tahun)
+## 📊 Perbandingan Total Cost of Ownership (3 Tahun) — **Harga Promo**
 
-| Biaya | **Paket B (SaaS)** | Paket A (Lisensi + Self-Host) |
-|-------|-------------------|------------------------------|
-| Tahun 1 (Implementasi + Lisensi/Subs) | Rp 85.000.000 | Rp 205.000.000 |
-| Tahun 2 (Hosting/Support) | Rp 60.000.000 | Rp 30.000.000* (server + support opsional) |
-| Tahun 3 | Rp 60.000.000 | Rp 30.000.000* |
-| **Total 3 Tahun** | **Rp 205.000.000** | **~Rp 265.000.000+** |
+| Biaya | **Paket B Promo (SaaS –12%)** | **Paket A Promo (Lisensi –20%)** |
+|-------|-------------------------------|----------------------------------|
+| Tahun 1 (Implementasi + Lisensi/Subs) | Rp 74.800.000 | Rp 164.000.000 |
+| Tahun 2 (Hosting/Support) | Rp 52.800.000 | Rp 30.000.000* (server + support opsional) |
+| Tahun 3 | Rp 52.800.000 | Rp 30.000.000* |
+| **Total 3 Tahun** | **Rp 180.400.000** | **~Rp 224.000.000+** |
 | Tim IT Internal Diperlukan | **Tidak** | **Ya (min 1-2 orang)** |
 | Maintenance & Security | **Kami** | **Universitas** |
 
@@ -149,12 +149,12 @@ Implementasi **SIAK (Sistem Informasi Akademik)** — platform terintegrasi untu
 
 ## 5. Catatan
 
-1. Harga **belum termasuk PPN 11%** (jika vendor ber-NPWP dan wajib pungut)
-2. Harga belum termasuk biaya lisensi OS/server & domain (ditanggung kampus — untuk Opsi A/C)
-3. Kustomisasi di luar modul standar dihitung per add-on (bagian 3)
-4. Migrasi data > 5.000 record dikenakan biaya tambahan
-5. Quotation berlaku 30 hari sejak tanggal terbit
-6. Harga dapat dinegosiasikan untuk penandatanganan kontrak dalam 14 hari
+1. **Harga Promo berlaku untuk penandatanganan kontrak hingga [TANGGAL + 30 HARI]**
+2. Harga **belum termasuk PPN 11%** (jika vendor ber-NPWP dan wajib pungut)
+3. Harga belum termasuk biaya lisensi OS/server & domain (ditanggung kampus — untuk Opsi A/C)
+4. Kustomisasi di luar modul standar dihitung per add-on (bagian 3)
+5. Migrasi data > 5.000 record dikenakan biaya tambahan
+6. Quotation berlaku 30 hari sejak tanggal terbit
 
 ---
 
