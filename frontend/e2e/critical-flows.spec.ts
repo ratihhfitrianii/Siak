@@ -22,8 +22,10 @@ test.describe('Critical path: bayar (T5.7)', () => {
     await login(page, MHS.identifier, MHS.pass);
     await expect(page.getByText(DASHBOARD_READY)).toBeVisible({ timeout: 10_000 });
 
+    // "Pembayaran" adalah child dari parent dropdown "Keuangan" → expand parent dulu
+    await page.getByRole('button', { name: 'Keuangan' }).click();
     await page.getByRole('link', { name: 'Pembayaran', exact: true }).click();
-    await expect(page).toHaveURL(/\/pembayaran/);
+    await expect(page).toHaveURL(/pembayaran/);
     await expect(page.getByText('Lunas').first()).toBeVisible({ timeout: 10_000 });
   });
 });
@@ -33,9 +35,10 @@ test.describe('Critical path: KRS + PDF (T5.7)', () => {
     await login(page, MHS.identifier, MHS.pass);
     await expect(page.getByText(DASHBOARD_READY)).toBeVisible({ timeout: 10_000 });
 
-    // Menu KRS direname "Kelola KRS" (task m6)
+    // Menu KRS direname "Kelola KRS" (task m6) — child dari parent "KRS" → expand parent dulu
+    await page.getByRole('button', { name: 'KRS' }).click();
     await page.getByRole('link', { name: 'Kelola KRS', exact: true }).click();
-    await expect(page).toHaveURL(/\/krs/);
+    await expect(page).toHaveURL(/krs/);
     // Status badge "Disetujui" dari STATUS_LABEL['approved']
     await expect(page.getByText('Disetujui')).toBeVisible({ timeout: 10_000 });
 
@@ -51,8 +54,10 @@ test.describe('Critical path: transkrip (T5.7)', () => {
     await login(page, MHS.identifier, MHS.pass);
     await expect(page.getByText(DASHBOARD_READY)).toBeVisible({ timeout: 10_000 });
 
-    await page.getByRole('link', { name: 'Transkrip', exact: true }).click();
-    await expect(page).toHaveURL(/\/transkrip/);
+    // "Kartu Hasil Studi (KHS)" child dari parent "Riwayat Studi" → expand parent dulu
+    await page.getByRole('button', { name: 'Riwayat Studi' }).click();
+    await page.getByRole('link', { name: 'Kartu Hasil Studi (KHS)', exact: true }).click();
+    await expect(page).toHaveURL(/transkrip/);
     await expect(page.getByText(/Semester \d/).first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: /Download PDF/i })).toBeVisible();
   });
