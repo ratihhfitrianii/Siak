@@ -114,6 +114,7 @@ export function DosenBimbinganMahasiswaBinaan() {
     try {
       const data = await getSkripsiGuidanceLogs(p.id);
       setLogs(data);
+      if (data.length === 0) setLogsError('Data belum ada');
     } catch {
       setLogsError('Gagal memuat log bimbingan');
     } finally {
@@ -516,7 +517,8 @@ export function DosenBimbinganMahasiswaBinaan() {
                     <div className="flex gap-2 pt-2 border-t border-slate-100">
                       <button
                         onClick={() => openCatat(p)}
-                        className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition"
+                        disabled={p.status === 'lulus'}
+                        className={`flex-1 px-4 py-2 text-sm font-medium ${p.status === 'lulus' ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'text-white bg-primary-600 hover:bg-primary-700'} rounded-lg transition`}
                       >
                         Catat Bimbingan
                       </button>
