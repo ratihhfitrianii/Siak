@@ -544,15 +544,15 @@ export function createSkripsiRouter(): Router {
           }
         }
 
-        // Mahasiswa tidak boleh berstatus 'lulus'
-        const studentCheck = await pgPool.query(
-          `SELECT st.status FROM students st JOIN skripsi_proposals sp ON sp.student_id = st.id WHERE sp.id = $1`,
+        // Proposal tidak boleh berstatus 'lulus' (sudah selesai bimbingan)
+        const propCheck = await pgPool.query(
+          `SELECT status FROM skripsi_proposals WHERE id = $1`,
           [proposalId],
         );
-        if (studentCheck.rows[0]?.status === 'lulus') {
+        if (propCheck.rows[0]?.status === 'lulus') {
           throw new AppError(
             'FORBIDDEN',
-            'Mahasiswa sudah lulus, tidak dapat menambah catatan bimbingan',
+            'Proposal sudah lulus, tidak dapat menambah catatan bimbingan',
             403,
           );
         }
