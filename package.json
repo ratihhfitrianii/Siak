@@ -27,7 +27,8 @@
   "devDependencies": {
       "concurrently": "^9.0.0",
       "path-scurry": "^2.0.0",
-      "minipass": "^7.1.2"
+      "minipass": "^7.1.2",
+      "signal-exit": "^4.1.0"
     },
   "overrides": {
     "tar": "^7.5.22"
