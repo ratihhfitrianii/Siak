@@ -1,6 +1,4 @@
 {
-  "name": "siak-frontend",
-  "rootDirectory": "frontend",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
