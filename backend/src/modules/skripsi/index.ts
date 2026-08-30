@@ -545,10 +545,9 @@ export function createSkripsiRouter(): Router {
         }
 
         // Proposal tidak boleh berstatus 'lulus' (sudah selesai bimbingan)
-        const propCheck = await pgPool.query(
-          `SELECT status FROM skripsi_proposals WHERE id = $1`,
-          [proposalId],
-        );
+        const propCheck = await pgPool.query(`SELECT status FROM skripsi_proposals WHERE id = $1`, [
+          proposalId,
+        ]);
         if (propCheck.rows[0]?.status === 'lulus') {
           throw new AppError(
             'FORBIDDEN',
