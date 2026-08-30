@@ -1,0 +1,2332 @@
+{
+  "@fast-csv/format@4.3.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/C2FO/fast-csv",
+    "publisher": "doug-martin",
+    "email": "doug@dougamartin.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@fast-csv\\format",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@fast-csv\\format\\LICENSE"
+  },
+  "@fast-csv/parse@4.3.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/C2FO/fast-csv",
+    "publisher": "doug-martin",
+    "email": "doug@dougamartin.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@fast-csv\\parse",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@fast-csv\\parse\\LICENSE"
+  },
+  "@ioredis/commands@1.10.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ioredis/commands",
+    "publisher": "Zihua Li",
+    "email": "i@zihua.li",
+    "url": "http://zihua.li",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@ioredis\\commands",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@ioredis\\commands\\LICENSE"
+  },
+  "@isaacs/fs-minipass@4.0.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/fs-minipass",
+    "publisher": "Isaac Z. Schlueter",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@isaacs\\fs-minipass",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@isaacs\\fs-minipass\\LICENSE"
+  },
+  "@mapbox/node-pre-gyp@1.0.11": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/mapbox/node-pre-gyp",
+    "publisher": "Dane Springmeyer",
+    "email": "dane@mapbox.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@mapbox\\node-pre-gyp",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@mapbox\\node-pre-gyp\\LICENSE"
+  },
+  "@noble/ciphers@1.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/paulmillr/noble-ciphers",
+    "publisher": "Paul Miller",
+    "url": "https://paulmillr.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@noble\\ciphers",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@noble\\ciphers\\LICENSE"
+  },
+  "@noble/hashes@1.8.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/paulmillr/noble-hashes",
+    "publisher": "Paul Miller",
+    "url": "https://paulmillr.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@noble\\hashes",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@noble\\hashes\\LICENSE"
+  },
+  "@opentelemetry/api@1.9.1": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/open-telemetry/opentelemetry-js",
+    "publisher": "OpenTelemetry Authors",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@opentelemetry\\api",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@opentelemetry\\api\\LICENSE"
+  },
+  "@pinojs/redact@0.4.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pinojs/redact",
+    "publisher": "Matteo Collina",
+    "email": "hello@matteocollina.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@pinojs\\redact",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@pinojs\\redact\\LICENSE"
+  },
+  "@siak/backend@0.1.0": {
+    "licenses": "UNLICENSED",
+    "private": true,
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend"
+  },
+  "@socket.io/component-emitter@3.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/socketio/emitter",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@socket.io\\component-emitter",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@socket.io\\component-emitter\\LICENSE"
+  },
+  "@swc/helpers@0.5.23": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/swc-project/swc",
+    "publisher": "강동윤",
+    "email": "kdy1997.dev@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@swc\\helpers",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@swc\\helpers\\LICENSE"
+  },
+  "@types/body-parser@1.19.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\body-parser",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\body-parser\\LICENSE"
+  },
+  "@types/connect@3.4.38": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\connect",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\connect\\LICENSE"
+  },
+  "@types/cors@2.8.19": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\cors",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\cors\\LICENSE"
+  },
+  "@types/express-serve-static-core@4.19.9": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\express-serve-static-core",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\express-serve-static-core\\LICENSE"
+  },
+  "@types/express@4.17.25": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\express",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\express\\LICENSE"
+  },
+  "@types/http-errors@2.0.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\http-errors",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\http-errors\\LICENSE"
+  },
+  "@types/mime@1.3.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\mime",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\mime\\LICENSE"
+  },
+  "@types/multer@2.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\multer",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\multer\\LICENSE"
+  },
+  "@types/node@14.18.63": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@fast-csv\\format\\node_modules\\@types\\node",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@fast-csv\\format\\node_modules\\@types\\node\\LICENSE"
+  },
+  "@types/node@22.20.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\node",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\node\\LICENSE"
+  },
+  "@types/pdfkit@0.17.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\pdfkit",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\pdfkit\\LICENSE"
+  },
+  "@types/qs@6.15.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\qs",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\qs\\LICENSE"
+  },
+  "@types/range-parser@1.2.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\range-parser",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\range-parser\\LICENSE"
+  },
+  "@types/send@0.17.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\serve-static\\node_modules\\@types\\send",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\serve-static\\node_modules\\@types\\send\\LICENSE"
+  },
+  "@types/send@1.2.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\send",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\send\\LICENSE"
+  },
+  "@types/serve-static@1.15.10": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\serve-static",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\serve-static\\LICENSE"
+  },
+  "@types/ws@8.18.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\ws",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@types\\ws\\LICENSE"
+  },
+  "abbrev@1.1.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/abbrev-js",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\abbrev",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\abbrev\\LICENSE"
+  },
+  "accepts@1.3.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/accepts",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\accepts",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\accepts\\LICENSE"
+  },
+  "agent-base@6.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/TooTallNate/node-agent-base",
+    "publisher": "Nathan Rajlich",
+    "email": "nathan@tootallnate.net",
+    "url": "http://n8.io/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\agent-base",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\agent-base\\README.md"
+  },
+  "ansi-regex@5.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/chalk/ansi-regex",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ansi-regex",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ansi-regex\\license"
+  },
+  "append-field@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/LinusU/node-append-field",
+    "publisher": "Linus Unnebäck",
+    "email": "linus@folkdatorn.se",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\append-field",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\append-field\\LICENSE"
+  },
+  "aproba@2.1.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/iarna/aproba",
+    "publisher": "Rebecca Turner",
+    "email": "me@re-becca.org",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\aproba",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\aproba\\LICENSE"
+  },
+  "archiver-utils@2.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/archiverjs/archiver-utils",
+    "publisher": "Chris Talkington",
+    "url": "http://christalkington.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\archiver-utils",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\archiver-utils\\LICENSE"
+  },
+  "archiver-utils@3.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/archiverjs/archiver-utils",
+    "publisher": "Chris Talkington",
+    "url": "http://christalkington.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\zip-stream\\node_modules\\archiver-utils",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\zip-stream\\node_modules\\archiver-utils\\LICENSE"
+  },
+  "archiver@5.3.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/archiverjs/node-archiver",
+    "publisher": "Chris Talkington",
+    "url": "http://christalkington.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\archiver",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\archiver\\LICENSE"
+  },
+  "are-we-there-yet@2.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/are-we-there-yet",
+    "publisher": "GitHub Inc.",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\are-we-there-yet",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\are-we-there-yet\\LICENSE.md"
+  },
+  "array-flatten@1.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/blakeembrey/array-flatten",
+    "publisher": "Blake Embrey",
+    "email": "hello@blakeembrey.com",
+    "url": "http://blakeembrey.me",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\array-flatten",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\array-flatten\\LICENSE"
+  },
+  "async@3.2.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/caolan/async",
+    "publisher": "Caolan McMahon",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\async",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\async\\LICENSE"
+  },
+  "atomic-sleep@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/davidmarkclements/atomic-sleep",
+    "publisher": "David Mark Clements",
+    "url": "@davidmarkclem",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\atomic-sleep",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\atomic-sleep\\LICENSE"
+  },
+  "balanced-match@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/juliangruber/balanced-match",
+    "publisher": "Julian Gruber",
+    "email": "mail@juliangruber.com",
+    "url": "http://juliangruber.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\balanced-match",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\balanced-match\\LICENSE.md"
+  },
+  "base64-js@0.0.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/beatgammit/base64-js",
+    "publisher": "T. Jameson Little",
+    "email": "t.jameson.little@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\linebreak\\node_modules\\base64-js",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\linebreak\\node_modules\\base64-js\\LICENSE.MIT"
+  },
+  "base64-js@1.5.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/beatgammit/base64-js",
+    "publisher": "T. Jameson Little",
+    "email": "t.jameson.little@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\base64-js",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\base64-js\\LICENSE"
+  },
+  "base64id@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/faeldt/base64id",
+    "publisher": "Kristian Faeldt",
+    "email": "faeldt_kristian@cyberagent.co.jp",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\base64id",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\base64id\\LICENSE"
+  },
+  "bcrypt@5.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/kelektiv/node.bcrypt.js",
+    "publisher": "Nick Campbell",
+    "url": "https://github.com/ncb000gt",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\bcrypt",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\bcrypt\\LICENSE"
+  },
+  "big-integer@1.6.52": {
+    "licenses": "Unlicense",
+    "repository": "https://github.com/peterolson/BigInteger.js",
+    "publisher": "Peter Olson",
+    "email": "peter.e.c.olson+npm@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\big-integer",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\big-integer\\LICENSE"
+  },
+  "binary@0.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/substack/node-binary",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\binary",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\binary\\README.markdown"
+  },
+  "bintrees@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/vadimg/js_bintrees",
+    "publisher": "Vadim Graboys",
+    "email": "dimva13@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\bintrees",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\bintrees\\LICENSE"
+  },
+  "bl@4.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/rvagg/bl",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\bl",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\bl\\LICENSE.md"
+  },
+  "bluebird@3.4.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/petkaantonov/bluebird",
+    "publisher": "Petka Antonov",
+    "email": "petka_antonov@hotmail.com",
+    "url": "http://github.com/petkaantonov/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\bluebird",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\bluebird\\LICENSE"
+  },
+  "body-parser@1.20.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/body-parser",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\body-parser",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\body-parser\\LICENSE"
+  },
+  "brace-expansion@1.1.18": {
+    "licenses": "MIT",
+    "repository": "https://github.com/juliangruber/brace-expansion",
+    "publisher": "Julian Gruber",
+    "email": "mail@juliangruber.com",
+    "url": "http://juliangruber.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\brace-expansion",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\brace-expansion\\LICENSE"
+  },
+  "brace-expansion@2.1.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/juliangruber/brace-expansion",
+    "publisher": "Julian Gruber",
+    "email": "mail@juliangruber.com",
+    "url": "http://juliangruber.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\readdir-glob\\node_modules\\brace-expansion",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\readdir-glob\\node_modules\\brace-expansion\\LICENSE"
+  },
+  "brotli@1.3.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/devongovett/brotli.js",
+    "publisher": "Devon Govett",
+    "email": "devongovett@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\brotli",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\brotli\\readme.md"
+  },
+  "browserify-zlib@0.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/devongovett/browserify-zlib",
+    "publisher": "Devon Govett",
+    "email": "devongovett@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\browserify-zlib",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\browserify-zlib\\LICENSE"
+  },
+  "buffer-crc32@0.2.13": {
+    "licenses": "MIT",
+    "repository": "https://github.com/brianloveswords/buffer-crc32",
+    "publisher": "Brian J. Brennan",
+    "email": "brianloveswords@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffer-crc32",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffer-crc32\\LICENSE"
+  },
+  "buffer-equal-constant-time@1.0.1": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/goinstant/buffer-equal-constant-time",
+    "publisher": "GoInstant Inc., a salesforce.com company",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffer-equal-constant-time",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffer-equal-constant-time\\LICENSE.txt"
+  },
+  "buffer-from@1.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/LinusU/buffer-from",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffer-from",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffer-from\\LICENSE"
+  },
+  "buffer-indexof-polyfill@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sarosia/buffer-indexof-polyfill",
+    "publisher": "https://github.com/sarosia",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffer-indexof-polyfill",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffer-indexof-polyfill\\LICENSE"
+  },
+  "buffer@5.7.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/feross/buffer",
+    "publisher": "Feross Aboukhadijeh",
+    "email": "feross@feross.org",
+    "url": "https://feross.org",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffer",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffer\\LICENSE"
+  },
+  "buffers@0.1.1": {
+    "licenses": "Custom: http://github.com/substack/node-bufferlist",
+    "repository": "https://github.com/substack/node-buffers",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffers",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\buffers\\README.markdown"
+  },
+  "busboy@1.6.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/mscdex/busboy",
+    "publisher": "Brian White",
+    "email": "mscdex@mscdex.net",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\busboy",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\busboy\\LICENSE"
+  },
+  "bytes@3.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/visionmedia/bytes.js",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "url": "http://tjholowaychuk.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\bytes",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\bytes\\LICENSE"
+  },
+  "call-bind-apply-helpers@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/call-bind-apply-helpers",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\call-bind-apply-helpers",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\call-bind-apply-helpers\\LICENSE"
+  },
+  "call-bound@1.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/call-bound",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\call-bound",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\call-bound\\LICENSE"
+  },
+  "chainsaw@0.1.0": {
+    "licenses": "MIT*",
+    "repository": "https://github.com/substack/node-chainsaw",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\chainsaw",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\chainsaw\\README.markdown"
+  },
+  "chownr@3.0.0": {
+    "licenses": "BlueOak-1.0.0",
+    "repository": "https://github.com/isaacs/chownr",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\chownr",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\chownr\\LICENSE.md"
+  },
+  "clone@2.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pvorb/node-clone",
+    "publisher": "Paul Vorbach",
+    "email": "paul@vorba.ch",
+    "url": "http://paul.vorba.ch/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\clone",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\clone\\LICENSE"
+  },
+  "cluster-key-slot@1.1.1": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/Salakar/cluster-key-slot",
+    "publisher": "Mike Diarmid",
+    "email": "mike.diarmid@gmail.com",
+    "url": "http://github.com/Salakar/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\cluster-key-slot",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\cluster-key-slot\\LICENSE"
+  },
+  "color-support@1.1.3": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/color-support",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\color-support",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\color-support\\LICENSE"
+  },
+  "compress-commons@4.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/archiverjs/node-compress-commons",
+    "publisher": "Chris Talkington",
+    "url": "http://christalkington.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\compress-commons",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\compress-commons\\LICENSE"
+  },
+  "concat-map@0.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/substack/node-concat-map",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\concat-map",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\concat-map\\LICENSE"
+  },
+  "concat-stream@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/maxogden/concat-stream",
+    "publisher": "Max Ogden",
+    "email": "max@maxogden.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\concat-stream",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\concat-stream\\LICENSE"
+  },
+  "console-control-strings@1.1.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/iarna/console-control-strings",
+    "publisher": "Rebecca Turner",
+    "email": "me@re-becca.org",
+    "url": "http://re-becca.org/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\console-control-strings",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\console-control-strings\\LICENSE"
+  },
+  "content-disposition@0.5.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/content-disposition",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\content-disposition",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\content-disposition\\LICENSE"
+  },
+  "content-type@1.0.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/content-type",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\content-type",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\content-type\\LICENSE"
+  },
+  "cookie-signature@1.0.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/visionmedia/node-cookie-signature",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@learnboost.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\cookie-signature",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\cookie-signature\\Readme.md"
+  },
+  "cookie@0.7.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/cookie",
+    "publisher": "Roman Shtylman",
+    "email": "shtylman@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\cookie",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\cookie\\LICENSE"
+  },
+  "core-util-is@1.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/isaacs/core-util-is",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\core-util-is",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\core-util-is\\LICENSE"
+  },
+  "cors@2.8.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/cors",
+    "publisher": "Troy Goode",
+    "email": "troygoode@gmail.com",
+    "url": "https://github.com/troygoode/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\cors",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\cors\\LICENSE"
+  },
+  "crc-32@1.2.2": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/SheetJS/js-crc32",
+    "publisher": "sheetjs",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\crc-32",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\crc-32\\LICENSE"
+  },
+  "crc32-stream@4.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/archiverjs/node-crc32-stream",
+    "publisher": "Chris Talkington",
+    "url": "http://christalkington.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\crc32-stream",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\crc32-stream\\LICENSE"
+  },
+  "csv-parse@7.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/adaltas/node-csv",
+    "publisher": "David Worms",
+    "email": "david@adaltas.com",
+    "url": "https://www.adaltas.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\csv-parse",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\csv-parse\\LICENSE"
+  },
+  "dayjs@1.11.21": {
+    "licenses": "MIT",
+    "repository": "https://github.com/iamkun/dayjs",
+    "publisher": "iamkun",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\dayjs",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\dayjs\\LICENSE"
+  },
+  "debug@2.6.9": {
+    "licenses": "MIT",
+    "repository": "https://github.com/visionmedia/debug",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\body-parser\\node_modules\\debug",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\body-parser\\node_modules\\debug\\LICENSE"
+  },
+  "debug@4.4.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/debug-js/debug",
+    "publisher": "Josh Junon",
+    "url": "https://github.com/qix-",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\debug",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\debug\\LICENSE"
+  },
+  "delegates@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/visionmedia/node-delegates",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\delegates",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\delegates\\License"
+  },
+  "denque@2.1.0": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/invertase/denque",
+    "publisher": "Invertase",
+    "email": "oss@invertase.io",
+    "url": "http://github.com/invertase/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\denque",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\denque\\LICENSE"
+  },
+  "depd@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/dougwilson/nodejs-depd",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\depd",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\depd\\LICENSE"
+  },
+  "destroy@1.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/stream-utils/destroy",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\destroy",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\destroy\\LICENSE"
+  },
+  "detect-libc@2.1.2": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/lovell/detect-libc",
+    "publisher": "Lovell Fuller",
+    "email": "npm@lovell.info",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\detect-libc",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\detect-libc\\LICENSE"
+  },
+  "dfa@1.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/devongovett/dfa",
+    "publisher": "Devon Govett",
+    "email": "devongovett@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\dfa",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\dfa\\README.md"
+  },
+  "dotenv@16.6.1": {
+    "licenses": "BSD-2-Clause",
+    "repository": "https://github.com/motdotla/dotenv",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\dotenv",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\dotenv\\LICENSE"
+  },
+  "dunder-proto@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/es-shims/dunder-proto",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\dunder-proto",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\dunder-proto\\LICENSE"
+  },
+  "duplexer2@0.1.4": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/deoxxa/duplexer2",
+    "publisher": "Conrad Pankoff",
+    "email": "deoxxa@fknsrs.biz",
+    "url": "http://www.fknsrs.biz/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\duplexer2",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\duplexer2\\LICENSE.md"
+  },
+  "ecdsa-sig-formatter@1.0.11": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/Brightspace/node-ecdsa-sig-formatter",
+    "publisher": "D2L Corporation",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ecdsa-sig-formatter",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ecdsa-sig-formatter\\LICENSE"
+  },
+  "ee-first@1.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jonathanong/ee-first",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ee-first",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ee-first\\LICENSE"
+  },
+  "emoji-regex@8.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/mathiasbynens/emoji-regex",
+    "publisher": "Mathias Bynens",
+    "url": "https://mathiasbynens.be/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\emoji-regex",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\emoji-regex\\LICENSE-MIT.txt"
+  },
+  "encodeurl@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/encodeurl",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\encodeurl",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\encodeurl\\LICENSE"
+  },
+  "end-of-stream@1.4.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/mafintosh/end-of-stream",
+    "publisher": "Mathias Buus",
+    "email": "mathiasbuus@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\end-of-stream",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\end-of-stream\\LICENSE"
+  },
+  "engine.io-parser@5.2.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/socketio/socket.io",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\engine.io-parser",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\engine.io-parser\\LICENSE"
+  },
+  "engine.io@6.6.9": {
+    "licenses": "MIT",
+    "repository": "https://github.com/socketio/socket.io",
+    "publisher": "Guillermo Rauch",
+    "email": "guillermo@learnboost.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\engine.io",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\engine.io\\LICENSE"
+  },
+  "es-define-property@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/es-define-property",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\es-define-property",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\es-define-property\\LICENSE"
+  },
+  "es-errors@1.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/es-errors",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\es-errors",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\es-errors\\LICENSE"
+  },
+  "es-object-atoms@1.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/es-object-atoms",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\es-object-atoms",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\es-object-atoms\\LICENSE"
+  },
+  "escape-html@1.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/component/escape-html",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\escape-html",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\escape-html\\LICENSE"
+  },
+  "etag@1.8.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/etag",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\etag",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\etag\\LICENSE"
+  },
+  "exceljs@4.4.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/exceljs/exceljs",
+    "publisher": "Guyon Roche",
+    "email": "guyon@live.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\exceljs",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\exceljs\\LICENSE"
+  },
+  "express@4.22.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/express",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\express",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\express\\LICENSE"
+  },
+  "fast-csv@4.3.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/C2FO/fast-csv",
+    "publisher": "Doug Martin",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fast-csv",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fast-csv\\LICENSE"
+  },
+  "fast-deep-equal@3.1.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/epoberezkin/fast-deep-equal",
+    "publisher": "Evgeny Poberezkin",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fast-deep-equal",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fast-deep-equal\\LICENSE"
+  },
+  "finalhandler@1.3.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/finalhandler",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\finalhandler",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\finalhandler\\LICENSE"
+  },
+  "fontkit@2.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/foliojs/fontkit",
+    "publisher": "Devon Govett",
+    "email": "devongovett@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fontkit",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fontkit\\README.md"
+  },
+  "forwarded@0.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/forwarded",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\forwarded",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\forwarded\\LICENSE"
+  },
+  "fresh@0.5.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/fresh",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "url": "http://tjholowaychuk.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fresh",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fresh\\LICENSE"
+  },
+  "fs-constants@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/mafintosh/fs-constants",
+    "publisher": "Mathias Buus",
+    "url": "@mafintosh",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fs-constants",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fs-constants\\LICENSE"
+  },
+  "fs.realpath@1.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/fs.realpath",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fs.realpath",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fs.realpath\\LICENSE"
+  },
+  "fstream@1.0.12": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/fstream",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fstream",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fstream\\LICENSE"
+  },
+  "function-bind@1.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/Raynos/function-bind",
+    "publisher": "Raynos",
+    "email": "raynos2@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\function-bind",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\function-bind\\LICENSE"
+  },
+  "gauge@3.0.2": {
+    "licenses": "ISC",
+    "repository": "https://github.com/iarna/gauge",
+    "publisher": "Rebecca Turner",
+    "email": "me@re-becca.org",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\gauge",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\gauge\\LICENSE"
+  },
+  "get-caller-file@2.0.5": {
+    "licenses": "ISC",
+    "repository": "https://github.com/stefanpenner/get-caller-file",
+    "publisher": "Stefan Penner",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\get-caller-file",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\get-caller-file\\LICENSE.md"
+  },
+  "get-intrinsic@1.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/get-intrinsic",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\get-intrinsic",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\get-intrinsic\\LICENSE"
+  },
+  "get-proto@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/get-proto",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\get-proto",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\get-proto\\LICENSE"
+  },
+  "glob@7.2.3": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/node-glob",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\glob",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\glob\\LICENSE"
+  },
+  "gopd@1.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/gopd",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\gopd",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\gopd\\LICENSE"
+  },
+  "graceful-fs@4.2.11": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/node-graceful-fs",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\graceful-fs",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\graceful-fs\\LICENSE"
+  },
+  "has-symbols@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/inspect-js/has-symbols",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "url": "http://ljharb.codes",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\has-symbols",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\has-symbols\\LICENSE"
+  },
+  "has-unicode@2.0.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/iarna/has-unicode",
+    "publisher": "Rebecca Turner",
+    "email": "me@re-becca.org",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\has-unicode",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\has-unicode\\LICENSE"
+  },
+  "hasown@2.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/inspect-js/hasOwn",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\hasown",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\hasown\\LICENSE"
+  },
+  "helmet@8.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/helmetjs/helmet",
+    "publisher": "Adam Baldwin",
+    "email": "adam@npmjs.com",
+    "url": "https://evilpacket.net",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\helmet",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\helmet\\LICENSE"
+  },
+  "http-errors@2.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/http-errors",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\http-errors",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\http-errors\\LICENSE"
+  },
+  "https-proxy-agent@5.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/TooTallNate/node-https-proxy-agent",
+    "publisher": "Nathan Rajlich",
+    "email": "nathan@tootallnate.net",
+    "url": "http://n8.io/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\https-proxy-agent",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\https-proxy-agent\\README.md"
+  },
+  "iconv-lite@0.4.24": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ashtuchkin/iconv-lite",
+    "publisher": "Alexander Shtuchkin",
+    "email": "ashtuchkin@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\iconv-lite",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\iconv-lite\\LICENSE"
+  },
+  "ieee754@1.2.1": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/feross/ieee754",
+    "publisher": "Feross Aboukhadijeh",
+    "email": "feross@feross.org",
+    "url": "https://feross.org",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ieee754",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ieee754\\LICENSE"
+  },
+  "immediate@3.0.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/calvinmetcalf/immediate",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\immediate",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\immediate\\LICENSE.txt"
+  },
+  "inflight@1.0.6": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/inflight",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\inflight",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\inflight\\LICENSE"
+  },
+  "inherits@2.0.4": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/inherits",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\inherits",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\inherits\\LICENSE"
+  },
+  "ioredis@5.11.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/luin/ioredis",
+    "publisher": "Zihua Li",
+    "email": "i@zihua.li",
+    "url": "http://zihua.li",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ioredis",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ioredis\\LICENSE"
+  },
+  "ipaddr.js@1.9.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/whitequark/ipaddr.js",
+    "publisher": "whitequark",
+    "email": "whitequark@whitequark.org",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ipaddr.js",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ipaddr.js\\LICENSE"
+  },
+  "is-fullwidth-code-point@3.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/is-fullwidth-code-point",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\is-fullwidth-code-point",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\is-fullwidth-code-point\\license"
+  },
+  "isarray@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/juliangruber/isarray",
+    "publisher": "Julian Gruber",
+    "email": "mail@juliangruber.com",
+    "url": "http://juliangruber.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\isarray",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\isarray\\README.md"
+  },
+  "js-md5@0.8.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/emn178/js-md5",
+    "publisher": "Chen, Yi-Cyuan",
+    "email": "emn178@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\js-md5",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\js-md5\\LICENSE.txt"
+  },
+  "jsonwebtoken@9.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/auth0/node-jsonwebtoken",
+    "publisher": "auth0",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\jsonwebtoken",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\jsonwebtoken\\LICENSE"
+  },
+  "jszip@3.10.1": {
+    "licenses": "(MIT OR GPL-3.0-or-later)",
+    "repository": "https://github.com/Stuk/jszip",
+    "publisher": "Stuart Knightley",
+    "email": "stuart@stuartk.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\jszip",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\jszip\\LICENSE.markdown"
+  },
+  "jwa@2.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/brianloveswords/node-jwa",
+    "publisher": "Brian J. Brennan",
+    "email": "brianloveswords@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\jwa",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\jwa\\LICENSE"
+  },
+  "jws@4.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/brianloveswords/node-jws",
+    "publisher": "Brian J Brennan",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\jws",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\jws\\LICENSE"
+  },
+  "lazystream@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jpommerening/node-lazystream",
+    "publisher": "Jonas Pommerening",
+    "email": "jonas.pommerening@gmail.com",
+    "url": "https://npmjs.org/~jpommerening",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lazystream",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lazystream\\LICENSE"
+  },
+  "lie@3.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/calvinmetcalf/lie",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lie",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lie\\license.md"
+  },
+  "linebreak@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/devongovett/linebreaker",
+    "publisher": "Devon Govett",
+    "email": "devongovett@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\linebreak",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\linebreak\\LICENSE"
+  },
+  "listenercount@1.0.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/jden/node-listenercount",
+    "publisher": "jden",
+    "email": "jason@denizac.org",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\listenercount",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\listenercount\\LICENSE.md"
+  },
+  "lodash.defaults@4.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.defaults",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.defaults\\LICENSE"
+  },
+  "lodash.difference@4.5.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.difference",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.difference\\LICENSE"
+  },
+  "lodash.escaperegexp@4.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.escaperegexp",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.escaperegexp\\LICENSE"
+  },
+  "lodash.flatten@4.4.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.flatten",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.flatten\\LICENSE"
+  },
+  "lodash.groupby@4.6.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.groupby",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.groupby\\LICENSE"
+  },
+  "lodash.includes@4.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.includes",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.includes\\LICENSE"
+  },
+  "lodash.isboolean@3.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isboolean",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isboolean\\LICENSE"
+  },
+  "lodash.isequal@4.5.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isequal",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isequal\\LICENSE"
+  },
+  "lodash.isfunction@3.0.9": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isfunction",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isfunction\\LICENSE"
+  },
+  "lodash.isinteger@4.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isinteger",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isinteger\\LICENSE"
+  },
+  "lodash.isnil@4.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isnil",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isnil\\LICENSE"
+  },
+  "lodash.isnumber@3.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isnumber",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isnumber\\LICENSE"
+  },
+  "lodash.isplainobject@4.0.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isplainobject",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isplainobject\\LICENSE"
+  },
+  "lodash.isstring@4.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isstring",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isstring\\LICENSE"
+  },
+  "lodash.isundefined@3.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isundefined",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.isundefined\\LICENSE.txt"
+  },
+  "lodash.once@4.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.once",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.once\\LICENSE"
+  },
+  "lodash.union@4.6.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.union",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.union\\LICENSE"
+  },
+  "lodash.uniq@4.5.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lodash/lodash",
+    "publisher": "John-David Dalton",
+    "email": "john.david.dalton@gmail.com",
+    "url": "http://allyoucanleet.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.uniq",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lodash.uniq\\LICENSE"
+  },
+  "make-dir@3.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/make-dir",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@mapbox\\node-pre-gyp\\node_modules\\make-dir",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@mapbox\\node-pre-gyp\\node_modules\\make-dir\\license"
+  },
+  "math-intrinsics@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/es-shims/math-intrinsics",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\math-intrinsics",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\math-intrinsics\\LICENSE"
+  },
+  "media-typer@0.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/media-typer",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\media-typer",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\media-typer\\LICENSE"
+  },
+  "merge-descriptors@1.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/merge-descriptors",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\merge-descriptors",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\merge-descriptors\\LICENSE"
+  },
+  "methods@1.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/methods",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\methods",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\methods\\LICENSE"
+  },
+  "mime-db@1.52.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/mime-db",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\mime-db",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\mime-db\\LICENSE"
+  },
+  "mime-types@2.1.35": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/mime-types",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\mime-types",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\mime-types\\LICENSE"
+  },
+  "mime@1.6.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/broofa/node-mime",
+    "publisher": "Robert Kieffer",
+    "email": "robert@broofa.com",
+    "url": "http://github.com/broofa",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\mime",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\mime\\LICENSE"
+  },
+  "minimatch@3.1.5": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/minimatch",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\minimatch",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\minimatch\\LICENSE"
+  },
+  "minimatch@5.1.9": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/minimatch",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\readdir-glob\\node_modules\\minimatch",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\readdir-glob\\node_modules\\minimatch\\LICENSE"
+  },
+  "minimist@1.2.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/minimistjs/minimist",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\minimist",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\minimist\\LICENSE"
+  },
+  "minipass@7.1.3": {
+    "licenses": "BlueOak-1.0.0",
+    "repository": "https://github.com/isaacs/minipass",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\minipass",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\minipass\\LICENSE.md"
+  },
+  "minizlib@3.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/isaacs/minizlib",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\minizlib",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\minizlib\\LICENSE"
+  },
+  "mkdirp@0.5.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/substack/node-mkdirp",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\mkdirp",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\mkdirp\\LICENSE"
+  },
+  "ms@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/zeit/ms",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\body-parser\\node_modules\\ms",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\body-parser\\node_modules\\ms\\license.md"
+  },
+  "ms@2.1.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/vercel/ms",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ms",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ms\\license.md"
+  },
+  "multer@2.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/multer",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\multer",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\multer\\LICENSE"
+  },
+  "negotiator@0.6.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/negotiator",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\negotiator",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\negotiator\\LICENSE"
+  },
+  "node-addon-api@5.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/node-addon-api",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\node-addon-api",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\node-addon-api\\LICENSE.md"
+  },
+  "node-fetch@2.7.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/bitinn/node-fetch",
+    "publisher": "David Frank",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\node-fetch",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\node-fetch\\LICENSE.md"
+  },
+  "nodemailer@9.0.4": {
+    "licenses": "MIT-0",
+    "repository": "https://github.com/nodemailer/nodemailer",
+    "publisher": "Andris Reinman",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\nodemailer",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\nodemailer\\LICENSE"
+  },
+  "nopt@5.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/nopt",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\nopt",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\nopt\\LICENSE"
+  },
+  "normalize-path@3.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jonschlinkert/normalize-path",
+    "publisher": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\normalize-path",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\normalize-path\\LICENSE"
+  },
+  "npmlog@5.0.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/npmlog",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\npmlog",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\npmlog\\LICENSE"
+  },
+  "object-assign@4.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/object-assign",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\object-assign",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\object-assign\\license"
+  },
+  "object-inspect@1.13.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/inspect-js/object-inspect",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\object-inspect",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\object-inspect\\LICENSE"
+  },
+  "on-exit-leak-free@2.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/mcollina/on-exit-or-gc",
+    "publisher": "Matteo Collina",
+    "email": "hello@matteocollina.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\on-exit-leak-free",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\on-exit-leak-free\\LICENSE"
+  },
+  "on-finished@2.4.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/on-finished",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\on-finished",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\on-finished\\LICENSE"
+  },
+  "once@1.4.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/once",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\once",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\once\\LICENSE"
+  },
+  "pako@0.2.9": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodeca/pako",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\unicode-trie\\node_modules\\pako",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\unicode-trie\\node_modules\\pako\\LICENSE"
+  },
+  "pako@1.0.11": {
+    "licenses": "(MIT AND Zlib)",
+    "repository": "https://github.com/nodeca/pako",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pako",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pako\\LICENSE"
+  },
+  "parseurl@1.3.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/parseurl",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\parseurl",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\parseurl\\LICENSE"
+  },
+  "path-is-absolute@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/path-is-absolute",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\path-is-absolute",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\path-is-absolute\\license"
+  },
+  "path-to-regexp@0.1.13": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/path-to-regexp",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\path-to-regexp",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\path-to-regexp\\LICENSE"
+  },
+  "pdfkit@0.19.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/foliojs/pdfkit",
+    "publisher": "Devon Govett",
+    "email": "devongovett@gmail.com",
+    "url": "http://badassjs.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pdfkit",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pdfkit\\LICENSE"
+  },
+  "pg-cloudflare@1.4.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/brianc/node-postgres",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-cloudflare",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-cloudflare\\LICENSE"
+  },
+  "pg-connection-string@2.14.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/brianc/node-postgres",
+    "publisher": "Blaine Bublitz",
+    "email": "blaine@iceddev.com",
+    "url": "http://iceddev.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-connection-string",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-connection-string\\LICENSE"
+  },
+  "pg-int8@1.0.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/charmander/pg-int8",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-int8",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-int8\\LICENSE"
+  },
+  "pg-pool@3.14.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/brianc/node-postgres",
+    "publisher": "Brian M. Carlson",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-pool",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-pool\\LICENSE"
+  },
+  "pg-protocol@1.15.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/brianc/node-postgres",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-protocol",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-protocol\\LICENSE"
+  },
+  "pg-types@2.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/brianc/node-pg-types",
+    "publisher": "Brian M. Carlson",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-types",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg-types\\README.md"
+  },
+  "pg@8.22.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/brianc/node-postgres",
+    "publisher": "Brian Carlson",
+    "email": "brian.m.carlson@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pg\\LICENSE"
+  },
+  "pgpass@1.0.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/hoegaarden/pgpass",
+    "publisher": "Hannes Hörl",
+    "email": "hannes.hoerl+pgpass@snowreporter.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pgpass",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pgpass\\README.md"
+  },
+  "pino-abstract-transport@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pinojs/pino-abstract-transport",
+    "publisher": "Matteo Collina",
+    "email": "hello@matteocollina.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pino-abstract-transport",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pino-abstract-transport\\LICENSE"
+  },
+  "pino-http@10.5.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pinojs/pino-http",
+    "publisher": "David Mark Clements",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pino-http",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pino-http\\LICENSE"
+  },
+  "pino-std-serializers@7.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pinojs/pino-std-serializers",
+    "publisher": "James Sumners",
+    "email": "james.sumners@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pino-std-serializers",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pino-std-serializers\\LICENSE"
+  },
+  "pino@9.14.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pinojs/pino",
+    "publisher": "Matteo Collina",
+    "email": "hello@matteocollina.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pino",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\pino\\LICENSE"
+  },
+  "png-js@1.1.0": {
+    "licenses": "MIT*",
+    "repository": "https://github.com/devongovett/png.js",
+    "publisher": "Devon Govett",
+    "email": "devongovett@gmail.com",
+    "url": "http://badassjs.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\png-js",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\png-js\\LICENSE"
+  },
+  "postgres-array@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/bendrucker/postgres-array",
+    "publisher": "Ben Drucker",
+    "email": "bvdrucker@gmail.com",
+    "url": "bendrucker.me",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\postgres-array",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\postgres-array\\license"
+  },
+  "postgres-bytea@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/bendrucker/postgres-bytea",
+    "publisher": "Ben Drucker",
+    "email": "bvdrucker@gmail.com",
+    "url": "bendrucker.me",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\postgres-bytea",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\postgres-bytea\\license"
+  },
+  "postgres-date@1.0.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/bendrucker/postgres-date",
+    "publisher": "Ben Drucker",
+    "email": "bvdrucker@gmail.com",
+    "url": "bendrucker.me",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\postgres-date",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\postgres-date\\license"
+  },
+  "postgres-interval@1.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/bendrucker/postgres-interval",
+    "publisher": "Ben Drucker",
+    "email": "bvdrucker@gmail.com",
+    "url": "bendrucker.me",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\postgres-interval",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\postgres-interval\\license"
+  },
+  "process-nextick-args@2.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/calvinmetcalf/process-nextick-args",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\process-nextick-args",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\process-nextick-args\\license.md"
+  },
+  "process-warning@5.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/fastify/process-warning",
+    "publisher": "Tomas Della Vedova",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\process-warning",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\process-warning\\LICENSE"
+  },
+  "prom-client@15.1.3": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/siimon/prom-client",
+    "publisher": "Simon Nyberg",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\prom-client",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\prom-client\\LICENSE"
+  },
+  "proxy-addr@2.0.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/proxy-addr",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\proxy-addr",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\proxy-addr\\LICENSE"
+  },
+  "qs@6.15.3": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/ljharb/qs",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\qs",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\qs\\LICENSE.md"
+  },
+  "quick-format-unescaped@4.0.4": {
+    "licenses": "MIT",
+    "repository": "https://github.com/davidmarkclements/quick-format",
+    "publisher": "David Mark Clements",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\quick-format-unescaped",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\quick-format-unescaped\\LICENSE"
+  },
+  "range-parser@1.2.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/range-parser",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "url": "http://tjholowaychuk.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\range-parser",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\range-parser\\LICENSE"
+  },
+  "raw-body@2.5.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/stream-utils/raw-body",
+    "publisher": "Jonathan Ong",
+    "email": "me@jongleberry.com",
+    "url": "http://jongleberry.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\raw-body",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\raw-body\\LICENSE"
+  },
+  "readable-stream@2.3.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/readable-stream",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lazystream\\node_modules\\readable-stream",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lazystream\\node_modules\\readable-stream\\LICENSE"
+  },
+  "readable-stream@3.6.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/readable-stream",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\readable-stream",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\readable-stream\\LICENSE"
+  },
+  "readdir-glob@1.1.3": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/Yqnn/node-readdir-glob",
+    "publisher": "Yann Armelin",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\readdir-glob",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\readdir-glob\\LICENSE"
+  },
+  "real-require@0.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pinojs/real-require",
+    "publisher": "Paolo Insogna",
+    "email": "shogun@cowtech.it",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\real-require",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\real-require\\LICENSE.md"
+  },
+  "redis-errors@1.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/NodeRedis/redis-errors",
+    "publisher": "Ruben Bridgewater",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\redis-errors",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\redis-errors\\LICENSE"
+  },
+  "redis-parser@3.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/NodeRedis/node-redis-parser",
+    "publisher": "Ruben Bridgewater",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\redis-parser",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\redis-parser\\LICENSE"
+  },
+  "restructure@3.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/devongovett/restructure",
+    "publisher": "Devon Govett",
+    "email": "devongovett@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\restructure",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\restructure\\LICENSE"
+  },
+  "rimraf@2.7.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/rimraf",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fstream\\node_modules\\rimraf",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\fstream\\node_modules\\rimraf\\LICENSE"
+  },
+  "rimraf@3.0.2": {
+    "licenses": "ISC",
+    "repository": "https://github.com/isaacs/rimraf",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\rimraf",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\rimraf\\LICENSE"
+  },
+  "safe-buffer@5.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/feross/safe-buffer",
+    "publisher": "Feross Aboukhadijeh",
+    "email": "feross@feross.org",
+    "url": "http://feross.org",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lazystream\\node_modules\\safe-buffer",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lazystream\\node_modules\\safe-buffer\\LICENSE"
+  },
+  "safe-buffer@5.2.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/feross/safe-buffer",
+    "publisher": "Feross Aboukhadijeh",
+    "email": "feross@feross.org",
+    "url": "https://feross.org",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\safe-buffer",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\safe-buffer\\LICENSE"
+  },
+  "safe-stable-stringify@2.5.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/BridgeAR/safe-stable-stringify",
+    "publisher": "Ruben Bridgewater",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\safe-stable-stringify",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\safe-stable-stringify\\LICENSE"
+  },
+  "safer-buffer@2.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ChALkeR/safer-buffer",
+    "publisher": "Nikita Skovoroda",
+    "email": "chalkerx@gmail.com",
+    "url": "https://github.com/ChALkeR",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\safer-buffer",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\safer-buffer\\LICENSE"
+  },
+  "saxes@5.0.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/lddubeau/saxes",
+    "publisher": "Louis-Dominique Dubeau",
+    "email": "ldd@lddubeau.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\saxes",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\saxes\\README.md"
+  },
+  "semver@6.3.1": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/node-semver",
+    "publisher": "GitHub Inc.",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@mapbox\\node-pre-gyp\\node_modules\\make-dir\\node_modules\\semver",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@mapbox\\node-pre-gyp\\node_modules\\make-dir\\node_modules\\semver\\LICENSE"
+  },
+  "semver@7.8.5": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/node-semver",
+    "publisher": "GitHub Inc.",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@mapbox\\node-pre-gyp\\node_modules\\semver",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\@mapbox\\node-pre-gyp\\node_modules\\semver\\LICENSE"
+  },
+  "send@0.19.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pillarjs/send",
+    "publisher": "TJ Holowaychuk",
+    "email": "tj@vision-media.ca",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\send",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\send\\LICENSE"
+  },
+  "serve-static@1.16.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/expressjs/serve-static",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\serve-static",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\serve-static\\LICENSE"
+  },
+  "set-blocking@2.0.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/yargs/set-blocking",
+    "publisher": "Ben Coe",
+    "email": "ben@npmjs.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\set-blocking",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\set-blocking\\LICENSE.txt"
+  },
+  "setimmediate@1.0.5": {
+    "licenses": "MIT",
+    "repository": "https://github.com/YuzuJS/setImmediate",
+    "publisher": "YuzuJS",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\setimmediate",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\setimmediate\\LICENSE.txt"
+  },
+  "setprototypeof@1.2.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/wesleytodd/setprototypeof",
+    "publisher": "Wes Todd",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\setprototypeof",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\setprototypeof\\LICENSE"
+  },
+  "side-channel-list@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel-list",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\side-channel-list",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\side-channel-list\\LICENSE"
+  },
+  "side-channel-map@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel-map",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\side-channel-map",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\side-channel-map\\LICENSE"
+  },
+  "side-channel-weakmap@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel-weakmap",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\side-channel-weakmap",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\side-channel-weakmap\\LICENSE"
+  },
+  "side-channel@1.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ljharb/side-channel",
+    "publisher": "Jordan Harband",
+    "email": "ljharb@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\side-channel",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\side-channel\\LICENSE"
+  },
+  "signal-exit@3.0.7": {
+    "licenses": "ISC",
+    "repository": "https://github.com/tapjs/signal-exit",
+    "publisher": "Ben Coe",
+    "email": "ben@npmjs.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\signal-exit",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\signal-exit\\LICENSE.txt"
+  },
+  "socket.io-adapter@2.5.8": {
+    "licenses": "MIT",
+    "repository": "https://github.com/socketio/socket.io",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\socket.io-adapter",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\socket.io-adapter\\LICENSE"
+  },
+  "socket.io-parser@4.2.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/socketio/socket.io",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\socket.io-parser",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\socket.io-parser\\LICENSE"
+  },
+  "socket.io@4.8.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/socketio/socket.io",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\socket.io",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\socket.io\\LICENSE"
+  },
+  "sonic-boom@4.2.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/pinojs/sonic-boom",
+    "publisher": "Matteo Collina",
+    "email": "hello@matteocollina.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\sonic-boom",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\sonic-boom\\LICENSE"
+  },
+  "split2@4.2.0": {
+    "licenses": "ISC",
+    "repository": "https://github.com/mcollina/split2",
+    "publisher": "Matteo Collina",
+    "email": "hello@matteocollina.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\split2",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\split2\\LICENSE"
+  },
+  "standard-as-callback@2.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/luin/asCallback",
+    "publisher": "luin",
+    "email": "i@zihua.li",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\standard-as-callback",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\standard-as-callback\\LICENSE"
+  },
+  "statuses@2.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/statuses",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\statuses",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\statuses\\LICENSE"
+  },
+  "streamsearch@1.1.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/mscdex/streamsearch",
+    "publisher": "Brian White",
+    "email": "mscdex@mscdex.net",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\streamsearch",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\streamsearch\\LICENSE"
+  },
+  "string-width@4.2.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/sindresorhus/string-width",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\string-width",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\string-width\\license"
+  },
+  "string_decoder@1.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/string_decoder",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lazystream\\node_modules\\string_decoder",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\lazystream\\node_modules\\string_decoder\\LICENSE"
+  },
+  "string_decoder@1.3.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/string_decoder",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\string_decoder",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\string_decoder\\LICENSE"
+  },
+  "strip-ansi@6.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/chalk/strip-ansi",
+    "publisher": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\strip-ansi",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\strip-ansi\\license"
+  },
+  "tar-stream@2.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/mafintosh/tar-stream",
+    "publisher": "Mathias Buus",
+    "email": "mathiasbuus@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tar-stream",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tar-stream\\LICENSE"
+  },
+  "tar@7.5.22": {
+    "licenses": "BlueOak-1.0.0",
+    "repository": "https://github.com/isaacs/node-tar",
+    "publisher": "Isaac Z. Schlueter",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tar",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tar\\LICENSE.md"
+  },
+  "tdigest@0.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/welch/tdigest",
+    "publisher": "Will Welch",
+    "email": "welch@quietplease.com",
+    "url": "http://quietplease.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tdigest",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tdigest\\LICENSE"
+  },
+  "thread-stream@3.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/mcollina/thread-stream",
+    "publisher": "Matteo Collina",
+    "email": "hello@matteocollina.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\thread-stream",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\thread-stream\\LICENSE"
+  },
+  "tiny-inflate@1.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/devongovett/tiny-inflate",
+    "publisher": "Devon Govett",
+    "email": "devongovett@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tiny-inflate",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tiny-inflate\\LICENSE"
+  },
+  "tmp@0.2.7": {
+    "licenses": "MIT",
+    "repository": "https://github.com/raszi/node-tmp",
+    "publisher": "KARASZI István",
+    "email": "github@spam.raszi.hu",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tmp",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tmp\\LICENSE"
+  },
+  "toidentifier@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/component/toidentifier",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\toidentifier",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\toidentifier\\LICENSE"
+  },
+  "tr46@0.0.3": {
+    "licenses": "MIT",
+    "repository": "https://github.com/Sebmaster/tr46.js",
+    "publisher": "Sebastian Mayr",
+    "email": "npm@smayr.name",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tr46"
+  },
+  "traverse@0.3.9": {
+    "licenses": "MIT*",
+    "repository": "https://github.com/substack/js-traverse",
+    "publisher": "James Halliday",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\traverse",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\traverse\\LICENSE"
+  },
+  "tslib@2.8.1": {
+    "licenses": "0BSD",
+    "repository": "https://github.com/Microsoft/tslib",
+    "publisher": "Microsoft Corp.",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tslib",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tslib\\LICENSE.txt"
+  },
+  "type-is@1.6.18": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/type-is",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\type-is",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\type-is\\LICENSE"
+  },
+  "typedarray@0.0.6": {
+    "licenses": "MIT",
+    "repository": "https://github.com/substack/typedarray",
+    "publisher": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\typedarray",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\typedarray\\LICENSE"
+  },
+  "undici-types@6.21.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/nodejs/undici",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\undici-types",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\undici-types\\LICENSE"
+  },
+  "unicode-properties@1.4.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/devongovett/unicode-properties",
+    "publisher": "Devon Govett",
+    "email": "devongovett@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\unicode-properties",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\unicode-properties\\LICENSE"
+  },
+  "unicode-trie@2.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/devongovett/unicode-trie",
+    "publisher": "Devon Govett",
+    "email": "devongovett@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\unicode-trie",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\unicode-trie\\LICENSE"
+  },
+  "unpipe@1.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/stream-utils/unpipe",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\unpipe",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\unpipe\\LICENSE"
+  },
+  "unzipper@0.10.14": {
+    "licenses": "MIT",
+    "repository": "https://github.com/ZJONSSON/node-unzipper",
+    "publisher": "Evan Oxfeld",
+    "email": "eoxfeld@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\unzipper",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\unzipper\\LICENSE"
+  },
+  "util-deprecate@1.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/TooTallNate/util-deprecate",
+    "publisher": "Nathan Rajlich",
+    "email": "nathan@tootallnate.net",
+    "url": "http://n8.io/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\util-deprecate",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\util-deprecate\\LICENSE"
+  },
+  "utils-merge@1.0.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jaredhanson/utils-merge",
+    "publisher": "Jared Hanson",
+    "email": "jaredhanson@gmail.com",
+    "url": "http://www.jaredhanson.net/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\utils-merge",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\utils-merge\\LICENSE"
+  },
+  "uuid@11.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/uuidjs/uuid",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\uuid",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\uuid\\LICENSE.md"
+  },
+  "vary@1.1.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jshttp/vary",
+    "publisher": "Douglas Christopher Wilson",
+    "email": "doug@somethingdoug.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\vary",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\vary\\LICENSE"
+  },
+  "webidl-conversions@3.0.1": {
+    "licenses": "BSD-2-Clause",
+    "repository": "https://github.com/jsdom/webidl-conversions",
+    "publisher": "Domenic Denicola",
+    "email": "d@domenic.me",
+    "url": "https://domenic.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\webidl-conversions",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\webidl-conversions\\LICENSE.md"
+  },
+  "whatwg-url@5.0.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/jsdom/whatwg-url",
+    "publisher": "Sebastian Mayr",
+    "email": "github@smayr.name",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\whatwg-url",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\whatwg-url\\LICENSE.txt"
+  },
+  "wide-align@1.1.5": {
+    "licenses": "ISC",
+    "repository": "https://github.com/iarna/wide-align",
+    "publisher": "Rebecca Turner",
+    "email": "me@re-becca.org",
+    "url": "http://re-becca.org/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\wide-align",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\wide-align\\LICENSE"
+  },
+  "wrappy@1.0.2": {
+    "licenses": "ISC",
+    "repository": "https://github.com/npm/wrappy",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\wrappy",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\wrappy\\LICENSE"
+  },
+  "ws@8.21.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/websockets/ws",
+    "publisher": "Einar Otto Stangvik",
+    "email": "einaros@gmail.com",
+    "url": "http://2x.io",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ws",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\ws\\LICENSE"
+  },
+  "xmlchars@2.2.0": {
+    "licenses": "MIT",
+    "repository": "https://github.com/lddubeau/xmlchars",
+    "publisher": "Louis-Dominique Dubeau",
+    "email": "ldd@lddubeau.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\xmlchars",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\xmlchars\\LICENSE"
+  },
+  "xtend@4.0.2": {
+    "licenses": "MIT",
+    "repository": "https://github.com/Raynos/xtend",
+    "publisher": "Raynos",
+    "email": "raynos2@gmail.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\xtend",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\xtend\\LICENSE"
+  },
+  "yallist@5.0.0": {
+    "licenses": "BlueOak-1.0.0",
+    "repository": "https://github.com/isaacs/yallist",
+    "publisher": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tar\\node_modules\\yallist",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\tar\\node_modules\\yallist\\LICENSE.md"
+  },
+  "zip-stream@4.1.1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/archiverjs/node-zip-stream",
+    "publisher": "Chris Talkington",
+    "url": "http://christalkington.com/",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\zip-stream",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\zip-stream\\LICENSE"
+  },
+  "zod@3.25.76": {
+    "licenses": "MIT",
+    "repository": "https://github.com/colinhacks/zod",
+    "publisher": "Colin McDonnell",
+    "email": "zod@colinhacks.com",
+    "path": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\zod",
+    "licenseFile": "C:\\Users\\ratih\\source\\repos\\Siak\\backend\\node_modules\\zod\\LICENSE"
+  }
+}
+
