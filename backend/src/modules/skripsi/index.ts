@@ -147,12 +147,13 @@ export function createSkripsiRouter(): Router {
 
         // Get latest KRS submission to determine current semester
         const krsRes = await pgPool.query(
-          `SELECT ks.id, kp.semester_id, s.code as semester_code, s.name as semester_name, s.number as semester_number
+          `SELECT ks.id, kp.semester_id, s.code as semester_code, s.name as semester_name,
+                  (split_part(s.code, '-', 2))::int as semester_number
            FROM krs_submissions ks
            JOIN krs_periods kp ON kp.id = ks.krs_period_id
            JOIN semesters s ON s.id = kp.semester_id
            WHERE ks.student_id = $1 AND ks.status IN ('submitted', 'approved')
-           ORDER BY s.number DESC, kp.start_date DESC
+           ORDER BY semester_number DESC, kp.start_date DESC
            LIMIT 1`,
           [studentId],
         );
