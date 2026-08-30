@@ -39,7 +39,7 @@
     "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
-    "node-pg-migrate": "^9.0.0",
+    "node-pg-migrate": "^8.0.3",
     "nodemailer": "^9.0.4",
     "pdfkit": "^0.19.1",
     "pg": "^8.13.1",
