@@ -11,5 +11,5 @@
   "driver": "pg",
   "verbose": true,
   "ignorePattern": "\\.down\\.sql$",
-  "migrationPattern": "^V[0-9]{8}_[0-9]{3}__.*\\.sql$"
+  "migrationPattern": "^[0-9]{11}_.*\\.sql$"
 }
