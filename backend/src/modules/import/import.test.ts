@@ -7,7 +7,7 @@ import request from 'supertest';
 process.env.NODE_ENV = 'test';
 // ??= (bukan =) agar env CI (port 5432) dihormati — di lokal default 5433.
 // Pakai = di sini = bug T1.10: CI menimpa paksa ke 5433 → ECONNREFUSED → login 500.
-process.env.DATABASE_URL ??= 'postgres://siak:siak_dev_password@localhost:5433/siak';
+process.env.DATABASE_URL ??= `postgres://${process.env.PGUSER || 'siak'}:${process.env.PGPASSWORD || 'siak_dev_password'}@${process.env.PGHOST || 'localhost'}:${process.env.PGPORT || 5433}/${process.env.PGDATABASE || 'siak'}`;
 process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.JWT_SECRET = 'test-secret-import';
 

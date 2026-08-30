@@ -1,6 +1,6 @@
 // Test setup - configure test database BEFORE importing app
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL ??= 'postgres://siak:siak_dev_password@localhost:5433/siak';
+process.env.DATABASE_URL ??= `postgres://${process.env.PGUSER || 'siak'}:${process.env.PGPASSWORD || 'siak_dev_password'}@${process.env.PGHOST || 'localhost'}:${process.env.PGPORT || 5433}/${process.env.PGDATABASE || 'siak'}`;
 process.env.REDIS_URL = 'redis://localhost:6380';
 process.env.JWT_SECRET = 'test-secret-min-32-chars-long-for-hs256-alg';
 process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-min-32-chars-long-for-hs256-alg';
