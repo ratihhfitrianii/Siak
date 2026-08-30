@@ -835,6 +835,7 @@ export interface SkripsiProposal {
   studentId: number;
   supervisorId: number;
   nim: string;
+  studentStatus: string;
   studentName: string;
   studentEmail: string;
   supervisorName: string;

@@ -517,8 +517,8 @@ export function DosenBimbinganMahasiswaBinaan() {
                     <div className="flex gap-2 pt-2 border-t border-slate-100">
                       <button
                         onClick={() => openCatat(p)}
-                        disabled={p.status === 'lulus'}
-                        className={`flex-1 px-4 py-2 text-sm font-medium ${p.status === 'lulus' ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'text-white bg-primary-600 hover:bg-primary-700'} rounded-lg transition`}
+                        disabled={p.studentStatus === 'lulus'}
+                        className={`flex-1 px-4 py-2 text-sm font-medium ${p.studentStatus === 'lulus' ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'text-white bg-primary-600 hover:bg-primary-700'} rounded-lg transition`}
                       >
                         Catat Bimbingan
                       </button>

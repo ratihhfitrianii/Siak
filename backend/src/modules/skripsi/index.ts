@@ -343,7 +343,7 @@ export function createSkripsiRouter(): Router {
 
         const dataRes = await pgPool.query(
           `SELECT sp.*,
-                  st.nim, su.full_name as student_name, su.email as student_email,
+                  st.nim, st.status as student_status, su.full_name as student_name, su.email as student_email,
                   (
                     SELECT json_agg(json_build_object(
                       'id', u.id,
@@ -377,6 +377,7 @@ export function createSkripsiRouter(): Router {
             studentId: Number(r.student_id),
             supervisorId: Number(r.supervisor_id),
             nim: r.nim,
+            studentStatus: r.student_status,
             studentName: r.student_name,
             studentEmail: r.student_email,
             supervisorName: r.supervisor_name,
@@ -541,6 +542,15 @@ export function createSkripsiRouter(): Router {
           if (supRes.rows.length === 0) {
             throw new AppError('FORBIDDEN', 'Anda bukan pembimbing proposal ini', 403);
           }
+        }
+
+        // Mahasiswa tidak boleh berstatus 'lulus'
+        const studentCheck = await pgPool.query(
+          `SELECT st.status FROM students st JOIN skripsi_proposals sp ON sp.student_id = st.id WHERE sp.id = $1`,
+          [proposalId],
+        );
+        if (studentCheck.rows[0]?.status === 'lulus') {
+          throw new AppError('FORBIDDEN', 'Mahasiswa sudah lulus, tidak dapat menambah catatan bimbingan', 403);
         }
 
         const ins = await pgPool.query(
