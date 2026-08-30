@@ -149,7 +149,7 @@
   @media (min-width: 500px) { .stat-bar { grid-template-columns: repeat(2, 1fr); } }
   @media (min-width: 900px) { .stat-bar { grid-template-columns: repeat(4, 1fr); } }
   .stat-item { text-align: center; padding: 16px; }
-  .stat-item .num { font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 800; color: var(--gold); line-height: 1; margin-bottom: 6px; }
+  .stat-item .num { font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 800; color: var(--gold); line-height: 1; margin-bottom: 6px; white-space: nowrap; }
   .stat-item .label { font-size: clamp(0.8rem, 2.2vw, 0.95rem); color: var(--text-muted); line-height: 1.4; }
 
   /* ============================================
@@ -201,36 +201,36 @@
   }
 
   /* Promo pricing elements */
-  .promo-badge {
-    position: absolute; top: -16px; left: 16px; z-index: 5;
-    width: 68px; height: 68px;
-    background: radial-gradient(circle at 50% 50%, var(--gold-light) 0%, var(--gold) 60%, #e8a800 100%);
-    color: #3d2c00;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    border-radius: 50%; font-weight: 900; line-height: 1;
-    transform: rotate(-10deg);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.6);
-    border: 2px dashed rgba(61, 44, 0, 0.4);
-  }
-  .promo-badge .pb-top { font-size: 0.55rem; letter-spacing: 0.08em; text-transform: uppercase; }
-  .promo-badge .pb-mid { font-size: 1rem; margin: 1px 0; }
-  .promo-badge .pb-pct { font-size: 0.62rem; background: #3d2c00; color: var(--gold-light); border-radius: 999px; padding: 2px 8px; margin-top: 2px; }
-  .price-box { position: relative; display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin: 16px 0 6px; flex-wrap: wrap; }
-  .price-original { background: rgba(148, 163, 184, 0.2); border-radius: 10px; padding: 7px 12px; position: relative; font-size: clamp(0.8rem, 2.3vw, 0.95rem); font-weight: 700; color: #cbd5e1; white-space: nowrap; }
-  .price-original::after { content: ''; position: absolute; left: -4px; right: -4px; top: 50%; height: 3px; background: var(--red); transform: translateY(-50%) rotate(-8deg); border-radius: 2px; }
-  .price-promo { background: linear-gradient(135deg, var(--red), #dc2626); border-radius: 10px; padding: 8px 14px; font-size: clamp(1.1rem, 3.5vw, 1.55rem); font-weight: 900; color: #fff; box-shadow: 0 5px 16px rgba(220, 38, 38, 0.4); position: relative; z-index: 2; line-height: 1.1; white-space: nowrap; }
-  .price-promo .pp-unit { font-size: 0.55em; font-weight: 700; opacity: 0.9; margin-left: 2px; }
-  .promo-term { margin-top: 12px; font-size: clamp(0.7rem, 2vw, 0.8rem); color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
-  .promo-term .star { color: var(--gold); font-size: 1rem; flex-shrink: 0; }
-  .promo-terms-box {
-    margin-top: 32px; width: 100%; max-width: 100%;
-    background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--gold);
-    border-radius: var(--radius); padding: clamp(18px, 3vw, 24px); text-align: left; grid-column: 1 / -1;
-  }
-  .promo-terms-box .ptb-title { font-size: clamp(0.9rem, 2.5vw, 1.05rem); font-weight: 700; margin-bottom: 12px; color: var(--gold); display: flex; align-items: center; gap: 8px; }
-  .promo-terms-box ul { list-style: none; }
-  .promo-terms-box ul li { font-size: clamp(0.8rem, 2.3vw, 0.9rem); color: var(--text-dim); line-height: 1.8; padding-left: 24px; position: relative; }
-  .promo-terms-box ul li::before { content: '★'; position: absolute; left: 0; color: var(--gold); font-size: 0.7em; top: 3px; }
+    .promo-badge {
+      position: absolute; top: 18px; left: 18px; z-index: 5;
+      width: 68px; height: 68px;
+      background: radial-gradient(circle at 50% 50%, var(--gold-light) 0%, var(--gold) 60%, #e8a800 100%);
+      color: #3d2c00;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border-radius: 50%; font-weight: 900; line-height: 1;
+      transform: rotate(-10deg);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.6);
+      border: 2px dashed rgba(61, 44, 0, 0.4);
+    }
+    .promo-badge .pb-top { font-size: 0.55rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .promo-badge .pb-mid { font-size: 1rem; margin: 1px 0; }
+    .promo-badge .pb-pct { font-size: 0.62rem; background: #3d2c00; color: var(--gold-light); border-radius: 999px; padding: 2px 8px; margin-top: 2px; }
+    .price-box { position: relative; display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin: 16px 0 6px; flex-wrap: wrap; }
+    .price-original { background: rgba(148, 163, 184, 0.2); border-radius: 10px; padding: 7px 12px; position: relative; font-size: clamp(0.8rem, 2.3vw, 0.95rem); font-weight: 700; color: #cbd5e1; white-space: nowrap; }
+    .price-original::after { content: ''; position: absolute; left: -4px; right: -4px; top: 50%; height: 3px; background: var(--red); transform: translateY(-50%) rotate(-8deg); border-radius: 2px; }
+    .price-promo { background: linear-gradient(135deg, var(--red), #dc2626); border-radius: 10px; padding: 8px 14px; font-size: clamp(1.1rem, 3.5vw, 1.55rem); font-weight: 900; color: #fff; box-shadow: 0 5px 16px rgba(220, 38, 38, 0.4); position: relative; z-index: 2; line-height: 1.1; white-space: nowrap; }
+    .price-promo .pp-unit { font-size: 0.55em; font-weight: 700; opacity: 0.9; margin-left: 2px; }
+    .promo-term { margin-top: 12px; font-size: clamp(0.7rem, 2vw, 0.8rem); color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .promo-term .star { color: var(--gold); font-size: 1rem; flex-shrink: 0; }
+    .promo-terms-box {
+      margin-top: 32px; width: 100%; max-width: 100%;
+      background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--gold);
+      border-radius: var(--radius); padding: clamp(18px, 3vw, 24px); text-align: left; grid-column: 1 / -1;
+    }
+    .promo-terms-box .ptb-title { font-size: clamp(0.9rem, 2.5vw, 1.05rem); font-weight: 700; margin-bottom: 12px; color: var(--gold); display: flex; align-items: center; gap: 8px; }
+    .promo-terms-box ul { list-style: none; }
+    .promo-terms-box ul li { font-size: clamp(0.8rem, 2.3vw, 0.9rem); color: var(--text-dim); line-height: 1.8; padding-left: 24px; position: relative; }
+    .promo-terms-box ul li::before { content: '★'; position: absolute; left: 0; color: var(--gold); font-size: 0.7em; top: 3px; }
 
   /* ============================================
      TESTIMONIAL / TRUST
@@ -306,7 +306,7 @@
       <div class="stat-item" role="listitem"><div class="num">5.000+</div><div class="label">Pengguna Aktif</div></div>
       <div class="stat-item" role="listitem"><div class="num">24</div><div class="label">Modul Terintegrasi</div></div>
       <div class="stat-item" role="listitem"><div class="num">99.9%</div><div class="label">Uptime Sistem</div></div>
-      <div class="stat-item" role="listitem"><div class="num">2-4</div><div class="label">Minggu Go-Live</div></div>
+      <div class="stat-item" role="listitem"><div class="num">2–4</div><div class="label">Minggu Go-Live</div></div>
     </div>
   </section>
 
@@ -450,7 +450,7 @@
           <span class="price-original">Rp 205 juta</span>
           <span class="price-promo">Rp 164 juta</span>
         </div>
-        <div class="promo-term"><span class="star">✦</span> Promo s.d. [TANGGAL + 30 HARI]</div>
+        <div class="promo-term"><span class="star">✦</span> Promo s.d. 30 Sep 2026</div>
         <ul>
           <li>Source code lengkap + lisensi Apache 2.0</li>
           <li>Instalasi & konfigurasi server (on-premise/cloud)</li>
@@ -461,15 +461,15 @@
         <div class="footnote">Tidak ada biaya tahunan. Kampus kelola hosting & server sendiri.</div>
       </div>
       <div class="price-card featured" role="listitem">
-        <span class="popular-badge">Direkomendasikan</span>
         <div class="promo-badge" aria-hidden="true"><span class="pb-top">Promo</span><span class="pb-mid">B</span><span class="pb-pct">-12%</span></div>
+        <span class="popular-badge">Direkomendasikan</span>
         <div class="plan">B — SaaS Tahunan (Fully Managed)</div>
         <p class="desc">Nol investasi awal. Kami urus hosting, backup, security, update. Kampus cukup pakai.</p>
         <div class="price-box">
           <span class="price-original">Rp 85 juta</span>
           <span class="price-promo">Rp 74,8 juta<span class="pp-unit">/thn</span></span>
         </div>
-        <div class="promo-term"><span class="star">✦</span> Tahun 1 termasuk implementasi</div>
+        <div class="promo-term"><span class="star">✦</span> Promo s.d. 30 Sep 2026</div>
         <ul>
           <li>Semua modul aktif (unlimited user)</li>
           <li>Hosting, maintenance, backup terjadwal</li>
@@ -487,7 +487,7 @@
           <span class="price-original">Rp 150 juta</span>
           <span class="price-promo">Rp 120 juta</span>
         </div>
-        <div class="promo-term"><span class="star">✦</span> Promo s.d. [TANGGAL + 30 HARI]</div>
+        <div class="promo-term"><span class="star">✦</span> Promo s.d. 30 Sep 2026</div>
         <ul>
           <li>Source code lengkap + dokumentasi teknis</li>
           <li>Lisensi Apache 2.0 (bebas modifikasi & distribusi)</li>
@@ -501,7 +501,7 @@
       <div class="ptb-title">★ Syarat dan Ketentuan Promo</div>
       <ul>
         <li>Pembayaran DP (40%) dilakukan paling lambat <strong>30 hari setelah kontrak ditandatangani</strong>.</li>
-        <li>Harga promo berlaku untuk penandatanganan kontrak dalam masa promo (s.d. [TANGGAL + 30 HARI]).</li>
+        <li>Harga promo berlaku untuk penandatanganan kontrak dalam masa promo (s.d. 30 Sep 2026).</li>
         <li>Harga belum termasuk PPN 11%.</li>
         <li>Migrasi data > 5.000 record dikenakan biaya tambahan.</li>
       </ul>
