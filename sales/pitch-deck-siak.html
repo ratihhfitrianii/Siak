@@ -171,16 +171,20 @@
   tr:nth-child(even) td { background: var(--bg-dark-elevated); }
 
   /* ============================================
-     PRICING - Single column stack
-     ============================================ */
-  .pricing { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 100%; }
-  @media (min-width: 769px) { .pricing { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; } }
-  .price-card {
+       PRICING - Clean stacked cards, promo layout
+       ============================================ */
+    .pricing { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 100%; }
+    @media (min-width: 769px) {
+      .pricing { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; }
+    }
+    .price-card {
       background: var(--bg-card); border: 2px solid var(--border);
-      border-radius: var(--radius-xl); padding: clamp(20px, 4vw, 28px);
+      border-radius: 18px;
+      padding: clamp(44px, 6vw, 56px) clamp(18px, 3vw, 24px) clamp(18px, 3vw, 22px);
       text-align: left; flex: 1; min-width: 0;
       transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
-      position: relative; overflow: hidden; width: 100%;
+      position: relative; overflow: visible; width: 100%;
+      display: flex; flex-direction: column;
     }
     .price-card::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
@@ -191,26 +195,26 @@
     .price-card.featured::before { opacity: 1; }
     .price-card:hover { transform: translateY(-4px); border-color: var(--accent); }
     .price-card .plan { font-size: clamp(0.85rem, 2.5vw, 1rem); font-weight: 700; color: var(--accent); margin-bottom: 4px; }
-    .price-card ul { list-style: none; margin-top: 16px; }
+    .price-card ul { list-style: none; margin-top: 14px; flex: 1; }
     .price-card ul li {
-      font-size: clamp(0.8rem, 2.2vw, 0.9rem); color: var(--text-dim); line-height: 1.9;
+      font-size: clamp(0.8rem, 2.2vw, 0.9rem); color: var(--text-dim); line-height: 1.8;
       padding-left: clamp(22px, 4vw, 26px); position: relative;
     }
     .price-card ul li::before { content: '✓'; position: absolute; left: 0; color: var(--success); font-weight: 700; }
-    .price-card .footnote { margin-top: 16px; font-size: clamp(0.65rem, 1.8vw, 0.75rem); color: var(--text-muted); }
+    .price-card .footnote { margin-top: 14px; font-size: clamp(0.65rem, 1.8vw, 0.75rem); color: var(--text-muted); }
     .price-card .popular-badge {
-      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      position: absolute; top: 14px; right: 14px; left: auto; transform: none;
       background: var(--accent); color: #fff; font-size: 0.65rem; font-weight: 700;
       padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;
-      white-space: nowrap;
+      white-space: nowrap; z-index: 6;
     }
 
     /* ============================================
        PROMO PRICING - sale badge, strikethrough, promo price
        ============================================ */
     .promo-badge {
-      position: absolute; top: -14px; left: -10px; z-index: 5;
-      width: 76px; height: 76px;
+      position: absolute; top: -16px; left: 12px; z-index: 5;
+      width: 72px; height: 72px;
       background: radial-gradient(circle at 50% 50%, #ffe066 0%, #ffc400 60%, #f0a500 100%);
       color: #3d2c00;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -221,56 +225,57 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.6);
       border: 2px dashed rgba(61, 44, 0, 0.4);
     }
-    .promo-badge .pb-top { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; }
-    .promo-badge .pb-mid { font-size: 1.15rem; margin: 2px 0; }
-    .promo-badge .pb-pct { font-size: 0.72rem; background: #3d2c00; color: #ffe066; border-radius: 999px; padding: 2px 8px; margin-top: 2px; }
+    .promo-badge .pb-top { font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .promo-badge .pb-mid { font-size: 1.1rem; margin: 1px 0; }
+    .promo-badge .pb-pct { font-size: 0.68rem; background: #3d2c00; color: #ffe066; border-radius: 999px; padding: 2px 8px; margin-top: 2px; }
     .price-box {
       position: relative; display: flex; align-items: center; justify-content: flex-start;
-      gap: 12px; margin: 12px 0 6px; padding-left: 6px; padding-top: 8px;
-      min-height: 58px; flex-wrap: wrap;
+      gap: 10px; margin: 14px 0 4px; flex-wrap: wrap;
     }
     .price-original {
-      background: rgba(148, 163, 184, 0.28); border-radius: 10px;
-      padding: 8px 14px; position: relative;
-      font-size: clamp(0.85rem, 2.5vw, 1rem); font-weight: 700; color: #cbd5e1;
+      background: rgba(148, 163, 184, 0.25); border-radius: 10px;
+      padding: 7px 12px; position: relative;
+      font-size: clamp(0.8rem, 2.3vw, 0.95rem); font-weight: 700; color: #cbd5e1;
+      white-space: nowrap;
     }
     .price-original::after {
-      content: ''; position: absolute; left: -6px; right: -6px; top: 50%;
+      content: ''; position: absolute; left: -4px; right: -4px; top: 50%;
       height: 3px; background: var(--danger); transform: translateY(-50%) rotate(-8deg);
       border-radius: 2px;
     }
     .price-promo {
       background: linear-gradient(135deg, #ef4444, #dc2626);
-      border-radius: 12px; padding: 10px 18px;
-      font-size: clamp(1.15rem, 4vw, 1.7rem); font-weight: 900; color: #fff;
-      box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+      border-radius: 10px; padding: 8px 14px;
+      font-size: clamp(1.05rem, 3.6vw, 1.5rem); font-weight: 900; color: #fff;
+      box-shadow: 0 5px 14px rgba(220, 38, 38, 0.4);
       position: relative; z-index: 2;
       line-height: 1.1; white-space: nowrap;
     }
     .price-promo .pp-unit { font-size: 0.6em; font-weight: 700; opacity: 0.9; margin-left: 2px; }
     .promo-term {
-        margin-top: 14px; font-size: clamp(0.65rem, 1.8vw, 0.75rem);
-        color: var(--text-muted); display: flex; align-items: center; gap: 4px;
-      }
-      .promo-term .star { color: var(--warning); font-size: 0.9rem; }
-      .promo-terms-box {
-        margin-top: 28px; width: 100%; max-width: 100%;
-        background: var(--bg-card); border: 1px solid var(--border);
-        border-left: 4px solid var(--warning);
-        border-radius: var(--radius-md);
-        padding: clamp(16px, 3vw, 20px);
-        text-align: left;
-      }
-      .promo-terms-box .ptb-title {
-        font-size: clamp(0.85rem, 2.5vw, 1rem); font-weight: 700; margin-bottom: 10px;
-        color: var(--warning);
-      }
-      .promo-terms-box ul { list-style: none; }
-      .promo-terms-box ul li {
-        font-size: clamp(0.75rem, 2.2vw, 0.9rem); color: var(--text-dim); line-height: 1.8;
-        padding-left: clamp(22px, 4vw, 26px); position: relative;
-      }
-      .promo-terms-box ul li::before { content: '★'; position: absolute; left: 0; color: var(--warning); font-size: 0.7em; top: 3px; }
+      margin-top: 10px; font-size: clamp(0.65rem, 1.8vw, 0.75rem);
+      color: var(--text-muted); display: flex; align-items: center; gap: 4px;
+    }
+    .promo-term .star { color: var(--warning); font-size: 0.9rem; flex-shrink: 0; }
+    .promo-terms-box {
+      margin-top: 28px; width: 100%; max-width: 100%;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-left: 4px solid var(--warning);
+      border-radius: var(--radius-md);
+      padding: clamp(16px, 3vw, 20px);
+      text-align: left;
+      grid-column: 1 / -1;
+    }
+    .promo-terms-box .ptb-title {
+      font-size: clamp(0.85rem, 2.5vw, 1rem); font-weight: 700; margin-bottom: 10px;
+      color: var(--warning);
+    }
+    .promo-terms-box ul { list-style: none; }
+    .promo-terms-box ul li {
+      font-size: clamp(0.75rem, 2.2vw, 0.9rem); color: var(--text-dim); line-height: 1.8;
+      padding-left: clamp(22px, 4vw, 26px); position: relative;
+    }
+    .promo-terms-box ul li::before { content: '★'; position: absolute; left: 0; color: var(--warning); font-size: 0.7em; top: 3px; }
 
   /* ============================================
      FLOW STEPS - Single column vertical, arrows between
