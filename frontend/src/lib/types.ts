@@ -510,26 +510,37 @@ export interface CreateAnnouncementInput {
 
 export interface ClassSchedule {
   id: number;
-  classCode: string;
-  course: { code: string; name: string; credits: number };
-  room: string | null;
-  dayOfWeek: number | null;
-  startTime: string | null;
-  endTime: string | null;
-  enrolledCount: number;
   meetingNumber: number;
+  scheduledDate: string;
+  topic: string | null;
+  isCompleted: boolean;
+  classCode?: string;
+  course?: { code: string; name: string; credits: number };
+  room?: string | null;
+  dayOfWeek?: number | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  enrolledCount?: number;
 }
 
 export interface ClaimableClass {
   id: number;
   classCode: string;
-  course: { code: string; name: string; credits: number };
+  courseCode: string;
+  courseName: string;
+  credits: number;
   semesterCode: string;
+  semesterName: string;
+  semesterNumber: number;
   capacity: number;
   currentEnrolled: number;
   dayOfWeek: number | null;
   startTime: string | null;
   endTime: string | null;
+  room: string | null;
+  curriculumId: number;
+  semesterId: number;
+  schedules: ClassSchedule[];
 }
 
 export interface ClaimableClassResponse {
@@ -537,7 +548,18 @@ export interface ClaimableClassResponse {
 }
 
 export interface MyClassesResponse {
-  items: ClassSchedule[];
+  class: {
+    id: number;
+    classCode: string;
+    courseCode: string;
+    courseName: string;
+    credits: number;
+    semesterNumber: number;
+    semesterCode: string;
+    semesterName: string;
+    prodiName: string;
+  };
+  schedules: ClassSchedule[];
 }
 
 export interface SalarySlip {
@@ -552,6 +574,12 @@ export interface SalarySlip {
 
 export interface SalarySlipsResponse {
   items: SalarySlip[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export interface PayrollsResponse {
@@ -577,11 +605,17 @@ export interface ScheduleAvailability {
 
 export interface AttendanceSession {
   id: number;
-  classId: number;
-  meetingNumber: number;
-  date: string;
+  scheduleId: number;
+  sessionDate: string;
   topic: string | null;
-  status: 'open' | 'closed';
+  isOpen: boolean;
+  classCode: string;
+  courseCode: string;
+  courseName: string;
+  meetingNumber: number;
+  totalRecords: number;
+  hadirCount: number;
+  classId?: number;
 }
 
 export interface CreateAttendanceInput {
@@ -591,13 +625,22 @@ export interface CreateAttendanceInput {
 }
 
 export interface AttendanceRecordsResponse {
-  session: AttendanceSession;
+  session: {
+    id: number;
+    sessionDate: string;
+    topic: string | null;
+    isOpen: boolean;
+    qrCode: string | null;
+  };
   records: Array<{
     studentId: number;
     nim: string;
     fullName: string;
-    status: 'hadir' | 'izin' | 'sakit' | 'alpa';
-    notes: string | null;
+    email: string;
+    recordId: number | null;
+    status: 'hadir' | 'izin' | 'sakit' | 'alpa' | 'belum_absen';
+    markedAt: string | null;
+    markedBy: number | null;
   }>;
 }
 
@@ -628,6 +671,10 @@ export interface GuidanceSession {
   studentId: number;
   date: string;
   notes: string;
+  isVisibleToStudent?: boolean;
+  progress?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateGuidanceInput {
@@ -638,10 +685,23 @@ export interface CreateGuidanceInput {
 
 export interface SubstituteRequest {
   id: number;
+  originalLecturerId: number;
+  originalLecturerName: string;
+  substituteLecturerId: number | null;
+  substituteLecturerName: string | null;
   classId: number;
-  targetDate: string;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
+  classCode: string;
+  scheduleId: number;
+  meetingNumber: number;
+  scheduledDate: string;
+  topic: string | null;
+  courseCode: string;
+  courseName: string;
+  reason: string | null;
+  status: 'active' | 'cancelled';
+  requestedByName: string;
+  approvedByName: string | null;
+  createdAt: string;
 }
 
 export interface SubstituteRequestResponse {
@@ -667,11 +727,16 @@ export interface GradeInput {
 
 export interface LecturerCourseAvailable {
   id: number;
-  courseCode: string;
-  courseName: string;
+  curriculum_id: number;
+  course_code: string;
+  course_name: string;
   credits: number;
-  curriculum_id?: number;
-  selection_status?: string;
+  semester_number: number;
+  is_mandatory: boolean;
+  available_classes: number;
+  selection_status: string;
+  priority: number | null;
+  notes: string | null;
 }
 
 export interface LecturerCourseAvailableResponse {
@@ -689,8 +754,20 @@ export interface CourseSelectionResult {
 
 export interface MyCourseSelection {
   id: number;
-  classId: number;
+  curriculumId: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  semesterNumber: number;
+  isMandatory: boolean;
+  semesterCode: string;
+  semesterName: string;
+  prodiName: string;
   status: 'pending' | 'approved' | 'rejected';
+  priority: number;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MyCourseSelectionsResponse {
