@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY .npmrc ./
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
@@ -19,7 +19,7 @@ WORKDIR /app
 
 COPY .npmrc ./
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY scripts ./scripts
 COPY --from=build /app/dist ./dist
@@ -33,7 +33,7 @@ WORKDIR /app
 
 COPY .npmrc ./
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev --legacy-peer-deps && npm cache clean --force
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/modules/waiting-room/waiting-room.lua ./dist/modules/waiting-room/
