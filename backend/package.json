@@ -20,7 +20,8 @@
     "test:coverage": "jest --coverage --runInBand",
     "migrate:up": "node-pg-migrate up",
     "migrate:down": "node-pg-migrate down",
-    "migrate:create": "node-pg-migrate create"
+    "migrate:create": "node-pg-migrate create",
+    "ensure-tables": "node scripts/ensure-tables.js"
   },
   "dependencies": {
     "@types/bcrypt": "^5.0.2",

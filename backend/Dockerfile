@@ -12,18 +12,17 @@ COPY database.json ./
 COPY src/modules/waiting-room/waiting-room.lua ./src/modules/waiting-room/
 RUN npm run build
 
-# ---- Stage 2: migrate runner (includes devDependencies) ----
+# ---- Stage 2: migrate runner (uses ensure-tables to avoid node-pg-migrate conflicts) ----
 FROM node:22-alpine AS migrate
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm ci
 
-COPY migrations ./migrations
-COPY database.json ./
+COPY scripts ./scripts
 COPY --from=build /app/dist ./dist
 
-CMD ["npm", "run", "migrate:up"]
+CMD ["npm", "run", "ensure-tables"]
 
 # ---- Stage 3: runtime (produksi — deps produksi saja) ----
 FROM node:22-alpine AS runtime
