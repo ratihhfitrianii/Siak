@@ -114,7 +114,7 @@ export function DosenBimbinganMahasiswaBinaan() {
     try {
       const data = await getSkripsiGuidanceLogs(p.id);
       setLogs(data);
-      if (data.length === 0) setLogsError('Data belum ada');
+      // Jika data kosong, jangan set error (UI sudah handle empty state netral)
     } catch {
       setLogsError('Gagal memuat log bimbingan');
     } finally {
