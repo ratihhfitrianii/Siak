@@ -38,6 +38,31 @@ function buildHealthDeps() {
 
 const app = createApp(buildHealthDeps());
 
+// Ensure required tables exist (e.g. skripsi_guidance_logs) — safe IF NOT EXISTS,
+// avoids node-pg-migrate order conflicts on an already-migrated production DB.
+async function ensureTables() {
+  if (!env.DATABASE_URL) return;
+  const ensurePool = new Pool({ connectionString: env.DATABASE_URL, max: 1 });
+  try {
+    await ensurePool.query(`
+      CREATE TABLE IF NOT EXISTS skripsi_guidance_logs (
+        id          BIGSERIAL PRIMARY KEY,
+        proposal_id BIGINT NOT NULL REFERENCES skripsi_proposals(id) ON DELETE CASCADE,
+        lecturer_id BIGINT NOT NULL REFERENCES users(id),
+        session_date DATE NOT NULL,
+        notes       TEXT NOT NULL,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+    logger.info('ensure-tables: skripsi_guidance_logs ensured');
+  } catch (err) {
+    logger.warn({ err }, 'ensure-tables: gagal memastikan tabel (dilanjutkan)');
+  } finally {
+    await ensurePool.end();
+  }
+}
+
 // T1.13: server HTTP nyata (bukan app.listen) agar Socket.io bisa menempel.
 const server = http.createServer(app);
 const waitingRoom = createWaitingRoomService(WR_DEFAULT_OPTIONS);
@@ -45,6 +70,7 @@ const waitingRoomSocket = attachWaitingRoomSocket(server);
 
 server.listen(env.PORT, () => {
   logger.info(`listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
+  void ensureTables();
 });
 
 // Scheduler dasar AC-04d (T1.6): ingatkan mahasiswa yang belum mengisi KRS periode aktif.
