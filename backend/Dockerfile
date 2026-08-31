@@ -2,6 +2,7 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
+COPY .npmrc ./
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -16,6 +17,7 @@ RUN npm run build
 FROM node:22-alpine AS migrate
 WORKDIR /app
 
+COPY .npmrc ./
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -29,6 +31,7 @@ FROM node:22-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 
+COPY .npmrc ./
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
