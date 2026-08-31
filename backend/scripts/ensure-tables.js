@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 // Ensure required tables exist without node-pg-migrate (avoids migration order conflicts).
 // Production DB already has most tables; this only creates missing ones with IF NOT EXISTS.
 const { Pool } = require('pg');
