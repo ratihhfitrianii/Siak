@@ -502,6 +502,7 @@ export interface CreateAnnouncementInput {
   targetRoles: string[];
   priority?: number;
   isActive?: boolean;
+  publishedAt?: string | null;
   expiresAt?: string | null;
 }
 
@@ -516,6 +517,7 @@ export interface ClassSchedule {
   startTime: string | null;
   endTime: string | null;
   enrolledCount: number;
+  meetingNumber: number;
 }
 
 export interface ClaimableClass {
@@ -525,6 +527,9 @@ export interface ClaimableClass {
   semesterCode: string;
   capacity: number;
   currentEnrolled: number;
+  dayOfWeek: number | null;
+  startTime: string | null;
+  endTime: string | null;
 }
 
 export interface ClaimableClassResponse {
@@ -551,6 +556,12 @@ export interface SalarySlipsResponse {
 
 export interface PayrollsResponse {
   items: unknown[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export interface LecturersResponse {
@@ -580,7 +591,14 @@ export interface CreateAttendanceInput {
 }
 
 export interface AttendanceRecordsResponse {
-  items: unknown[];
+  session: AttendanceSession;
+  records: Array<{
+    studentId: number;
+    nim: string;
+    fullName: string;
+    status: 'hadir' | 'izin' | 'sakit' | 'alpa';
+    notes: string | null;
+  }>;
 }
 
 export interface UpdateAttendanceRecordInput {
@@ -593,12 +611,16 @@ export interface AttendanceRecapResponse {
 }
 
 export interface Mentee {
-  id: number;
+  studentId: number;
   nim: string;
-  fullName: string;
-  prodiName: string;
-  currentSemester: number;
-  ipk: number;
+  studentName: string;
+  email: string;
+  status: string;
+  prodiCode: string;
+  fullName?: string;
+  prodiName?: string;
+  currentSemester?: number;
+  ipk?: number;
 }
 
 export interface GuidanceSession {
@@ -648,6 +670,8 @@ export interface LecturerCourseAvailable {
   courseCode: string;
   courseName: string;
   credits: number;
+  curriculum_id?: number;
+  selection_status?: string;
 }
 
 export interface LecturerCourseAvailableResponse {
@@ -689,10 +713,18 @@ export interface CourseSelectionForReview {
   status: 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak';
   reviewedByName: string | null;
   reviewedAt: string | null;
+  nidn?: string;
+  notes?: string;
 }
 
 export interface CourseSelectionsForReviewResponse {
   items: CourseSelectionForReview[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 /* ==== Skripsi (T4 & T5) ==== */
@@ -702,7 +734,7 @@ export interface SkripsiProposal {
   studentId: number;
   nim: string;
   fullName: string;
-  studentName: string; // alias for fullName in some contexts
+  studentName: string;
   prodiName: string;
   title: string;
   status: SkripsiProposalStatus;
