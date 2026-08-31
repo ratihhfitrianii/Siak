@@ -59,7 +59,8 @@ test.describe('Critical path: transkrip (T5.7)', () => {
     await page.getByRole('link', { name: 'Kartu Hasil Studi (KHS)', exact: true }).click();
     await expect(page).toHaveURL(/transkrip/);
     await expect(page.getByText(/Semester \d/).first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole('button', { name: /Download PDF/i })).toBeVisible();
+    // Redesigned TranscriptPage: "Download Semua" button di header, "Download Semester" di panel kiri
+    await expect(page.getByRole('button', { name: /Download Semua/i })).toBeVisible();
   });
 });
 
