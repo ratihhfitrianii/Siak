@@ -145,9 +145,9 @@ export interface GradeItem {
   inputAt: string;
   updatedBy: number | null;
   updatedAt: string | null;
+  /** true jika matkul diulang dan BUKAN nilai terbaik (hanya di transkrip) */
+  isRepeated?: boolean;
 }
-
-/* ==== T1.11c — Admin Dashboard ==== */
 
 export interface AdminKrsItem {
   id: number;
@@ -496,477 +496,44 @@ export interface AnnouncementsResponse {
   };
 }
 
-export interface CreateAnnouncementInput {
-  title: string;
-  message: string;
-  targetRoles?: string[];
-  priority?: number;
-  isActive?: boolean;
-  publishedAt?: string | null;
-  expiresAt?: string | null;
-}
-
-/* ==== T3.8 — Dosen API Types (diselaraskan dengan kontrak backend nyata) ==== */
-
-// --- Dosen Pilih MK (GET/POST /dosen/courses/*) ---
-export interface LecturerCourseAvailable {
-  curriculum_id: number;
-  course_code: string;
-  course_name: string;
-  credits: number;
-  semester_number: number;
-  is_mandatory: boolean;
-  available_classes: number;
-  selection_status: 'belum_diajukan' | 'diajukan' | 'disetujui' | 'ditolak';
-  priority: number | null;
-  notes: string | null;
-}
-
-export interface LecturerCourseAvailableResponse {
-  items: LecturerCourseAvailable[];
-}
-
-export interface CourseSelectionInput {
-  curriculumId: number;
-  priority: number;
-  notes?: string;
-}
-
-export interface CourseSelectionResult {
-  id: number;
-  lecturerId: number;
-  semesterId: number;
-  curriculumId: number;
-  status: string;
-  priority: number;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MyCourseSelection {
-  id: number;
-  curriculumId: number;
-  courseCode: string;
-  courseName: string;
-  credits: number;
-  semesterNumber: number;
-  isMandatory: boolean;
-  semesterCode: string;
-  semesterName: string;
-  prodiName: string;
-  status: string;
-  priority: number;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MyCourseSelectionsResponse {
-  items: MyCourseSelection[];
-}
-
-/* ==== Admin Akademik: Persetujuan MK Dosen ==== */
-
-export interface CourseSelectionForReview {
-  id: number;
-  lecturerId: number;
-  lecturerName: string;
-  nidn: string;
-  nik: string;
-  curriculumId: number;
-  courseCode: string;
-  courseName: string;
-  credits: number;
-  semesterNumber: number;
-  isMandatory: boolean;
-  semesterCode: string;
-  semesterName: string;
-  prodiName: string;
-  status: 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak';
-  priority: number;
-  notes: string | null;
-  reviewedBy: string | null;
-  reviewedAt: string | null;
-  reviewedByName: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CourseSelectionsForReviewResponse {
-  items: CourseSelectionForReview[];
-  pagination: { page: number; limit: number; total: number };
-}
-
-export interface ReviewCourseSelectionInput {
-  status: 'disetujui' | 'ditolak';
-  reviewNotes?: string;
-}
-
-// --- Jadwal & Ketersediaan (GET /schedule/availability?date=YYYY-MM-DD) ---
-export interface BusySlot {
-  id: number; // schedule id — dipakai create sesi absensi / substitute
-  meetingNumber: number;
-  topic: string | null;
-  isCompleted: boolean;
-  classCode: string;
-  courseCode: string;
-  courseName: string;
-}
-
-export interface AvailableSlot {
-  classId: number;
-  classCode: string;
-  startTime: string | null;
-  endTime: string | null;
-  courseCode: string;
-  courseName: string;
-  semesterNumber: number;
-}
-
-export interface ScheduleAvailability {
-  date: string;
-  dayOfWeek: number;
-  busySlots: BusySlot[];
-  availableSlots: AvailableSlot[];
-  isAvailable: boolean;
-}
-
-// --- Kelas diampu dosen (GET /dosen/my-classes) ---
-export interface ClassSchedule {
-  id: number;
-  meetingNumber: number;
-  scheduledDate: string;
-  topic: string | null;
-  isCompleted: boolean;
-}
-
-export interface MyClass {
-  id: number;
-  classCode: string;
-  dayOfWeek: number | null;
-  startTime: string | null;
-  endTime: string | null;
-  room: string | null;
-  capacity: number;
-  currentEnrolled: number;
-  curriculumId: number;
-  semesterId: number;
-  semesterNumber: number;
-  semesterCode: string;
-  semesterName: string;
-  courseCode: string;
-  courseName: string;
-  credits: number;
-  schedules: ClassSchedule[];
-}
-
-export interface MyClassesResponse {
-  items: MyClass[];
-}
-
-// --- Slip Gaji Dosen (GET /payroll/my) — lihat + download PDF, filter bulan/tahun ---
-export interface SalarySlip {
-  id: number;
-  lecturerId: number;
-  /** Nama dosen — terisi di list admin (GET /payroll), kosong di /payroll/my */
-  lecturerName?: string;
-  periodStart: string;
-  periodEnd: string;
-  baseSalary: number;
-  honorPerMeeting: number;
-  totalMeetings: number;
-  totalHonor: number;
-  deductions: number;
-  netAmount: number;
-  status: 'draft' | 'approved' | 'paid';
-}
-
-export interface SalarySlipsResponse {
-  items: SalarySlip[];
-}
-
-export interface PayrollsResponse {
-  items: SalarySlip[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-// --- Kelas belum diklaim (GET /dosen/available-classes) — dosen pilih via checkbox (T3.9, F-21) ---
-export interface ClaimableClass {
-  id: number;
-  classCode: string;
-  dayOfWeek: number | null;
-  startTime: string | null;
-  endTime: string | null;
-  room: string | null;
-  capacity: number;
-  currentEnrolled: number;
-  curriculumId: number;
-  semesterId: number;
-  semesterNumber: number;
-  courseCode: string;
-  courseName: string;
-  credits: number;
-  semesterCode: string;
-  semesterName: string;
-  schedules: ClassSchedule[];
-}
-
-export interface ClaimableClassResponse {
-  items: ClaimableClass[];
-}
-
-// --- Daftar dosen (GET /dosen/lecturers) — untuk substitute ---
-export interface LecturerBrief {
-  id: number; // lecturers.id
-  userId: number;
-  nidn: string;
-  fullName: string;
-  email: string;
-  prodiCode: string;
-}
-
-export interface LecturersResponse {
-  items: LecturerBrief[];
-}
-
-// --- Absensi (GET/POST /attendance/sessions, GET /attendance/sessions/:id/records, PUT /attendance/records/:id) ---
-export type AttendanceStatus = 'hadir' | 'tidak_hadir' | 'izin' | 'sakit' | 'belum_absen';
-
-export interface AttendanceSession {
-  id: number;
-  scheduleId: number;
-  sessionDate: string;
-  topic: string | null;
-  isOpen: boolean;
-  classCode: string;
-  courseCode: string;
-  courseName: string;
-  meetingNumber: number;
-  totalRecords: number;
-  hadirCount: number;
-  classId?: number;
-}
-
-export interface CreateAttendanceInput {
-  scheduleId: number;
-  topic: string;
-}
-
-export interface AttendanceRecordItem {
-  studentId: number;
-  nim: string;
-  fullName: string;
-  email: string;
-  recordId: number | null;
-  status: AttendanceStatus;
-  markedAt: string | null;
-  markedBy: number | null;
-}
-
-export interface AttendanceRecordsResponse {
-  session: {
-    id: number;
-    sessionDate: string;
-    topic: string | null;
-    isOpen: boolean;
-    qrCode: string | null;
-  };
-  records: AttendanceRecordItem[];
-}
-
-export interface UpdateAttendanceRecordInput {
-  status: 'hadir' | 'tidak_hadir' | 'izin' | 'sakit';
-}
-
-/** GET /attendance/recap — rekap kehadiran per mahasiswa per kelas (dosen pengampu). */
-export interface AttendanceRecapItem {
-  studentId: number;
-  nim: string;
-  studentName: string;
-  hadirCount: number;
-  izinCount: number;
-  sakitCount: number;
-  alphaCount: number;
-  totalSessions: number;
-  attendanceRate: number; // persentase (hadirCount / totalSessions * 100)
-}
-
-export type AttendanceRecapResponse = AttendanceRecapItem[];
-
-// --- Skripsi (POST /skripsi/proposals, GET /skripsi/proposals, etc.) ---
-export type SkripsiStatus =
-  | 'draft'
-  | 'diajukan'
-  | 'dilihat_dosen'
-  | 'disetujui_dosen'
-  | 'ditolak_dosen'
-  | 'disetujui_admin'
-  | 'ditolak_admin'
-  | 'dalam_bimbingan'
-  | 'siap_sidang'
-  | 'lulus'
-  | 'tidak_lulus';
-
-export interface SkripsiProposalStatus {
-  id: number;
-  proposalId: number;
-  status: SkripsiStatus;
-  notes: string | null;
-  changedBy: number;
-  changedByName: string;
-  changedAt: string;
-}
-
-export interface SkripsiSupervisor {
-  id: number;
-  fullName: string;
-  nidn: string;
-  nik: string;
-  prodiName: string;
-  isPrimary?: boolean;
-}
-
+/** Skripsi Proposal (Dosen Wali/Admin view) */
 export interface SkripsiProposal {
   id: number;
   studentId: number;
-  supervisorId: number;
   nim: string;
-  studentStatus: string;
-  studentName: string;
-  studentEmail: string;
-  supervisorName: string;
-  supervisorEmail: string;
+  fullName: string;
   prodiName: string;
   title: string;
-  proposalFile: string | null;
-  status: SkripsiStatus;
-  statusNotes: string | null;
-  reviewedBy: number | null;
-  reviewedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  supervisors?: SkripsiSupervisor[];
+  status: 'pending' | 'disetujui' | 'ditolak' | 'lulus';
+  abstract: string | null;
+  submissionDate: string;
+  approvalDate: string | null;
+  lecturerId: number | null;
+  lecturerName: string | null;
 }
 
-// --- Bimbingan (GET /guidance/mentees, GET/POST /guidance/sessions) ---
-export interface Mentee {
-  studentId: number;
-  nim: string;
-  studentName: string;
-  email: string;
-  status: string;
-  prodiCode: string;
+export interface SkripsiProposalsResponse {
+  items: SkripsiProposal[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
-export interface GuidanceSession {
-  id: number;
-  studentId: number;
-  nim: string;
-  studentName: string;
-  studentEmail: string;
-  prodiCode: string;
-  lecturerId: number;
-  lecturerName: string;
-  sessionDate: string;
-  notes: string | null;
-  progress: 'berjalan' | 'selesai' | 'bermasalah';
-  isVisibleToStudent: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateGuidanceInput {
-  studentId: number;
-  sessionDate: string; // YYYY-MM-DD
-  progress: 'berjalan' | 'selesai' | 'bermasalah';
-  notes?: string;
-}
-
-// --- Skripsi guidance log (POST/GET /skripsi/proposals/:id/logs) ---
 export interface SkripsiGuidanceLog {
   id: number;
   proposalId: number;
-  lecturerId: number;
-  lecturerName: string;
-  sessionDate: string;
+  date: string;
   notes: string;
+  isFinal: boolean;
   createdAt: string;
 }
 
-export interface CreateSkripsiGuidanceLogInput {
-  sessionDate: string; // YYYY-MM-DD
-  notes: string;
-}
-
-// --- Substitute (GET/POST /substitute) ---
-export interface SubstituteRequest {
-  id: number;
-  originalLecturerId: number; // lecturers.id
-  originalLecturerName: string;
-  substituteLecturerId: number | null;
-  substituteLecturerName: string | null;
-  classId: number;
-  classCode: string;
-  scheduleId: number;
-  meetingNumber: number;
-  scheduledDate: string;
-  topic: string | null;
-  courseCode: string;
-  courseName: string;
-  reason: string | null;
-  status: 'active' | 'cancelled';
-  requestedByName: string;
-  approvedByName: string | null;
-  createdAt: string;
-}
-
-export interface SubstituteRequestResponse {
-  items: SubstituteRequest[];
-}
-
-export interface CreateSubstituteInput {
-  originalLecturerId: number;
-  substituteLecturerId: number;
-  classId: number;
-  scheduleId: number;
+export interface SkripsiEligibility {
+  eligible: boolean;
   reason?: string;
-}
-
-// --- Nilai per kelas (GET /grades/class/:classId, POST /grades) ---
-export interface GradeClassItem {
-  id: number;
-  krsItemId: number;
-  tugasScore: number | null;
-  utsScore: number | null;
-  uasScore: number | null;
-  finalScore: number | null;
-  gradeLetter: string | null;
-  gradePoint: number | null;
-  remedialTugasScore: number | null;
-  remedialUtsScore: number | null;
-  remedialUasScore: number | null;
-  inputBy: number;
-  inputAt: string;
-  updatedBy: number | null;
-  updatedAt: string | null;
-  student: { nim: string; name: string };
-}
-
-export interface GradesClassResponse {
-  class: { id: number; classCode: string; courseCode: string; courseName: string };
-  items: GradeClassItem[];
-}
-
-export interface GradeInput {
-  krsItemId: number;
-  tugasScore: number | null;
-  utsScore: number | null;
-  uasScore: number | null;
-  remedialTugasScore: number | null;
-  remedialUtsScore: number | null;
-  remedialUasScore: number | null;
+  totalSks: number;
+  currentSemester: number;
 }
