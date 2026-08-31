@@ -78,7 +78,7 @@ interface TranscriptData {
  * Ambil data transkrip lengkap untuk mahasiswa.
  * Matkul diulang: hanya grade terbaik per course_code masuk IPS/IPK,
  * attempt lama ditandai isRepeated=true (tidak dihitung).
- * Optional: filter by academicYearId (tahun akademik).
+ * Optional: filter by academicYearId (tahun akademik semester).
  */
 async function fetchTranscriptData(
   studentId: number,
@@ -106,8 +106,10 @@ async function fetchTranscriptData(
     academic_year_code: string;
   };
 
-  // Build academic year filter
-  const ayFilter = academicYearId ? `AND s.academic_year_id = $2` : '';
+  // Build academic year filter on krs_periods -> semesters -> academic_years
+  const ayFilter = academicYearId
+    ? `AND kp.semester_id IN (SELECT id FROM semesters WHERE academic_year_id = $2)`
+    : '';
   const params = academicYearId ? [studentId, academicYearId] : [studentId];
 
   const gradesRes = await pgPool.query(
