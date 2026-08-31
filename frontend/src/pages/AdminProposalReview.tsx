@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState, useCallback, useMemo } from 'react';
 import { getSkripsiProposals, updateSkripsiProposal, getSkripsiProposalStatuses } from '../lib/api';
-import type { SkripsiProposal, SkripsiStatus, SkripsiProposalStatus, SkripsiStatusHistory, SkripsiSupervisor } from '../lib/types';
+import type { SkripsiProposal, SkripsiStatus, SkripsiProposalStatus } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
 

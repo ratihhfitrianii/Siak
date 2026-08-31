@@ -550,11 +550,11 @@ export interface SalarySlipsResponse {
 }
 
 export interface PayrollsResponse {
-  items: any[];
+  items: unknown[];
 }
 
 export interface LecturersResponse {
-  items: any[];
+  items: unknown[];
 }
 
 export interface ScheduleAvailability {
@@ -580,7 +580,7 @@ export interface CreateAttendanceInput {
 }
 
 export interface AttendanceRecordsResponse {
-  items: any[];
+  items: unknown[];
 }
 
 export interface UpdateAttendanceRecordInput {
@@ -589,7 +589,7 @@ export interface UpdateAttendanceRecordInput {
 }
 
 export interface AttendanceRecapResponse {
-  items: any[];
+  items: unknown[];
 }
 
 export interface Mentee {
@@ -633,7 +633,7 @@ export interface CreateSubstituteInput {
 }
 
 export interface GradesClassResponse {
-  items: any[];
+  items: unknown[];
 }
 
 export interface GradeInput {
