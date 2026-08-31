@@ -523,6 +523,31 @@ export interface ClassSchedule {
   enrolledCount?: number;
 }
 
+/** MyClass — class yang diampu dosen (legacy name used by components) */
+export interface MyClass {
+  id: number;
+  classCode: string;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  semesterNumber: number;
+  semesterCode: string;
+  semesterName: string;
+  semesterId: number;
+  prodiName: string;
+  dayOfWeek: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  room: string | null;
+  schedules: ClassSchedule[];
+}
+
+export interface MyClassesResponse {
+  items: MyClass[];
+  class?: MyClass;
+  schedules?: ClassSchedule[];
+}
+
 export interface ClaimableClass {
   id: number;
   classCode: string;
@@ -547,21 +572,6 @@ export interface ClaimableClassResponse {
   items: ClaimableClass[];
 }
 
-export interface MyClassesResponse {
-  class: {
-    id: number;
-    classCode: string;
-    courseCode: string;
-    courseName: string;
-    credits: number;
-    semesterNumber: number;
-    semesterCode: string;
-    semesterName: string;
-    prodiName: string;
-  };
-  schedules: ClassSchedule[];
-}
-
 export interface SalarySlip {
   id: number;
   period: string;
@@ -570,6 +580,17 @@ export interface SalarySlip {
   totalAmount: number;
   status: 'draft' | 'approved' | 'paid';
   paidAt: string | null;
+  /** Extended fields used by FinancePayrollPage */
+  lecturerId?: number;
+  lecturerName?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  baseSalary?: number;
+  honorPerMeeting?: number;
+  totalMeetings?: number;
+  totalHonor?: number;
+  deductions?: number;
+  netAmount?: number;
 }
 
 export interface SalarySlipsResponse {
@@ -594,6 +615,12 @@ export interface PayrollsResponse {
 
 export interface LecturersResponse {
   items: unknown[];
+}
+
+export interface LecturerBrief {
+  id: number;
+  fullName: string;
+  nidn: string | null;
 }
 
 export interface ScheduleAvailability {
@@ -698,7 +725,7 @@ export interface SubstituteRequest {
   courseCode: string;
   courseName: string;
   reason: string | null;
-  status: 'active' | 'cancelled';
+  status: 'active' | 'cancelled' | 'pending' | 'approved' | 'rejected';
   requestedByName: string;
   approvedByName: string | null;
   createdAt: string;
@@ -745,6 +772,7 @@ export interface LecturerCourseAvailableResponse {
 
 export interface CourseSelectionInput {
   classIds: number[];
+  curriculumId?: number;
 }
 
 export interface CourseSelectionResult {
@@ -837,6 +865,15 @@ export type SkripsiProposalStatus =
   | 'lulus'
   | 'tidak_lulus';
 
+/** Extended status object for UI (used by MahasiswaAjukanBimbingan) */
+export interface SkripsiStatusDetail {
+  id: number;
+  status: SkripsiProposalStatus;
+  notes: string | null;
+  changedByName: string;
+  changedAt: string;
+}
+
 export type SkripsiStatus = SkripsiProposalStatus;
 
 export interface SkripsiProposalsResponse {
@@ -883,4 +920,5 @@ export interface SkripsiSupervisor {
   id: number;
   fullName: string;
   nidn: string;
+  prodiName?: string;
 }
