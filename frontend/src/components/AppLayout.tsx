@@ -713,8 +713,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <div key={item.path}>
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
                       // Keluhan: buka dropdown lain → dropdown sebelumnya tertutup otomatis (accordion)
+                      // Jika sidebar collapsed, auto-expand sebelum buka submenu
+                      if (sidebarCollapsed) {
+                        setSidebarCollapsed(false);
+                      }
                       setExpandedMenus((prev) => {
                         const next = new Set(prev);
                         if (next.has(item.path)) {
@@ -724,8 +728,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
                           next.add(item.path);
                         }
                         return next;
-                      })
-                    }
+                      });
+                    }}
                     className={`group relative flex h-10 shrink-0 w-full items-center rounded-md transition cursor-pointer ${
                       sidebarCollapsed ? 'justify-center' : 'justify-start gap-2 px-2.5'
                     } ${
