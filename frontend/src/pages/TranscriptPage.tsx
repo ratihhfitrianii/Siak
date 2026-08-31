@@ -99,7 +99,9 @@ export function TranscriptPage() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [studentId]);
 
   // Group by semester
@@ -200,7 +202,12 @@ export function TranscriptPage() {
           ) : (
             <>
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
               </svg>
               Download Semua
             </>
@@ -228,7 +235,8 @@ export function TranscriptPage() {
                 <div>
                   <h2 className="font-semibold text-slate-900">Semester {currentSemester}</h2>
                   <p className="text-sm text-slate-600">
-                    SKS: {currentStats.sks} · IP: {currentStats.ipk === null ? '—' : currentStats.ipk.toFixed(2)}
+                    SKS: {currentStats.sks} · IP:{' '}
+                    {currentStats.ipk === null ? '—' : currentStats.ipk.toFixed(2)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -245,8 +253,18 @@ export function TranscriptPage() {
                       </>
                     ) : (
                       <>
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
                         </svg>
                         Download Semester
                       </>
@@ -259,20 +277,36 @@ export function TranscriptPage() {
                 <table className="w-full min-w-[600px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
-                      <th scope="col" className="py-2 pr-3 font-medium w-10 text-center">No</th>
-                      <th scope="col" className="py-2 pr-3 font-medium">Mata Kuliah</th>
-                      <th scope="col" className="py-2 pr-3 font-medium w-20 text-center">SKS</th>
-                      <th scope="col" className="py-2 pr-3 font-medium w-28 text-center">Angka</th>
-                      <th scope="col" className="py-2 pr-3 font-medium w-28 text-center">Huruf</th>
-                      <th scope="col" className="py-2 font-medium w-28 text-center">Status</th>
+                      <th scope="col" className="py-2 pr-3 font-medium w-10 text-center">
+                        No
+                      </th>
+                      <th scope="col" className="py-2 pr-3 font-medium">
+                        Mata Kuliah
+                      </th>
+                      <th scope="col" className="py-2 pr-3 font-medium w-20 text-center">
+                        SKS
+                      </th>
+                      <th scope="col" className="py-2 pr-3 font-medium w-28 text-center">
+                        Angka
+                      </th>
+                      <th scope="col" className="py-2 pr-3 font-medium w-28 text-center">
+                        Huruf
+                      </th>
+                      <th scope="col" className="py-2 font-medium w-28 text-center">
+                        Status
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {currentItems.map((it, idx) => (
                       <tr key={it.id}>
-                        <td className="py-3 pr-3 font-medium text-slate-900 text-center">{idx + 1}</td>
+                        <td className="py-3 pr-3 font-medium text-slate-900 text-center">
+                          {idx + 1}
+                        </td>
                         <td className="py-3 pr-3 text-slate-700">{it.course.name}</td>
-                        <td className="py-3 pr-3 text-slate-600 text-center">{it.course.credits}</td>
+                        <td className="py-3 pr-3 text-slate-600 text-center">
+                          {it.course.credits}
+                        </td>
                         <td className="py-3 pr-3 text-center">
                           {it.gradePoint === null ? '—' : it.gradePoint.toFixed(2)}
                         </td>
@@ -329,7 +363,12 @@ export function TranscriptPage() {
                             stroke="currentColor"
                             viewBox="0 0 24 24"
                           >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
                           </svg>
                         </div>
                         <div className="mt-1 text-xs text-slate-500 flex gap-3">
