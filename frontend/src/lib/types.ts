@@ -496,21 +496,239 @@ export interface AnnouncementsResponse {
   };
 }
 
-/** Skripsi Proposal (Dosen Wali/Admin view) */
+export interface CreateAnnouncementInput {
+  title: string;
+  message: string;
+  targetRoles: string[];
+  priority?: number;
+  isActive?: boolean;
+  expiresAt?: string | null;
+}
+
+/* ==== T3.2 & Dosen Modules ==== */
+
+export interface ClassSchedule {
+  id: number;
+  classCode: string;
+  course: { code: string; name: string; credits: number };
+  room: string | null;
+  dayOfWeek: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  enrolledCount: number;
+}
+
+export interface ClaimableClass {
+  id: number;
+  classCode: string;
+  course: { code: string; name: string; credits: number };
+  semesterCode: string;
+  capacity: number;
+  currentEnrolled: number;
+}
+
+export interface ClaimableClassResponse {
+  items: ClaimableClass[];
+}
+
+export interface MyClassesResponse {
+  items: ClassSchedule[];
+}
+
+export interface SalarySlip {
+  id: number;
+  period: string;
+  basicSalary: number;
+  honorarium: number;
+  totalAmount: number;
+  status: 'draft' | 'approved' | 'paid';
+  paidAt: string | null;
+}
+
+export interface SalarySlipsResponse {
+  items: SalarySlip[];
+}
+
+export interface PayrollsResponse {
+  items: any[];
+}
+
+export interface LecturersResponse {
+  items: any[];
+}
+
+export interface ScheduleAvailability {
+  id: number;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
+export interface AttendanceSession {
+  id: number;
+  classId: number;
+  meetingNumber: number;
+  date: string;
+  topic: string | null;
+  status: 'open' | 'closed';
+}
+
+export interface CreateAttendanceInput {
+  classId: number;
+  meetingNumber: number;
+  topic?: string;
+}
+
+export interface AttendanceRecordsResponse {
+  items: any[];
+}
+
+export interface UpdateAttendanceRecordInput {
+  status: 'hadir' | 'izin' | 'sakit' | 'alpa';
+  notes?: string;
+}
+
+export interface AttendanceRecapResponse {
+  items: any[];
+}
+
+export interface Mentee {
+  id: number;
+  nim: string;
+  fullName: string;
+  prodiName: string;
+  currentSemester: number;
+  ipk: number;
+}
+
+export interface GuidanceSession {
+  id: number;
+  studentId: number;
+  date: string;
+  notes: string;
+}
+
+export interface CreateGuidanceInput {
+  studentId: number;
+  date: string;
+  notes: string;
+}
+
+export interface SubstituteRequest {
+  id: number;
+  classId: number;
+  targetDate: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface SubstituteRequestResponse {
+  items: SubstituteRequest[];
+}
+
+export interface CreateSubstituteInput {
+  classId: number;
+  targetDate: string;
+  reason: string;
+}
+
+export interface GradesClassResponse {
+  items: any[];
+}
+
+export interface GradeInput {
+  studentId: number;
+  tugasScore?: number;
+  utsScore?: number;
+  uasScore?: number;
+}
+
+export interface LecturerCourseAvailable {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+}
+
+export interface LecturerCourseAvailableResponse {
+  items: LecturerCourseAvailable[];
+}
+
+export interface CourseSelectionInput {
+  classIds: number[];
+}
+
+export interface CourseSelectionResult {
+  success: boolean;
+  message?: string;
+}
+
+export interface MyCourseSelection {
+  id: number;
+  classId: number;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface MyCourseSelectionsResponse {
+  items: MyCourseSelection[];
+}
+
+export interface CourseSelectionForReview {
+  id: number;
+  lecturerId: number;
+  nik: string;
+  lecturerName: string;
+  prodiName: string;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  semesterNumber: number;
+  semesterCode: string;
+  isMandatory: boolean;
+  priority: number;
+  status: 'belum_diajukan' | 'diajukan' | 'diterima' | 'ditolak';
+  reviewedByName: string | null;
+  reviewedAt: string | null;
+}
+
+export interface CourseSelectionsForReviewResponse {
+  items: CourseSelectionForReview[];
+}
+
+/* ==== Skripsi (T4 & T5) ==== */
+
 export interface SkripsiProposal {
   id: number;
   studentId: number;
   nim: string;
   fullName: string;
+  studentName: string; // alias for fullName in some contexts
   prodiName: string;
   title: string;
-  status: 'pending' | 'disetujui' | 'ditolak' | 'lulus';
+  status: SkripsiProposalStatus;
+  statusNotes: string | null;
   abstract: string | null;
+  proposalFile: string | null;
   submissionDate: string;
   approvalDate: string | null;
-  lecturerId: number | null;
-  lecturerName: string | null;
+  createdAt: string;
+  supervisors?: SkripsiSupervisor[];
 }
+
+export type SkripsiProposalStatus =
+  | 'draft'
+  | 'diajukan'
+  | 'dilihat_dosen'
+  | 'disetujui_dosen'
+  | 'ditolak_dosen'
+  | 'disetujui_admin'
+  | 'ditolak_admin'
+  | 'dalam_bimbingan'
+  | 'siap_sidang'
+  | 'lulus'
+  | 'tidak_lulus';
+
+export type SkripsiStatus = SkripsiProposalStatus;
 
 export interface SkripsiProposalsResponse {
   items: SkripsiProposal[];
@@ -531,9 +749,29 @@ export interface SkripsiGuidanceLog {
   createdAt: string;
 }
 
+export interface CreateSkripsiGuidanceLogInput {
+  date: string;
+  notes: string;
+  isFinal?: boolean;
+}
+
 export interface SkripsiEligibility {
   eligible: boolean;
   reason?: string;
   totalSks: number;
   currentSemester: number;
+}
+
+export interface SkripsiStatusHistory {
+  id: number;
+  status: string;
+  notes: string | null;
+  changedByName: string;
+  changedAt: string;
+}
+
+export interface SkripsiSupervisor {
+  id: number;
+  fullName: string;
+  nidn: string;
 }
