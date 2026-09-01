@@ -75,6 +75,20 @@ interface TranscriptData {
 }
 
 /**
+ * Ubah semesterCode "2025/2026-1" → "2025/2026 Ganjil".
+ * Format input: `<TA>-<n>` dengan n ganjil = Ganjil, n genap = Genap.
+ * Jika tidak cocok, kembalikan input apa adanya.
+ */
+function formatSemesterCode(semesterCode: string): string {
+  const dash = semesterCode.lastIndexOf('-');
+  if (dash <= 0) return semesterCode;
+  const ta = semesterCode.slice(0, dash);
+  const num = parseInt(semesterCode.slice(dash + 1), 10);
+  if (Number.isNaN(num)) return semesterCode;
+  return `${ta} ${num % 2 === 1 ? 'Ganjil' : 'Genap'}`;
+}
+
+/**
  * Ambil data transkrip lengkap untuk mahasiswa.
  * Matkul diulang: hanya grade terbaik per course_code masuk IPS/IPK,
  * attempt lama ditandai isRepeated=true (tidak dihitung).
@@ -401,7 +415,7 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
         doc.addPage();
         y = 50;
       }
-      text(`${sem.semesterName} (${sem.semesterCode})`, 50, y, { size: 12, bold: true });
+      text(formatSemesterCode(sem.semesterCode), 50, y, { size: 12, bold: true });
       y += 24;
 
       const headerRowHeight = 18;
