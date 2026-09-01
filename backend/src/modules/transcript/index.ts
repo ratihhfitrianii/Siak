@@ -301,51 +301,90 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
 
     // SEMESTER TABLES
     // Kolom: No, Mata Kuliah, SKS, Angka, Huruf, Status (Kode MK dihapus per keluhan)
-    // Keluhan: kolom "No." terlalu lebar — kolom No sengaja dibuat sempit (12pt)
-    // agar hanya muat nomor urut 1-2 digit, sisanya dialihkan ke kolom Mata Kuliah.
-    const colWidths = [12, 268, 40, 60, 50, 60];
+    // Keluhan: jarak/lebar kolom berantakan (SKS menimpa Mata Kuliah, SKS tidak terisi).
+    // Fixed ulang: lebar proporsional, row height diperbesar, garis pembatas antar kolom,
+    // dan gunakan fontSize 8 dgn truncate yang lebih akurat (Helvetica 8pt ≈ 4.4px/char).
+    const colWidths = [22, 250, 38, 55, 48, 82];
     const headers = ['No', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
-    // Cumulative x-position per column for pdfkit (base 50 margin).
+    // Base x = margin 50. colStarts[i] = x kiri kolom ke-i.
     const colStarts: number[] = [];
-    for (const w of colWidths) {
-      colStarts.push(colStarts.length === 0 ? 50 : colStarts[colStarts.length - 1]! + w);
+    {
+      let acc = 50;
+      for (const w of colWidths) {
+        colStarts.push(acc);
+        acc += w;
+      }
     }
 
-    // Helper: truncate text to fit width (approx 1 char = 4.8pt at fontSize 8)
+    // Truncate text agar muat 1 baris dalam kolom (approx 4.4pt per char @8pt Helvetica).
     const truncate = (value: string, maxWidth: number): string => {
-      const charWidth = 4.8; // approximate for Helvetica 8pt
+      if (value.length === 0) return value;
+      const charWidth = 4.4;
       const maxChars = Math.floor(maxWidth / charWidth);
       if (value.length <= maxChars) return value;
       return value.slice(0, maxChars - 1) + '…';
     };
 
-    // Helper: draw table cell (no wrap, single line, truncated)
-    const drawCell = (
-      value: string,
-      colIndex: number,
+    // Draw seluruh tabel dengan batas antar kolom agar tidak terlihat berantakan.
+    const drawTableRow = (
+      cells: string[],
       yPos: number,
-      options: { bold?: boolean; color?: string; align?: 'left' | 'center' | 'right' } = {},
+      rowHeight: number,
+      isHeader: boolean,
+      opts: { align?: Array<'left' | 'center' | 'right'>; color?: string } = {},
     ) => {
-      const { bold = false, color = '#000', align = 'left' } = options;
-      const x = colStarts[colIndex]!;
-      const w = colWidths[colIndex]!;
-      const padding = 2;
-      const textX =
-        align === 'center' ? x + w / 2 : align === 'right' ? x + w - padding : x + padding;
-      const textAlign = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
-      const maxWidth = w - padding * 2;
-
+      const alignCol = opts.align ?? ['center', 'left', 'center', 'center', 'center', 'center'];
+      const color = opts.color ?? '#000';
+      // Garis horizontal atas baris
       doc
-        .font(bold ? 'Helvetica-Bold' : 'Helvetica')
-        .fontSize(8)
-        .fillColor(color);
+        .moveTo(50, yPos)
+        .lineTo(50 + colWidths.reduce((a, b) => a + b, 0), yPos)
+        .strokeColor('#999')
+        .lineWidth(0.5)
+        .stroke();
 
-      // Truncate to fit column width (single line)
-      const truncated = truncate(value, maxWidth);
-      doc.text(truncated, textX, yPos, {
-        width: maxWidth,
-        align: textAlign,
+      cells.forEach((cell, i) => {
+        const x = colStarts[i]!;
+        const w = colWidths[i]!;
+        const a = alignCol[i] ?? 'left';
+        const padding = 3;
+        const textX = a === 'center' ? x + w / 2 : a === 'right' ? x + w - padding : x + padding;
+        const textAlign = a === 'center' ? 'center' : a === 'right' ? 'right' : 'left';
+        const maxWidth = w - padding * 2;
+
+        // Header: latar abu-abu tipis agar kolom terlihat terpisah
+        if (isHeader) {
+          doc.fillColor('#f1f5f9').rect(x, yPos, w, rowHeight).fill();
+        }
+
+        doc
+          .font(isHeader ? 'Helvetica-Bold' : 'Helvetica')
+          .fontSize(8)
+          .fillColor(color);
+        doc.text(truncate(cell, maxWidth), textX, yPos, {
+          width: maxWidth,
+          align: textAlign,
+          lineBreak: false,
+          height: rowHeight,
+          ellipsis: false,
+        });
       });
+
+      // Garis vertikal pembatas antar kolom (termasuk tepi kanan)
+      for (let i = 0; i <= colWidths.length; i++) {
+        const x =
+          i === 0
+            ? 50
+            : i === colWidths.length
+              ? 50 + colWidths.reduce((a, b) => a + b, 0)
+              : colStarts[i]!;
+        doc
+          .moveTo(x, yPos)
+          .lineTo(x, yPos + rowHeight)
+          .strokeColor('#999')
+          .lineWidth(0.5)
+          .stroke();
+      }
     };
 
     for (const sem of data.semesters) {
@@ -354,15 +393,13 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
         y = 50;
       }
       text(`${sem.semesterName} (${sem.semesterCode})`, 50, y, { size: 12, bold: true });
-      y += 20;
+      y += 24;
 
-      // Header row
-      headers.forEach((h, i) => {
-        drawCell(h, i, y, { bold: true, align: i === 0 || i >= 3 ? 'center' : 'left' });
+      const headerRowHeight = 18;
+      drawTableRow(headers, y, headerRowHeight, true, {
+        align: ['center', 'left', 'center', 'center', 'center', 'center'],
       });
-      y += 16;
-      line(y, '#333');
-      y += 4;
+      y += headerRowHeight;
 
       let rowNum = 0;
       for (const course of sem.courses) {
@@ -380,23 +417,21 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
           course.gradeLetter || '-',
           status,
         ];
-        rowData.forEach((v, i) => {
-          drawCell(v, i, y, {
-            align: i === 0 || i >= 3 ? 'center' : 'left',
-            color: course.isRepeated ? '#dc2626' : '#000',
-          });
+        drawTableRow(rowData, y, 16, false, {
+          align: ['center', 'left', 'center', 'center', 'center', 'center'],
+          color: course.isRepeated ? '#dc2626' : '#000',
         });
-        y += 14;
+        y += 16;
       }
 
-      y += 6;
+      y += 8;
       text(
         `IPS: ${sem.ips.toFixed(2)}  |  SKS Lulus: ${sem.sksLulus}  |  SKS Diambil: ${sem.sksDiambil}`,
         50,
         y,
         { size: 9, bold: true },
       );
-      y += 20;
+      y += 22;
       line(y);
       y += 10;
     }
