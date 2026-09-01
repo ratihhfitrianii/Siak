@@ -291,9 +291,9 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
 
     // SEMESTER TABLES
     // Kolom: No, Mata Kuliah, SKS, Angka, Huruf, Status (Kode MK dihapus per keluhan)
-    // Keluhan: kolom "No." terlalu lebar — cukup 16pt untuk nomor urut 1-2 digit.
-    // Fixed: gunakan kolom No 16pt dengan absolute positioning, manual truncate (no wrap)
-    const colWidths = [16, 264, 40, 60, 50, 60];
+    // Keluhan: kolom "No." terlalu lebar — kolom No sengaja dibuat sempit (12pt)
+    // agar hanya muat nomor urut 1-2 digit, sisanya dialihkan ke kolom Mata Kuliah.
+    const colWidths = [12, 268, 40, 60, 50, 60];
     const headers = ['No', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
     // Cumulative x-position per column for pdfkit (base 50 margin).
     const colStarts: number[] = [];
