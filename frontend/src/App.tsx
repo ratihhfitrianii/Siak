@@ -45,6 +45,12 @@ const NotificationsPage = lazy(() =>
 const TranscriptPage = lazy(() =>
   import('./pages/TranscriptPage').then((m) => ({ default: m.TranscriptPage })),
 );
+const RiwayatStudiPage = lazy(() =>
+  import('./pages/RiwayatStudiPage').then((m) => ({ default: m.RiwayatStudiPage })),
+);
+const JadwalKuliahPage = lazy(() =>
+  import('./pages/JadwalKuliahPage').then((m) => ({ default: m.JadwalKuliahPage })),
+);
 const UsersPage = lazy(() => import('./pages/UsersPage').then((m) => ({ default: m.UsersPage })));
 const AdminMasterPage = lazy(() =>
   import('./pages/AdminMasterPage').then((m) => ({ default: m.AdminMasterPage })),
@@ -288,6 +294,28 @@ export default function App() {
               <ProtectedRoute perm="transcript.view_own">
                 <AppLayout>
                   <TranscriptPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Riwayat Studi — list semua matkul + ringkasan */}
+          <Route
+            path="/hasil-studi/riwayat"
+            element={
+              <ProtectedRoute perm="transcript.view_own">
+                <AppLayout>
+                  <RiwayatStudiPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Jadwal Kuliah mahasiswa — jadwal + presensi per kelas */}
+          <Route
+            path="/jadwal-kuliah"
+            element={
+              <ProtectedRoute perm="krs.fill">
+                <AppLayout>
+                  <JadwalKuliahPage />
                 </AppLayout>
               </ProtectedRoute>
             }

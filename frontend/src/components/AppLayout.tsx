@@ -70,7 +70,8 @@ const MENU_ITEMS: {
     }) => boolean | Promise<boolean>;
   }[];
 }[] = [
-  // Profil mahasiswa — di bawah Dashboard di sidebar
+  // ===== Menu Mahasiswa (urutan: Profil, Hasil Studi, KRS, Virtual Absensi, Jadwal Kuliah, Keuangan) =====
+  // Profil mahasiswa
   {
     permissions: ['student.profile'],
     roles: ['mahasiswa'],
@@ -79,7 +80,40 @@ const MENU_ITEMS: {
     icon: 'user',
     description: 'Lihat & edit profil mahasiswa',
   },
-  // Virtual Absensi (sebelumnya "Check-In")
+  // Hasil Studi — Parent dropdown: KHS (transkrip) + Riwayat Studi (semua semester)
+  {
+    permissions: ['transcript.view_own', 'transcript.view_mentee'],
+    roles: ['mahasiswa'],
+    label: 'Hasil Studi',
+    path: '/hasil-studi',
+    icon: 'clipboard',
+    description: 'Riwayat dan transkrip nilai',
+    children: [
+      {
+        permissions: ['transcript.view_own', 'transcript.view_mentee'],
+        label: 'Kartu Hasil Studi (KHS)',
+        path: '/hasil-studi/transkrip',
+        icon: 'clipboard',
+        description: 'Kartu Hasil Studi per semester',
+      },
+      {
+        permissions: ['transcript.view_own'],
+        label: 'Riwayat Studi',
+        path: '/hasil-studi/riwayat',
+        icon: 'document',
+        description: 'Riwayat semua mata kuliah & ringkasan',
+      },
+    ],
+  },
+  // KRS — langsung ke halaman KRS
+  {
+    permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
+    label: 'KRS',
+    path: '/krs',
+    icon: 'document',
+    description: 'Kartu Rencana Studi',
+  },
+  // Virtual Absensi
   {
     permissions: ['krs.fill'],
     roles: ['mahasiswa'],
@@ -88,7 +122,42 @@ const MENU_ITEMS: {
     icon: 'check',
     description: 'Absensi check-in kehadiran',
   },
-  // Skripsi — Parent dropdown
+  // Jadwal Kuliah — jadwal kelas & presensi per kelas
+  {
+    permissions: ['krs.fill'],
+    roles: ['mahasiswa'],
+    label: 'Jadwal Kuliah',
+    path: '/jadwal-kuliah',
+    icon: 'calendar',
+    description: 'Jadwal kuliah & presensi per kelas',
+  },
+  // Keuangan mahasiswa — parent dropdown (Tagihan + Pembayaran)
+  {
+    permissions: ['krs.fill'],
+    roles: ['mahasiswa'],
+    label: 'Keuangan',
+    path: '/keuangan/tagihan-saya',
+    icon: 'card',
+    description: 'Tagihan & riwayat pembayaran',
+    children: [
+      {
+        permissions: ['krs.fill'],
+        label: 'Tagihan',
+        path: '/keuangan/tagihan-saya',
+        icon: 'receipt',
+        description: 'Detail tagihan semester berjalan',
+      },
+      {
+        permissions: ['krs.fill'],
+        label: 'Pembayaran',
+        path: '/keuangan/pembayaran',
+        icon: 'card',
+        description: 'Riwayat pembayaran',
+      },
+    ],
+  },
+  // ===== Menu Lainnya (Admin, Dosen) =====
+  // Skripsi — Parent dropdown (mahasiswa)
   {
     permissions: ['thesis.submit'],
     roles: ['mahasiswa'],
@@ -97,7 +166,6 @@ const MENU_ITEMS: {
     icon: 'document',
     description: 'Manajemen skripsi',
     visible: async (user) => {
-      // Cek eligibility skripsi via API
       if (user.role !== 'mahasiswa') return false;
       try {
         const res = await fetch(
@@ -132,49 +200,6 @@ const MENU_ITEMS: {
       },
     ],
   },
-  // KRS — Parent dropdown
-  {
-    permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
-    label: 'KRS',
-    path: '/krs',
-    icon: 'document',
-    description: 'Kartu Rencana Studi',
-    children: [
-      {
-        permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
-        label: 'Kelola KRS',
-        path: '/krs',
-        icon: 'document',
-        description: 'Isi dan lihat Kartu Rencana Studi',
-      },
-      {
-        permissions: ['transcript.view_own'],
-        roles: ['mahasiswa'],
-        label: 'Kurikulum',
-        path: '/krs/kurikulum',
-        icon: 'clipboard',
-        description: 'Mata kuliah yang telah diambil',
-      },
-    ],
-  },
-  // Riwayat Studi — Parent dropdown (termasuk KHS)
-  {
-    permissions: ['transcript.view_own', 'transcript.view_mentee'],
-    roles: ['mahasiswa'],
-    label: 'Riwayat Studi',
-    path: '/hasil-studi',
-    icon: 'clipboard',
-    description: 'Riwayat dan transkrip nilai',
-    children: [
-      {
-        permissions: ['transcript.view_own', 'transcript.view_mentee'],
-        label: 'Kartu Hasil Studi (KHS)',
-        path: '/hasil-studi/transkrip',
-        icon: 'clipboard',
-        description: 'Kartu Hasil Studi (KHS)',
-      },
-    ],
-  },
   {
     permissions: ['user.manage'],
     label: 'User',
@@ -182,38 +207,12 @@ const MENU_ITEMS: {
     icon: 'users',
     description: 'Kelola pengguna sistem',
   },
-  // Keluhan #16: Master Data — admin sistem melihat master mahasiswa/dosen, input manual atau CSV.
   {
     permissions: ['user.manage'],
     label: 'Master',
     path: '/admin/master',
     icon: 'database',
     description: 'Master data mahasiswa & dosen',
-  },
-  // Keuangan mahasiswa — parent dropdown (Tagihan = tagihan semester aktif; Pembayaran = riwayat)
-  {
-    permissions: ['krs.fill'],
-    roles: ['mahasiswa'],
-    label: 'Keuangan',
-    path: '/keuangan/tagihan-saya',
-    icon: 'card',
-    description: 'Tagihan & riwayat pembayaran',
-    children: [
-      {
-        permissions: ['krs.fill'],
-        label: 'Tagihan',
-        path: '/keuangan/tagihan-saya',
-        icon: 'receipt',
-        description: 'Detail tagihan semester berjalan',
-      },
-      {
-        permissions: ['krs.fill'],
-        label: 'Pembayaran',
-        path: '/keuangan/pembayaran',
-        icon: 'card',
-        description: 'Riwayat pembayaran',
-      },
-    ],
   },
   {
     permissions: ['payment.update'],
