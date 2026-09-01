@@ -112,7 +112,9 @@ async function fetchTranscriptData(
   const params: unknown[] = [studentId];
   if (academicYearId) {
     params.push(academicYearId);
-    filters.push(`kp.semester_id IN (SELECT id FROM semesters WHERE academic_year_id = $${params.length})`);
+    filters.push(
+      `kp.semester_id IN (SELECT id FROM semesters WHERE academic_year_id = $${params.length})`,
+    );
   }
   if (semesterCode) {
     params.push(semesterCode);
