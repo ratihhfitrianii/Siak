@@ -177,12 +177,16 @@ export function RiwayatStudiPage() {
                   <td className="px-4 py-3 text-center font-bold text-slate-900">
                     {items.filter((it) => it.finalScore !== null).length}
                   </td>
-                  <td colSpan={2} className="px-4 py-3 text-right text-slate-600">
-                    IPK Kumulatif:{' '}
-                    <span className="font-bold text-emerald-700">
-                      {ipk !== null ? ipk.toFixed(2) : '-'}
-                    </span>
+                  <td colSpan={2} />
+                </tr>
+                <tr className="bg-slate-50">
+                  <td colSpan={3} className="px-4 py-3 font-semibold text-slate-600">
+                    IPK
                   </td>
+                  <td className="px-4 py-3 text-center font-bold text-emerald-700">
+                    {ipk !== null ? ipk.toFixed(2) : '-'}
+                  </td>
+                  <td colSpan={4} />
                 </tr>
               </tfoot>
             )}

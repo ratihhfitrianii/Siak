@@ -94,7 +94,7 @@ describe('RiwayatStudiPage', () => {
     expect(screen.getByText('Jumlah yang Sudah Ditempuh')).toBeInTheDocument();
     // Nilai SKS total sejajar kolom SKS
     expect(screen.getAllByText('6').length).toBeGreaterThan(0);
-    expect(screen.getByText(/IPK Kumulatif/)).toBeInTheDocument();
+    expect(screen.getByText(/IPK/)).toBeInTheDocument();
     // IPK 3.65 muncul di tfoot
     expect(screen.getAllByText('3.65').length).toBeGreaterThan(0);
   });
