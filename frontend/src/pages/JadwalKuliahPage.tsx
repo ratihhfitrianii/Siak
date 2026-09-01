@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ApiError, apiRequest, checkInAttendance } from '../lib/api';
-import type { MyKrs, MyKrsItem } from '../lib/types';
+import { useAuth } from '../auth/AuthContext';
+import { apiRequest, checkInAttendance } from '../lib/api';
+import type { GradeItem, MyKrs, MyKrsItem } from '../lib/types';
 import { Spinner } from '../components/Spinner';
 import { FormAlert } from '../components/ErrorInline';
 
@@ -20,16 +21,30 @@ function formatTime(t: string | null): string {
   return t.slice(0, 5);
 }
 
+/** Ubah semesterCode "2025/2026-1" → "2025/2026 Ganjil". */
+function formatSemester(semester: string | undefined | null): string {
+  if (!semester) return '-';
+  const m = /^(.+)-([12])$/.exec(semester.trim());
+  if (!m) return semester;
+  return `${m[1]} ${m[2] === '1' ? 'Ganjil' : 'Genap'}`;
+}
+
 /**
- * Halaman Jadwal Kuliah mahasiswa.
- * List mata kuliah yang dikontrak pada semester berjalan:
- * No, Mata Kuliah, SKS, Kelas, Nama Dosen, Ruang, Jam, Presensi.
- * Klik "Presensi" membuka popup check-in (sama seperti menu Virtual Absensi).
+ * Halaman Jadwal Kuliah mahasiswa — desain 2-panel seperti Transkrip.
+ * Panel kiri (2/3): jadwal kuliah semester berjalan + tombol presensi + popup
+ * Panel kanan (1/3): list semester yang telah diambil (dari data nilai)
  */
 export function JadwalKuliahPage() {
+  const { user } = useAuth();
+  const studentId = user?.studentId ?? null;
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [myKrs, setMyKrs] = useState<MyKrs | null>(null);
+
+  // Semesters dari data nilai (untuk panel kanan)
+  const [semesters, setSemesters] = useState<string[]>([]);
+  const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
 
   // State popup presensi
   const [presenceClass, setPresenceClass] = useState<MyKrsItem | null>(null);
@@ -41,27 +56,55 @@ export function JadwalKuliahPage() {
   const [pSuccess, setPSuccess] = useState<string | null>(null);
 
   useEffect(() => {
+    if (studentId === null) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    apiRequest<MyKrs>('/krs/my')
-      .then((data) => {
-        if (!cancelled) setMyKrs(data);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : 'Gagal memuat jadwal kuliah');
+    let krsFailed = false;
+
+    // Fetch kedua: KRS + data nilai (untuk list semester)
+    Promise.all([
+      apiRequest<MyKrs>('/krs/my').catch((err) => {
+        krsFailed = true;
+        setError(err instanceof Error ? err.message : 'Gagal memuat jadwal kuliah');
+        return null;
+      }),
+      apiRequest<{ items: GradeItem[] }>(`/grades/student/${studentId}`).catch(() => ({
+        items: [] as GradeItem[],
+      })),
+    ])
+      .then(([krs, grades]) => {
+        if (cancelled) return;
+        if (krsFailed) {
+          setLoading(false);
+          return;
         }
+        if (krs) setMyKrs(krs);
+        // Kumpulkan semester unik dari data nilai
+        const gradeItems = grades?.items ?? [];
+        const uniqueSemesters = [
+          ...new Set(gradeItems.map((g) => g.semester).filter(Boolean)),
+        ].sort();
+        setSemesters(uniqueSemesters);
+        // Default highlight: semester terbaru (yang sedang berjalan)
+        setSelectedSemester(uniqueSemesters[uniqueSemesters.length - 1] ?? null);
+        setLoading(false);
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+      .catch(() => {
+        if (!cancelled) {
+          setError('Gagal memuat data jadwal kuliah');
+          setLoading(false);
+        }
       });
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [studentId]);
 
-  const items = myKrs?.items ?? [];
+  // Items KRS dari semester berjalan
+  const krsItems = myKrs?.items ?? [];
 
   function openPresence(c: MyKrsItem) {
     setPresenceClass(c);
@@ -132,77 +175,129 @@ export function JadwalKuliahPage() {
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-4 py-3 font-medium text-center w-10">No</th>
-                <th className="px-4 py-3 font-medium">Mata Kuliah</th>
-                <th className="px-4 py-3 font-medium text-center w-14">SKS</th>
-                <th className="px-4 py-3 font-medium text-center w-20">Kelas</th>
-                <th className="px-4 py-3 font-medium">Nama Dosen</th>
-                <th className="px-4 py-3 font-medium text-center w-20">Ruang</th>
-                <th className="px-4 py-3 font-medium text-center w-28">Jam</th>
-                <th className="px-4 py-3 font-medium text-center w-24">Presensi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
-                    Belum ada mata kuliah yang dikontrak pada semester ini.
-                  </td>
-                </tr>
-              )}
-              {items.map((it, idx) => (
-                <tr
-                  key={it.id}
-                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
-                >
-                  <td className="px-4 py-3 text-center text-slate-500">{idx + 1}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-slate-800">{it.course.name}</div>
-                    <div className="font-mono text-xs text-slate-400">{it.course.code}</div>
-                  </td>
-                  <td className="px-4 py-3 text-center text-slate-700">{it.course.credits}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                      {it.classCode}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">{it.lecturerName ?? '-'}</td>
-                  <td className="px-4 py-3 text-center text-slate-700">{it.room ?? '-'}</td>
-                  <td className="px-4 py-3 text-center text-slate-700">
-                    {it.dayOfWeek ? (DAY_LABELS[it.dayOfWeek] ?? '-') : '-'} ·{' '}
-                    {formatTime(it.startTime)}–{formatTime(it.endTime)}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      type="button"
-                      onClick={() => openPresence(it)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-primary-700"
-                    >
-                      <svg
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+      {/* Main Layout: 2 Kolom */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Panel Kiri: Jadwal Kuliah Semester Terpilih (2/3 width) */}
+        <div className="lg:col-span-2 space-y-4">
+          {krsItems.length === 0 ? (
+            <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
+              <p className="text-slate-500">
+                Belum ada mata kuliah yang dikontrak pada semester ini.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl bg-white shadow-sm overflow-hidden">
+              <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                <h2 className="font-semibold text-slate-900">Jadwal Kuliah Semester Berjalan</h2>
+                <p className="text-sm text-slate-600">
+                  {krsItems.length} mata kuliah · Total{' '}
+                  {krsItems.reduce((s, c) => s + c.course.credits, 0)} SKS
+                </p>
+              </div>
+
+              <div className="p-6 overflow-x-auto">
+                <table className="w-full min-w-[700px] text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                      <th className="py-2 pr-3 font-medium w-10 text-center">No</th>
+                      <th className="py-2 pr-3 font-medium">Mata Kuliah</th>
+                      <th className="py-2 pr-3 font-medium text-center w-14">SKS</th>
+                      <th className="py-2 pr-3 font-medium text-center w-20">Kelas</th>
+                      <th className="py-2 pr-3 font-medium">Nama Dosen</th>
+                      <th className="py-2 pr-3 font-medium text-center w-20">Ruang</th>
+                      <th className="py-2 pr-3 font-medium text-center w-28">Jam</th>
+                      <th className="py-2 pr-3 font-medium text-center w-24">Presensi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {krsItems.map((it, idx) => (
+                      <tr
+                        key={it.id}
+                        className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      Presensi
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        <td className="py-3 pr-3 text-center text-slate-500">{idx + 1}</td>
+                        <td className="py-3 pr-3">
+                          <div className="font-medium text-slate-800">{it.course.name}</div>
+                          <div className="font-mono text-xs text-slate-400">{it.course.code}</div>
+                        </td>
+                        <td className="py-3 pr-3 text-center text-slate-700">
+                          {it.course.credits}
+                        </td>
+                        <td className="py-3 pr-3 text-center">
+                          <span className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                            {it.classCode}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-3 text-slate-700">{it.lecturerName ?? '-'}</td>
+                        <td className="py-3 pr-3 text-center text-slate-700">{it.room ?? '-'}</td>
+                        <td className="py-3 pr-3 text-center text-slate-700">
+                          {it.dayOfWeek ? (DAY_LABELS[it.dayOfWeek] ?? '-') : '-'} ·{' '}
+                          {formatTime(it.startTime)}–{formatTime(it.endTime)}
+                        </td>
+                        <td className="py-3 pr-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => openPresence(it)}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-primary-700"
+                          >
+                            <svg
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            Presensi
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Panel Kanan: Semester yang Telah Diambil (1/3 width) */}
+        <div className="lg:col-span-1">
+          <div className="rounded-2xl bg-white p-5 shadow-sm h-full sticky top-24">
+            <h3 className="font-semibold text-slate-900 mb-4">Tahun Akademik/Semester</h3>
+            {semesters.length === 0 ? (
+              <p className="text-sm text-slate-500">Belum ada riwayat semester.</p>
+            ) : (
+              <ul className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                {semesters.map((sem) => {
+                  const isActive = selectedSemester === sem;
+                  return (
+                    <li key={sem}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSemester(sem)}
+                        className={`w-full text-left p-3 rounded-lg transition-all ${
+                          isActive
+                            ? 'bg-primary-50 border border-primary-200 ring-1 ring-primary-200'
+                            : 'bg-slate-50 border border-slate-100 hover:bg-slate-100 hover:border-slate-200'
+                        }`}
+                      >
+                        <span
+                          className={`font-medium ${isActive ? 'text-primary-700' : 'text-slate-900'}`}
+                        >
+                          {formatSemester(sem)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
 

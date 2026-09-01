@@ -165,29 +165,28 @@ export function RiwayatStudiPage() {
                 </tr>
               ))}
             </tbody>
+            {/* Summary — sejajar kolom tabel otomatis */}
+            {sorted.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-slate-300 bg-slate-50">
+                  <td colSpan={3} className="px-4 py-3 font-semibold text-slate-600">
+                    Jumlah yang Sudah Ditempuh
+                  </td>
+                  <td className="px-4 py-3 text-center font-bold text-slate-900">{totalSks}</td>
+                  <td className="px-4 py-3 text-center" />
+                  <td className="px-4 py-3 text-center font-bold text-slate-900">
+                    {items.filter((it) => it.finalScore !== null).length}
+                  </td>
+                  <td colSpan={2} className="px-4 py-3 text-right text-slate-600">
+                    IPK Kumulatif:{' '}
+                    <span className="font-bold text-emerald-700">
+                      {ipk !== null ? ipk.toFixed(2) : '-'}
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
-        </div>
-
-        {/* Ringkasan di bagian bawah */}
-        <div className="border-t border-slate-200 bg-slate-50 px-4 py-4">
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-2 text-sm">
-            <div>
-              <span className="text-slate-500">Jumlah SKS Ditempuh: </span>
-              <span className="font-semibold text-slate-800">{totalSks} SKS</span>
-            </div>
-            <div>
-              <span className="text-slate-500">Jumlah Nilai Angka: </span>
-              <span className="font-semibold text-slate-800">
-                {items.filter((it) => it.finalScore !== null).length} matkul
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-500">IPK Kumulatif: </span>
-              <span className="font-semibold text-emerald-700">
-                {ipk !== null ? ipk.toFixed(2) : '-'}
-              </span>
-            </div>
-          </div>
         </div>
       </div>
     </div>

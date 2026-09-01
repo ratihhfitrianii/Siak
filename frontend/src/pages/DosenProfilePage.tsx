@@ -119,7 +119,7 @@ export function DosenProfilePage() {
 
   const detailRows: Array<[string, string]> = [
     ['Nama', profile.fullName],
-    ['NIK', profile.nik],
+    ['NIK / NIDN', profile.nik],
     ['Fakultas', profile.facultyName],
     ['Program Studi', `${profile.prodiCode} - ${profile.prodiName}`],
     ['No. HP', profile.phone || '-'],

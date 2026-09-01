@@ -4,6 +4,23 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { JadwalKuliahPage } from './JadwalKuliahPage';
 
+let mockUser: {
+  id: number;
+  email: string;
+  fullName: string;
+  role: string;
+  isWali: boolean;
+  isActive: boolean;
+  mustChangePassword: boolean;
+  studentId: number | null;
+  createdAt: string;
+  menu: string[];
+} | null;
+
+vi.mock('../auth/AuthContext', () => ({
+  useAuth: () => ({ user: mockUser, booting: false, logout: vi.fn() }),
+}));
+
 function jsonResponse(payload: unknown, status = 200) {
   return {
     ok: status >= 200 && status < 300,
@@ -54,7 +71,55 @@ describe('JadwalKuliahPage', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset();
-    fetchMock.mockResolvedValue(jsonResponse(krsPayload(ITEMS)));
+    mockUser = {
+      id: 7,
+      email: 'budi@kampus.ac.id',
+      fullName: 'Budi',
+      role: 'mahasiswa',
+      isWali: false,
+      isActive: true,
+      mustChangePassword: false,
+      studentId: 7,
+      createdAt: '2026-01-01T00:00:00Z',
+      menu: ['krs.fill'],
+    };
+    // Default: respond berdasarkan URL — /krs/my → KRS, /grades/student/:id → nilai
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/grades/student/')) {
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              items: [
+                {
+                  id: 1,
+                  krsItemId: 10,
+                  classId: 20,
+                  classCode: 'TI-101-A',
+                  course: { code: 'TI101', name: 'Pemrograman Dasar', credits: 3 },
+                  semester: '2024/2025-1',
+                  finalScore: 90,
+                  gradeLetter: 'A',
+                  gradePoint: 4.0,
+                },
+                {
+                  id: 2,
+                  krsItemId: 11,
+                  classId: 21,
+                  classCode: 'TI-102-A',
+                  course: { code: 'TI102', name: 'Struktur Data', credits: 3 },
+                  semester: '2024/2025-2',
+                  finalScore: 85,
+                  gradeLetter: 'B+',
+                  gradePoint: 3.3,
+                },
+              ],
+            },
+          }),
+        );
+      }
+      return Promise.resolve(jsonResponse(krsPayload(ITEMS)));
+    });
   });
 
   afterEach(() => {
@@ -114,11 +179,17 @@ describe('JadwalKuliahPage', () => {
 
   it('check-in dari popup — sukses', async () => {
     const user = userEvent.setup();
-    fetchMock
-      .mockResolvedValueOnce(jsonResponse(krsPayload(ITEMS)))
-      .mockResolvedValueOnce(
-        jsonResponse({ success: true, data: { message: 'Absensi berhasil dicatat!' } }),
-      );
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes('/grades/student/')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: [] } }));
+      }
+      if (url.includes('/attendance/check-in') && init?.method === 'POST') {
+        return Promise.resolve(
+          jsonResponse({ success: true, data: { message: 'Absensi berhasil dicatat!' } }),
+        );
+      }
+      return Promise.resolve(jsonResponse(krsPayload(ITEMS)));
+    });
     render(
       <MemoryRouter>
         <JadwalKuliahPage />
@@ -155,14 +226,20 @@ describe('JadwalKuliahPage', () => {
 
   it('check-in dari popup — error FORBIDDEN', async () => {
     const user = userEvent.setup();
-    fetchMock
-      .mockResolvedValueOnce(jsonResponse(krsPayload(ITEMS)))
-      .mockResolvedValueOnce(
-        jsonResponse(
-          { success: false, error: { code: 'FORBIDDEN', message: 'Sesi tidak dibuka' } },
-          403,
-        ),
-      );
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes('/grades/student/')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: [] } }));
+      }
+      if (url.includes('/attendance/check-in') && init?.method === 'POST') {
+        return Promise.resolve(
+          jsonResponse(
+            { success: false, error: { code: 'FORBIDDEN', message: 'Sesi tidak dibuka' } },
+            403,
+          ),
+        );
+      }
+      return Promise.resolve(jsonResponse(krsPayload(ITEMS)));
+    });
     render(
       <MemoryRouter>
         <JadwalKuliahPage />
@@ -208,11 +285,17 @@ describe('JadwalKuliahPage', () => {
 
   it('check-in mode QR — validasi & sukses', async () => {
     const user = userEvent.setup();
-    fetchMock
-      .mockResolvedValueOnce(jsonResponse(krsPayload(ITEMS)))
-      .mockResolvedValueOnce(
-        jsonResponse({ success: true, data: { message: 'Absensi QR berhasil' } }),
-      );
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes('/grades/student/')) {
+        return Promise.resolve(jsonResponse({ success: true, data: { items: [] } }));
+      }
+      if (url.includes('/attendance/check-in') && init?.method === 'POST') {
+        return Promise.resolve(
+          jsonResponse({ success: true, data: { message: 'Absensi QR berhasil' } }),
+        );
+      }
+      return Promise.resolve(jsonResponse(krsPayload(ITEMS)));
+    });
     render(
       <MemoryRouter>
         <JadwalKuliahPage />

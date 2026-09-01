@@ -90,9 +90,13 @@ describe('RiwayatStudiPage', () => {
     expect(screen.getByText('Pemrograman Dasar')).toBeInTheDocument();
     expect(screen.getByText('Struktur Data')).toBeInTheDocument();
 
-    // Ringkasan: total SKS (3+3=6) dan IPK
-    expect(screen.getByText(/6 SKS/)).toBeInTheDocument();
+    // Ringkasan: total SKS (3+3=6) dan IPK — di tfoot sejajar kolom
+    expect(screen.getByText('Jumlah yang Sudah Ditempuh')).toBeInTheDocument();
+    // Nilai SKS total sejajar kolom SKS
+    expect(screen.getAllByText('6').length).toBeGreaterThan(0);
     expect(screen.getByText(/IPK Kumulatif/)).toBeInTheDocument();
+    // IPK 3.65 muncul di tfoot
+    expect(screen.getAllByText('3.65').length).toBeGreaterThan(0);
   });
 
   it('error — menampilkan pesan error saat fetch gagal', async () => {
