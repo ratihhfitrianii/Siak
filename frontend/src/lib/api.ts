@@ -792,10 +792,16 @@ export async function payPayroll(id: number): Promise<void> {
 }
 
 /** GET /transcript/my/download — unduh PDF transkrip (blob + trigger download). */
-export async function downloadTranscriptPdf(academicYearId?: number): Promise<void> {
+export async function downloadTranscriptPdf(
+  academicYearId?: number,
+  semesterCode?: string,
+): Promise<void> {
   const token = getAccessToken();
   if (!token) return;
-  const qs = academicYearId ? `?academicYearId=${academicYearId}` : '';
+  const params = new URLSearchParams();
+  if (academicYearId) params.set('academicYearId', String(academicYearId));
+  if (semesterCode) params.set('semesterCode', semesterCode);
+  const qs = params.toString() ? `?${params.toString()}` : '';
   let res = await fetch(`${API_BASE}/transcript/my/download${qs}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -814,7 +820,7 @@ export async function downloadTranscriptPdf(academicYearId?: number): Promise<vo
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `transkrip-${new Date().toISOString().slice(0, 10)}${academicYearId ? `-${academicYearId}` : ''}.pdf`;
+  a.download = `transkrip-${new Date().toISOString().slice(0, 10)}${academicYearId ? `-${academicYearId}` : ''}${semesterCode ? `-${semesterCode}` : ''}.pdf`;
   document.body.appendChild(a);
   a.click();
   a.remove();

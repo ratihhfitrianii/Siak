@@ -78,11 +78,12 @@ interface TranscriptData {
  * Ambil data transkrip lengkap untuk mahasiswa.
  * Matkul diulang: hanya grade terbaik per course_code masuk IPS/IPK,
  * attempt lama ditandai isRepeated=true (tidak dihitung).
- * Optional: filter by academicYearId (tahun akademik semester).
+ * Optional: filter by academicYearId (tahun akademik) dan/atau semesterCode (1 semester).
  */
 async function fetchTranscriptData(
   studentId: number,
   academicYearId?: number,
+  semesterCode?: string,
 ): Promise<TranscriptData> {
   const studentRes = await pgPool.query(
     `SELECT s.nim, u.full_name, s.prodi_id, s.academic_year_id, s.entry_type,
@@ -106,11 +107,18 @@ async function fetchTranscriptData(
     academic_year_code: string;
   };
 
-  // Build academic year filter on krs_periods -> semesters -> academic_years
-  const ayFilter = academicYearId
-    ? `AND kp.semester_id IN (SELECT id FROM semesters WHERE academic_year_id = $2)`
-    : '';
-  const params = academicYearId ? [studentId, academicYearId] : [studentId];
+  // Build filters: academic_year_id (tahun akademik) dan/atau semester_code (1 semester)
+  const filters: string[] = [];
+  const params: unknown[] = [studentId];
+  if (academicYearId) {
+    params.push(academicYearId);
+    filters.push(`kp.semester_id IN (SELECT id FROM semesters WHERE academic_year_id = $${params.length})`);
+  }
+  if (semesterCode) {
+    params.push(semesterCode);
+    filters.push(`s.code = $${params.length}`);
+  }
+  const whereFilter = filters.length > 0 ? `AND ${filters.join(' AND ')}` : '';
 
   const gradesRes = await pgPool.query(
     `SELECT g.id, g.grade_letter, g.grade_point, g.final_score, g.is_remedial,
@@ -126,7 +134,7 @@ async function fetchTranscriptData(
      JOIN classes c ON c.id = ki.class_id
      JOIN curricula cur ON cur.id = c.curriculum_id
      JOIN courses cl ON cl.id = cur.course_id
-     WHERE ks.student_id = $1 ${ayFilter}
+     WHERE ks.student_id = $1 ${whereFilter}
      ORDER BY kp.start_date DESC, cl.code`,
     params,
   );
@@ -509,14 +517,19 @@ export function createTranscriptRouter(): Router {
         const academicYearId = req.query.academicYearId
           ? Number(req.query.academicYearId as string)
           : undefined;
-        const data = await fetchTranscriptData(req.user.studentId, academicYearId);
+        const semesterCode = req.query.semesterCode
+          ? String(req.query.semesterCode as string)
+          : undefined;
+        const data = await fetchTranscriptData(req.user.studentId, academicYearId, semesterCode);
         if (data.semesters.length === 0) {
-          // Tahun akademik yang dipilih tidak punya nilai → pesan jelas, bukan 500.
+          // Tahun akademik / semester yang dipilih tidak punya nilai → pesan jelas, bukan 500.
           throw new AppError(
             'NOT_FOUND',
             academicYearId
               ? 'Belum ada nilai untuk tahun akademik yang dipilih.'
-              : 'Belum ada nilai yang tercatat untuk transkrip.',
+              : semesterCode
+                ? 'Belum ada nilai untuk semester yang dipilih.'
+                : 'Belum ada nilai yang tercatat untuk transkrip.',
             404,
           );
         }
@@ -526,7 +539,7 @@ export function createTranscriptRouter(): Router {
           'Content-Disposition',
           // Keluhan lama: filename pakai internal studentId (angka) → tidak informatif.
           // Konsisten dengan endpoint wali: pakai NIM.
-          `attachment; filename="transkrip-${data.student.nim}${academicYearId ? `-${academicYearId}` : ''}.pdf"`,
+          `attachment; filename="transkrip-${data.student.nim}${academicYearId ? `-${academicYearId}` : ''}${semesterCode ? `-${semesterCode}` : ''}.pdf"`,
         );
         res.send(pdf);
       } catch (err) {
@@ -551,12 +564,15 @@ export function createTranscriptRouter(): Router {
         const academicYearId = req.query.academicYearId
           ? Number(req.query.academicYearId as string)
           : undefined;
-        const data = await fetchTranscriptData(studentId, academicYearId);
+        const semesterCode = req.query.semesterCode
+          ? String(req.query.semesterCode as string)
+          : undefined;
+        const data = await fetchTranscriptData(studentId, academicYearId, semesterCode);
         const pdf = await generateTranscriptPDF(data);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
           'Content-Disposition',
-          `attachment; filename="transkrip-${data.student.nim}${academicYearId ? `-${academicYearId}` : ''}.pdf"`,
+          `attachment; filename="transkrip-${data.student.nim}${academicYearId ? `-${academicYearId}` : ''}${semesterCode ? `-${semesterCode}` : ''}.pdf"`,
         );
         res.send(pdf);
       } catch (err) {

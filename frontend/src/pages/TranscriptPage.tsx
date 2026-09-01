@@ -57,11 +57,9 @@ export function TranscriptPage() {
       // Filter items untuk semester ini
       const semesterItems = items.filter((it) => it.semester === semester);
       if (semesterItems.length === 0) return;
-      // Panggil download endpoint dengan filter semester (backend butuh academicYearId)
-      // Kita perlu mapping semester -> academicYearId. Simplifikasi: download all tanpa filter
-      // Karena backend filter pakai academicYearId, kita download all lalu filter di frontend?
-      // Better: panggil backend dengan academicYearId dari semester terpilih
-      await downloadTranscriptPdf(selectedAcademicYearId ?? undefined);
+      // Download PDF hanya untuk semester terpilih: kirim semesterCode ke backend,
+      // backend memfilter matkul pada semester tersebut saja (bukan semua).
+      await downloadTranscriptPdf(selectedAcademicYearId ?? undefined, semester);
     } catch (err) {
       setDownloadError(err instanceof ApiError ? err.message : 'Gagal mengunduh PDF semester');
     } finally {
