@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TranscriptPage } from './TranscriptPage';
 import type { GradeItem } from '../lib/types';
@@ -137,20 +137,22 @@ describe('TranscriptPage (T1.11b)', () => {
     );
     render(<TranscriptPage />);
 
+    // Header semester terbaru (2024/2025-1) tampil
     expect(await screen.findByText('Semester 2024/2025-1')).toBeInTheDocument();
-    expect(screen.getByText('Semester 2023/2024-2')).toBeInTheDocument();
+    // Semester lama di panel kanan (daftar semester)
+    expect(screen.getByText('2023/2024-2')).toBeInTheDocument();
 
-    // IP semester 1 = (3×4.0 + 2×3.3)/5 = 18.6/5 = 3.72
-    expect(screen.getByText(/IP: 3\.72/)).toBeInTheDocument();
-    // semester 2 belum dinilai → IP '—'
-    expect(screen.getByText(/IP: —/)).toBeInTheDocument();
+    // IP semester 1 = (3×4.0 + 2×3.3)/5 = 18.6/5 = 3.72 (tampil di header detail & daftar semester)
+    expect(screen.getAllByText(/IP: 3\.72/).length).toBeGreaterThan(0);
+    // semester 2 belum dinilai → IP '—' (di daftar semester)
+    expect(screen.getAllByText('IP: —').length).toBeGreaterThan(0);
 
-    // IPK total = 18.6/5 (hanya SKS yang sudah dinilai) = 3.72; Total SKS = 7
-    expect(screen.getByText('3.72')).toBeInTheDocument();
-    expect(screen.getByText('7')).toBeInTheDocument();
+    // IPK total = 18.6/5 = 3.72; Total SKS = 7
+    expect(screen.getAllByText('3.72').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('7').length).toBeGreaterThan(0);
   });
 
-  it('keluhan #5 — detail semester tersembunyi secara default, muncul saat klik Detail', async () => {
+  it('panel kiri menampilkan detail semester terpilih (default terbaru), klik daftar semester ganti detail', async () => {
     mockUser = MAHASISWA;
     vi.stubGlobal(
       'fetch',
@@ -158,25 +160,15 @@ describe('TranscriptPage (T1.11b)', () => {
     );
     render(<TranscriptPage />);
 
-    // Header semester tampil…
-    expect(await screen.findByText('Semester 2024/2025-1')).toBeInTheDocument();
-    // …tapi detail matkul TIDAK tampil sebelum klik Detail
-    expect(screen.queryByText('Matematika Dasar')).not.toBeInTheDocument();
-    expect(screen.queryByText('Kimia Dasar')).not.toBeInTheDocument();
-
-    // Klik "Detail" → tabel semester muncul
-    const detailButtons = screen.getAllByRole('button', { name: /Detail/i });
-    detailButtons[0]!.click();
+    // Default: semester terbaru (2024/2025-1) terbuka & matkulnya terlihat
     expect(await screen.findByText('Matematika Dasar')).toBeInTheDocument();
     expect(screen.getByText('Fisika Dasar')).toBeInTheDocument();
-    // Semester lain masih tertutup
-    expect(screen.queryByText('Kimia Dasar')).not.toBeInTheDocument();
 
-    // Klik "Sembunyikan Detail" → tabel hilang lagi
-    screen.getByRole('button', { name: /Sembunyikan Detail/i }).click();
-    await waitFor(() => {
-      expect(screen.queryByText('Matematika Dasar')).not.toBeInTheDocument();
-    });
+    // Klik semester lama di panel kanan → detail berganti
+    screen.getByText('2023/2024-2').click();
+    expect(await screen.findByText('Kimia Dasar')).toBeInTheDocument();
+    // Semester terbaru tidak lagi aktif di panel kiri (matkulnya hilang dari detail)
+    expect(screen.queryByText('Matematika Dasar')).not.toBeInTheDocument();
   });
 
   it('akun tanpa studentId → info transkrip tidak tersedia', async () => {
@@ -224,7 +216,7 @@ describe('TranscriptPage (T1.11b)', () => {
     expect(await screen.findByText('Belum ada nilai yang tercatat.')).toBeInTheDocument();
   });
 
-  it('tombol Download PDF — memicu fetch PDF + download (T2.4)', async () => {
+  it('tombol Download Semester — memicu fetch PDF + download (T2.4)', async () => {
     mockUser = MAHASISWA;
     localStorage.setItem('siak.access_token', 'test-token'); // token dibutuhkan helper download
     const clickSpy = vi.fn();
@@ -253,7 +245,7 @@ describe('TranscriptPage (T1.11b)', () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(clickSpy);
     render(<TranscriptPage />);
 
-    const downloadBtn = await screen.findByRole('button', { name: /Download PDF/i });
+    const downloadBtn = await screen.findByRole('button', { name: /Download Semester/i });
     expect(downloadBtn).toBeEnabled();
     downloadBtn.click();
 
