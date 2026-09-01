@@ -264,6 +264,48 @@ export function createKrsRouter(): Router {
     },
   );
 
+  // GET /krs/my/curriculum — semua matkul yang pernah dikontrak mahasiswa (F-07d Kurikulum)
+  router.get(
+    '/my/curriculum',
+    authenticate,
+    authorize('krs.fill'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const studentId = requireStudent(req);
+        // Semua krs_items dari semua submission mahasiswa (approved/submitted/rejected/draft)
+        // → gabung ke kelas → kurikulum → matkul → dosen pengampu
+        const result = await pgPool.query(
+          `SELECT DISTINCT c.id AS course_id, c.code, c.name, c.credits,
+                  cur.semester_number AS semester_kurikulum,
+                  lecturer.full_name AS lecturer_name
+           FROM krs_items ki
+           JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
+           JOIN classes cl ON cl.id = ki.class_id
+           JOIN curricula cur ON cur.id = cl.curriculum_id
+           JOIN courses c ON c.id = cur.course_id
+           LEFT JOIN users lecturer ON lecturer.id = cl.lecturer_id
+           WHERE ks.student_id = $1
+           ORDER BY cur.semester_number ASC, c.code ASC`,
+          [studentId],
+        );
+
+        // Kelompokkan berdasarkan semester_kurikulum untuk warna berbeda per semester
+        const items = result.rows.map((r) => ({
+          courseId: Number(r.course_id),
+          code: r.code,
+          name: r.name,
+          credits: Number(r.credits),
+          semesterKurikulum: Number(r.semester_kurikulum),
+          lecturerName: r.lecturer_name ?? '-',
+        }));
+
+        res.json({ success: true, data: { items } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // GET /krs/my/download — PDF KRS sendiri (mahasiswa; status approved).
   // Keluhan lama: "KRS yang sudah disetujui bisa di download PDF" & "download PDF belum berhasil".
   // Fix: download memakai submission TERAKHIR mahasiswa (semua periode), bukan hanya periode
