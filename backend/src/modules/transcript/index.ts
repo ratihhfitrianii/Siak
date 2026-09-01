@@ -256,7 +256,7 @@ async function fetchTranscriptData(
 }
 
 /** Generate PDF transkrip (gaya KHS UMM) menggunakan pdfkit. */
-async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
+async function generateTranscriptPDFInternal(data: TranscriptData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     const chunks: Buffer[] = [];
@@ -579,6 +579,11 @@ async function assertWaliMentee(userId: number, studentId: number): Promise<void
   }
 }
 
+/** Exported untuk unit test — generate PDF KHS dari data transkrip. */
+export async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
+  return generateTranscriptPDFInternal(data);
+}
+
 export function createTranscriptRouter(): Router {
   const router = Router();
   router.use(authenticate);
@@ -657,7 +662,7 @@ export function createTranscriptRouter(): Router {
             404,
           );
         }
-        const pdf = await generateTranscriptPDF(data);
+        const pdf = await generateTranscriptPDFInternal(data);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
           'Content-Disposition',
@@ -692,7 +697,7 @@ export function createTranscriptRouter(): Router {
           ? String(req.query.semesterCode as string)
           : undefined;
         const data = await fetchTranscriptData(studentId, academicYearId, semesterCode);
-        const pdf = await generateTranscriptPDF(data);
+        const pdf = await generateTranscriptPDFInternal(data);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
           'Content-Disposition',
