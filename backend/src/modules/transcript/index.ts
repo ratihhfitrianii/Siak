@@ -64,6 +64,7 @@ interface TranscriptData {
     fullName: string;
     prodiCode: string;
     prodiName: string;
+    facultyName: string;
     academicYearCode: string;
     entryType: string;
   };
@@ -101,10 +102,12 @@ async function fetchTranscriptData(
 ): Promise<TranscriptData> {
   const studentRes = await pgPool.query(
     `SELECT s.nim, u.full_name, s.prodi_id, s.academic_year_id, s.entry_type,
-            p.code as prodi_code, p.name as prodi_name, ay.code as academic_year_code
+            p.code as prodi_code, p.name as prodi_name, ay.code as academic_year_code,
+            f.name as faculty_name
      FROM students s
      JOIN users u ON u.id = s.user_id
      JOIN prodis p ON p.id = s.prodi_id
+     JOIN faculties f ON f.id = p.faculty_id
      JOIN academic_years ay ON ay.id = s.academic_year_id
      WHERE s.id = $1`,
     [studentId],
@@ -118,6 +121,7 @@ async function fetchTranscriptData(
     entry_type: string;
     prodi_code: string;
     prodi_name: string;
+    faculty_name: string;
     academic_year_code: string;
   };
 
@@ -239,6 +243,7 @@ async function fetchTranscriptData(
       fullName: student.full_name,
       prodiCode: student.prodi_code,
       prodiName: student.prodi_name,
+      facultyName: student.faculty_name,
       academicYearCode: student.academic_year_code,
       entryType: student.entry_type,
     },
@@ -250,7 +255,7 @@ async function fetchTranscriptData(
   };
 }
 
-/** Generate PDF transkrip menggunakan pdfkit. */
+/** Generate PDF transkrip (gaya KHS UMM) menggunakan pdfkit. */
 async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -259,7 +264,7 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    const pageWidth = doc.page.width - 100;
+    const pageWidth = doc.page.width - 100; // 495
     let y = 50;
 
     const text = (
@@ -269,62 +274,40 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
       o: {
         size?: number;
         bold?: boolean;
-        align?: 'left' | 'center' | 'right';
         color?: string;
+        align?: 'left' | 'center' | 'right';
         width?: number;
       } = {},
     ) => {
-      const { size = 10, bold = false, align = 'left', color = '#000', width = pageWidth } = o;
+      const { size = 10, bold = false, color = '#000', align = 'left', width = pageWidth } = o;
       doc
         .font(bold ? 'Helvetica-Bold' : 'Helvetica')
         .fontSize(size)
         .fillColor(color);
       doc.text(t, x, yPos, { width, align });
     };
-    const line = (yPos: number, stroke = '#ccc') => {
+    const line = (yPos: number, stroke = '#999') => {
       doc
         .moveTo(50, yPos)
         .lineTo(doc.page.width - 50, yPos)
         .strokeColor(stroke)
+        .lineWidth(0.6)
         .stroke();
     };
 
-    // HEADER
-    text('UNIVERSITAS SIAK', 50, y, { size: 16, bold: true, align: 'center' });
-    y += 22;
-    text('TRANSKRIP NILAI MAHASISWA', 50, y, { size: 14, bold: true, align: 'center' });
-    y += 28;
-    line(y);
-    y += 10;
-
-    const infoRows: Array<[string, string]> = [
-      ['Nama', data.student.fullName],
-      ['NIM', data.student.nim],
-      ['Program Studi', `${data.student.prodiCode} - ${data.student.prodiName}`],
-      ['Angkatan / Tahun Akademik', data.student.academicYearCode],
-      ['Jalur Masuk', data.student.entryType],
+    // ── KOLOM TABEL (7 kolom): NO, KODE, NAMA MATA KULIAH, NILAI HURUF, SKS, Keterangan, NILAI X SKS
+    const colWidths = [24, 70, 165, 46, 30, 70, 60]; // total = 465 (muat 495)
+    const headers = [
+      'NO',
+      'KODE',
+      'NAMA MATA KULIAH',
+      'NILAI HURUF',
+      'SKS',
+      'Keterangan',
+      'NILAI X SKS',
     ];
-    for (const [label, value] of infoRows) {
-      text(label, 50, y, { size: 10, bold: true });
-      text(value, 200, y, { size: 10 });
-      y += 18;
-    }
-    y += 10;
-    line(y);
-    y += 10;
-
-    // SEMESTER TABLES
-    // Kolom: No, Mata Kuliah, SKS, Angka, Huruf, Status (Kode MK dihapus per keluhan)
-    // Tampilan meniru mockup tabel mahasiswa:
-    //   - semua teks rata KIRI (header & data)
-    //   - header latar abu terang
-    //   - kolom HURUF sebagai badge biru pastel
-    //   - lebar proporsional: No kecil, MATA KULIAH terbesar, STATUS lebar
-    const colWidths = [32, 205, 42, 56, 60, 100];
-    const headers = ['No', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
     const tableLeft = 50;
     const tableRight = tableLeft + colWidths.reduce((a, b) => a + b, 0);
-    // Base x = margin 50. colStarts[i] = x kiri kolom ke-i.
     const colStarts: number[] = [];
     {
       let acc = tableLeft;
@@ -334,16 +317,39 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
       }
     }
 
-    // Truncate text agar muat 1 baris dalam kolom (approx 4.4pt per char @8pt Helvetica).
-    const truncate = (value: string, maxWidth: number): string => {
-      if (value.length === 0) return value;
-      const charWidth = 4.4;
-      const maxChars = Math.floor(maxWidth / charWidth);
-      if (value.length <= maxChars) return value;
-      return value.slice(0, maxChars - 1) + '…';
+    // Header KHS (judul + info) — muncul di setiap halaman
+    const drawHeader = () => {
+      text('UNIVERSITAS SIAK', 50, y, { size: 16, bold: true, align: 'center' });
+      y += 22;
+      text('KARTU HASIL STUDI (KHS)', 50, y, {
+        size: 14,
+        bold: true,
+        align: 'center',
+        color: '#b91c1c',
+      });
+      y += 8;
+      line(y, '#999');
+      y += 14;
+
+      const infoRows: Array<[string, string]> = [
+        ['Nama', data.student.fullName],
+        ['NIM', data.student.nim],
+        ['Program Studi', `${data.student.prodiCode} - ${data.student.prodiName}`],
+        ['Fakultas', data.student.facultyName || '-'],
+        ['Tahun Akademik', data.student.academicYearCode],
+        ['Jalur Masuk', data.student.entryType],
+      ];
+      for (const [label, value] of infoRows) {
+        text(label, 50, y, { size: 9, bold: true });
+        text(value, 160, y, { size: 9 });
+        y += 15;
+      }
+      y += 6;
+      line(y, '#999');
+      y += 12;
     };
 
-    // Draw satu baris tabel meniru mockup (rata kiri; kolom HURUF [4] di-badge).
+    // Draw satu baris tabel (rata kiri; header biru).
     const drawTableRow = (
       cells: string[],
       yPos: number,
@@ -352,9 +358,8 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
       opts: { color?: string } = {},
     ) => {
       const color = opts.color ?? '#000';
-      const padding = 6;
+      const padding = 4;
 
-      // Header: latar abu terang penuh
       if (isHeader) {
         doc
           .fillColor('#f1f5f9')
@@ -365,43 +370,21 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
       cells.forEach((cell, i) => {
         const x = colStarts[i]!;
         const w = colWidths[i]!;
-        const maxWidth = w - padding;
+        const maxWidth = w - padding * 2;
 
-        // Kolom HURUF (index 4) & STATUS (5) → badge / teks dengan spasi kiri
-        if (i === 4 && cell !== '-' && cell.length > 0) {
-          // badge biru pastel: boks dengan latar & teks, rata kiri
-          const textW = cell.length * 5 + 10; // lebar badge ≈ teks + padding
-          const badgeX = x + padding - 2;
-          const badgeH = rowHeight - 6;
-          const badgeY = yPos + (rowHeight - badgeH) / 2;
-          doc.fillColor('#e0f2fe').roundedRect(badgeX, badgeY, textW, badgeH, 3).fill();
-          doc
-            .font('Helvetica-Bold')
-            .fontSize(8)
-            .fillColor('#0369a1')
-            .text(cell, badgeX + 5, badgeY + (badgeH - 8) / 2 - 0.5, {
-              width: textW,
-              align: 'left',
-              lineBreak: false,
-            });
-          return;
-        }
-
-        // Kolom lain: teks rata kiri
         doc
           .font(isHeader ? 'Helvetica-Bold' : 'Helvetica')
-          .fontSize(8)
-          .fillColor(color);
-        doc.text(truncate(cell, maxWidth), x + padding, yPos + 4, {
+          .fontSize(isHeader ? 8 : 8)
+          .fillColor(isHeader ? '#1d4ed8' : color);
+        doc.text(truncate(cell, maxWidth), x + padding, yPos + (rowHeight - 8) / 2, {
           width: maxWidth,
-          align: 'left',
+          align: i === 4 ? 'center' : 'left',
           lineBreak: false,
           height: rowHeight,
           ellipsis: false,
         });
       });
 
-      // Garis horizontal bawah baris (tipis, abu terang)
       doc
         .moveTo(tableLeft, yPos + rowHeight)
         .lineTo(tableRight, yPos + rowHeight)
@@ -410,91 +393,175 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
         .stroke();
     };
 
-    for (const sem of data.semesters) {
-      if (y > 700) {
-        doc.addPage();
-        y = 50;
-      }
-      text(formatSemesterCode(sem.semesterCode), 50, y, { size: 12, bold: true });
-      y += 24;
+    // Truncate text agar muat 1 baris dalam kolom.
+    const truncate = (value: string, maxWidth: number): string => {
+      if (value.length === 0) return value;
+      const charWidth = 4.4;
+      const maxChars = Math.floor(maxWidth / charWidth);
+      if (value.length <= maxChars) return value;
+      return value.slice(0, maxChars - 1) + '…';
+    };
 
-      const headerRowHeight = 18;
-      drawTableRow(headers, y, headerRowHeight, true);
-      y += headerRowHeight;
-
-      let rowNum = 0;
-      for (const course of sem.courses) {
-        rowNum++;
-        if (y > 720) {
+    // ── PER SEMESTER: 1 blok KHS (header berulang tiap blok)
+    data.semesters.forEach((sem, semIdx) => {
+      const isFirstSection = semIdx === 0;
+      if (isFirstSection) {
+        // Halaman pertama: langsung header
+        drawHeader();
+      } else {
+        // Section berikutnya: halaman baru (agar tiap KHS bersih)
+        if (y > 100) {
           doc.addPage();
           y = 50;
         }
-        const status = course.isRepeated ? 'Diulang' : course.isRemedial ? 'Remedial' : '';
-        const rowData = [
-          String(rowNum),
-          course.courseName,
-          String(course.credits),
-          course.finalScore !== null ? course.finalScore.toFixed(2) : '-',
-          course.gradeLetter || '-',
-          status,
-        ];
-        drawTableRow(rowData, y, 18, false, {
-          color: course.isRepeated ? '#dc2626' : '#000',
-        });
-        y += 18;
+        drawHeader();
       }
 
-      y += 8;
-      text(
-        `IPS: ${sem.ips.toFixed(2)}  |  SKS Lulus: ${sem.sksLulus}  |  SKS Diambil: ${sem.sksDiambil}`,
-        50,
-        y,
-        { size: 9, bold: true },
-      );
-      y += 22;
-      line(y);
-      y += 10;
-    }
+      // Info semester
+      text(`Semester/Tahun : ${formatSemesterCode(sem.semesterCode)}`, 50, y, {
+        size: 10,
+        bold: true,
+      });
+      y += 20;
 
-    // SUMMARY
-    if (y > 650) {
+      // Header tabel
+      const headerRowHeight = 16;
+      drawTableRow(headers, y, headerRowHeight, true);
+      y += headerRowHeight;
+
+      // Baris data
+      let totalSks = 0;
+      let totalBobot = 0;
+      sem.courses.forEach((course, idx) => {
+        if (y > 720) {
+          doc.addPage();
+          y = 50;
+          drawHeader();
+          text(`Semester/Tahun : ${formatSemesterCode(sem.semesterCode)}`, 50, y, {
+            size: 10,
+            bold: true,
+          });
+          y += 20;
+          drawTableRow(headers, y, headerRowHeight, true);
+          y += headerRowHeight;
+        }
+        const ket = course.isRepeated ? 'Diulang' : course.isRemedial ? 'Remedial' : 'Reguler';
+        const bobot = course.isRepeated ? 0 : course.gradePoint * course.credits;
+        if (!course.isRepeated) {
+          totalSks += course.credits;
+          totalBobot += bobot;
+        }
+        drawTableRow(
+          [
+            String(idx + 1),
+            course.courseCode,
+            course.courseName,
+            course.gradeLetter || '-',
+            String(course.credits),
+            ket,
+            course.isRepeated ? '' : bobot.toFixed(2),
+          ],
+          y,
+          16,
+          false,
+          { color: course.isRepeated ? '#dc2626' : '#000' },
+        );
+        y += 16;
+      });
+
+      // Baris TOTAL (biru, seperti referensi)
+      const rowY = y;
+      // Latar + garis batas baris
+      doc
+        .moveTo(tableLeft, rowY)
+        .lineTo(tableRight, rowY)
+        .strokeColor('#94a3b8')
+        .lineWidth(0.6)
+        .stroke();
+      doc
+        .moveTo(tableLeft, rowY + 16)
+        .lineTo(tableRight, rowY + 16)
+        .strokeColor('#94a3b8')
+        .lineWidth(0.6)
+        .stroke();
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8)
+        .fillColor('#1d4ed8')
+        .text('TOTAL', colStarts[2]! + 4, rowY + 4, { width: 40, align: 'left', lineBreak: false })
+        .text(String(totalSks), colStarts[4]! + 4, rowY + 4, {
+          width: 30,
+          align: 'left',
+          lineBreak: false,
+        })
+        .text(totalBobot.toFixed(2), colStarts[6]! + 4, rowY + 4, {
+          width: 30,
+          align: 'left',
+          lineBreak: false,
+        });
+      y += 16;
+
+      // Jika masih ada ruang → summary IPS/IPK di bawah tabel
+      if (y > 660) {
+        doc.addPage();
+        y = 50;
+      }
+      y += 10;
+      text(`Index Prestasi Semester ini        : ${sem.ips.toFixed(2)}`, 50, y, {
+        size: 9,
+        bold: true,
+      });
+      y += 16;
+      text(`Index Prestasi Kumulatif           : ${data.ipk.toFixed(2)}`, 50, y, {
+        size: 9,
+        bold: true,
+      });
+      y += 16;
+      text(`SKS Max. Semester Depan            : ${sem.sksLulus}`, 50, y, { size: 9, bold: true });
+      y += 16;
+      text(`SKS Kumulatif                      : ${data.totalSksLulus}`, 50, y, {
+        size: 9,
+        bold: true,
+      });
+      y += 20;
+      line(y, '#999');
+    });
+
+    // ── FOOTER (halaman terakhir): tanda tangan + catatan
+    if (y > 680) {
       doc.addPage();
       y = 50;
     }
-    text('RINGKASAN', 50, y, { size: 12, bold: true });
-    y += 20;
-    const summaryRows: Array<[string, string]> = [
-      ['Total SKS Diambil', String(data.totalSksDiambil)],
-      ['Total SKS Lulus', String(data.totalSksLulus)],
-      ['IP Kumulatif (IPK)', data.ipk.toFixed(2)],
-    ];
-    for (const [label, value] of summaryRows) {
-      text(label, 50, y, { size: 10, bold: true, width: 200 });
-      text(value, 250, y, { size: 10, bold: true });
-      y += 22;
-    }
-    y += 20;
-    line(y);
-    y += 10;
-
+    y += 14;
     text(
-      `Dicetak pada: ${new Date(data.generatedAt).toLocaleDateString('id-ID', {
+      `Malang, ${new Date(data.generatedAt).toLocaleDateString('id-ID', {
         day: '2-digit',
         month: 'long',
         year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
       })}`,
       50,
       y,
-      { size: 8, color: '#666' },
+      { size: 9 },
     );
-    y += 14;
+    y += 8;
+    text('Pembimbing Akademik', 50, y, { size: 9, bold: true });
+    y += 24;
+    text('( _____________________________ )', 50, y, { size: 9 });
+    y += 18;
+    text('Catatan:', 50, y, { size: 8, bold: true, color: '#666' });
+    y += 12;
     text(
-      'Transkrip ini sah tanpa tanda tangan basah (digital signature). Verifikasi via sistem SIAK.',
+      '1. KHS dinyatakan sah bila ditandatangani Pembimbing Akademik dan stempel basah Program Studi.',
       50,
       y,
-      { size: 8, color: '#666', align: 'center' },
+      { size: 8, color: '#666', width: pageWidth - 40 },
+    );
+    y += 12;
+    text(
+      '2. Data KHS yang sah adalah yang sesuai dengan database SIAK; jika ada perbedaan versi cetak dengan database maka KHS Cetak dinyatakan tidak sah.',
+      50,
+      y,
+      { size: 8, color: '#666', width: pageWidth - 40 },
     );
 
     doc.end();
