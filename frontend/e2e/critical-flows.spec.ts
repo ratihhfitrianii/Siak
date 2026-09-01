@@ -57,7 +57,10 @@ test.describe('Critical path: transkrip (T5.7)', () => {
     await page.getByRole('button', { name: 'Hasil Studi' }).click();
     await page.getByRole('link', { name: 'Kartu Hasil Studi (KHS)', exact: true }).click();
     await expect(page).toHaveURL(/transkrip/);
-    await expect(page.getByText(/Semester \d/).first()).toBeVisible({ timeout: 10_000 });
+    // Header semester format baru: "2024/2025 Ganjil" (TA + Ganjil/Genap)
+    await expect(page.getByText(/\d{4}\/\d{4} (Ganjil|Genap)/).first()).toBeVisible({
+      timeout: 10_000,
+    });
     // Redesigned TranscriptPage: "Download Semua" button di header, "Download Semester" di panel kiri
     await expect(page.getByRole('button', { name: /Download Semua/i })).toBeVisible();
   });

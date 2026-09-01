@@ -137,10 +137,10 @@ describe('TranscriptPage (T1.11b)', () => {
     );
     render(<TranscriptPage />);
 
-    // Header semester terbaru (2024/2025-1) tampil
-    expect(await screen.findByText('Semester 2024/2025-1')).toBeInTheDocument();
+    // Header semester terbaru (2024/2025-1 -> "2024/2025 Ganjil") tampil (di header & daftar semester)
+    expect((await screen.findAllByText('2024/2025 Ganjil')).length).toBeGreaterThan(0);
     // Semester lama di panel kanan (daftar semester)
-    expect(screen.getByText('2023/2024-2')).toBeInTheDocument();
+    expect(screen.getByText('2023/2024 Genap')).toBeInTheDocument();
 
     // IP semester 1 = (3×4.0 + 2×3.3)/5 = 18.6/5 = 3.72 (tampil di header detail & daftar semester)
     expect(screen.getAllByText(/IP: 3\.72/).length).toBeGreaterThan(0);
@@ -165,7 +165,7 @@ describe('TranscriptPage (T1.11b)', () => {
     expect(screen.getByText('Fisika Dasar')).toBeInTheDocument();
 
     // Klik semester lama di panel kanan → detail berganti
-    screen.getByText('2023/2024-2').click();
+    screen.getByText('2023/2024 Genap').click();
     expect(await screen.findByText('Kimia Dasar')).toBeInTheDocument();
     // Semester terbaru tidak lagi aktif di panel kiri (matkulnya hilang dari detail)
     expect(screen.queryByText('Matematika Dasar')).not.toBeInTheDocument();

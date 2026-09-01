@@ -18,6 +18,17 @@ function computeStats(items: GradeItem[]) {
 }
 
 /**
+ * Ubah semesterCode "2025/2026-1" → "2025/2026 Ganjil".
+ * - format input: `<TA>-<1|2>` (1 = Ganjil, 2 = Genap)
+ * - jika tidak cocok, kembalikan input apa adanya.
+ */
+function formatSemester(semester: string): string {
+  const m = /^(.+)-([12])$/.exec(semester.trim());
+  if (!m) return semester;
+  return `${m[1]} ${m[2] === '1' ? 'Ganjil' : 'Genap'}`;
+}
+
+/**
  * Transkrip nilai mahasiswa (T1.11b):
  * - Layout 2 kolom: Kiri = detail semester terpilih, Kanan = daftar semester
  * - Panel kiri: header semester + tabel detail + tombol download semester
@@ -231,7 +242,9 @@ export function TranscriptPage() {
             <div className="rounded-2xl bg-white shadow-sm overflow-hidden">
               <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="font-semibold text-slate-900">Semester {currentSemester}</h2>
+                  <h2 className="font-semibold text-slate-900">
+                    {formatSemester(currentSemester)}
+                  </h2>
                   <p className="text-sm text-slate-600">
                     SKS: {currentStats.sks} · IP:{' '}
                     {currentStats.ipk === null ? '—' : currentStats.ipk.toFixed(2)}
@@ -334,7 +347,7 @@ export function TranscriptPage() {
         {/* Panel Kanan: Daftar Semester (1/3 width) */}
         <div className="lg:col-span-1">
           <div className="rounded-2xl bg-white p-5 shadow-sm h-full sticky top-24">
-            <h3 className="font-semibold text-slate-900 mb-4">Daftar Semester</h3>
+            <h3 className="font-semibold text-slate-900 mb-4">Tahun Akademik/Semester</h3>
             {groups.length === 0 ? (
               <p className="text-sm text-slate-500">Belum ada semester.</p>
             ) : (
@@ -354,7 +367,9 @@ export function TranscriptPage() {
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-medium text-slate-900">{semester}</span>
+                          <span className="font-medium text-slate-900">
+                            {formatSemester(semester)}
+                          </span>
                           <svg
                             className={`h-4 w-4 text-slate-400 transition-transform ${isActive ? 'rotate-180' : ''}`}
                             fill="none"
