@@ -35,9 +35,8 @@ test.describe('Critical path: KRS + PDF (T5.7)', () => {
     await login(page, MHS.identifier, MHS.pass);
     await expect(page.getByText(DASHBOARD_READY)).toBeVisible({ timeout: 10_000 });
 
-    // Menu KRS direname "Kelola KRS" (task m6) — child dari parent "KRS" → expand parent dulu
-    await page.getByRole('button', { name: 'KRS' }).click();
-    await page.getByRole('link', { name: 'Kelola KRS', exact: true }).click();
+    // KRS sekarang link langsung (bukan parent dropdown) — klik lansgung
+    await page.getByRole('link', { name: 'KRS', exact: true }).click();
     await expect(page).toHaveURL(/krs/);
     // Status badge "Disetujui" dari STATUS_LABEL['approved']
     await expect(page.getByText('Disetujui')).toBeVisible({ timeout: 10_000 });
@@ -54,8 +53,8 @@ test.describe('Critical path: transkrip (T5.7)', () => {
     await login(page, MHS.identifier, MHS.pass);
     await expect(page.getByText(DASHBOARD_READY)).toBeVisible({ timeout: 10_000 });
 
-    // "Kartu Hasil Studi (KHS)" child dari parent "Riwayat Studi" → expand parent dulu
-    await page.getByRole('button', { name: 'Riwayat Studi' }).click();
+    // "Kartu Hasil Studi (KHS)" child dari parent "Hasil Studi" → expand parent dulu
+    await page.getByRole('button', { name: 'Hasil Studi' }).click();
     await page.getByRole('link', { name: 'Kartu Hasil Studi (KHS)', exact: true }).click();
     await expect(page).toHaveURL(/transkrip/);
     await expect(page.getByText(/Semester \d/).first()).toBeVisible({ timeout: 10_000 });

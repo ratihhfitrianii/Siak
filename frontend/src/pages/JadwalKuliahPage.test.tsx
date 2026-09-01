@@ -111,4 +111,152 @@ describe('JadwalKuliahPage', () => {
       await screen.findByText('Belum ada mata kuliah yang dikontrak pada semester ini.'),
     ).toBeInTheDocument();
   });
+
+  it('check-in dari popup — sukses', async () => {
+    const user = userEvent.setup();
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(krsPayload(ITEMS)))
+      .mockResolvedValueOnce(
+        jsonResponse({ success: true, data: { message: 'Absensi berhasil dicatat!' } }),
+      );
+    render(
+      <MemoryRouter>
+        <JadwalKuliahPage />
+      </MemoryRouter>,
+    );
+
+    const presensiButtons = await screen.findAllByRole('button', { name: /Presensi/ });
+    await user.click(presensiButtons[0]);
+
+    await user.type(screen.getByPlaceholderText('ID Sesi Absensi'), '42');
+    await user.click(screen.getByRole('button', { name: 'Check-in' }));
+
+    expect(await screen.findByText('Absensi berhasil dicatat!')).toBeInTheDocument();
+    // fetch kedua = POST /attendance/check-in
+    const called = fetchMock.mock.calls.map((c) => String(c[0]));
+    expect(called.some((u) => u.includes('/attendance/check-in'))).toBe(true);
+  });
+
+  it('check-in dari popup — validasi input kosong', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <JadwalKuliahPage />
+      </MemoryRouter>,
+    );
+
+    const presensiButtons = await screen.findAllByRole('button', { name: /Presensi/ });
+    await user.click(presensiButtons[0]);
+
+    await user.click(screen.getByRole('button', { name: 'Check-in' }));
+
+    expect(await screen.findByText('Masukkan ID Sesi Absensi')).toBeInTheDocument();
+  });
+
+  it('check-in dari popup — error FORBIDDEN', async () => {
+    const user = userEvent.setup();
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(krsPayload(ITEMS)))
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { success: false, error: { code: 'FORBIDDEN', message: 'Sesi tidak dibuka' } },
+          403,
+        ),
+      );
+    render(
+      <MemoryRouter>
+        <JadwalKuliahPage />
+      </MemoryRouter>,
+    );
+
+    const presensiButtons = await screen.findAllByRole('button', { name: /Presensi/ });
+    await user.click(presensiButtons[0]);
+
+    await user.type(screen.getByPlaceholderText('ID Sesi Absensi'), '42');
+    await user.click(screen.getByRole('button', { name: 'Check-in' }));
+
+    expect(await screen.findByText('Sesi tidak dibuka')).toBeInTheDocument();
+  });
+
+  it('error — menampilkan pesan saat fetch KRS gagal', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ success: false, error: { message: 'Gagal memuat jadwal' } }, 500),
+    );
+    render(
+      <MemoryRouter>
+        <JadwalKuliahPage />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat jadwal');
+  });
+
+  it('tutup popup — klik tombol X', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <JadwalKuliahPage />
+      </MemoryRouter>,
+    );
+
+    const presensiButtons = await screen.findAllByRole('button', { name: /Presensi/ });
+    await user.click(presensiButtons[0]);
+    expect(screen.getByText('ID Sesi')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Tutup' }));
+    expect(screen.queryByText('ID Sesi')).not.toBeInTheDocument();
+  });
+
+  it('check-in mode QR — validasi & sukses', async () => {
+    const user = userEvent.setup();
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(krsPayload(ITEMS)))
+      .mockResolvedValueOnce(
+        jsonResponse({ success: true, data: { message: 'Absensi QR berhasil' } }),
+      );
+    render(
+      <MemoryRouter>
+        <JadwalKuliahPage />
+      </MemoryRouter>,
+    );
+
+    const presensiButtons = await screen.findAllByRole('button', { name: /Presensi/ });
+    await user.click(presensiButtons[0]);
+
+    // Ganti ke mode QR
+    await user.click(screen.getByText('QR Code'));
+    // Validasi kosong dulu
+    await user.click(screen.getByRole('button', { name: 'Check-in' }));
+    expect(await screen.findByText('Masukkan Kode QR')).toBeInTheDocument();
+
+    // Isi kode QR → sukses
+    await user.type(screen.getByPlaceholderText('Kode QR'), 'ABC123');
+    await user.click(screen.getByRole('button', { name: 'Check-in' }));
+    expect(await screen.findByText('Absensi QR berhasil')).toBeInTheDocument();
+  });
+
+  it('menampilkan jam "-" saat dayOfWeek/time kosong', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        krsPayload([
+          {
+            id: 99,
+            classCode: 'TI-999',
+            course: { code: 'TI999', name: 'MK Tanpa Jadwal', credits: 2 },
+            dayOfWeek: null,
+            startTime: null,
+            endTime: null,
+            room: null,
+            lecturerName: null,
+          },
+        ]),
+      ),
+    );
+    render(
+      <MemoryRouter>
+        <JadwalKuliahPage />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('MK Tanpa Jadwal')).toBeInTheDocument();
+    expect(screen.getAllByText('-').length).toBeGreaterThan(0);
+  });
 });
