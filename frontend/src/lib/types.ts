@@ -125,6 +125,21 @@ export interface MyKrs {
   items: MyKrsItem[];
 }
 
+/** Matkul yang pernah dikontrak mahasiswa (submenu Kurikulum — F-07d). */
+export interface CurriculumItem {
+  courseId: number;
+  code: string;
+  name: string;
+  credits: number;
+  /** Nomor semester kurikulum (1, 2, 3, ...). */
+  semesterKurikulum: number;
+  lecturerName: string;
+}
+
+export interface CurriculumList {
+  items: CurriculumItem[];
+}
+
 export interface GradeItem {
   id: number;
   krsItemId: number;

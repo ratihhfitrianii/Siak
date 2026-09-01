@@ -1,63 +1,35 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ApiError, apiRequest } from '../lib/api';
-import { useAuth } from '../auth/AuthContext';
-import type { GradeItem } from '../lib/types';
+import type { CurriculumItem } from '../lib/types';
 
-interface CurriculumRow {
-  code: string;
-  name: string;
-  credits: number;
-  semesterTaken: string;
-  gradeLetter: string | null;
-}
+/** Warna latar per semester (bergantian) — indexed by semesterKurikulum. */
+const SEMESTER_COLORS: Record<number, string> = {
+  1: 'bg-blue-50 text-blue-800',
+  2: 'bg-emerald-50 text-emerald-800',
+  3: 'bg-amber-50 text-amber-800',
+  4: 'bg-violet-50 text-violet-800',
+  5: 'bg-rose-50 text-rose-800',
+  6: 'bg-cyan-50 text-cyan-800',
+  7: 'bg-lime-50 text-lime-800',
+  8: 'bg-fuchsia-50 text-fuchsia-800',
+};
 
 /**
- * Halaman Kurikulum Mahasiswa — daftar mata kuliah yang telah diambil (unik per kode MK).
- * Submenu "Kurikulum" di bawah menu KRS.
+ * Halaman Kurikulum Mahasiswa — semua mata kuliah yang pernah dikontrak oleh
+ * mahasiswa (dari riwayat KRS), dengan kolom: No., Semester Kurikulum, Kode MK,
+ * Mata Kuliah, SKS, Dosen Pengampu. Warna latar beda per semester.
  */
 export function KurikulumPage() {
-  const { user } = useAuth();
-  const studentId = user?.studentId ?? null;
-
-  const [rows, setRows] = useState<CurriculumRow[]>([]);
+  const [rows, setRows] = useState<CurriculumItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (studentId === null) {
-      setLoading(false);
-      return;
-    }
     let cancelled = false;
     (async () => {
       try {
-        // Data transkrip (grades) → daftar MK yang pernah diambil
-        const res = await apiRequest<{ items: GradeItem[] }>(`/grades/student/${studentId}`);
-        const items = res.items ?? [];
-
-        // Dedupe per kode MK — ambil nilai terbaik jika pernah remedial/ulang
-        const map = new Map<string, GradeItem>();
-        for (const g of items) {
-          const existing = map.get(g.course.code);
-          if (!existing || (g.gradePoint ?? 0) > (existing.gradePoint ?? 0)) {
-            map.set(g.course.code, g);
-          }
-        }
-
-        const sorted = Array.from(map.values()).sort((a, b) =>
-          a.course.code.localeCompare(b.course.code),
-        );
-        if (!cancelled) {
-          setRows(
-            sorted.map((g) => ({
-              code: g.course.code,
-              name: g.course.name,
-              credits: g.course.credits,
-              semesterTaken: String(g.period ?? ''),
-              gradeLetter: g.gradeLetter,
-            })),
-          );
-        }
+        const res = await apiRequest<{ items: CurriculumItem[] }>('/krs/my/curriculum');
+        if (!cancelled) setRows(res.items ?? []);
       } catch (e) {
         if (!cancelled) {
           const msg = e instanceof ApiError ? e.message : 'Gagal memuat kurikulum';
@@ -70,9 +42,18 @@ export function KurikulumPage() {
     return () => {
       cancelled = true;
     };
-  }, [studentId]);
+  }, []);
+
+  const semesterCounts = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const r of rows) {
+      counts.set(r.semesterKurikulum, (counts.get(r.semesterKurikulum) ?? 0) + 1);
+    }
+    return counts;
+  }, [rows]);
 
   const totalSks = useMemo(() => rows.reduce((sum, r) => sum + r.credits, 0), [rows]);
+  const semesterCount = semesterCounts.size;
 
   if (loading) {
     return (
@@ -95,7 +76,7 @@ export function KurikulumPage() {
       {/* Ringkasan */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wide">Mata Kuliah Diambil</p>
+          <p className="text-xs text-slate-500 uppercase tracking-wide">Mata Kuliah Dikontrak</p>
           <p className="text-lg font-semibold text-slate-900">{rows.length} MK</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
@@ -103,28 +84,32 @@ export function KurikulumPage() {
           <p className="text-lg font-semibold text-slate-900">{totalSks} SKS</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wide">Status</p>
-          <p className="text-lg font-semibold text-slate-900">
-            {rows.filter((r) => r.gradeLetter).length}/{rows.length} lulus
-          </p>
+          <p className="text-xs text-slate-500 uppercase tracking-wide">Semester Kurikulum</p>
+          <p className="text-lg font-semibold text-slate-900">{semesterCount} semester</p>
         </div>
       </div>
 
       {/* Tabel MK */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200">
-          <h3 className="font-semibold text-slate-900">Mata Kuliah yang Telah Diambil</h3>
+          <h3 className="font-semibold text-slate-900">Mata Kuliah yang Pernah Dikontrak</h3>
           <p className="text-xs text-slate-500">
-            Seluruh mata kuliah selama masa studi (unik per kode MK)
+            Seluruh mata kuliah selama masa studi (dari riwayat pengambilan KRS)
           </p>
         </div>
         {rows.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px]">
+            <table className="w-full min-w-[720px]">
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Kode
+                    No.
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Semester Kurikulum
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Kode MK
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Mata Kuliah
@@ -133,31 +118,31 @@ export function KurikulumPage() {
                     SKS
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Diambil Pada
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Nilai
+                    Dosen Pengampu
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {rows.map((r) => (
-                  <tr key={r.code} className="hover:bg-slate-50">
+                {rows.map((r, idx) => (
+                  <tr key={`${r.code}-${r.semesterKurikulum}`} className="hover:bg-slate-50">
+                    <td className="px-6 py-3 whitespace-nowrap text-sm text-slate-500">
+                      {idx + 1}
+                    </td>
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          SEMESTER_COLORS[r.semesterKurikulum] ?? 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        Semester {r.semesterKurikulum}
+                      </span>
+                    </td>
                     <td className="px-6 py-3 whitespace-nowrap font-mono text-xs text-slate-700">
                       {r.code}
                     </td>
                     <td className="px-6 py-3 text-sm font-medium text-slate-900">{r.name}</td>
                     <td className="px-6 py-3 text-center text-sm text-slate-700">{r.credits}</td>
-                    <td className="px-6 py-3 text-sm text-slate-600">{r.semesterTaken || '-'}</td>
-                    <td className="px-6 py-3 text-center">
-                      {r.gradeLetter ? (
-                        <span className="inline-flex px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-semibold">
-                          {r.gradeLetter}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
+                    <td className="px-6 py-3 text-sm text-slate-600">{r.lecturerName || '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -167,7 +152,7 @@ export function KurikulumPage() {
           <div className="text-center py-12">
             <h3 className="text-lg font-medium text-slate-900">Belum ada mata kuliah</h3>
             <p className="mt-1 text-slate-500">
-              Data kurikulum akan muncul setelah Anda mengambil KRS.
+              Data kurikulum akan muncul setelah Anda mengontrak KRS.
             </p>
           </div>
         )}

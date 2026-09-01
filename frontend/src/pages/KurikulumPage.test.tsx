@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { KurikulumPage } from './KurikulumPage';
 import { apiRequest } from '../lib/api';
-import type { GradeItem } from '../lib/types';
+import type { CurriculumItem } from '../lib/types';
 
 vi.mock('../lib/api', () => ({
   apiRequest: vi.fn(),
@@ -14,73 +14,30 @@ vi.mock('../lib/api', () => ({
   },
 }));
 
-vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({ user: { studentId: 1 } }),
-}));
-
-const mockItems: GradeItem[] = [
+const mockItems: CurriculumItem[] = [
   {
-    id: 1,
-    krsItemId: 1,
-    classId: 1,
-    classCode: 'TI101-A',
-    course: { code: 'TI101', name: 'Algoritma', credits: 3 },
-    period: '2025/2026-1',
-    semester: 'Ganjil 2025/2026',
-    tugasScore: 90,
-    utsScore: 85,
-    uasScore: 88,
-    finalScore: 88,
-    gradeLetter: 'A',
-    gradePoint: 4,
-    isRemedial: false,
-    remedialScore: null,
-    inputBy: 2,
-    inputAt: '2026-01-10',
-    updatedBy: 2,
-    updatedAt: '2026-01-10',
+    courseId: 1,
+    code: 'TI101',
+    name: 'Algoritma',
+    credits: 3,
+    semesterKurikulum: 1,
+    lecturerName: 'Dr. Andi',
   },
   {
-    id: 2,
-    krsItemId: 2,
-    classId: 2,
-    classCode: 'TI102-A',
-    course: { code: 'TI102', name: 'Struktur Data', credits: 3 },
-    period: '2025/2026-1',
-    semester: 'Ganjil 2025/2026',
-    tugasScore: 80,
-    utsScore: 75,
-    uasScore: 78,
-    finalScore: 78,
-    gradeLetter: 'B+',
-    gradePoint: 3.5,
-    isRemedial: false,
-    remedialScore: null,
-    inputBy: 2,
-    inputAt: '2026-01-10',
-    updatedBy: 2,
-    updatedAt: '2026-01-10',
+    courseId: 2,
+    code: 'TI102',
+    name: 'Struktur Data',
+    credits: 3,
+    semesterKurikulum: 2,
+    lecturerName: 'Prof. Budi',
   },
   {
-    id: 3,
-    krsItemId: 3,
-    classId: 3,
-    classCode: 'TI101-B',
-    course: { code: 'TI101', name: 'Algoritma', credits: 3 },
-    period: '2024/2025-2',
-    semester: 'Genap 2024/2025',
-    tugasScore: 70,
-    utsScore: 65,
-    uasScore: 60,
-    finalScore: 65,
-    gradeLetter: 'C',
-    gradePoint: 2,
-    isRemedial: true,
-    remedialScore: null,
-    inputBy: 2,
-    inputAt: '2025-07-10',
-    updatedBy: 2,
-    updatedAt: '2025-07-10',
+    courseId: 3,
+    code: 'TI210',
+    name: 'Basis Data',
+    credits: 4,
+    semesterKurikulum: 1,
+    lecturerName: 'Dr. Cici',
   },
 ];
 
@@ -89,29 +46,40 @@ describe('KurikulumPage', () => {
     vi.clearAllMocks();
   });
 
-  it('menampilkan daftar MK unik (dedupe per kode — ambil nilai terbaik)', async () => {
+  it('menampilkan daftar MK yang pernah dikontrak dengan kolom & warna semester', async () => {
     vi.mocked(apiRequest).mockResolvedValue({ items: mockItems });
 
     render(<KurikulumPage />);
 
     // Judul
-    expect(await screen.findByText('Mata Kuliah yang Telah Diambil')).toBeInTheDocument();
+    expect(await screen.findByText('Mata Kuliah yang Pernah Dikontrak')).toBeInTheDocument();
 
-    // Dedupe: TI101 hanya 1 baris (nilai terbaik A), TI102 1 baris
-    expect(screen.getAllByText('Algoritma')).toHaveLength(1);
+    // Header kolom
+    expect(screen.getAllByText('Semester Kurikulum').length).toBeGreaterThan(0);
+    expect(screen.getByText('Kode MK')).toBeInTheDocument();
+    expect(screen.getAllByText('Mata Kuliah').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('SKS').length).toBeGreaterThan(0);
+    expect(screen.getByText('Dosen Pengampu')).toBeInTheDocument();
+
+    // Data & badge semester
+    expect(screen.getByText('Algoritma')).toBeInTheDocument();
     expect(screen.getByText('Struktur Data')).toBeInTheDocument();
-    expect(screen.getByText('TI101')).toBeInTheDocument();
-    expect(screen.getByText('TI102')).toBeInTheDocument();
-    expect(screen.getByText('A')).toBeInTheDocument();
-    expect(screen.getByText('B+')).toBeInTheDocument();
+    expect(screen.getByText('Basis Data')).toBeInTheDocument();
+    expect(screen.getByText('Dr. Andi')).toBeInTheDocument();
+    expect(screen.getByText('Prof. Budi')).toBeInTheDocument();
+    expect(screen.getByText('Dr. Cici')).toBeInTheDocument();
 
-    // Ringkasan: 2 MK, 6 SKS, 2 lulus
-    expect(screen.getByText('2 MK')).toBeInTheDocument();
-    expect(screen.getByText('6 SKS')).toBeInTheDocument();
-    expect(screen.getByText('2/2 lulus')).toBeInTheDocument();
+    // Badge semester kurikulum
+    expect(screen.getAllByText('Semester 1').length).toBe(2);
+    expect(screen.getByText('Semester 2')).toBeInTheDocument();
+
+    // Ringkasan: 3 MK, 10 SKS, 2 semester
+    expect(screen.getByText('3 MK')).toBeInTheDocument();
+    expect(screen.getByText('10 SKS')).toBeInTheDocument();
+    expect(screen.getByText('2 semester')).toBeInTheDocument();
   });
 
-  it('menampilkan empty state saat tidak ada MK', async () => {
+  it('menampilkan empty state saat tidak ada MK dikontrak', async () => {
     vi.mocked(apiRequest).mockResolvedValue({ items: [] });
 
     render(<KurikulumPage />);
@@ -125,5 +93,16 @@ describe('KurikulumPage', () => {
     render(<KurikulumPage />);
 
     expect(await screen.findByText('Gagal memuat kurikulum')).toBeInTheDocument();
+  });
+
+  it('menampilkan tanda strip saat dosen pengampu kosong', async () => {
+    vi.mocked(apiRequest).mockResolvedValue({
+      items: [{ ...mockItems[0], lecturerName: '' }],
+    });
+
+    render(<KurikulumPage />);
+
+    expect(await screen.findByText('Algoritma')).toBeInTheDocument();
+    expect(screen.getByText('-')).toBeInTheDocument();
   });
 });

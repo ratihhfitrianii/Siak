@@ -105,13 +105,29 @@ const MENU_ITEMS: {
       },
     ],
   },
-  // KRS — langsung ke halaman KRS
+  // KRS — parent dropdown: Pemrograman KRS + Kurikulum
   {
     permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
     label: 'KRS',
     path: '/krs',
     icon: 'document',
     description: 'Kartu Rencana Studi',
+    children: [
+      {
+        permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
+        label: 'Pemrograman KRS',
+        path: '/krs',
+        icon: 'document',
+        description: 'Kartu Rencana Studi semester berjalan',
+      },
+      {
+        permissions: ['krs.fill', 'krs.approve'],
+        label: 'Kurikulum',
+        path: '/krs/kurikulum',
+        icon: 'book',
+        description: 'Semua mata kuliah yang pernah dikontrak',
+      },
+    ],
   },
   // Virtual Absensi
   {

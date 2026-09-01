@@ -364,7 +364,7 @@ export default function App() {
           <Route
             path="/krs/kurikulum"
             element={
-              <ProtectedRoute perm="transcript.view_own">
+              <ProtectedRoute perm={['krs.fill', 'krs.approve']}>
                 <AppLayout>
                   <KurikulumPage />
                 </AppLayout>
