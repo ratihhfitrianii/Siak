@@ -116,4 +116,98 @@ describe('RiwayatStudiPage', () => {
     );
     expect(await screen.findByText('Belum ada mata kuliah yang tercatat.')).toBeInTheDocument();
   });
+
+  it('render variasi nilai (medium/sedang, rendah, belum dinilai) + label semester', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        success: true,
+        data: {
+          items: [
+            {
+              id: 3,
+              krsItemId: 12,
+              classId: 30,
+              classCode: 'TI-103-A',
+              course: { code: 'TI103', name: 'Algoritma', credits: 3 },
+              semester: '2024/2025-2',
+              finalScore: 75.0,
+              gradeLetter: 'B',
+              gradePoint: 3.0,
+              isRemedial: false,
+            },
+            {
+              id: 4,
+              krsItemId: 13,
+              classId: 31,
+              classCode: 'TI-104-A',
+              course: { code: 'TI104', name: 'Bahasa Inggris', credits: 2 },
+              semester: '2023/2024-1',
+              finalScore: 60.0,
+              gradeLetter: 'C',
+              gradePoint: 2.0,
+              isRemedial: false,
+            },
+            {
+              id: 5,
+              krsItemId: 14,
+              classId: 32,
+              classCode: 'TI-105-A',
+              course: { code: 'TI105', name: 'Kewarganegaraan', credits: 2 },
+              semester: '2023/2024-2',
+              finalScore: null,
+              gradeLetter: null,
+              gradePoint: null,
+              isRemedial: false,
+            },
+          ],
+        },
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <RiwayatStudiPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Algoritma')).toBeInTheDocument();
+    expect(screen.getByText('Bahasa Inggris')).toBeInTheDocument();
+    expect(screen.getByText('Kewarganegaraan')).toBeInTheDocument();
+    // Label semester: 'Ganjil' & 'Genap'
+    expect(screen.getAllByText('Genap').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Ganjil').length).toBeGreaterThan(0);
+    // IPK dari 3 matkul ≥2.0: (3*3.0 + 2*2.0)/5 = 13/5 = 2.60
+    expect(screen.getByText('2.60')).toBeInTheDocument();
+  });
+
+  it('semester label kembalikan kode saat format tidak standar', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        success: true,
+        data: {
+          items: [
+            {
+              id: 6,
+              krsItemId: 15,
+              classId: 33,
+              classCode: 'TI-106',
+              course: { code: 'TI106', name: 'MK Tanpa Semester', credits: 2 },
+              semester: 'GANJIL',
+              finalScore: 80.0,
+              gradeLetter: 'A',
+              gradePoint: 4.0,
+              isRemedial: false,
+            },
+          ],
+        },
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <RiwayatStudiPage />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('MK Tanpa Semester')).toBeInTheDocument();
+    // semesterLabel fallback → kode asli; TA fallback → kode asli
+    expect(screen.getAllByText('GANJIL').length).toBeGreaterThan(0);
+  });
 });
