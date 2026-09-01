@@ -301,15 +301,19 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
 
     // SEMESTER TABLES
     // Kolom: No, Mata Kuliah, SKS, Angka, Huruf, Status (Kode MK dihapus per keluhan)
-    // Keluhan: jarak/lebar kolom berantakan (SKS menimpa Mata Kuliah, SKS tidak terisi).
-    // Fixed ulang: lebar proporsional, row height diperbesar, garis pembatas antar kolom,
-    // dan gunakan fontSize 8 dgn truncate yang lebih akurat (Helvetica 8pt ≈ 4.4px/char).
-    const colWidths = [22, 250, 38, 55, 48, 82];
+    // Tampilan meniru mockup tabel mahasiswa:
+    //   - semua teks rata KIRI (header & data)
+    //   - header latar abu terang
+    //   - kolom HURUF sebagai badge biru pastel
+    //   - lebar proporsional: No kecil, MATA KULIAH terbesar, STATUS lebar
+    const colWidths = [32, 205, 42, 56, 60, 100];
     const headers = ['No', 'Mata Kuliah', 'SKS', 'Angka', 'Huruf', 'Status'];
+    const tableLeft = 50;
+    const tableRight = tableLeft + colWidths.reduce((a, b) => a + b, 0);
     // Base x = margin 50. colStarts[i] = x kiri kolom ke-i.
     const colStarts: number[] = [];
     {
-      let acc = 50;
+      let acc = tableLeft;
       for (const w of colWidths) {
         colStarts.push(acc);
         acc += w;
@@ -325,66 +329,71 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
       return value.slice(0, maxChars - 1) + '…';
     };
 
-    // Draw seluruh tabel dengan batas antar kolom agar tidak terlihat berantakan.
+    // Draw satu baris tabel meniru mockup (rata kiri; kolom HURUF [4] di-badge).
     const drawTableRow = (
       cells: string[],
       yPos: number,
       rowHeight: number,
       isHeader: boolean,
-      opts: { align?: Array<'left' | 'center' | 'right'>; color?: string } = {},
+      opts: { color?: string } = {},
     ) => {
-      const alignCol = opts.align ?? ['center', 'left', 'center', 'center', 'center', 'center'];
       const color = opts.color ?? '#000';
-      // Garis horizontal atas baris
-      doc
-        .moveTo(50, yPos)
-        .lineTo(50 + colWidths.reduce((a, b) => a + b, 0), yPos)
-        .strokeColor('#999')
-        .lineWidth(0.5)
-        .stroke();
+      const padding = 6;
+
+      // Header: latar abu terang penuh
+      if (isHeader) {
+        doc
+          .fillColor('#f1f5f9')
+          .rect(tableLeft, yPos, tableRight - tableLeft, rowHeight)
+          .fill();
+      }
 
       cells.forEach((cell, i) => {
         const x = colStarts[i]!;
         const w = colWidths[i]!;
-        const a = alignCol[i] ?? 'left';
-        const padding = 3;
-        const textX = a === 'center' ? x + w / 2 : a === 'right' ? x + w - padding : x + padding;
-        const textAlign = a === 'center' ? 'center' : a === 'right' ? 'right' : 'left';
-        const maxWidth = w - padding * 2;
+        const maxWidth = w - padding;
 
-        // Header: latar abu-abu tipis agar kolom terlihat terpisah
-        if (isHeader) {
-          doc.fillColor('#f1f5f9').rect(x, yPos, w, rowHeight).fill();
+        // Kolom HURUF (index 4) & STATUS (5) → badge / teks dengan spasi kiri
+        if (i === 4 && cell !== '-' && cell.length > 0) {
+          // badge biru pastel: boks dengan latar & teks, rata kiri
+          const textW = cell.length * 5 + 10; // lebar badge ≈ teks + padding
+          const badgeX = x + padding - 2;
+          const badgeH = rowHeight - 6;
+          const badgeY = yPos + (rowHeight - badgeH) / 2;
+          doc.fillColor('#e0f2fe').roundedRect(badgeX, badgeY, textW, badgeH, 3).fill();
+          doc
+            .font('Helvetica-Bold')
+            .fontSize(8)
+            .fillColor('#0369a1')
+            .text(cell, badgeX + 5, badgeY + (badgeH - 8) / 2 - 0.5, {
+              width: textW,
+              align: 'left',
+              lineBreak: false,
+            });
+          return;
         }
 
+        // Kolom lain: teks rata kiri
         doc
           .font(isHeader ? 'Helvetica-Bold' : 'Helvetica')
           .fontSize(8)
           .fillColor(color);
-        doc.text(truncate(cell, maxWidth), textX, yPos, {
+        doc.text(truncate(cell, maxWidth), x + padding, yPos + 4, {
           width: maxWidth,
-          align: textAlign,
+          align: 'left',
           lineBreak: false,
           height: rowHeight,
           ellipsis: false,
         });
       });
 
-      // Garis vertikal pembatas antar kolom (termasuk tepi kanan)
-      for (let i = 0; i <= colWidths.length; i++) {
-        const x =
-          i === 0
-            ? 50
-            : i === colWidths.length
-              ? 50 + colWidths.reduce((a, b) => a + b, 0)
-              : colStarts[i]!;
-        doc
-          .moveTo(x, yPos)
-          .lineTo(x, yPos + rowHeight)
-          .strokeColor('#999')
-          .lineWidth(0.5)
-          .stroke();
-      }
+      // Garis horizontal bawah baris (tipis, abu terang)
+      doc
+        .moveTo(tableLeft, yPos + rowHeight)
+        .lineTo(tableRight, yPos + rowHeight)
+        .strokeColor('#e2e8f0')
+        .lineWidth(0.5)
+        .stroke();
     };
 
     for (const sem of data.semesters) {
@@ -396,9 +405,7 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
       y += 24;
 
       const headerRowHeight = 18;
-      drawTableRow(headers, y, headerRowHeight, true, {
-        align: ['center', 'left', 'center', 'center', 'center', 'center'],
-      });
+      drawTableRow(headers, y, headerRowHeight, true);
       y += headerRowHeight;
 
       let rowNum = 0;
@@ -417,11 +424,10 @@ async function generateTranscriptPDF(data: TranscriptData): Promise<Buffer> {
           course.gradeLetter || '-',
           status,
         ];
-        drawTableRow(rowData, y, 16, false, {
-          align: ['center', 'left', 'center', 'center', 'center', 'center'],
+        drawTableRow(rowData, y, 18, false, {
           color: course.isRepeated ? '#dc2626' : '#000',
         });
-        y += 16;
+        y += 18;
       }
 
       y += 8;
