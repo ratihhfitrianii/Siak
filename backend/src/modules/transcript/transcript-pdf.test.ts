@@ -108,4 +108,40 @@ describe('generateTranscriptPDF (unit, tanpa DB)', () => {
     const pdf = await generateTranscriptPDF(data as never);
     expect(pdf.slice(0, 5).toString()).toBe('%PDF-');
   });
+
+  it('menghasilkan PDF valid dengan banyak matkul (memicu page break dalam tabel)', async () => {
+    const manyCourses = Array.from({ length: 45 }, (_, i) => ({
+      ...courseGanjil,
+      id: 100 + i,
+      courseName: `Course Panjang Nomor ${i + 1}`,
+    }));
+    const data = {
+      student: {
+        nim: '20231003',
+        fullName: 'Andi',
+        prodiCode: 'SI',
+        prodiName: 'Sistem Informasi',
+        facultyName: 'Teknik',
+        academicYearCode: '2024/2025',
+        entryType: 'SBMPTN',
+      },
+      ipk: 3.2,
+      totalSksLulus: 135,
+      totalSksDiambil: 144,
+      generatedAt: new Date('2026-09-01T00:00:00Z').toISOString(),
+      semesters: [
+        {
+          ...baseSemester,
+          ips: 3.2,
+          sksLulus: 135,
+          sksDiambil: 144,
+          courses: manyCourses,
+        },
+      ],
+    };
+
+    const pdf = await generateTranscriptPDF(data as never);
+    expect(pdf.slice(0, 5).toString()).toBe('%PDF-');
+    expect(pdf.length).toBeGreaterThan(2000);
+  });
 });
