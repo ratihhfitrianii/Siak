@@ -36,7 +36,7 @@ async function main() {
         created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
         updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
       );
-    \`);
+    `);
     console.log('✅ rooms table ensured');
   } catch (err) {
     console.error('❌ Error ensuring tables:', err.message);

@@ -1111,18 +1111,28 @@ export function createAdminMasterRouter(): Router {
           [data.code, data.name, data.capacity, data.facultyCode, data.isActive],
         );
         const room = result.rows[0];
-        const fRes = await pgPool.query('SELECT id, name FROM faculties WHERE code = $1', [data.facultyCode]);
+        const fRes = await pgPool.query('SELECT id, name FROM faculties WHERE code = $1', [
+          data.facultyCode,
+        ]);
         await auditFromRequest(req.user!, req, {
-          tableName: 'rooms', recordId: Number(room.id), action: 'INSERT',
+          tableName: 'rooms',
+          recordId: Number(room.id),
+          action: 'INSERT',
           newValues: { code: data.code, name: data.name, capacity: data.capacity },
         });
         res.status(201).json({
           success: true,
           data: {
-            id: Number(room.id), code: room.code, name: room.name,
-            capacity: room.capacity, facultyCode: room.faculty_code,
-            facultyId: fRes.rows[0]?.id ?? null, facultyName: fRes.rows[0]?.name ?? null,
-            isActive: room.is_active, createdAt: room.created_at, updatedAt: room.updated_at,
+            id: Number(room.id),
+            code: room.code,
+            name: room.name,
+            capacity: room.capacity,
+            facultyCode: room.faculty_code,
+            facultyId: fRes.rows[0]?.id ?? null,
+            facultyName: fRes.rows[0]?.name ?? null,
+            isActive: room.is_active,
+            createdAt: room.created_at,
+            updatedAt: room.updated_at,
           },
         });
       } catch (err) {
@@ -1146,24 +1156,39 @@ export function createAdminMasterRouter(): Router {
             faculty_code = COALESCE($3, faculty_code), is_active = COALESCE($4, is_active),
             updated_at = now()
            WHERE id = $5 RETURNING *`,
-          [data.name ?? null, data.capacity ?? null, data.facultyCode ?? null,
-           data.isActive ?? null, id],
+          [
+            data.name ?? null,
+            data.capacity ?? null,
+            data.facultyCode ?? null,
+            data.isActive ?? null,
+            id,
+          ],
         );
         if (result.rowCount === 0) {
           throw new AppError('NOT_FOUND', 'Ruangan tidak ditemukan', 404);
         }
         const room = result.rows[0];
-        const fRes = await pgPool.query('SELECT id, name FROM faculties WHERE code = $1', [room.faculty_code]);
+        const fRes = await pgPool.query('SELECT id, name FROM faculties WHERE code = $1', [
+          room.faculty_code,
+        ]);
         await auditFromRequest(req.user!, req, {
-          tableName: 'rooms', recordId: id, action: 'UPDATE',
+          tableName: 'rooms',
+          recordId: id,
+          action: 'UPDATE',
         });
         res.json({
           success: true,
           data: {
-            id: Number(room.id), code: room.code, name: room.name,
-            capacity: room.capacity, facultyCode: room.faculty_code,
-            facultyId: fRes.rows[0]?.id ?? null, facultyName: fRes.rows[0]?.name ?? null,
-            isActive: room.is_active, createdAt: room.created_at, updatedAt: room.updated_at,
+            id: Number(room.id),
+            code: room.code,
+            name: room.name,
+            capacity: room.capacity,
+            facultyCode: room.faculty_code,
+            facultyId: fRes.rows[0]?.id ?? null,
+            facultyName: fRes.rows[0]?.name ?? null,
+            isActive: room.is_active,
+            createdAt: room.created_at,
+            updatedAt: room.updated_at,
           },
         });
       } catch (err) {
@@ -1188,7 +1213,9 @@ export function createAdminMasterRouter(): Router {
           throw new AppError('NOT_FOUND', 'Ruangan tidak ditemukan', 404);
         }
         await auditFromRequest(req.user!, req, {
-          tableName: 'rooms', recordId: id, action: 'DELETE',
+          tableName: 'rooms',
+          recordId: id,
+          action: 'DELETE',
         });
         res.json({ success: true, data: { message: 'Ruangan dinonaktifkan' } });
       } catch (err) {
