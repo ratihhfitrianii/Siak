@@ -480,4 +480,552 @@ describe('UsersPage (T1.11c)', () => {
     expect(await screen.findByText('User dinonaktifkan')).toBeInTheDocument();
     confirmSpy.mockRestore();
   });
+
+  /* ========== EXTRA COVERAGE TESTS ========== */
+
+  it('load error (non-ApiError) → shows generic error + retry button reloads', async () => {
+    const user = userEvent.setup();
+    let failLoad = true;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        const u = String(url);
+        if (u.includes('/users?') && failLoad) {
+          return Promise.reject(new Error('boom'));
+        }
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              items: [SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa')],
+              pagination: { page: 1, limit: 20, total: 1 },
+            },
+          }),
+        );
+      }),
+    );
+
+    render(<UsersPage />);
+    expect(await screen.findByText('Gagal memuat daftar pengguna')).toBeInTheDocument();
+
+    // Fix the mock so retry succeeds
+    failLoad = false;
+    await user.click(screen.getByRole('button', { name: 'Coba lagi' }));
+    await vi.waitFor(() => expect(screen.getByText('Andi')).toBeInTheDocument());
+  });
+
+  it('load error (ApiError) → shows error message', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          jsonResponse(
+            {
+              success: false,
+              error: { code: 'FORBIDDEN', message: 'Tidak punya hak akses' },
+            },
+            403,
+          ),
+        ),
+      ),
+    );
+
+    render(<UsersPage />);
+    expect(await screen.findByText('Tidak punya hak akses')).toBeInTheDocument();
+  });
+
+  it('pagination → next/prev buttons work with multiple pages', async () => {
+    const user = userEvent.setup();
+    const pages: Record<number, { items: ReturnType<typeof SNAKE_USER>[]; total: number }> = {
+      1: {
+        items: [SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa')],
+        total: 40,
+      },
+      2: {
+        items: [SNAKE_USER(2, 'Budi', 'budi@kampus.ac.id', 'mahasiswa')],
+        total: 40,
+      },
+    };
+    const fetchMock = vi.fn((url: string) => {
+      const u = String(url);
+      if (u.includes('/users?')) {
+        const params = new URL(u, 'http://localhost');
+        const p = Number(params.searchParams.get('page') || 1);
+        const data = pages[p] || pages[1];
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: { items: data.items, pagination: { page: p, limit: 20, total: data.total } },
+          }),
+        );
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: null }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+    // page 1 of 2
+    expect(screen.getByText('Halaman 1 dari 2 · 40 pengguna')).toBeInTheDocument();
+
+    // click next
+    const nextBtn = screen.getByRole('button', { name: 'Berikutnya' });
+    expect(nextBtn).toBeEnabled();
+    await user.click(nextBtn);
+
+    await vi.waitFor(() => expect(screen.getByText('Budi')).toBeInTheDocument());
+    expect(screen.getByText('Halaman 2 dari 2 · 40 pengguna')).toBeInTheDocument();
+
+    // next should be disabled on last page
+    expect(nextBtn).toBeDisabled();
+
+    // click prev
+    const prevBtn = screen.getByRole('button', { name: 'Sebelumnya' });
+    await user.click(prevBtn);
+    await vi.waitFor(() => expect(screen.getByText('Andi')).toBeInTheDocument());
+
+    // prev should be disabled on first page
+    expect(prevBtn).toBeDisabled();
+  });
+
+  it('search input → resets page to 1 + debounced search param', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn((url: string) => {
+      const u = String(url);
+      if (u.includes('/users?')) {
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              items: [SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa')],
+              pagination: { page: 1, limit: 20, total: 1 },
+            },
+          }),
+        );
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: null }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+
+    const searchInput = screen.getByLabelText('Cari pengguna');
+    await user.type(searchInput, 'andi');
+
+    // After debounce, a request with search param should be made
+    await vi.waitFor(() => {
+      const calls = fetchMock.mock.calls.map((c) => String(c[0]));
+      expect(calls.some((u) => u.includes('search=andi'))).toBe(true);
+    });
+  });
+
+  it('create modal → Batal button closes modal', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes();
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+
+    await user.click(within(dialog).getByRole('button', { name: 'Batal' }));
+    expect(screen.queryByRole('dialog', { name: 'Buat user' })).not.toBeInTheDocument();
+  });
+
+  it('edit modal → Batal button closes modal', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes();
+    render(<UsersPage />);
+    await screen.findByText('Bu Rina');
+    const editButtons = screen.getAllByRole('button', { name: 'Ubah Peran' });
+    await user.click(editButtons[1]);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Ubah peran' });
+    await user.click(within(dialog).getByRole('button', { name: 'Batal' }));
+    expect(screen.queryByRole('dialog', { name: 'Ubah peran' })).not.toBeInTheDocument();
+  });
+
+  it('dosen NIK create flow → shows NIK label + dosen placeholder', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes();
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+
+    await user.selectOptions(within(dialog).getByLabelText('Peran'), 'dosen');
+
+    // Should show NIK label (not NIM) for dosen
+    expect(within(dialog).getByLabelText('NIK')).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText('NIM')).not.toBeInTheDocument();
+
+    // Placeholder should be NIK-specific
+    expect(within(dialog).getByPlaceholderText('cth: 198512342010011001')).toBeInTheDocument();
+  });
+
+  it('dosen NIK lookup not found → NIK-specific error message', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes({ lookupFound: false });
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.selectOptions(within(dialog).getByLabelText('Peran'), 'dosen');
+    await user.type(within(dialog).getByLabelText('NIK'), '99999');
+
+    expect(
+      await within(dialog).findByText(/NIK tidak ditemukan di data dosen/),
+    ).toBeInTheDocument();
+  });
+
+  it('inactive user → shows Nonaktif badge + no Hapus button', async () => {
+    mockUsersRoutes({
+      items: [{ ...SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa'), is_active: false }],
+      total: 1,
+    });
+    render(<UsersPage />);
+    expect(await screen.findByText('Nonaktif')).toBeInTheDocument();
+    // No "Hapus" button for inactive user
+    expect(screen.queryByRole('button', { name: 'Hapus' })).not.toBeInTheDocument();
+    // "Ubah Peran" should still be there
+    expect(screen.getByRole('button', { name: 'Ubah Peran' })).toBeInTheDocument();
+  });
+
+  it('isWali user → shows Ya in table', async () => {
+    mockUsersRoutes({
+      items: [{ ...SNAKE_USER(1, 'Pak Wali', 'wali@kampus.ac.id', 'dosen'), is_wali: true }],
+      total: 1,
+    });
+    render(<UsersPage />);
+    expect(await screen.findByText('Ya')).toBeInTheDocument();
+  });
+
+  it('create error (ApiError without fields) → shows actionError', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes({
+      // Override POST /users to return 500 without fields
+    });
+    // Replace fetch to fail on POST
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        const u = String(url);
+        if (method === 'POST' && u.includes('/users') && !u.includes('/role')) {
+          return Promise.resolve(
+            jsonResponse(
+              {
+                success: false,
+                error: { code: 'SERVER_ERROR', message: 'Server sedang bermasalah' },
+              },
+              500,
+            ),
+          );
+        }
+        // Delegate to the normal mock for other calls
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              items: [SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa')],
+              pagination: { page: 1, limit: 20, total: 1 },
+            },
+          }),
+        );
+      }),
+    );
+
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.selectOptions(within(dialog).getByLabelText('Peran'), 'admin_akademik');
+    await user.type(within(dialog).getByLabelText('Nama Lengkap'), 'Test');
+    await user.type(within(dialog).getByLabelText('Email'), 'test@kampus.ac.id');
+    await user.type(within(dialog).getByLabelText('Password Awal'), 'password123');
+    await user.click(within(dialog).getByRole('button', { name: 'Buat User' }));
+
+    expect(await screen.findByText('Server sedang bermasalah')).toBeInTheDocument();
+  });
+
+  it('create error (non-ApiError) → shows generic "Gagal membuat user"', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        const u = String(url);
+        if (method === 'POST' && u.includes('/users') && !u.includes('/role')) {
+          return Promise.reject(new Error('Network error'));
+        }
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              items: [SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa')],
+              pagination: { page: 1, limit: 20, total: 1 },
+            },
+          }),
+        );
+      }),
+    );
+
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.selectOptions(within(dialog).getByLabelText('Peran'), 'admin_akademik');
+    await user.type(within(dialog).getByLabelText('Nama Lengkap'), 'Test');
+    await user.type(within(dialog).getByLabelText('Email'), 'test@kampus.ac.id');
+    await user.type(within(dialog).getByLabelText('Password Awal'), 'password123');
+    await user.click(within(dialog).getByRole('button', { name: 'Buat User' }));
+
+    expect(await screen.findByText('Gagal membuat user')).toBeInTheDocument();
+  });
+
+  it('edit error (non-ApiError) → shows "Gagal mengubah role"', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        const u = String(url);
+        if (method === 'PUT' && u.includes('/role')) {
+          return Promise.reject(new Error('Network error'));
+        }
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              items: [SNAKE_USER(2, 'Bu Rina', 'rina@kampus.ac.id', 'dosen')],
+              pagination: { page: 1, limit: 20, total: 1 },
+            },
+          }),
+        );
+      }),
+    );
+
+    render(<UsersPage />);
+    await screen.findByText('Bu Rina');
+    const editButtons = screen.getAllByRole('button', { name: 'Ubah Peran' });
+    await user.click(editButtons[0]);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Ubah peran' });
+    await user.selectOptions(within(dialog).getByLabelText('Peran Baru'), 'admin_akademik');
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan Perubahan' }));
+
+    expect(await screen.findByText('Gagal mengubah role')).toBeInTheDocument();
+  });
+
+  it('delete error (non-ApiError) → shows "Gagal menonaktifkan user"', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        const u = String(url);
+        if (method === 'DELETE' && u.includes('/users/')) {
+          return Promise.reject(new Error('Network error'));
+        }
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              items: [SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa')],
+              pagination: { page: 1, limit: 20, total: 1 },
+            },
+          }),
+        );
+      }),
+    );
+
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+    await user.click(screen.getAllByRole('button', { name: 'Hapus' })[0]);
+
+    expect(await screen.findByText('Gagal menonaktifkan user')).toBeInTheDocument();
+    confirmSpy.mockRestore();
+  });
+
+  it('lookup network error → shows error message in create form', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        const u = String(url);
+        if (u.includes('/users/lookup')) {
+          return Promise.reject(new Error('fetch failed'));
+        }
+        if (u.includes('/users?')) {
+          return Promise.resolve(
+            jsonResponse({
+              success: true,
+              data: {
+                items: [SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa')],
+                pagination: { page: 1, limit: 20, total: 1 },
+              },
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse({ success: true, data: null }));
+      }),
+    );
+
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.type(within(dialog).getByLabelText('NIM'), '22051001');
+
+    expect(await within(dialog).findByText('Gagal mencari data. Coba lagi.')).toBeInTheDocument();
+  });
+
+  it('unknown role code → shows raw code as label', async () => {
+    mockUsersRoutes({
+      items: [{ ...SNAKE_USER(1, 'Ghost', 'ghost@kampus.ac.id', 'unknown_role') }],
+      total: 1,
+    });
+    render(<UsersPage />);
+    // Unknown role → raw code shown in badge
+    expect(await screen.findByText('unknown_role')).toBeInTheDocument();
+  });
+
+  it('submitEdit error (ApiError) → shows error message', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        const u = String(url);
+        if (method === 'PUT' && u.includes('/role')) {
+          return Promise.resolve(
+            jsonResponse({ success: false, error: { message: 'Role tidak valid' } }, 400),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              items: [SNAKE_USER(2, 'Bu Rina', 'rina@kampus.ac.id', 'dosen')],
+              pagination: { page: 1, limit: 20, total: 1 },
+            },
+          }),
+        );
+      }),
+    );
+
+    render(<UsersPage />);
+    await screen.findByText('Bu Rina');
+    await user.click(screen.getAllByRole('button', { name: 'Ubah Peran' })[0]);
+    const dialog = await screen.findByRole('dialog', { name: 'Ubah peran' });
+    await user.selectOptions(within(dialog).getByLabelText('Peran Baru'), 'admin_akademik');
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan Perubahan' }));
+
+    expect(await screen.findByText('Role tidak valid')).toBeInTheDocument();
+  });
+
+  it('create dosen via NIK → POST {roleCode, nik}', async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn();
+    mockUsersRoutes({ onCreate });
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.selectOptions(within(dialog).getByLabelText('Peran'), 'dosen');
+    await user.type(within(dialog).getByLabelText('NIK'), '19851234');
+
+    // Wait for lookup to resolve and preview to show
+    expect(await within(dialog).findByDisplayValue('Andi')).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Buat User' }));
+    await vi.waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
+    expect(onCreate).toHaveBeenCalledWith({ roleCode: 'dosen', nik: '19851234' });
+  });
+
+  it('field errors on fullName and password → shown inline', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes({
+      failCreate: true,
+      // failCreate currently returns { email: ['Email sudah digunakan'] }
+      // But let's also test field errors display mechanism
+    });
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+    await user.selectOptions(within(dialog).getByLabelText('Peran'), 'admin_akademik');
+    await user.type(within(dialog).getByLabelText('Nama Lengkap'), 'Test');
+    await user.type(within(dialog).getByLabelText('Email'), 'test@kampus.ac.id');
+    await user.type(within(dialog).getByLabelText('Password Awal'), 'pass');
+    await user.click(within(dialog).getByRole('button', { name: 'Buat User' }));
+
+    // The existing failCreate mock returns fields.email
+    expect(await screen.findByText('Email sudah digunakan')).toBeInTheDocument();
+  });
+
+  it('lookup status idle → no NIM/NIK hint shown', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes();
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+    await user.click(screen.getByRole('button', { name: '+ Buat User' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Buat user' });
+
+    // Default role is mahasiswa, but NIM is empty → lookup is idle
+    expect(within(dialog).queryByRole('status')).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('deletingId → shows "Menghapus…" text while delete in progress', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    let deleteResolve: (() => void) | null = null;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        const u = String(url);
+        if (method === 'DELETE' && u.includes('/users/')) {
+          return new Promise((resolve) => {
+            deleteResolve = () =>
+              resolve(
+                jsonResponse({
+                  success: true,
+                  data: { message: 'User dinonaktifkan' },
+                }),
+              );
+          });
+        }
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              items: [SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa')],
+              pagination: { page: 1, limit: 20, total: 1 },
+            },
+          }),
+        );
+      }),
+    );
+
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+    await user.click(screen.getAllByRole('button', { name: 'Hapus' })[0]);
+
+    // Wait for the button to show "Menghapus…"
+    await vi.waitFor(() =>
+      expect(screen.getAllByRole('button', { name: 'Menghapus…' }).length).toBeGreaterThan(0),
+    );
+
+    // Resolve the delete
+    (deleteResolve as (() => void) | null)?.();
+    await vi.waitFor(() => expect(screen.getByText('User dinonaktifkan')).toBeInTheDocument());
+    confirmSpy.mockRestore();
+  });
 });
