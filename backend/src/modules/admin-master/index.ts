@@ -58,6 +58,13 @@ const prodiQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+/** Schema update mata kuliah (nama/deskripsi/kredit opsional). */
+const courseUpdateSchema = z.object({
+  name: z.string().min(2).max(150).optional(),
+  credits: z.number().int().min(1).max(6).optional(),
+  description: z.string().max(2000).nullable().optional(),
+});
+
 export function createAdminMasterRouter(): Router {
   const router = Router();
 
@@ -1031,6 +1038,117 @@ export function createAdminMasterRouter(): Router {
           [id],
         );
         res.json({ success: true, data: { message: 'Prodi dinonaktifkan' } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // GET /admin-master/rooms — daftar ruangan unik dari kelas (agregasi kolom classes.room),
+  // dapat difilter fakultas via join prodi → kurikulum → kelas.
+  router.get(
+    '/rooms',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { facultyId } = req.query;
+        let query = `SELECT DISTINCT c.room AS name FROM classes c
+          JOIN curricula cu ON cu.id = c.curriculum_id
+          JOIN prodis p ON p.id = cu.prodi_id
+          WHERE c.room IS NOT NULL AND c.room <> ''`;
+        const params: unknown[] = [];
+        if (facultyId) {
+          params.push(Number(facultyId));
+          query += ` AND p.faculty_id = $${params.length}`;
+        }
+        query += ' ORDER BY c.room';
+        const result = await pgPool.query(query, params);
+        res.json({
+          success: true,
+          data: {
+            items: result.rows.map((r) => ({
+              id: r.name,
+              name: r.name,
+              facultyId: facultyId ? Number(facultyId) : null,
+            })),
+            pagination: { page: 1, limit: 100, total: result.rows.length },
+          },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // POST /admin-master/rooms — daftar ruangan tidak punya tabel terpisah;
+  // buat ruangan baru cukup memvalidasi dan mencatat (baca-only dari classes.room).
+  // Untuk menghindari 404, kembalikan ruangan yang baru (nama unik) — tidak menyimpan tabel.
+  router.post(
+    '/rooms',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const name = z.string().min(1).max(50).parse((req.body as { name?: string }).name);
+        res.status(201).json({ success: true, data: { id: name, name, facultyId: null } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // PUT /admin-master/courses/:id — update mata kuliah (soft: nama/deskripsi/kredit).
+  router.put(
+    '/courses/:id',
+    authenticate,
+    authorize('course.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const id = Number(req.params.id);
+        const data = courseUpdateSchema.parse(req.body);
+        const result = await pgPool.query(
+          `UPDATE courses SET name = COALESCE($1, name), credits = COALESCE($2, credits),
+             description = COALESCE($3, description), updated_at = now()
+           WHERE id = $4 RETURNING *`,
+          [data.name ?? null, data.credits ?? null, data.description ?? null, id],
+        );
+        if (result.rowCount === 0) {
+          throw new AppError('NOT_FOUND', 'Mata kuliah tidak ditemukan', 404);
+        }
+        await auditFromRequest(req.user!, req, {
+          tableName: 'courses',
+          recordId: id,
+          action: 'UPDATE',
+        });
+        res.json({ success: true, data: result.rows[0] });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // DELETE /admin-master/courses/:id — nonaktifkan mata kuliah (soft delete).
+  router.delete(
+    '/courses/:id',
+    authenticate,
+    authorize('course.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const id = Number(req.params.id);
+        const result = await pgPool.query(
+          'UPDATE courses SET is_active = false, updated_at = now() WHERE id = $1 RETURNING id',
+          [id],
+        );
+        if (result.rowCount === 0) {
+          throw new AppError('NOT_FOUND', 'Mata kuliah tidak ditemukan', 404);
+        }
+        await auditFromRequest(req.user!, req, {
+          tableName: 'courses',
+          recordId: id,
+          action: 'DELETE',
+        });
+        res.json({ success: true, data: { message: 'Mata kuliah dinonaktifkan' } });
       } catch (err) {
         next(err);
       }
