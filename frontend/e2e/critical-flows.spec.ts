@@ -35,8 +35,9 @@ test.describe('Critical path: KRS + PDF (T5.7)', () => {
     await login(page, MHS.identifier, MHS.pass);
     await expect(page.getByText(DASHBOARD_READY)).toBeVisible({ timeout: 10_000 });
 
-    // KRS sekarang link langsung (bukan parent dropdown) — klik lansgung
-    await page.getByRole('link', { name: 'KRS', exact: true }).click();
+    // KRS sekarang parent dropdown → klik parent "KRS" dulu, lalu child "Pemrograman KRS"
+    await page.getByRole('button', { name: 'KRS' }).click();
+    await page.getByRole('link', { name: 'Pemrograman KRS', exact: true }).click();
     await expect(page).toHaveURL(/krs/);
     // Status badge "Disetujui" dari STATUS_LABEL['approved']
     await expect(page.getByText('Disetujui')).toBeVisible({ timeout: 10_000 });
