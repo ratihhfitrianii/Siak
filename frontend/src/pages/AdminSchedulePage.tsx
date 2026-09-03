@@ -1,15 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   getAcademicCurricula,
   getAcademicClasses,
+  getAcademicYears,
   getScheduleClass,
   createSchedule,
   updateSchedule,
   deleteSchedule,
+  listFaculties,
+  listProdis,
   ApiError,
 } from '../lib/api';
-import type { ClassSchedule } from '../lib/types';
+import type { ClassSchedule, Faculty, Prodi } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
+import { SearchableDropdown } from '../components/SearchableDropdown';
 
 interface CurriculumOption {
   id: number;
@@ -35,6 +39,11 @@ interface ClassOption {
 
 const dayNames = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
+interface AcademicYearOption {
+  id: number;
+  code: string;
+}
+
 /**
  * Halaman Kelola Jadwal (Admin Sistem / Admin Akademik) — T3.2 (F-21, F-22)
  * - CRUD jadwal pertemuan per kelas
@@ -58,12 +67,82 @@ export function AdminSchedulePage() {
     isCompleted: false,
   });
 
+  // Data pendukung dropdown form "Tambah Jadwal" (Prodi, Ruangan, Tahun Ajaran, MK)
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [prodis, setProdis] = useState<Prodi[]>([]);
+  const [academicYears, setAcademicYears] = useState<AcademicYearOption[]>([]);
+  const [formFacultyId, setFormFacultyId] = useState<number | null>(null);
+  const [formProdiId, setFormProdiId] = useState<number | null>(null);
+  const [formRoom, setFormRoom] = useState<string | null>(null);
+  const [formYearId, setFormYearId] = useState<number | null>(null);
+  const [formCourseId, setFormCourseId] = useState<number | null>(null);
+
+  // Filter list: Fakultas
+  const [filterFacultyId, setFilterFacultyId] = useState<number | null>(null);
+
+  // Filtered curricula: jika fakultas dipilih, hanya tampilkan kurikulum prodi di fakultas tsb
+  const filteredCurricula = useMemo(() => {
+    if (filterFacultyId == null) return curricula;
+    const prodiNames = prodis.map((p) => p.name);
+    return curricula.filter((c) => prodiNames.includes(c.prodi_name));
+  }, [curricula, prodis, filterFacultyId]);
+
   // Load curricula on mount
   useEffect(() => {
     getAcademicCurricula()
       .then((res) => setCurricula(res.items))
       .catch(() => setError('Gagal memuat kurikulum'));
   }, []);
+
+  // Load pendukung form: fakultas + tahun akademik (sekali saat mount)
+  // Gagal memuatnya tidak menimpa error utama (kurikulum) — dropdown cukup kosong.
+  useEffect(() => {
+    getAcademicYears()
+      .then((res) => setAcademicYears(res?.items ?? []))
+      .catch(() => {});
+    listFaculties({ limit: 100 })
+      .then((res) => setFaculties(res?.items ?? []))
+      .catch(() => {});
+  }, []);
+
+  // Load prodi untuk fakultas terpilih (hanya prodi milik fakultas admin)
+  useEffect(() => {
+    setFormProdiId(null);
+    if (formFacultyId == null) {
+      setProdis([]);
+      return;
+    }
+    listProdis({ facultyId: formFacultyId, limit: 100 })
+      .then((res) => setProdis(res?.items ?? []))
+      .catch(() => {});
+  }, [formFacultyId]);
+
+  // Opsi Mata Kuliah: kurikulum yang prodi-nya cocok dengan prodi terpilih
+  const courseOptions = useMemo(() => {
+    const prodiName = prodis.find((p) => p.id === formProdiId)?.name;
+    if (!prodiName) return [];
+    const seen = new Set<number>();
+    const opts: Array<{ value: number; label: string }> = [];
+    for (const c of curricula) {
+      if (c.prodi_name !== prodiName) continue;
+      if (seen.has(c.id)) continue;
+      seen.add(c.id);
+      opts.push({ value: c.id, label: `${c.course_code} — ${c.course_name}` });
+    }
+    return opts;
+  }, [curricula, prodis, formProdiId]);
+
+  // Opsi Ruangan: daftar ruangan unik dari kelas kurikulum terpilih (milik fakultas admin)
+  const roomOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const opts: Array<{ value: string; label: string }> = [];
+    for (const c of classes) {
+      if (!c.room || seen.has(c.room)) continue;
+      seen.add(c.room);
+      opts.push({ value: c.room, label: c.room });
+    }
+    return opts;
+  }, [classes]);
 
   // Load classes for selected curriculum
   const loadClasses = useCallback(async (curriculumId: number) => {
@@ -196,7 +275,16 @@ export function AdminSchedulePage() {
     <div className="space-y-6">
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Fakultas</label>
+            <SearchableDropdown
+              options={faculties.map((f) => ({ value: f.id, label: f.name }))}
+              value={filterFacultyId}
+              onChange={setFilterFacultyId}
+              placeholder="Semua Fakultas"
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Kurikulum</label>
             <select
@@ -206,7 +294,7 @@ export function AdminSchedulePage() {
               disabled={loading}
             >
               <option value="">Pilih Kurikulum</option>
-              {curricula.map((c) => (
+              {filteredCurricula.map((c) => (
                 <option key={c.id} value={String(c.id)}>
                   {c.prodi_name} — {c.course_code} ({c.course_name}) Sem {c.semester_number}
                 </option>
@@ -242,6 +330,57 @@ export function AdminSchedulePage() {
             </h2>
             {formError && <FormAlert>{formError}</FormAlert>}
             <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Fakultas</label>
+                <SearchableDropdown
+                  options={faculties.map((f) => ({ value: f.id, label: f.name }))}
+                  value={formFacultyId}
+                  onChange={setFormFacultyId}
+                  placeholder="Pilih Fakultas"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Pilih Prodi</label>
+                <SearchableDropdown
+                  options={prodis.map((p) => ({ value: p.id, label: p.name }))}
+                  value={formProdiId}
+                  onChange={setFormProdiId}
+                  placeholder="Pilih Prodi"
+                  disabled={formFacultyId == null}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Pilih Ruangan
+                </label>
+                <SearchableDropdown
+                  options={roomOptions}
+                  value={formRoom}
+                  onChange={setFormRoom}
+                  placeholder="Pilih Ruangan"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Tahun Ajaran
+                </label>
+                <SearchableDropdown
+                  options={academicYears.map((y) => ({ value: y.id, label: y.code }))}
+                  value={formYearId}
+                  onChange={setFormYearId}
+                  placeholder="Pilih Tahun Ajaran"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Mata Kuliah</label>
+                <SearchableDropdown
+                  options={courseOptions}
+                  value={formCourseId}
+                  onChange={setFormCourseId}
+                  placeholder="Pilih Mata Kuliah"
+                  disabled={formProdiId == null}
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Tanggal (YYYY-MM-DD)

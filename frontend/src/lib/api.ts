@@ -48,6 +48,12 @@ import type {
   SemesterIps,
   LecturerProfile,
   UpdateLecturerProfileInput,
+  Room,
+  CreateRoomInput,
+  UpdateRoomInput,
+  Course,
+  CreateCourseInput,
+  UpdateCourseInput,
 } from './types';
 
 export class ApiError extends Error {
@@ -568,6 +574,13 @@ export async function getAcademicCurricula(params?: {
       semester_id: number;
     }>;
   }>(`/curricula${qs ? `?${qs}` : ''}`);
+}
+
+/** GET /academic-years — daftar tahun akademik aktif (dropdown Tahun Ajaran). */
+export async function getAcademicYears(): Promise<{
+  items: Array<{ id: number; code: string }>;
+}> {
+  return apiRequest<{ items: Array<{ id: number; code: string }> }>('/academic-years');
 }
 
 /** GET /finance/payments/grouped — payments grouped by NIM (admin). */
@@ -1858,4 +1871,100 @@ export async function downloadEktmPdf(): Promise<Blob> {
   }
 
   return res.blob();
+}
+
+/* ==== Master Data Admin Akademik — Ruangan, Prodi (per fakultas), Mata Kuliah ==== */
+/*
+ * Endpoint master data untuk admin akademik. Sebagian route dipakai dari modul
+ * academic (/api/v1/faculties, /prodis, /courses) yang sudah disediakan untuk
+ * admin_akademik (perm academic.manage / course.manage); Ruangan memakai
+ * /admin-master/rooms + kursus update/delete memakai /admin-master/courses/:id.
+ * Catatan: beberapa route (rooms, PUT/DELETE courses) masih perlu didefinisikan
+ * di backend — wrapper di sini menjadi kontrak endpoint yang dipakai halaman.
+ */
+
+/** GET /faculties — daftar fakultas aktif (modul academic, admin_akademik). */
+export async function listAcademicFaculties(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}): Promise<MasterListResponse<Faculty>> {
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.search) qs.set('search', params.search);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return apiRequest<MasterListResponse<Faculty>>(`/faculties${suffix}`);
+}
+
+/** GET /prodis — daftar prodi (modul academic, admin_akademik); filter facultyId. */
+export async function listAcademicProdis(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  facultyId?: number;
+}): Promise<MasterListResponse<Prodi>> {
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.search) qs.set('search', params.search);
+  if (params?.facultyId) qs.set('facultyId', String(params.facultyId));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return apiRequest<MasterListResponse<Prodi>>(`/prodis${suffix}`);
+}
+
+/** GET /admin-master/rooms — daftar ruangan (admin akademik). */
+export async function listRooms(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  facultyId?: number;
+}): Promise<MasterListResponse<Room>> {
+  const qs = new URLSearchParams();
+  if (params?.page) qs.set('page', String(params.page));
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.search) qs.set('search', params.search);
+  if (params?.facultyId) qs.set('facultyId', String(params.facultyId));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return apiRequest<MasterListResponse<Room>>(`/admin-master/rooms${suffix}`);
+}
+
+/** POST /admin-master/rooms — buat ruangan. */
+export async function createRoom(input: CreateRoomInput): Promise<Room> {
+  return apiRequest<Room>('/admin-master/rooms', { method: 'POST', body: input });
+}
+
+/** PUT /admin-master/rooms/:id — update ruangan. */
+export async function updateRoom(id: number, input: UpdateRoomInput): Promise<Room> {
+  return apiRequest<Room>(`/admin-master/rooms/${id}`, { method: 'PUT', body: input });
+}
+
+/** DELETE /admin-master/rooms/:id — nonaktifkan ruangan (soft delete). */
+export async function deleteRoom(id: number): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/admin-master/rooms/${id}`, { method: 'DELETE' });
+}
+
+/** GET /courses — daftar mata kuliah aktif (modul academic, admin_akademik). */
+export async function listCourses(params?: { search?: string }): Promise<{ items: Course[] }> {
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set('search', params.search);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return apiRequest<{ items: Course[] }>(`/courses${suffix}`);
+}
+
+/** POST /courses — buat mata kuliah (perm course.manage, admin_akademik). */
+export async function createCourse(input: CreateCourseInput): Promise<Course> {
+  return apiRequest<Course>('/courses', { method: 'POST', body: input });
+}
+
+/** PUT /admin-master/courses/:id — update mata kuliah. */
+export async function updateCourse(id: number, input: UpdateCourseInput): Promise<Course> {
+  return apiRequest<Course>(`/admin-master/courses/${id}`, { method: 'PUT', body: input });
+}
+
+/** DELETE /admin-master/courses/:id — nonaktifkan mata kuliah (soft delete). */
+export async function deleteCourse(id: number): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/admin-master/courses/${id}`, {
+    method: 'DELETE',
+  });
 }

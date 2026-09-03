@@ -14,6 +14,16 @@ import {
   updateMasterStudent,
   createMasterLecturer,
   updateMasterLecturer,
+  listAcademicFaculties,
+  listAcademicProdis,
+  listRooms,
+  createRoom,
+  updateRoom,
+  deleteRoom,
+  listCourses,
+  createCourse,
+  updateCourse,
+  deleteCourse,
 } from '../lib/api';
 import type {
   Faculty,
@@ -24,10 +34,15 @@ import type {
   MasterLecturer,
   CreateMasterStudentInput,
   CreateMasterLecturerInput,
+  Room,
+  CreateRoomInput,
+  Course,
+  CreateCourseInput,
 } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
-type ModalTab = 'faculties' | 'prodis' | 'students' | 'lecturers' | null;
+type ModalTab =
+  'faculties' | 'prodis' | 'students' | 'lecturers' | 'rooms' | 'prodi-akademik' | 'courses' | null;
 
 const PAGE_SIZE = 10;
 
@@ -74,9 +89,9 @@ function PaginationBar({
 
 /** Halaman Master Data (Admin Sistem) — Fakultas, Prodi, Mahasiswa, Dosen. */
 export function AdminMasterPage() {
-  const [activeTab, setActiveTab] = useState<'faculties' | 'prodis' | 'students' | 'lecturers'>(
-    'faculties',
-  );
+  const [activeTab, setActiveTab] = useState<
+    'faculties' | 'prodis' | 'students' | 'lecturers' | 'rooms' | 'prodi-akademik' | 'courses'
+  >('faculties');
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [prodis, setProdis] = useState<Prodi[]>([]);
   const [students, setStudents] = useState<MasterStudent[]>([]);
@@ -94,6 +109,25 @@ export function AdminMasterPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [modalTab, setModalTab] = useState<ModalTab>(null);
   const [saving, setSaving] = useState(false);
+
+  // ===== Admin Akademik — Master Data (Ruangan, Prodi per fakultas, Mata Kuliah) =====
+  // Fakultas admin ditentukan lewat seleksi yang dipertahankan (localStorage);
+  // daftar prodi & ruangan disaring berdasarkan fakultas admin ini.
+  const [adminFaculties, setAdminFaculties] = useState<Faculty[]>([]);
+  const [adminFacultyId, setAdminFacultyId] = useState<number | null>(() => {
+    const stored = window.localStorage.getItem('siak.admin_faculty');
+    return stored ? Number(stored) : null;
+  });
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [roomsTotal, setRoomsTotal] = useState(0);
+  const [roomPage, setRoomPage] = useState(1);
+  const [roomSearch, setRoomSearch] = useState('');
+  const [akademikProdis, setAkademikProdis] = useState<Prodi[]>([]);
+  const [akademikProdiTotal, setAkademikProdiTotal] = useState(0);
+  const [akademikProdiPage, setAkademikProdiPage] = useState(1);
+  const [akademikProdiSearch, setAkademikProdiSearch] = useState('');
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseSearch, setCourseSearch] = useState('');
 
   // Search states
   const [facultySearch, setFacultySearch] = useState('');
@@ -138,6 +172,36 @@ export function AdminMasterPage() {
     email: '',
   });
   const [editingLecturerId, setEditingLecturerId] = useState<number | null>(null);
+
+  // Form Ruangan
+  const [roomForm, setRoomForm] = useState<CreateRoomInput>({
+    code: '',
+    name: '',
+    capacity: 40,
+    facultyCode: '',
+    isActive: true,
+  });
+  const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
+
+  // Form Prodi (admin akademik — fakultas admin ditentukan)
+  const [akademikProdiForm, setAkademikProdiForm] = useState<CreateProdiInput>({
+    code: '',
+    name: '',
+    facultyCode: '',
+    degree: 'S1',
+    accreditation: '',
+    isActive: true,
+  });
+  const [editingAkademikProdiId, setEditingAkademikProdiId] = useState<number | null>(null);
+
+  // Form Mata Kuliah
+  const [courseForm, setCourseForm] = useState<CreateCourseInput>({
+    code: '',
+    name: '',
+    credits: 3,
+    description: '',
+  });
+  const [editingCourseId, setEditingCourseId] = useState<number | null>(null);
 
   const loadFaculties = useCallback(
     async (page = 1) => {
@@ -203,13 +267,87 @@ export function AdminMasterPage() {
     [lecturerSearch],
   );
 
+  // ===== Admin Akademik: Fakultas (untuk seleksi fakultas admin) =====
+  const loadAdminFaculties = useCallback(async () => {
+    try {
+      const data = await listAcademicFaculties({ limit: 100 });
+      setAdminFaculties(data.items);
+    } catch {
+      setError('Gagal memuat data fakultas');
+    }
+  }, []);
+
+  // ===== Admin Akademik: Prodi per fakultas =====
+  const loadAkademikProdis = useCallback(
+    async (page = 1) => {
+      try {
+        const params: { page: number; limit: number; search: string; facultyId?: number } = {
+          page,
+          limit: PAGE_SIZE,
+          search: akademikProdiSearch,
+        };
+        if (adminFacultyId) params.facultyId = adminFacultyId;
+        const data = await listAcademicProdis(params);
+        setAkademikProdis(data.items);
+        setAkademikProdiTotal(data.pagination.total);
+        setAkademikProdiPage(page);
+      } catch {
+        setError('Gagal memuat data prodi');
+      }
+    },
+    [akademikProdiSearch, adminFacultyId],
+  );
+
+  // ===== Admin Akademik: Ruangan =====
+  const loadRooms = useCallback(
+    async (page = 1) => {
+      try {
+        const params: { page: number; limit: number; search: string; facultyId?: number } = {
+          page,
+          limit: PAGE_SIZE,
+          search: roomSearch,
+        };
+        if (adminFacultyId) params.facultyId = adminFacultyId;
+        const data = await listRooms(params);
+        setRooms(data.items);
+        setRoomsTotal(data.pagination.total);
+        setRoomPage(page);
+      } catch {
+        setError('Gagal memuat data ruangan');
+      }
+    },
+    [roomSearch, adminFacultyId],
+  );
+
+  // ===== Admin Akademik: Mata Kuliah =====
+  const loadCourses = useCallback(async () => {
+    try {
+      const data = await listCourses({ search: courseSearch || undefined });
+      setCourses(data.items);
+    } catch {
+      setError('Gagal memuat data mata kuliah');
+    }
+  }, [courseSearch]);
+
   useEffect(() => {
     setLoading(true);
     setError(null);
-    Promise.all([loadFaculties(), loadProdis(), loadStudents(), loadLecturers()]).finally(() =>
-      setLoading(false),
-    );
-  }, [loadFaculties, loadProdis, loadStudents, loadLecturers]);
+    Promise.all([
+      loadFaculties(),
+      loadProdis(),
+      loadStudents(),
+      loadLecturers(),
+      loadAdminFaculties(),
+      loadCourses(),
+    ]).finally(() => setLoading(false));
+  }, [loadFaculties, loadProdis, loadStudents, loadLecturers, loadAdminFaculties, loadCourses]);
+
+  // Muat ulang prodi & ruangan saat fakultas admin berubah.
+  useEffect(() => {
+    if (activeTab === 'prodi-akademik') loadAkademikProdis(1);
+    if (activeTab === 'rooms') loadRooms(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminFacultyId, activeTab]);
 
   // ===== Fakultas =====
   const openFacultyModal = (f?: Faculty) => {
@@ -448,6 +586,227 @@ export function AdminMasterPage() {
     }
   };
 
+  // ===== Ruangan =====
+  const openRoomModal = (r?: Room) => {
+    setError(null);
+    setSuccess(null);
+    const activeFaculty = adminFaculties.find((f) => f.id === adminFacultyId) ?? adminFaculties[0];
+    if (r) {
+      setRoomForm({
+        code: r.code,
+        name: r.name,
+        capacity: r.capacity,
+        facultyCode: activeFaculty?.code ?? r.facultyCode,
+        isActive: r.isActive,
+      });
+      setEditingRoomId(r.id);
+    } else {
+      setRoomForm({
+        code: '',
+        name: '',
+        capacity: 40,
+        facultyCode: activeFaculty?.code ?? '',
+        isActive: true,
+      });
+      setEditingRoomId(null);
+    }
+    setModalTab('rooms');
+  };
+
+  const handleRoomSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setSaving(true);
+    try {
+      if (editingRoomId) {
+        await updateRoom(editingRoomId, {
+          name: roomForm.name,
+          capacity: roomForm.capacity,
+          facultyCode: roomForm.facultyCode,
+          isActive: roomForm.isActive,
+        });
+        setSuccess('Ruangan berhasil diupdate');
+      } else {
+        await createRoom(roomForm);
+        setSuccess('Ruangan berhasil dibuat');
+      }
+      setRoomForm({ code: '', name: '', capacity: 40, facultyCode: '', isActive: true });
+      setEditingRoomId(null);
+      setModalTab(null);
+      await loadRooms(roomPage);
+    } catch (err: unknown) {
+      const apiError = err as { code?: string; message?: string };
+      setError(apiError.message ?? 'Gagal menyimpan ruangan');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRoomDelete = async (id: number) => {
+    if (!window.confirm('Nonaktifkan ruangan ini?')) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      await deleteRoom(id);
+      setSuccess('Ruangan dinonaktifkan');
+      if (rooms.length === 1 && roomPage > 1) {
+        await loadRooms(roomPage - 1);
+      } else {
+        await loadRooms(roomPage);
+      }
+    } catch (err: unknown) {
+      const apiError = err as { code?: string; message?: string };
+      setError(apiError.message ?? 'Gagal menonaktifkan ruangan');
+    }
+  };
+
+  // ===== Prodi (admin akademik — per fakultas admin) =====
+  const openAkademikProdiModal = (p?: Prodi) => {
+    setError(null);
+    setSuccess(null);
+    const activeFaculty = adminFaculties.find((f) => f.id === adminFacultyId) ?? adminFaculties[0];
+    const facultyCode = activeFaculty?.code ?? '';
+    if (p) {
+      setAkademikProdiForm({
+        code: p.code,
+        name: p.name,
+        facultyCode: p.facultyCode,
+        degree: p.degree as CreateProdiInput['degree'],
+        accreditation: p.accreditation ?? '',
+        isActive: p.isActive,
+      });
+      setEditingAkademikProdiId(p.id);
+    } else {
+      setAkademikProdiForm({
+        code: '',
+        name: '',
+        facultyCode,
+        degree: 'S1',
+        accreditation: '',
+        isActive: true,
+      });
+      setEditingAkademikProdiId(null);
+    }
+    setModalTab('prodi-akademik');
+  };
+
+  const handleAkademikProdiSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setSaving(true);
+    try {
+      const payload = {
+        ...akademikProdiForm,
+        accreditation: akademikProdiForm.accreditation || undefined,
+      };
+      if (editingAkademikProdiId) {
+        await updateProdi(editingAkademikProdiId, payload);
+        setSuccess('Prodi berhasil diupdate');
+      } else {
+        await createProdi(payload);
+        setSuccess('Prodi berhasil dibuat');
+      }
+      setAkademikProdiForm({
+        code: '',
+        name: '',
+        facultyCode: '',
+        degree: 'S1',
+        accreditation: '',
+        isActive: true,
+      });
+      setEditingAkademikProdiId(null);
+      setModalTab(null);
+      await loadAkademikProdis(akademikProdiPage);
+    } catch (err: unknown) {
+      const apiError = err as { code?: string; message?: string };
+      setError(apiError.message ?? 'Gagal menyimpan prodi');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAkademikProdiDelete = async (id: number) => {
+    if (!window.confirm('Nonaktifkan prodi ini?')) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      await deleteProdi(id);
+      setSuccess('Prodi dinonaktifkan');
+      if (akademikProdis.length === 1 && akademikProdiPage > 1) {
+        await loadAkademikProdis(akademikProdiPage - 1);
+      } else {
+        await loadAkademikProdis(akademikProdiPage);
+      }
+    } catch (err: unknown) {
+      const apiError = err as { code?: string; message?: string };
+      setError(apiError.message ?? 'Gagal menonaktifkan prodi');
+    }
+  };
+
+  // ===== Mata Kuliah =====
+  const openCourseModal = (c?: Course) => {
+    setError(null);
+    setSuccess(null);
+    if (c) {
+      setCourseForm({
+        code: c.code,
+        name: c.name,
+        credits: c.credits,
+        description: c.description ?? '',
+      });
+      setEditingCourseId(c.id);
+    } else {
+      setCourseForm({ code: '', name: '', credits: 3, description: '' });
+      setEditingCourseId(null);
+    }
+    setModalTab('courses');
+  };
+
+  const handleCourseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setSaving(true);
+    try {
+      if (editingCourseId) {
+        await updateCourse(editingCourseId, {
+          name: courseForm.name,
+          credits: courseForm.credits,
+          description: courseForm.description || undefined,
+        });
+        setSuccess('Mata kuliah berhasil diupdate');
+      } else {
+        await createCourse(courseForm);
+        setSuccess('Mata kuliah berhasil dibuat');
+      }
+      setCourseForm({ code: '', name: '', credits: 3, description: '' });
+      setEditingCourseId(null);
+      setModalTab(null);
+      await loadCourses();
+    } catch (err: unknown) {
+      const apiError = err as { code?: string; message?: string };
+      setError(apiError.message ?? 'Gagal menyimpan mata kuliah');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCourseDelete = async (id: number) => {
+    if (!window.confirm('Nonaktifkan mata kuliah ini?')) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      await deleteCourse(id);
+      setSuccess('Mata kuliah dinonaktifkan');
+      await loadCourses();
+    } catch (err: unknown) {
+      const apiError = err as { code?: string; message?: string };
+      setError(apiError.message ?? 'Gagal menonaktifkan mata kuliah');
+    }
+  };
+
   if (loading) return <div className="p-6 text-center text-slate-500">Memuat data master...</div>;
 
   const closeModal = () => {
@@ -456,6 +815,9 @@ export function AdminMasterPage() {
     setEditingProdiId(null);
     setEditingStudentId(null);
     setEditingLecturerId(null);
+    setEditingRoomId(null);
+    setEditingAkademikProdiId(null);
+    setEditingCourseId(null);
   };
 
   const inputCls =
@@ -513,6 +875,42 @@ export function AdminMasterPage() {
             }`}
           >
             Dosen
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'rooms'}
+            onClick={() => setActiveTab('rooms')}
+            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'rooms'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Ruangan
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'prodi-akademik'}
+            onClick={() => setActiveTab('prodi-akademik')}
+            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'prodi-akademik'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Prodi
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'courses'}
+            onClick={() => setActiveTab('courses')}
+            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'courses'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Mata Kuliah
           </button>
         </nav>
       </div>
@@ -911,6 +1309,341 @@ export function AdminMasterPage() {
         </div>
       )}
 
+      {/* Ruangan Tab */}
+      {activeTab === 'rooms' && (
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="text-lg font-medium text-slate-900">Daftar Ruangan</h3>
+              <label className="block text-sm text-slate-500 mt-1">
+                Fakultas
+                <select
+                  value={adminFacultyId ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value ? Number(e.target.value) : null;
+                    setAdminFacultyId(value);
+                    if (value) window.localStorage.setItem('siak.admin_faculty', String(value));
+                    else window.localStorage.removeItem('siak.admin_faculty');
+                  }}
+                  className="ml-2 px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Pilih Fakultas</option>
+                  {adminFaculties
+                    .filter((f) => f.isActive)
+                    .map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.code} - {f.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+            <button
+              onClick={() => openRoomModal()}
+              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+            >
+              Tambah Ruangan
+            </button>
+          </div>
+
+          {!adminFacultyId ? (
+            <p className="py-8 text-center text-slate-500">
+              Pilih fakultas terlebih dahulu untuk melihat ruangan.
+            </p>
+          ) : (
+            <>
+              {/* Search Ruangan */}
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Cari kode/nama ruangan..."
+                  value={roomSearch}
+                  onChange={(e) => {
+                    setRoomSearch(e.target.value);
+                    loadRooms(1);
+                  }}
+                  className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              {/* Table Ruangan */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-slate-500 border-b border-slate-200">
+                      <th className="pb-2 font-medium">Kode</th>
+                      <th className="pb-2 font-medium">Nama</th>
+                      <th className="pb-2 font-medium">Kapasitas</th>
+                      <th className="pb-2 font-medium">Status</th>
+                      <th className="pb-2 font-medium">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rooms.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-slate-500">
+                          Belum ada data ruangan.
+                        </td>
+                      </tr>
+                    ) : (
+                      rooms.map((r) => (
+                        <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 font-mono text-slate-900">{r.code}</td>
+                          <td className="py-3 text-slate-900">{r.name}</td>
+                          <td className="py-3 text-slate-600">{r.capacity}</td>
+                          <td className="py-3">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                r.isActive
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}
+                            >
+                              {r.isActive ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          </td>
+                          <td className="py-3">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => openRoomModal(r)}
+                                className="px-2 py-1 text-xs text-primary-600 hover:text-primary-700 underline"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleRoomDelete(r.id)}
+                                className="px-2 py-1 text-xs text-red-600 hover:text-red-700 underline"
+                              >
+                                Nonaktifkan
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationBar
+                page={roomPage}
+                total={roomsTotal}
+                onPageChange={(p) => loadRooms(p)}
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Prodi (Admin Akademik) Tab */}
+      {activeTab === 'prodi-akademik' && (
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="text-lg font-medium text-slate-900">Daftar Prodi (Per Fakultas)</h3>
+              <label className="block text-sm text-slate-500 mt-1">
+                Fakultas
+                <select
+                  value={adminFacultyId ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value ? Number(e.target.value) : null;
+                    setAdminFacultyId(value);
+                    if (value) window.localStorage.setItem('siak.admin_faculty', String(value));
+                    else window.localStorage.removeItem('siak.admin_faculty');
+                  }}
+                  className="ml-2 px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Pilih Fakultas</option>
+                  {adminFaculties
+                    .filter((f) => f.isActive)
+                    .map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.code} - {f.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+            <button
+              onClick={() => openAkademikProdiModal()}
+              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+            >
+              Tambah Prodi
+            </button>
+          </div>
+
+          {!adminFacultyId ? (
+            <p className="py-8 text-center text-slate-500">
+              Pilih fakultas terlebih dahulu untuk melihat prodi fakultas ini.
+            </p>
+          ) : (
+            <>
+              {/* Search Prodi */}
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Cari kode/nama prodi..."
+                  value={akademikProdiSearch}
+                  onChange={(e) => {
+                    setAkademikProdiSearch(e.target.value);
+                    loadAkademikProdis(1);
+                  }}
+                  className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              {/* Table Prodi */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-slate-500 border-b border-slate-200">
+                      <th className="pb-2 font-medium">Kode</th>
+                      <th className="pb-2 font-medium">Nama</th>
+                      <th className="pb-2 font-medium">Jenjang</th>
+                      <th className="pb-2 font-medium">Akr.</th>
+                      <th className="pb-2 font-medium">Status</th>
+                      <th className="pb-2 font-medium">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {akademikProdis.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-500">
+                          Belum ada data program studi pada fakultas ini.
+                        </td>
+                      </tr>
+                    ) : (
+                      akademikProdis.map((p) => (
+                        <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 font-mono text-slate-900">{p.code}</td>
+                          <td className="py-3 text-slate-900">{p.name}</td>
+                          <td className="py-3 text-slate-600">{p.degree}</td>
+                          <td className="py-3 text-slate-600">{p.accreditation || '-'}</td>
+                          <td className="py-3">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                p.isActive
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}
+                            >
+                              {p.isActive ? 'Aktif' : 'Nonaktif'}
+                            </span>
+                          </td>
+                          <td className="py-3">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => openAkademikProdiModal(p)}
+                                className="px-2 py-1 text-xs text-primary-600 hover:text-primary-700 underline"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleAkademikProdiDelete(p.id)}
+                                className="px-2 py-1 text-xs text-red-600 hover:text-red-700 underline"
+                              >
+                                Nonaktifkan
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationBar
+                page={akademikProdiPage}
+                total={akademikProdiTotal}
+                onPageChange={(p) => loadAkademikProdis(p)}
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Mata Kuliah Tab */}
+      {activeTab === 'courses' && (
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-medium text-slate-900">Daftar Mata Kuliah</h3>
+            <button
+              onClick={() => openCourseModal()}
+              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+            >
+              Tambah Mata Kuliah
+            </button>
+          </div>
+
+          {/* Search Mata Kuliah */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Cari kode/nama mata kuliah..."
+              value={courseSearch}
+              onChange={(e) => {
+                setCourseSearch(e.target.value);
+                loadCourses();
+              }}
+              className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          {/* Table Mata Kuliah */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-slate-500 border-b border-slate-200">
+                  <th className="pb-2 font-medium">Kode</th>
+                  <th className="pb-2 font-medium">Nama</th>
+                  <th className="pb-2 font-medium">SKS</th>
+                  <th className="pb-2 font-medium">Deskripsi</th>
+                  <th className="pb-2 font-medium">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {courses.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-500">
+                      Belum ada data mata kuliah.
+                    </td>
+                  </tr>
+                ) : (
+                  courses.map((c) => (
+                    <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="py-3 font-mono text-slate-900">{c.code}</td>
+                      <td className="py-3 text-slate-900">{c.name}</td>
+                      <td className="py-3 text-slate-600">{c.credits}</td>
+                      <td
+                        className="py-3 text-slate-600 max-w-xs truncate"
+                        title={c.description || ''}
+                      >
+                        {c.description || '-'}
+                      </td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openCourseModal(c)}
+                            className="px-2 py-1 text-xs text-primary-600 hover:text-primary-700 underline"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleCourseDelete(c.id)}
+                            className="px-2 py-1 text-xs text-red-600 hover:text-red-700 underline"
+                          >
+                            Nonaktifkan
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* ===== Modal Tambah/Edit ===== */}
       {modalTab && (
         <div
@@ -930,9 +1663,21 @@ export function AdminMasterPage() {
                   ? editingStudentId
                     ? 'Edit mahasiswa'
                     : 'Tambah mahasiswa'
-                  : editingLecturerId
-                    ? 'Edit dosen'
-                    : 'Tambah dosen'
+                  : modalTab === 'lecturers'
+                    ? editingLecturerId
+                      ? 'Edit dosen'
+                      : 'Tambah dosen'
+                    : modalTab === 'rooms'
+                      ? editingRoomId
+                        ? 'Edit ruangan'
+                        : 'Tambah ruangan'
+                      : modalTab === 'prodi-akademik'
+                        ? editingAkademikProdiId
+                          ? 'Edit prodi'
+                          : 'Tambah prodi'
+                        : editingCourseId
+                          ? 'Edit mata kuliah'
+                          : 'Tambah mata kuliah'
           }
         >
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
@@ -944,6 +1689,11 @@ export function AdminMasterPage() {
                 {modalTab === 'students' &&
                   (editingStudentId ? 'Edit Mahasiswa' : 'Tambah Mahasiswa')}
                 {modalTab === 'lecturers' && (editingLecturerId ? 'Edit Dosen' : 'Tambah Dosen')}
+                {modalTab === 'rooms' && (editingRoomId ? 'Edit Ruangan' : 'Tambah Ruangan')}
+                {modalTab === 'prodi-akademik' &&
+                  (editingAkademikProdiId ? 'Edit Prodi' : 'Tambah Prodi')}
+                {modalTab === 'courses' &&
+                  (editingCourseId ? 'Edit Mata Kuliah' : 'Tambah Mata Kuliah')}
               </h3>
               <button
                 onClick={closeModal}
@@ -1445,6 +2195,422 @@ export function AdminMasterPage() {
                     className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
                   >
                     {saving ? 'Menyimpan...' : editingLecturerId ? 'Update Dosen' : 'Simpan Dosen'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Form Ruangan */}
+            {modalTab === 'rooms' && (
+              <form onSubmit={handleRoomSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="room-code"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Kode Ruangan *
+                    </label>
+                    <input
+                      id="room-code"
+                      type="text"
+                      value={roomForm.code}
+                      onChange={(e) =>
+                        setRoomForm({ ...roomForm, code: e.target.value.toUpperCase() })
+                      }
+                      placeholder="Contoh: R.301"
+                      maxLength={20}
+                      className={inputCls}
+                      required
+                      disabled={!!editingRoomId}
+                    />
+                    {editingRoomId && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Kode tidak bisa diubah saat edit
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="room-name"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Nama Ruangan *
+                    </label>
+                    <input
+                      id="room-name"
+                      type="text"
+                      value={roomForm.name}
+                      onChange={(e) => setRoomForm({ ...roomForm, name: e.target.value })}
+                      placeholder="Contoh: Ruang 301"
+                      maxLength={100}
+                      className={inputCls}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="room-capacity"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Kapasitas *
+                    </label>
+                    <input
+                      id="room-capacity"
+                      type="number"
+                      min={1}
+                      value={roomForm.capacity}
+                      onChange={(e) =>
+                        setRoomForm({ ...roomForm, capacity: Number(e.target.value) })
+                      }
+                      className={inputCls}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="room-faculty"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Fakultas *
+                    </label>
+                    <select
+                      id="room-faculty"
+                      value={roomForm.facultyCode}
+                      onChange={(e) => setRoomForm({ ...roomForm, facultyCode: e.target.value })}
+                      className={inputCls}
+                      required
+                    >
+                      <option value="">Pilih Fakultas</option>
+                      {adminFaculties
+                        .filter((f) => f.isActive)
+                        .map((f) => (
+                          <option key={f.code} value={f.code}>
+                            {f.code} - {f.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <label htmlFor="room-active" className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      id="room-active"
+                      type="checkbox"
+                      checked={roomForm.isActive}
+                      onChange={(e) => setRoomForm({ ...roomForm, isActive: e.target.checked })}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-slate-700">Aktif</span>
+                  </label>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                  >
+                    {saving ? 'Menyimpan...' : editingRoomId ? 'Update Ruangan' : 'Simpan Ruangan'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Form Prodi (Admin Akademik) */}
+            {modalTab === 'prodi-akademik' && (
+              <form onSubmit={handleAkademikProdiSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="ak-prodi-code"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Kode Prodi *
+                    </label>
+                    <input
+                      id="ak-prodi-code"
+                      type="text"
+                      value={akademikProdiForm.code}
+                      onChange={(e) =>
+                        setAkademikProdiForm({
+                          ...akademikProdiForm,
+                          code: e.target.value.toUpperCase(),
+                        })
+                      }
+                      placeholder="Contoh: TI, SI"
+                      maxLength={10}
+                      className={inputCls}
+                      required
+                      disabled={!!editingAkademikProdiId}
+                    />
+                    {editingAkademikProdiId && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Kode tidak bisa diubah saat edit
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="ak-prodi-name"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Nama Prodi *
+                    </label>
+                    <input
+                      id="ak-prodi-name"
+                      type="text"
+                      value={akademikProdiForm.name}
+                      onChange={(e) =>
+                        setAkademikProdiForm({ ...akademikProdiForm, name: e.target.value })
+                      }
+                      placeholder="Contoh: Teknik Informatika"
+                      maxLength={100}
+                      className={inputCls}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="ak-prodi-faculty"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Fakultas *
+                    </label>
+                    <select
+                      id="ak-prodi-faculty"
+                      value={akademikProdiForm.facultyCode}
+                      onChange={(e) =>
+                        setAkademikProdiForm({
+                          ...akademikProdiForm,
+                          facultyCode: e.target.value,
+                        })
+                      }
+                      className={inputCls}
+                      required
+                    >
+                      <option value="">Pilih Fakultas</option>
+                      {adminFaculties
+                        .filter((f) => f.isActive)
+                        .map((f) => (
+                          <option key={f.code} value={f.code}>
+                            {f.code} - {f.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="ak-prodi-degree"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Jenjang *
+                    </label>
+                    <select
+                      id="ak-prodi-degree"
+                      value={akademikProdiForm.degree}
+                      onChange={(e) =>
+                        setAkademikProdiForm({
+                          ...akademikProdiForm,
+                          degree: e.target.value as CreateProdiInput['degree'],
+                        })
+                      }
+                      className={inputCls}
+                      required
+                    >
+                      <option value="S1">S1</option>
+                      <option value="S2">S2</option>
+                      <option value="S3">S3</option>
+                      <option value="D3">D3</option>
+                      <option value="D4">D4</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="ak-prodi-accreditation"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Akreditasi
+                    </label>
+                    <input
+                      id="ak-prodi-accreditation"
+                      type="text"
+                      value={akademikProdiForm.accreditation}
+                      onChange={(e) =>
+                        setAkademikProdiForm({
+                          ...akademikProdiForm,
+                          accreditation: e.target.value,
+                        })
+                      }
+                      placeholder="Contoh: A, B, Unggul"
+                      maxLength={20}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <label
+                      htmlFor="ak-prodi-active"
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <input
+                        id="ak-prodi-active"
+                        type="checkbox"
+                        checked={akademikProdiForm.isActive}
+                        onChange={(e) =>
+                          setAkademikProdiForm({
+                            ...akademikProdiForm,
+                            isActive: e.target.checked,
+                          })
+                        }
+                        className="h-4 w-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-slate-700">Aktif</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                  >
+                    {saving
+                      ? 'Menyimpan...'
+                      : editingAkademikProdiId
+                        ? 'Update Prodi'
+                        : 'Simpan Prodi'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Form Mata Kuliah */}
+            {modalTab === 'courses' && (
+              <form onSubmit={handleCourseSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="course-code"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Kode Mata Kuliah *
+                    </label>
+                    <input
+                      id="course-code"
+                      type="text"
+                      value={courseForm.code}
+                      onChange={(e) =>
+                        setCourseForm({ ...courseForm, code: e.target.value.toUpperCase() })
+                      }
+                      placeholder="Contoh: TI101"
+                      maxLength={20}
+                      className={inputCls}
+                      required
+                      disabled={!!editingCourseId}
+                    />
+                    {editingCourseId && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Kode tidak bisa diubah saat edit
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="course-name"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Nama Mata Kuliah *
+                    </label>
+                    <input
+                      id="course-name"
+                      type="text"
+                      value={courseForm.name}
+                      onChange={(e) => setCourseForm({ ...courseForm, name: e.target.value })}
+                      placeholder="Contoh: Algoritma dan Pemrograman"
+                      maxLength={150}
+                      className={inputCls}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="course-credits"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      SKS *
+                    </label>
+                    <input
+                      id="course-credits"
+                      type="number"
+                      min={1}
+                      max={6}
+                      value={courseForm.credits}
+                      onChange={(e) =>
+                        setCourseForm({ ...courseForm, credits: Number(e.target.value) })
+                      }
+                      className={inputCls}
+                      required
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <p className="text-xs text-slate-500">SKS maksimal 6</p>
+                  </div>
+                </div>
+                <div>
+                  <label
+                    htmlFor="course-description"
+                    className="block text-sm font-medium text-slate-700 mb-1"
+                  >
+                    Deskripsi
+                  </label>
+                  <textarea
+                    id="course-description"
+                    value={courseForm.description}
+                    onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
+                    rows={3}
+                    placeholder="Deskripsi singkat mata kuliah"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                  >
+                    {saving
+                      ? 'Menyimpan...'
+                      : editingCourseId
+                        ? 'Update Mata Kuliah'
+                        : 'Simpan Mata Kuliah'}
                   </button>
                 </div>
               </form>

@@ -987,3 +987,60 @@ export interface GradeInput {
   remedialUtsScore: number | null;
   remedialUasScore: number | null;
 }
+
+/* ==== Master Data Admin Akademik — Ruangan, Prodi (per fakultas), Mata Kuliah ==== */
+
+/** Ruangan (rooms) — milik satu fakultas; dipakai jadwal kelas. */
+export interface Room {
+  id: number;
+  code: string;
+  name: string;
+  capacity: number;
+  facultyId: number;
+  facultyCode: string;
+  facultyName: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRoomInput {
+  code: string;
+  name: string;
+  capacity: number;
+  facultyCode: string;
+  isActive?: boolean;
+}
+
+export interface UpdateRoomInput {
+  name?: string;
+  capacity?: number;
+  facultyCode?: string;
+  isActive?: boolean;
+}
+
+/** Mata Kuliah (courses) — tabel `courses` (global, non-per-fakultas). */
+export interface Course {
+  id: number;
+  code: string;
+  name: string;
+  credits: number;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCourseInput {
+  code: string;
+  name: string;
+  credits: number;
+  description?: string;
+}
+
+export interface UpdateCourseInput {
+  name?: string;
+  credits?: number;
+  description?: string;
+  isActive?: boolean;
+}
