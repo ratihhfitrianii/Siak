@@ -24,6 +24,20 @@ async function main() {
       );
     `);
     console.log('✅ skripsi_guidance_logs table ensured');
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rooms (
+        id          SMALLSERIAL PRIMARY KEY,
+        code        VARCHAR(20) NOT NULL UNIQUE,
+        name        VARCHAR(100) NOT NULL,
+        capacity    INTEGER NOT NULL DEFAULT 0 CHECK (capacity >= 0),
+        faculty_code VARCHAR(10) NOT NULL,
+        is_active   BOOLEAN NOT NULL DEFAULT true,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    \`);
+    console.log('✅ rooms table ensured');
   } catch (err) {
     console.error('❌ Error ensuring tables:', err.message);
     process.exitCode = 1;

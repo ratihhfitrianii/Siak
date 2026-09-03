@@ -1044,35 +1044,51 @@ export function createAdminMasterRouter(): Router {
     },
   );
 
-  // GET /admin-master/rooms — daftar ruangan unik dari kelas (agregasi kolom classes.room),
-  // dapat difilter fakultas via join prodi → kurikulum → kelas.
+  // ─── RUANGAN (ROOMS) ────────────────────────────────────────────────────────
+  const roomCreateSchema = z.object({
+    code: z.string().min(1).max(20),
+    name: z.string().min(1).max(100),
+    capacity: z.number().int().min(0),
+    facultyCode: z.string().min(1).max(10),
+    isActive: z.boolean().default(true),
+  });
+  const roomUpdateSchema = z.object({
+    name: z.string().min(1).max(100).optional(),
+    capacity: z.number().int().min(0).optional(),
+    facultyCode: z.string().min(1).max(10).optional(),
+    isActive: z.boolean().optional(),
+  });
+
+  const roomSelect = `SELECT r.id, r.code, r.name, r.capacity, r.faculty_code AS "facultyCode",
+    f.id AS "facultyId", f.name AS "facultyName",
+    r.is_active AS "isActive",
+    r.created_at AS "createdAt", r.updated_at AS "updatedAt"
+  FROM rooms r LEFT JOIN faculties f ON f.code = r.faculty_code`;
+
+  // GET /admin-master/rooms — list rooms (filter facultyCode)
   router.get(
     '/rooms',
     authenticate,
     authorize('user.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { facultyId } = req.query;
-        let query = `SELECT DISTINCT c.room AS name FROM classes c
-          JOIN curricula cu ON cu.id = c.curriculum_id
-          JOIN prodis p ON p.id = cu.prodi_id
-          WHERE c.room IS NOT NULL AND c.room <> ''`;
+        const { facultyCode, facultyId } = req.query;
+        let query = roomSelect + ' WHERE 1=1';
         const params: unknown[] = [];
-        if (facultyId) {
+        if (facultyCode) {
+          params.push(String(facultyCode));
+          query += ` AND r.faculty_code = $${params.length}`;
+        } else if (facultyId) {
           params.push(Number(facultyId));
-          query += ` AND p.faculty_id = $${params.length}`;
+          query += ` AND f.id = $${params.length}`;
         }
-        query += ' ORDER BY c.room';
+        query += ' ORDER BY r.code';
         const result = await pgPool.query(query, params);
         res.json({
           success: true,
           data: {
-            items: result.rows.map((r) => ({
-              id: r.name,
-              name: r.name,
-              facultyId: facultyId ? Number(facultyId) : null,
-            })),
-            pagination: { page: 1, limit: 100, total: result.rows.length },
+            items: result.rows,
+            pagination: { page: 1, limit: 100, total: result.rowCount ?? 0 },
           },
         });
       } catch (err) {
@@ -1081,17 +1097,100 @@ export function createAdminMasterRouter(): Router {
     },
   );
 
-  // POST /admin-master/rooms — daftar ruangan tidak punya tabel terpisah;
-  // buat ruangan baru cukup memvalidasi dan mencatat (baca-only dari classes.room).
-  // Untuk menghindari 404, kembalikan ruangan yang baru (nama unik) — tidak menyimpan tabel.
+  // POST /admin-master/rooms — buat ruangan baru
   router.post(
     '/rooms',
     authenticate,
     authorize('user.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const name = z.string().min(1).max(50).parse((req.body as { name?: string }).name);
-        res.status(201).json({ success: true, data: { id: name, name, facultyId: null } });
+        const data = roomCreateSchema.parse(req.body);
+        const result = await pgPool.query(
+          `INSERT INTO rooms (code, name, capacity, faculty_code, is_active)
+           VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+          [data.code, data.name, data.capacity, data.facultyCode, data.isActive],
+        );
+        const room = result.rows[0];
+        const fRes = await pgPool.query('SELECT id, name FROM faculties WHERE code = $1', [data.facultyCode]);
+        await auditFromRequest(req.user!, req, {
+          tableName: 'rooms', recordId: Number(room.id), action: 'INSERT',
+          newValues: { code: data.code, name: data.name, capacity: data.capacity },
+        });
+        res.status(201).json({
+          success: true,
+          data: {
+            id: Number(room.id), code: room.code, name: room.name,
+            capacity: room.capacity, facultyCode: room.faculty_code,
+            facultyId: fRes.rows[0]?.id ?? null, facultyName: fRes.rows[0]?.name ?? null,
+            isActive: room.is_active, createdAt: room.created_at, updatedAt: room.updated_at,
+          },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // PUT /admin-master/rooms/:id — update ruangan
+  router.put(
+    '/rooms/:id',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const id = Number(req.params.id);
+        const data = roomUpdateSchema.parse(req.body);
+        const result = await pgPool.query(
+          `UPDATE rooms SET
+            name = COALESCE($1, name), capacity = COALESCE($2, capacity),
+            faculty_code = COALESCE($3, faculty_code), is_active = COALESCE($4, is_active),
+            updated_at = now()
+           WHERE id = $5 RETURNING *`,
+          [data.name ?? null, data.capacity ?? null, data.facultyCode ?? null,
+           data.isActive ?? null, id],
+        );
+        if (result.rowCount === 0) {
+          throw new AppError('NOT_FOUND', 'Ruangan tidak ditemukan', 404);
+        }
+        const room = result.rows[0];
+        const fRes = await pgPool.query('SELECT id, name FROM faculties WHERE code = $1', [room.faculty_code]);
+        await auditFromRequest(req.user!, req, {
+          tableName: 'rooms', recordId: id, action: 'UPDATE',
+        });
+        res.json({
+          success: true,
+          data: {
+            id: Number(room.id), code: room.code, name: room.name,
+            capacity: room.capacity, facultyCode: room.faculty_code,
+            facultyId: fRes.rows[0]?.id ?? null, facultyName: fRes.rows[0]?.name ?? null,
+            isActive: room.is_active, createdAt: room.created_at, updatedAt: room.updated_at,
+          },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // DELETE /admin-master/rooms/:id — nonaktifkan ruangan
+  router.delete(
+    '/rooms/:id',
+    authenticate,
+    authorize('user.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const id = Number(req.params.id);
+        const result = await pgPool.query(
+          'UPDATE rooms SET is_active = false, updated_at = now() WHERE id = $1 RETURNING id',
+          [id],
+        );
+        if (result.rowCount === 0) {
+          throw new AppError('NOT_FOUND', 'Ruangan tidak ditemukan', 404);
+        }
+        await auditFromRequest(req.user!, req, {
+          tableName: 'rooms', recordId: id, action: 'DELETE',
+        });
+        res.json({ success: true, data: { message: 'Ruangan dinonaktifkan' } });
       } catch (err) {
         next(err);
       }
