@@ -18,6 +18,7 @@ export interface AuthUser {
   studentId: number | null;
   lecturerId: number | null;
   prodiId: number | null;
+  adminFacultyCode: string | null;
 }
 
 export interface JwtPayload {
@@ -53,6 +54,7 @@ export async function authenticate(
 
     const result = await pgPool.query(
       `SELECT u.id, u.email, u.full_name, u.role_id, u.is_wali, u.is_active,
+              u.admin_faculty_code,
               r.code AS role_code,
               s.id AS student_id,
               l.id AS lecturer_id,
@@ -84,6 +86,7 @@ export async function authenticate(
       studentId: row.student_id ? Number(row.student_id) : null,
       lecturerId: row.lecturer_id ? Number(row.lecturer_id) : null,
       prodiId: row.prodi_id ? Number(row.prodi_id) : null,
+      adminFacultyCode: row.admin_faculty_code ?? null,
     };
 
     next();

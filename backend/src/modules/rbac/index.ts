@@ -37,6 +37,8 @@ const createUserSchema = z
     //   Password awal = NIM/NIK, must_change_password = true.
     nim: z.string().min(1, 'NIM wajib diisi').max(20).optional(),
     nik: z.string().min(1, 'NIK wajib diisi').max(20).optional(),
+    // Admin akademik terikat ke 1 fakultas (wajib untuk role admin_akademik).
+    adminFacultyCode: z.string().max(10).optional(),
   })
   .superRefine((val, ctx) => {
     const hasNimNik = !!val.nim || !!val.nik;
@@ -45,6 +47,15 @@ const createUserSchema = z
     }
     if (val.nik && val.roleCode !== 'dosen') {
       ctx.addIssue({ code: 'custom', message: 'NIK hanya untuk peran Dosen' });
+    }
+    if (val.roleCode === 'admin_akademik' && !val.adminFacultyCode) {
+      ctx.addIssue({ code: 'custom', message: 'Admin akademik harus terikat ke 1 fakultas' });
+    }
+    if (val.roleCode !== 'admin_akademik' && val.adminFacultyCode) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'adminFacultyCode hanya untuk peran Admin Akademik',
+      });
     }
     if (hasNimNik && (val.email || val.password || val.fullName)) {
       ctx.addIssue({
@@ -63,6 +74,7 @@ const createUserSchema = z
 const updateRoleSchema = z.object({
   roleCode: z.enum(['mahasiswa', 'dosen', 'admin_akademik', 'admin_keuangan', 'admin_sistem']),
   isWali: z.boolean().default(false),
+  adminFacultyCode: z.string().max(10).optional(),
 });
 
 const listQuerySchema = z.object({
@@ -76,6 +88,41 @@ const lookupQuerySchema = z.object({
   role: z.enum(['mahasiswa', 'dosen']),
   identifier: z.string().min(1, 'NIM/NIK wajib diisi').max(20),
 });
+
+/** Maksimal admin akademik per fakultas (business rule). */
+const MAX_ADMIN_PER_FACULTY = 3;
+
+/**
+ * Validasi pengikatan admin_akademik ↔ fakultas:
+ *  - fakultas harus ada & aktif
+ *  - jumlah admin akademik terikat fakultas tsb ≤ 3 (kecuali mengecualikan user sendiri saat update)
+ */
+async function assertAdminFacultyValid(facultyCode: string, excludeUserId?: number): Promise<void> {
+  const f = await pgPool.query('SELECT code FROM faculties WHERE code = $1 AND is_active = true', [
+    facultyCode,
+  ]);
+  if (f.rows.length === 0) {
+    throw new AppError('VALIDATION_ERROR', 'Fakultas tidak ditemukan atau tidak aktif', 400);
+  }
+
+  const countRes = await pgPool.query(
+    `SELECT count(*)::int AS total
+     FROM users u
+     JOIN roles r ON u.role_id = r.id
+     WHERE r.code = 'admin_akademik'
+       AND u.admin_faculty_code = $1
+       ${excludeUserId ? 'AND u.id <> $2' : ''}`,
+    excludeUserId ? [facultyCode, excludeUserId] : [facultyCode],
+  );
+
+  if ((countRes.rows[0]?.total ?? 0) >= MAX_ADMIN_PER_FACULTY) {
+    throw new AppError(
+      'VALIDATION_ERROR',
+      `Fakultas ini sudah memiliki ${MAX_ADMIN_PER_FACULTY} admin akademik (maksimal).`,
+      400,
+    );
+  }
+}
 
 export function createRbacRouter(): Router {
   const router = Router();
@@ -92,6 +139,7 @@ export function createRbacRouter(): Router {
 
       const result = await pgPool.query(
         `SELECT u.id, u.email, u.full_name, u.is_active, u.must_change_password, u.created_at,
+                u.admin_faculty_code,
                 r.code AS role_code, r.name AS role_name
          FROM users u
          JOIN roles r ON u.role_id = r.id
@@ -116,6 +164,7 @@ export function createRbacRouter(): Router {
           isActive: row.is_active,
           mustChangePassword: row.must_change_password === true,
           studentId: user.studentId, // untuk transkrip mandiri (T1.11b); null untuk non-mahasiswa
+          adminFacultyCode: row.admin_faculty_code ?? null, // admin akademik → fakultas terikat
           createdAt: row.created_at,
           menu,
         },
@@ -225,6 +274,7 @@ export function createRbacRouter(): Router {
 
         const listResult = await pgPool.query(
           `SELECT u.id, u.email, u.full_name, u.is_wali, u.is_active, u.last_login_at, u.created_at,
+                u.admin_faculty_code,
                 r.code AS role_code, r.name AS role_name
          FROM users u
          JOIN roles r ON u.role_id = r.id
@@ -234,7 +284,11 @@ export function createRbacRouter(): Router {
           [...params, limit, offset],
         );
 
-        const items = listResult.rows.map((row) => ({ ...row, id: Number(row.id) }));
+        const items = listResult.rows.map((row) => ({
+          ...row,
+          id: Number(row.id),
+          adminFacultyCode: row.admin_faculty_code ?? null,
+        }));
 
         res.json({
           success: true,
@@ -317,7 +371,8 @@ export function createRbacRouter(): Router {
           });
         }
 
-        const { email, password, fullName, roleCode, isWali, nim, nik } = parsed.data;
+        const { email, password, fullName, roleCode, isWali, nim, nik, adminFacultyCode } =
+          parsed.data;
 
         // ---- Flow NIM/NIK: buat user cukup peran + NIM/NIK; lookup master data,
         // aktifkan akun + reset password = NIM/NIK (wajib ganti saat login pertama).
@@ -408,6 +463,18 @@ export function createRbacRouter(): Router {
           throw new AppError('VALIDATION_ERROR', 'Email sudah digunakan', 409);
         }
 
+        // Admin akademik wajib terikat fakultas + kuota max 3 per fakultas.
+        if (roleCode === 'admin_akademik') {
+          if (!adminFacultyCode) {
+            throw new AppError(
+              'VALIDATION_ERROR',
+              'Admin akademik harus terikat ke 1 fakultas',
+              400,
+            );
+          }
+          await assertAdminFacultyValid(adminFacultyCode);
+        }
+
         const roleResult = await pgPool.query('SELECT id FROM roles WHERE code = $1', [roleCode]);
         if (roleResult.rows.length === 0) {
           throw new AppError('VALIDATION_ERROR', 'Role tidak ditemukan', 400);
@@ -416,8 +483,8 @@ export function createRbacRouter(): Router {
         const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
         const result = await pgPool.query(
-          `INSERT INTO users (email, password_hash, full_name, role_id, is_wali, is_active)
-         VALUES ($1, $2, $3, $4, $5, true)
+          `INSERT INTO users (email, password_hash, full_name, role_id, is_wali, is_active, admin_faculty_code)
+         VALUES ($1, $2, $3, $4, $5, true, $6)
          RETURNING id, email, full_name, is_wali, created_at`,
           [
             email,
@@ -425,6 +492,7 @@ export function createRbacRouter(): Router {
             fullName,
             roleResult.rows[0].id,
             roleCode === 'dosen' ? isWali : false,
+            roleCode === 'admin_akademik' ? (adminFacultyCode ?? null) : null,
           ],
         );
 
@@ -469,12 +537,26 @@ export function createRbacRouter(): Router {
           });
         }
 
-        const { roleCode, isWali } = parsed.data;
+        const { roleCode, isWali, adminFacultyCode } = parsed.data;
         const actor = req.user!;
 
         // Keamanan: tidak boleh mengubah role diri sendiri (anti self-lockout)
         if (targetId === actor.id) {
           throw new AppError('VALIDATION_ERROR', 'Tidak dapat mengubah role akun sendiri', 400);
+        }
+
+        // Admin akademik wajib terikat fakultas + kuota max 3 per fakultas.
+        let nextFacultyCode: string | null = null;
+        if (roleCode === 'admin_akademik') {
+          if (!adminFacultyCode) {
+            throw new AppError(
+              'VALIDATION_ERROR',
+              'Admin akademik harus terikat ke 1 fakultas',
+              400,
+            );
+          }
+          await assertAdminFacultyValid(adminFacultyCode, targetId);
+          nextFacultyCode = adminFacultyCode;
         }
 
         const roleResult = await pgPool.query('SELECT id FROM roles WHERE code = $1', [roleCode]);
@@ -495,10 +577,10 @@ export function createRbacRouter(): Router {
 
         const result = await pgPool.query(
           `UPDATE users
-         SET role_id = $1, is_wali = $2, updated_at = now()
-         WHERE id = $3
-         RETURNING id, email, full_name, is_wali`,
-          [roleResult.rows[0].id, roleCode === 'dosen' ? isWali : false, targetId],
+        SET role_id = $1, is_wali = $2, admin_faculty_code = $3, updated_at = now()
+        WHERE id = $4
+        RETURNING id, email, full_name, is_wali`,
+          [roleResult.rows[0].id, roleCode === 'dosen' ? isWali : false, nextFacultyCode, targetId],
         );
 
         // Audit trail (F-13, S-06, S-07) — perubahan RBAC paling penting dicatat

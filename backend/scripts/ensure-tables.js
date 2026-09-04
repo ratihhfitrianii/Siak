@@ -38,6 +38,18 @@ async function main() {
       );
     `);
     console.log('✅ rooms table ensured');
+
+    await pool
+      .query(
+        `
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS admin_faculty_code VARCHAR(10) REFERENCES faculties(code);
+    `,
+      )
+      .catch(() => {
+        // Kolom/relasi mungkin sudah ada di sebagian DB legacy; jangan crash.
+      });
+    console.log('✅ users.admin_faculty_code ensured');
   } catch (err) {
     console.error('❌ Error ensuring tables:', err.message);
     process.exitCode = 1;

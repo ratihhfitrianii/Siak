@@ -894,3 +894,96 @@ describe('User Service (RBAC endpoints)', () => {
     expect(router).toBeDefined();
   });
 });
+
+describe('Admin Akademik ↔ Fakultas binding + kuota max 3', () => {
+  const FACULTY_CODE = 'AMFT';
+  const createdMails: string[] = [];
+
+  let adminToken: string;
+
+  beforeAll(async () => {
+    // Buat fakultas test aktif
+    await pgPool.query(
+      `INSERT INTO faculties (code, name, is_active)
+       VALUES ($1, 'Fakultas Test AM', true)
+       ON CONFLICT (code) DO UPDATE SET is_active = true`,
+      [FACULTY_CODE],
+    );
+    // Token admin_sistem dari suite induk — buat ulang di sini utk isolasi
+    const hash = await bcrypt.hash('TestPass123!', 12);
+    await pgPool.query(
+      `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+       VALUES ('rbac-fac-admin@siak.local', $1, 'Admin AM', (SELECT id FROM roles WHERE code='admin_sistem'), true)
+       ON CONFLICT (email) DO UPDATE SET password_hash = $1, is_active = true`,
+      [hash],
+    );
+    const login = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ identifier: 'rbac-fac-admin@siak.local', password: 'TestPass123!' })
+      .expect(200);
+    adminToken = login.body.data.accessToken;
+  }, 20_000);
+
+  afterAll(async () => {
+    for (const mail of createdMails) {
+      try {
+        await pgPool.query('DELETE FROM users WHERE email = $1', [mail]);
+      } catch {
+        // ignore
+      }
+    }
+    await pgPool.query('DELETE FROM users WHERE email = $1', ['rbac-fac-admin@siak.local']);
+    await pgPool.query('DELETE FROM faculties WHERE code = $1', [FACULTY_CODE]);
+  });
+
+  const createAkademik = async (mail: string) => {
+    const res = await request(app)
+      .post('/api/v1/users')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        email: mail,
+        password: 'TestPass123!',
+        fullName: 'Admin Akademik AM',
+        roleCode: 'admin_akademik',
+        adminFacultyCode: FACULTY_CODE,
+      });
+    return res;
+  };
+
+  it('admin_akademik tanpa fakultas → 400', async () => {
+    const res = await request(app)
+      .post('/api/v1/users')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        email: 'rbac-fac-nofac@siak.local',
+        password: 'TestPass123!',
+        fullName: 'No Fac',
+        roleCode: 'admin_akademik',
+      })
+      .expect(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('admin_akademik dengan fakultas valid → 201, fakultas tersimpan', async () => {
+    const mail = 'rbac-fac-one@siak.local';
+    const res = await createAkademik(mail);
+    expect(res.status).toBe(201);
+    createdMails.push(mail);
+
+    const row = await pgPool.query('SELECT admin_faculty_code FROM users WHERE email = $1', [mail]);
+    expect(row.rows[0].admin_faculty_code).toBe(FACULTY_CODE);
+  });
+
+  it('max 3 admin akademik per fakultas → ke-4 ditolak 400', async () => {
+    for (let i = 2; i <= 3; i++) {
+      const mail = `rbac-fac-${i}@siak.local`;
+      const res = await createAkademik(mail);
+      expect(res.status).toBe(201);
+      createdMails.push(mail);
+    }
+    // Ke-4 → melebihi kuota 3 → 400
+    const res = await createAkademik('rbac-fac-keempat@siak.local');
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+});
