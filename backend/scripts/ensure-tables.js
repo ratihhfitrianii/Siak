@@ -3,13 +3,19 @@
 const { Pool } = require('pg');
 
 async function main() {
-  const pool = new Pool({
-    host: process.env.PGHOST || 'localhost',
-    port: Number(process.env.PGPORT || 5432),
-    database: process.env.PGDATABASE || 'siak',
-    user: process.env.PGUSER || 'siak',
-    password: process.env.PGPASSWORD || 'siak_dev_password',
-  });
+  // Dukungan dua bentuk koneksi: DATABASE_URL (env.production — dipakai app utama)
+  // ATAU PGHOST/PGPORT/... terpisah (dev). Kalau keduanya ada, DATABASE_URL menang.
+  const pool = new Pool(
+    process.env.DATABASE_URL
+      ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
+      : {
+          host: process.env.PGHOST || 'localhost',
+          port: Number(process.env.PGPORT || 5432),
+          database: process.env.PGDATABASE || 'siak',
+          user: process.env.PGUSER || 'siak',
+          password: process.env.PGPASSWORD || 'siak_dev_password',
+        },
+  );
 
   try {
     await pool.query(`
@@ -39,20 +45,30 @@ async function main() {
     `);
     console.log('✅ rooms table ensured');
 
-    await pool
-      .query(
-        `
-      ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS admin_faculty_code VARCHAR(10) REFERENCES faculties(code);
-    `,
-      )
-      .catch(() => {
-        // Kolom/relasi mungkin sudah ada di sebagian DB legacy; jangan crash.
-      });
+    // Kolom admin_faculty_code — coba dengan FK ke faculties(code); jika FK gagal
+    // (mis. constraints legacy), tetap buat kolom polos agar query auth tidak rusak.
+    try {
+      await pool.query(
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_faculty_code VARCHAR(10) REFERENCES faculties(code);`,
+      );
+    } catch (fkErr) {
+      console.warn('⚠️ ADD COLUMN w/ FK gagal, fallback ke kolom tanpa FK:', fkErr.message);
+      try {
+        await pool.query(
+          `ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_faculty_code VARCHAR(10);`,
+        );
+      } catch (e) {
+        console.error('❌ Gagal menambah admin_faculty_code:', e.message);
+      }
+    }
     console.log('✅ users.admin_faculty_code ensured');
   } catch (err) {
-    console.error('❌ Error ensuring tables:', err.message);
-    process.exitCode = 1;
+    // Best-effort: jangan blok start aplikasi kalau ensure gagal (mis. DB sementara down).
+    // Log ke output agar terlihat di dashboard, tapi biarkan proses lanjut (exit 0).
+    console.error(
+      '❌ Error ensuring tables:',
+      err && typeof err === 'object' && 'message' in err ? err.message : String(err),
+    );
   } finally {
     await pool.end();
   }
