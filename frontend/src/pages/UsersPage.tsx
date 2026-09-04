@@ -120,6 +120,13 @@ export function UsersPage() {
     void load(page, roleFilter, debouncedSearch);
   }, [page, roleFilter, debouncedSearch, load]);
 
+  // Load daftar fakultas sekali saat mount (dipakai create & edit modal Admin Akademik).
+  useEffect(() => {
+    void listAcademicFaculties({ limit: 100 })
+      .then((res) => setFaculties(res.items ?? []))
+      .catch(() => setFaculties([]));
+  }, []);
+
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
 
   const openCreate = () => {
@@ -127,10 +134,6 @@ export function UsersPage() {
     setFieldErrors(null);
     setActionError(null);
     setLookup({ status: 'idle' });
-    // Ambil daftar fakultas aktif untuk dropdown Admin Akademik.
-    void listAcademicFaculties({ limit: 100 })
-      .then((res) => setFaculties(res.items ?? []))
-      .catch(() => setFaculties([]));
     setCreateOpen(true);
   };
 
