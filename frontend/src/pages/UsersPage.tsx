@@ -228,7 +228,7 @@ export function UsersPage() {
     } finally {
       setEditing(false);
     }
-  }, [editTarget, editRole, editWali, page, roleFilter, debouncedSearch, load]);
+  }, [editTarget, editRole, editWali, editFaculty, page, roleFilter, debouncedSearch, load]);
 
   // Keluhan lama: "hanya admin sistem yang dapat menghapus ... user" — soft-delete (nonaktifkan).
   const [deletingId, setDeletingId] = useState<number | null>(null);
