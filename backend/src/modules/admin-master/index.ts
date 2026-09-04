@@ -1104,7 +1104,13 @@ export function createAdminMasterRouter(): Router {
     authorize('user.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const data = roomCreateSchema.parse(req.body);
+        const parsed = roomCreateSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data ruangan tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const data = parsed.data;
         const result = await pgPool.query(
           `INSERT INTO rooms (code, name, capacity, faculty_code, is_active)
            VALUES ($1, $2, $3, $4, $5) RETURNING *`,
@@ -1149,7 +1155,13 @@ export function createAdminMasterRouter(): Router {
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const id = Number(req.params.id);
-        const data = roomUpdateSchema.parse(req.body);
+        const parsed = roomUpdateSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data ruangan tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const data = parsed.data;
         const result = await pgPool.query(
           `UPDATE rooms SET
             name = COALESCE($1, name), capacity = COALESCE($2, capacity),
@@ -1232,7 +1244,13 @@ export function createAdminMasterRouter(): Router {
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const id = Number(req.params.id);
-        const data = courseUpdateSchema.parse(req.body);
+        const parsed = courseUpdateSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data mata kuliah tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const data = parsed.data;
         const result = await pgPool.query(
           `UPDATE courses SET name = COALESCE($1, name), credits = COALESCE($2, credits),
              description = COALESCE($3, description), updated_at = now()
