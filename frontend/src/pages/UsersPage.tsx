@@ -3,6 +3,7 @@ import {
   ApiError,
   createUser,
   deleteUser,
+  listAcademicFaculties,
   listUsers,
   lookupUserForCreate,
   updateUserRole,
@@ -12,6 +13,7 @@ import type {
   UserListItem,
   UserCreateLookup,
   UpdateRoleInput,
+  Faculty,
 } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
@@ -37,6 +39,7 @@ interface UserFormState {
   isWali: boolean;
   nim: string;
   nik: string;
+  adminFacultyCode: string;
 }
 
 const EMPTY_FORM: UserFormState = {
@@ -47,6 +50,7 @@ const EMPTY_FORM: UserFormState = {
   isWali: false,
   nim: '',
   nik: '',
+  adminFacultyCode: '',
 };
 
 type LookupStatus =
@@ -78,11 +82,13 @@ export function UsersPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null);
   const [creating, setCreating] = useState(false);
   const [lookup, setLookup] = useState<LookupStatus>({ status: 'idle' });
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
 
   // modal ubah role
   const [editTarget, setEditTarget] = useState<UserListItem | null>(null);
   const [editRole, setEditRole] = useState('');
   const [editWali, setEditWali] = useState(false);
+  const [editFaculty, setEditFaculty] = useState('');
   const [editing, setEditing] = useState(false);
 
   const load = useCallback(async (p: number, role: string, q: string) => {
@@ -121,6 +127,10 @@ export function UsersPage() {
     setFieldErrors(null);
     setActionError(null);
     setLookup({ status: 'idle' });
+    // Ambil daftar fakultas aktif untuk dropdown Admin Akademik.
+    void listAcademicFaculties({ limit: 100 })
+      .then((res) => setFaculties(res.items ?? []))
+      .catch(() => setFaculties([]));
     setCreateOpen(true);
   };
 
@@ -165,6 +175,9 @@ export function UsersPage() {
             password: form.password,
             fullName: form.fullName.trim(),
             isWali: form.roleCode === 'dosen' && form.isWali,
+            ...(form.roleCode === 'admin_akademik'
+              ? { adminFacultyCode: form.adminFacultyCode || undefined }
+              : {}),
           };
       const res = await createUser(input);
       setCreateOpen(false);
@@ -190,6 +203,7 @@ export function UsersPage() {
     setEditTarget(u);
     setEditRole(u.roleCode);
     setEditWali(u.isWali);
+    setEditFaculty(u.adminFacultyCode ?? '');
     setActionError(null);
   };
 
@@ -201,6 +215,7 @@ export function UsersPage() {
       const input: UpdateRoleInput = {
         roleCode: editRole as UpdateRoleInput['roleCode'],
         isWali: editRole === 'dosen' && editWali,
+        adminFacultyCode: editRole === 'admin_akademik' ? editFaculty || undefined : undefined,
       };
       await updateUserRole(editTarget.id, input);
       setEditTarget(null);
@@ -597,6 +612,36 @@ export function UsersPage() {
                       <p className="mt-1 text-xs text-red-600">{errText('password')}</p>
                     )}
                   </div>
+                  {form.roleCode === 'admin_akademik' && (
+                    <div>
+                      <label htmlFor="cu-fakultas" className={labelCls}>
+                        Fakultas
+                      </label>
+                      <select
+                        id="cu-fakultas"
+                        className={inputCls}
+                        value={form.adminFacultyCode}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, adminFacultyCode: e.target.value }))
+                        }
+                      >
+                        <option value="">— Pilih Fakultas —</option>
+                        {faculties
+                          .filter((f) => f.isActive)
+                          .map((f) => (
+                            <option key={f.id} value={f.code}>
+                              {f.code} - {f.name}
+                            </option>
+                          ))}
+                      </select>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Admin akademik wajib terikat ke 1 fakultas. Maksimal 3 admin per fakultas.
+                      </p>
+                      {errText('adminFacultyCode') && (
+                        <p className="mt-1 text-xs text-red-600">{errText('adminFacultyCode')}</p>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -663,6 +708,31 @@ export function UsersPage() {
                   />
                   Dosen Wali
                 </label>
+              )}
+              {editRole === 'admin_akademik' && (
+                <div>
+                  <label htmlFor="ur-fakultas" className={labelCls}>
+                    Fakultas
+                  </label>
+                  <select
+                    id="ur-fakultas"
+                    className={inputCls}
+                    value={editFaculty}
+                    onChange={(e) => setEditFaculty(e.target.value)}
+                  >
+                    <option value="">— Pilih Fakultas —</option>
+                    {faculties
+                      .filter((f) => f.isActive)
+                      .map((f) => (
+                        <option key={f.id} value={f.code}>
+                          {f.code} - {f.name}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Maksimal 3 admin akademik per fakultas.
+                  </p>
+                </div>
               )}
             </div>
             <div className="mt-5 flex justify-end gap-2">

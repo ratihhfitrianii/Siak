@@ -190,6 +190,7 @@ export interface UserListItem {
   createdAt: string;
   roleCode: string;
   roleName: string;
+  adminFacultyCode?: string | null;
 }
 
 export interface UserListResponse {
@@ -215,6 +216,8 @@ export interface CreateUserManualInput {
   password: string;
   fullName: string;
   isWali?: boolean;
+  /** Admin akademik terikat 1 fakultas — wajib untuk role admin_akademik. */
+  adminFacultyCode?: string;
 }
 
 export type CreateUserInput = CreateUserByNimNikInput | CreateUserManualInput;
@@ -236,6 +239,8 @@ export interface UserCreateLookup {
 export interface UpdateRoleInput {
   roleCode: 'mahasiswa' | 'dosen' | 'admin_akademik' | 'admin_keuangan' | 'admin_sistem';
   isWali: boolean;
+  /** Admin akademik terikat 1 fakultas — wajib untuk role admin_akademik. */
+  adminFacultyCode?: string;
 }
 
 // ==== #16 Master Data (admin_sistem) ====

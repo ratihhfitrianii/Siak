@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
 import {
   listFaculties,
   createFaculty,
@@ -89,6 +90,7 @@ function PaginationBar({
 
 /** Halaman Master Data (Admin Sistem) — Fakultas, Prodi, Mahasiswa, Dosen. */
 export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boolean } = {}) {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<
     'faculties' | 'prodis' | 'students' | 'lecturers' | 'rooms' | 'prodi-akademik' | 'courses'
   >(akademikOnly ? 'rooms' : 'faculties');
@@ -360,6 +362,22 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
     if (activeTab === 'rooms') loadRooms(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminFacultyId, activeTab]);
+
+  // Mode akademik: fakultas terikat dari akun (user.adminFacultyCode), bukan localStorage bebas.
+  useEffect(() => {
+    if (!akademikOnly) return;
+    const code = user?.adminFacultyCode;
+    if (!code) {
+      // Tak ada fakultas terikat → kosongkan (tampilkan pesan "admin belum terikat fakultas").
+      setAdminFacultyId(null);
+      return;
+    }
+    const match = adminFaculties.find((f) => f.code === code);
+    const id = match?.id ?? null;
+    setAdminFacultyId((prev) => (prev === id ? prev : id));
+    if (id) window.localStorage.setItem('siak.admin_faculty', String(id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [akademikOnly, user?.adminFacultyCode, adminFaculties]);
 
   // ===== Fakultas =====
   const openFacultyModal = (f?: Faculty) => {
@@ -1331,28 +1349,40 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           <div className="flex justify-between items-center mb-6">
             <div>
               <h3 className="text-lg font-medium text-slate-900">Daftar Ruangan</h3>
-              <label className="block text-sm text-slate-500 mt-1">
-                Fakultas
-                <select
-                  value={adminFacultyId ?? ''}
-                  onChange={(e) => {
-                    const value = e.target.value ? Number(e.target.value) : null;
-                    setAdminFacultyId(value);
-                    if (value) window.localStorage.setItem('siak.admin_faculty', String(value));
-                    else window.localStorage.removeItem('siak.admin_faculty');
-                  }}
-                  className="ml-2 px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Pilih Fakultas</option>
-                  {adminFaculties
-                    .filter((f) => f.isActive)
-                    .map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.code} - {f.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
+              {akademikOnly ? (
+                <p className="text-sm text-slate-500 mt-1">
+                  Fakultas:{' '}
+                  <span className="font-medium text-slate-700">
+                    {adminFaculties.find((f) => f.id === adminFacultyId)?.name ??
+                      (user?.adminFacultyCode
+                        ? user.adminFacultyCode
+                        : '— belum terikat fakultas —')}
+                  </span>
+                </p>
+              ) : (
+                <label className="block text-sm text-slate-500 mt-1">
+                  Fakultas
+                  <select
+                    value={adminFacultyId ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value ? Number(e.target.value) : null;
+                      setAdminFacultyId(value);
+                      if (value) window.localStorage.setItem('siak.admin_faculty', String(value));
+                      else window.localStorage.removeItem('siak.admin_faculty');
+                    }}
+                    className="ml-2 px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Pilih Fakultas</option>
+                    {adminFaculties
+                      .filter((f) => f.isActive)
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.code} - {f.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
             </div>
             <button
               onClick={() => openRoomModal()}
@@ -1456,28 +1486,40 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           <div className="flex justify-between items-center mb-6">
             <div>
               <h3 className="text-lg font-medium text-slate-900">Daftar Prodi (Per Fakultas)</h3>
-              <label className="block text-sm text-slate-500 mt-1">
-                Fakultas
-                <select
-                  value={adminFacultyId ?? ''}
-                  onChange={(e) => {
-                    const value = e.target.value ? Number(e.target.value) : null;
-                    setAdminFacultyId(value);
-                    if (value) window.localStorage.setItem('siak.admin_faculty', String(value));
-                    else window.localStorage.removeItem('siak.admin_faculty');
-                  }}
-                  className="ml-2 px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Pilih Fakultas</option>
-                  {adminFaculties
-                    .filter((f) => f.isActive)
-                    .map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.code} - {f.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
+              {akademikOnly ? (
+                <p className="text-sm text-slate-500 mt-1">
+                  Fakultas:{' '}
+                  <span className="font-medium text-slate-700">
+                    {adminFaculties.find((f) => f.id === adminFacultyId)?.name ??
+                      (user?.adminFacultyCode
+                        ? user.adminFacultyCode
+                        : '— belum terikat fakultas —')}
+                  </span>
+                </p>
+              ) : (
+                <label className="block text-sm text-slate-500 mt-1">
+                  Fakultas
+                  <select
+                    value={adminFacultyId ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value ? Number(e.target.value) : null;
+                      setAdminFacultyId(value);
+                      if (value) window.localStorage.setItem('siak.admin_faculty', String(value));
+                      else window.localStorage.removeItem('siak.admin_faculty');
+                    }}
+                    className="ml-2 px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Pilih Fakultas</option>
+                    {adminFaculties
+                      .filter((f) => f.isActive)
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.code} - {f.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
             </div>
             <button
               onClick={() => openAkademikProdiModal()}

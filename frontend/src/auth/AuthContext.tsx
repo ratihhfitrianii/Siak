@@ -22,6 +22,8 @@ export interface MeUser {
   createdAt: string;
   /** null untuk non-mahasiswa; dipakai transkrip mandiri (T1.11b). */
   studentId: number | null;
+  /** admin akademik → fakultas terikat (dari /users/me); null untuk role lain. */
+  adminFacultyCode: string | null;
   /** daftar permission (RBAC UI — sumber menu) */
   menu: string[];
 }

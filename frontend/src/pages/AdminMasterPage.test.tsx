@@ -3,6 +3,28 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AdminMasterPage } from './AdminMasterPage';
 import * as api from '../lib/api';
 
+// Holds the current mock user for AuthContext (set per-test).
+const { mockAuthUser, setMockAuthUser } = vi.hoisted(() => {
+  return {
+    mockAuthUser: { adminFacultyCode: null as string | null },
+    setMockAuthUser: (u: { adminFacultyCode: string | null }) => {
+      mockAuthUser.adminFacultyCode = u.adminFacultyCode;
+    },
+  };
+});
+
+// Mock AuthContext so AdminMasterPage can call useAuth() without a real provider.
+vi.mock('../auth/AuthContext', () => ({
+  useAuth: () => ({
+    user: mockAuthUser,
+    booting: false,
+    login: vi.fn(),
+    changePassword: vi.fn(),
+    logout: vi.fn(),
+    refreshMe: vi.fn(),
+  }),
+}));
+
 // Mock module API
 vi.mock('../lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/api')>();
@@ -1935,7 +1957,7 @@ describe('AdminMasterPage (mode akademikOnly)', () => {
   });
 
   it('hanya menampilkan tab Ruangan/Prodi/Mata Kuliah (default Ruangan), tanpa tab admin_sistem', async () => {
-    localStorage.setItem('siak.admin_faculty', '1');
+    setMockAuthUser({ adminFacultyCode: 'FT' });
     mockNewLists();
     mockedApi.listRooms.mockResolvedValue({
       items: [
@@ -1970,6 +1992,5 @@ describe('AdminMasterPage (mode akademikOnly)', () => {
     // Tidak memanggil endpoint admin_sistem (user.manage) di mount
     expect(mockedApi.listFaculties).not.toHaveBeenCalled();
     expect(mockedApi.listMasterStudents).not.toHaveBeenCalled();
-    localStorage.removeItem('siak.admin_faculty');
   });
 });
