@@ -376,7 +376,6 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
     const id = match?.id ?? null;
     setAdminFacultyId((prev) => (prev === id ? prev : id));
     if (id) window.localStorage.setItem('siak.admin_faculty', String(id));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [akademikOnly, user?.adminFacultyCode, adminFaculties]);
 
   // ===== Fakultas =====
