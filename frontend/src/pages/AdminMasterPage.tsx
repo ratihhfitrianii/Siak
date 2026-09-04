@@ -88,10 +88,10 @@ function PaginationBar({
 }
 
 /** Halaman Master Data (Admin Sistem) — Fakultas, Prodi, Mahasiswa, Dosen. */
-export function AdminMasterPage() {
+export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boolean } = {}) {
   const [activeTab, setActiveTab] = useState<
     'faculties' | 'prodis' | 'students' | 'lecturers' | 'rooms' | 'prodi-akademik' | 'courses'
-  >('faculties');
+  >(akademikOnly ? 'rooms' : 'faculties');
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [prodis, setProdis] = useState<Prodi[]>([]);
   const [students, setStudents] = useState<MasterStudent[]>([]);
@@ -332,15 +332,27 @@ export function AdminMasterPage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      loadFaculties(),
-      loadProdis(),
-      loadStudents(),
-      loadLecturers(),
-      loadAdminFaculties(),
-      loadCourses(),
-    ]).finally(() => setLoading(false));
-  }, [loadFaculties, loadProdis, loadStudents, loadLecturers, loadAdminFaculties, loadCourses]);
+    if (akademikOnly) {
+      Promise.all([loadAdminFaculties(), loadCourses()]).finally(() => setLoading(false));
+    } else {
+      Promise.all([
+        loadFaculties(),
+        loadProdis(),
+        loadStudents(),
+        loadLecturers(),
+        loadAdminFaculties(),
+        loadCourses(),
+      ]).finally(() => setLoading(false));
+    }
+  }, [
+    akademikOnly,
+    loadFaculties,
+    loadProdis,
+    loadStudents,
+    loadLecturers,
+    loadAdminFaculties,
+    loadCourses,
+  ]);
 
   // Muat ulang prodi & ruangan saat fakultas admin berubah.
   useEffect(() => {
@@ -828,54 +840,58 @@ export function AdminMasterPage() {
       {/* Tab navigation */}
       <div className="bg-white rounded-lg shadow-sm border-b">
         <nav className="flex -mb-px" role="tablist">
-          <button
-            role="tab"
-            aria-selected={activeTab === 'faculties'}
-            onClick={() => setActiveTab('faculties')}
-            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-              activeTab === 'faculties'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Fakultas
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'prodis'}
-            onClick={() => setActiveTab('prodis')}
-            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-              activeTab === 'prodis'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Program Studi
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'students'}
-            onClick={() => setActiveTab('students')}
-            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-              activeTab === 'students'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Mahasiswa
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'lecturers'}
-            onClick={() => setActiveTab('lecturers')}
-            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-              activeTab === 'lecturers'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Dosen
-          </button>
+          {!akademikOnly && (
+            <>
+              <button
+                role="tab"
+                aria-selected={activeTab === 'faculties'}
+                onClick={() => setActiveTab('faculties')}
+                className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === 'faculties'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Fakultas
+              </button>
+              <button
+                role="tab"
+                aria-selected={activeTab === 'prodis'}
+                onClick={() => setActiveTab('prodis')}
+                className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === 'prodis'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Program Studi
+              </button>
+              <button
+                role="tab"
+                aria-selected={activeTab === 'students'}
+                onClick={() => setActiveTab('students')}
+                className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === 'students'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Mahasiswa
+              </button>
+              <button
+                role="tab"
+                aria-selected={activeTab === 'lecturers'}
+                onClick={() => setActiveTab('lecturers')}
+                className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === 'lecturers'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Dosen
+              </button>
+            </>
+          )}
           <button
             role="tab"
             aria-selected={activeTab === 'rooms'}
@@ -926,7 +942,7 @@ export function AdminMasterPage() {
       )}
 
       {/* Fakultas Tab */}
-      {activeTab === 'faculties' && (
+      {!akademikOnly && activeTab === 'faculties' && (
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-medium text-slate-900">Daftar Fakultas</h3>
@@ -1019,7 +1035,7 @@ export function AdminMasterPage() {
       )}
 
       {/* Prodi Tab */}
-      {activeTab === 'prodis' && (
+      {!akademikOnly && activeTab === 'prodis' && (
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-medium text-slate-900">Daftar Program Studi</h3>
@@ -1114,7 +1130,7 @@ export function AdminMasterPage() {
       )}
 
       {/* Mahasiswa Tab */}
-      {activeTab === 'students' && (
+      {!akademikOnly && activeTab === 'students' && (
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-medium text-slate-900">Daftar Mahasiswa</h3>
@@ -1207,7 +1223,7 @@ export function AdminMasterPage() {
       )}
 
       {/* Dosen Tab */}
-      {activeTab === 'lecturers' && (
+      {!akademikOnly && activeTab === 'lecturers' && (
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-medium text-slate-900">Daftar Dosen</h3>

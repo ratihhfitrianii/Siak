@@ -1928,3 +1928,48 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     expect(within(table).getByText('-')).toBeInTheDocument();
   });
 });
+
+describe('AdminMasterPage (mode akademikOnly)', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('hanya menampilkan tab Ruangan/Prodi/Mata Kuliah (default Ruangan), tanpa tab admin_sistem', async () => {
+    localStorage.setItem('siak.admin_faculty', '1');
+    mockNewLists();
+    mockedApi.listRooms.mockResolvedValue({
+      items: [
+        {
+          id: 1,
+          code: 'R101',
+          name: 'Ruang 101',
+          capacity: 40,
+          facultyId: 1,
+          facultyName: 'Fakultas Teknik',
+          facultyCode: 'FT',
+          isActive: true,
+          createdAt: '2026-01-01T00:00:00Z',
+          updatedAt: '2026-01-01T00:00:00Z',
+        },
+      ],
+      pagination: { page: 1, limit: 10, total: 1 },
+    });
+
+    render(<AdminMasterPage akademikOnly />);
+
+    expect(await screen.findByText('R101')).toBeInTheDocument();
+    // Tab admin_sistem TIDAK muncul
+    expect(screen.queryByRole('tab', { name: 'Fakultas' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Program Studi' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Mahasiswa' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Dosen' })).not.toBeInTheDocument();
+    // Tab akademik muncul
+    expect(screen.getByRole('tab', { name: 'Ruangan' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Prodi' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Mata Kuliah' })).toBeInTheDocument();
+    // Tidak memanggil endpoint admin_sistem (user.manage) di mount
+    expect(mockedApi.listFaculties).not.toHaveBeenCalled();
+    expect(mockedApi.listMasterStudents).not.toHaveBeenCalled();
+    localStorage.removeItem('siak.admin_faculty');
+  });
+});

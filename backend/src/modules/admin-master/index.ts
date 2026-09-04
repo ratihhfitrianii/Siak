@@ -1069,7 +1069,7 @@ export function createAdminMasterRouter(): Router {
   router.get(
     '/rooms',
     authenticate,
-    authorize('user.manage'),
+    authorize('course.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { facultyCode, facultyId } = req.query;
@@ -1101,7 +1101,7 @@ export function createAdminMasterRouter(): Router {
   router.post(
     '/rooms',
     authenticate,
-    authorize('user.manage'),
+    authorize('course.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const parsed = roomCreateSchema.safeParse(req.body);
@@ -1151,7 +1151,7 @@ export function createAdminMasterRouter(): Router {
   router.put(
     '/rooms/:id',
     authenticate,
-    authorize('user.manage'),
+    authorize('course.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const id = Number(req.params.id);
@@ -1213,7 +1213,7 @@ export function createAdminMasterRouter(): Router {
   router.delete(
     '/rooms/:id',
     authenticate,
-    authorize('user.manage'),
+    authorize('course.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const id = Number(req.params.id);

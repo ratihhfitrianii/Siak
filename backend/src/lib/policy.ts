@@ -138,6 +138,7 @@ const ROLE_PERMISSIONS: Record<RoleCode, ReadonlySet<Permission>> = {
     'payment.generate',
     'payment.update',
     'user.manage',
+    'course.manage',
     'audit.view',
     'import.data',
   ]),

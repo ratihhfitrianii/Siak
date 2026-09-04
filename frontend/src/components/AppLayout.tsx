@@ -307,6 +307,15 @@ const MENU_ITEMS: {
     icon: 'document',
     description: 'Review & setujui/tolak proposal skripsi mahasiswa',
   },
+  // ---- Admin Akademik: Master Data Akademik (course.manage) ----
+  {
+    permissions: ['course.manage'],
+    roles: ['admin_akademik'],
+    label: 'Master Akademik',
+    path: '/admin/akademik/master-data',
+    icon: 'database',
+    description: 'Master data Ruangan, Prodi per fakultas, Mata Kuliah',
+  },
   // ---- Admin Sistem: Informasi Penting (Announcements) ----
   {
     permissions: ['user.manage'],

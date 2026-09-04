@@ -413,6 +413,17 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          {/* Admin Akademik: Master Data Akademik (Ruangan/Prodi per fakultas/Mata Kuliah, perm course.manage) */}
+          <Route
+            path="/admin/akademik/master-data"
+            element={
+              <ProtectedRoute perm="course.manage">
+                <AppLayout>
+                  <AdminMasterPage akademikOnly />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
           {/* Dosen — Rekap Kehadiran Mahasiswa */}
           <Route
             path="/dosen/absensi/rekap"
