@@ -801,4 +801,140 @@ describe('Modul Admin Master Data (#16)', () => {
         .expect(400);
     });
   });
+
+  describe('CRUD /admin-master/rooms', () => {
+    const roomCode = `am${ts}R1`;
+    let roomId = 0;
+
+    afterAll(async () => {
+      await pgPool.query(`DELETE FROM rooms WHERE code LIKE 'am${ts}%'`);
+    });
+
+    it('GET → 200 dengan data ruangan (kosong)', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin-master/rooms')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data.items)).toBe(true);
+      expect(res.body.data.pagination).toHaveProperty('total');
+    });
+
+    it('POST valid → 201', async () => {
+      const res = await request(app)
+        .post('/api/v1/admin-master/rooms')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          code: roomCode,
+          name: 'Ruang Test AM',
+          capacity: 40,
+          facultyCode: 'FT',
+          isActive: true,
+        })
+        .expect(201);
+      expect(res.body.data.code).toBe(roomCode);
+      roomId = Number(res.body.data.id);
+    });
+
+    it('POST body invalid → 400', async () => {
+      await request(app)
+        .post('/api/v1/admin-master/rooms')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code: '', name: 'x' })
+        .expect(400);
+    });
+
+    it('GET ?facultyId → menyaring by fakultas', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin-master/rooms?facultyId=1')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('PUT valid → 200', async () => {
+      const res = await request(app)
+        .put(`/api/v1/admin-master/rooms/${roomId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Ruang Test AM Updated', capacity: 45 })
+        .expect(200);
+      expect(res.body.data.name).toBe('Ruang Test AM Updated');
+    });
+
+    it('PUT id tidak ditemukan → 404', async () => {
+      await request(app)
+        .put('/api/v1/admin-master/rooms/32767')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Tidak Ada' })
+        .expect(404);
+    });
+
+    it('DELETE → 200 nonaktif', async () => {
+      const res = await request(app)
+        .delete(`/api/v1/admin-master/rooms/${roomId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(res.body.data.message).toContain('dinonaktifkan');
+    });
+
+    it('DELETE id tidak ditemukan → 404', async () => {
+      await request(app)
+        .delete('/api/v1/admin-master/rooms/32767')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(404);
+    });
+
+    it('RBAC: mahasiswa dilarang akses rooms', async () => {
+      await request(app)
+        .get('/api/v1/admin-master/rooms')
+        .set('Authorization', `Bearer ${mahasiswaToken}`)
+        .expect(403);
+    });
+  });
+
+  describe('CRUD /admin-master/courses', () => {
+    const courseCode = `am${ts}C1`;
+    let courseId = 0;
+
+    afterAll(async () => {
+      await pgPool.query(`DELETE FROM courses WHERE code LIKE 'am${ts}%'`);
+    });
+
+    it('PUT valid → 200', async () => {
+      const created = await pgPool.query(
+        `INSERT INTO courses (code, name, credits, description) VALUES ($1, $2, $3, $4) RETURNING id`,
+        [courseCode, 'Kursus Test AM', 3, 'desc'],
+      );
+      courseId = Number(created.rows[0].id);
+      const res = await request(app)
+        .put(`/api/v1/admin-master/courses/${courseId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Kursus Test AM Updated', credits: 4 })
+        .expect(200);
+      expect(res.body.data.name).toBe('Kursus Test AM Updated');
+    });
+
+    it('PUT id tidak ditemukan → 404', async () => {
+      await request(app)
+        .put('/api/v1/admin-master/courses/32767')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Tidak Ada' })
+        .expect(404);
+    });
+
+    it('DELETE → 200 nonaktif', async () => {
+      const res = await request(app)
+        .delete(`/api/v1/admin-master/courses/${courseId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(res.body.data.message).toContain('dinonaktifkan');
+    });
+
+    it('DELETE id tidak ditemukan → 404', async () => {
+      await request(app)
+        .delete('/api/v1/admin-master/courses/32767')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(404);
+    });
+  });
 });
