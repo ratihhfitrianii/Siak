@@ -30,6 +30,7 @@ const MAHASISWA: MeUser = {
   isActive: true,
   mustChangePassword: false,
   studentId: 7,
+  adminFacultyCode: null,
   createdAt: '2026-01-01T00:00:00Z',
   menu: ['krs.fill', 'krs.view_classes', 'transcript.view_own'],
 };
@@ -44,6 +45,7 @@ const DOSEN: MeUser = {
   isActive: true,
   mustChangePassword: false,
   studentId: null,
+  adminFacultyCode: null,
   createdAt: '2026-01-01T00:00:00Z',
   menu: ['lecturer.select_course', 'grade.input'],
 };
