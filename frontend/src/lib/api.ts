@@ -1883,7 +1883,7 @@ export async function downloadEktmPdf(): Promise<Blob> {
  * di backend — wrapper di sini menjadi kontrak endpoint yang dipakai halaman.
  */
 
-/** GET /faculties — daftar fakultas aktif (modul academic, admin_akademik). */
+/** GET /faculties — daftar fakultas aktif (modul academic, admin_akademik). Backend mengembalikan snake_case; dinormalisasi ke camelCase. */
 export async function listAcademicFaculties(params?: {
   page?: number;
   limit?: number;
@@ -1894,7 +1894,28 @@ export async function listAcademicFaculties(params?: {
   if (params?.limit) qs.set('limit', String(params.limit));
   if (params?.search) qs.set('search', params.search);
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
-  return apiRequest<MasterListResponse<Faculty>>(`/faculties${suffix}`);
+  const raw = await apiRequest<{
+    items: Array<{
+      id: number;
+      code: string;
+      name: string;
+      is_active: boolean;
+      created_at: string;
+      updated_at: string;
+    }>;
+    pagination: { page: number; limit: number; total: number };
+  }>(`/faculties${suffix}`);
+  return {
+    items: raw.items.map((r) => ({
+      id: Number(r.id),
+      code: r.code,
+      name: r.name,
+      isActive: r.is_active,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    })),
+    pagination: raw.pagination,
+  };
 }
 
 /** GET /prodis — daftar prodi (modul academic, admin_akademik); filter facultyId. */
