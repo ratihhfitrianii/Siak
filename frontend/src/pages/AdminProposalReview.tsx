@@ -286,9 +286,6 @@ export function AdminProposalReview() {
                     Mahasiswa
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Prodi
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Judul
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
@@ -312,14 +309,9 @@ export function AdminProposalReview() {
                       <td className="px-4 py-3">
                         <div>
                           <p className="font-medium text-slate-900">{p.studentName}</p>
-                          <p className="text-sm text-slate-500">
-                            {p.supervisors?.length
-                              ? `Kepada (${p.supervisors.map((s) => s.fullName).join(' dan ')})`
-                              : p.nim}
-                          </p>
+                          <p className="text-sm text-slate-500">{p.prodiName}</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{p.prodiName}</td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-slate-900 max-w-xs truncate" title={p.title}>
                           {p.title}
@@ -364,7 +356,7 @@ export function AdminProposalReview() {
                     {/* Expanded Row - Status History */}
                     {expandedId === p.id && (
                       <tr className="bg-slate-50">
-                        <td colSpan={6} className="px-4 py-2">
+                        <td colSpan={5} className="px-4 py-2">
                           <div className="ml-4 mt-2 border-l-2 border-slate-200 pl-4 space-y-2">
                             {/* Aksi admin saat status disetujui_dosen */}
                             {p.status === 'disetujui_dosen' && (

@@ -117,9 +117,11 @@ export function DosenProfilePage() {
     return <FormAlert>Tidak ada data profil.</FormAlert>;
   }
 
+  const nikOrNidn = profile.nik || profile.nidn || '';
+
   const detailRows: Array<[string, string]> = [
     ['Nama', profile.fullName],
-    ['NIK / NIDN', profile.nik],
+    ['NIK / NIDN', nikOrNidn],
     ['Fakultas', profile.facultyName],
     ['Program Studi', `${profile.prodiCode} - ${profile.prodiName}`],
     ['No. HP', profile.phone || '-'],
@@ -186,7 +188,7 @@ export function DosenProfilePage() {
             <p className="mt-1 text-sm text-slate-500">
               {profile.prodiCode} - {profile.prodiName} · {profile.facultyName}
             </p>
-            <p className="mt-1 text-sm text-slate-400">NIK {profile.nik}</p>
+            <p className="mt-1 text-sm text-slate-400">NIK {nikOrNidn}</p>
             <p className="mt-1 text-sm text-slate-400">{profile.email}</p>
           </div>
         </div>

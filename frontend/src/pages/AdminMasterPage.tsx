@@ -2505,8 +2505,11 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                           facultyCode: e.target.value,
                         })
                       }
-                      className={inputCls}
+                      className={`${inputCls} ${
+                        akademikOnly ? 'bg-slate-100 cursor-not-allowed' : ''
+                      }`}
                       required
+                      disabled={akademikOnly}
                     >
                       <option value="">Pilih Fakultas</option>
                       {adminFaculties
@@ -2517,6 +2520,11 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                           </option>
                         ))}
                     </select>
+                    {akademikOnly && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Fakultas otomatis mengikuti akun admin akademik
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label
@@ -2702,6 +2710,30 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                     className={inputCls}
                   />
                 </div>
+                {akademikOnly && (
+                  <div>
+                    <label
+                      htmlFor="course-faculty"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Fakultas
+                    </label>
+                    <input
+                      id="course-faculty"
+                      type="text"
+                      value={
+                        adminFaculties.find((f) => f.id === adminFacultyId)?.name ??
+                        adminFaculties[0]?.name ??
+                        ''
+                      }
+                      readOnly
+                      className={`${inputCls} bg-slate-100 cursor-not-allowed`}
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Fakultas otomatis mengikuti akun admin akademik
+                    </p>
+                  </div>
+                )}
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
