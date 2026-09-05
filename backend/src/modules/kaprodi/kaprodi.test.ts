@@ -25,12 +25,9 @@ describe('Kaprodi module (persetujuan jadwal)', () => {
   };
 
   const login = async (uid: number, password: string): Promise<string> => {
-    const email = (
-      await pgPool.query('SELECT email FROM users WHERE id = $1', [uid])
-    ).rows[0].email;
-    const res = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ identifier: email, password });
+    const email = (await pgPool.query('SELECT email FROM users WHERE id = $1', [uid])).rows[0]
+      .email;
+    const res = await request(app).post('/api/v1/auth/login').send({ identifier: email, password });
     return res.body.data.accessToken;
   };
 
