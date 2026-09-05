@@ -274,7 +274,33 @@ export function createAcademicRouter(): Router {
   // --- MATA KULIAH (COURSES) ---
   router.get('/courses', authenticate, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await pgPool.query('SELECT * FROM courses WHERE is_active ORDER BY code');
+      const { search, facultyId } = req.query;
+      let query = `
+        SELECT DISTINCT c.id, c.code, c.name, c.credits, c.description, c.is_active,
+               c.created_at, c.updated_at,
+               p.id AS prodi_id, p.name AS prodi_name, p.code AS prodi_code,
+               f.id AS faculty_id, f.name AS faculty_name, f.code AS faculty_code
+        FROM courses c
+        LEFT JOIN curricula cur ON cur.course_id = c.id AND cur.is_active = true
+        LEFT JOIN prodis p ON p.id = cur.prodi_id
+        LEFT JOIN faculties f ON f.id = p.faculty_id
+        WHERE c.is_active = true
+      `;
+      const params: (string | number)[] = [];
+
+      if (facultyId) {
+        params.push(Number(facultyId));
+        query += ` AND f.id = $${params.length}`;
+      }
+
+      if (search && typeof search === 'string') {
+        params.push(`%${search}%`);
+        query += ` AND (c.code ILIKE $${params.length} OR c.name ILIKE $${params.length})`;
+      }
+
+      query += ' ORDER BY p.name, c.code';
+
+      const result = await pgPool.query(query, params);
       res.json({ success: true, data: { items: result.rows } });
     } catch (err) {
       next(err);

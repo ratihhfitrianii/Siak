@@ -479,6 +479,27 @@ export function createSkripsiRouter(): Router {
           [data.status, data.statusNotes ?? null, req.user!.id, proposalId],
         );
 
+        // Auto-set dosen wali: jika admin menyetujui proposal (disetujui_admin),
+        // dosen pembimbing (supervisor pertama) otomatis menjadi dosen wali mahasiswa.
+        if (data.status === 'disetujui_admin') {
+          const mhsId = existing.rows[0].student_id as number;
+          const supervisorRes = await pgPool.query(
+            `SELECT sps.supervisor_id
+             FROM skripsi_proposal_supervisors sps
+             WHERE sps.proposal_id = $1
+             ORDER BY sps.is_primary DESC, sps.supervisor_id
+             LIMIT 1`,
+            [proposalId],
+          );
+          if (supervisorRes.rows.length > 0) {
+            const waliLecturerUserId = supervisorRes.rows[0].supervisor_id as number;
+            await pgPool.query(`UPDATE students SET lecturer_id = $1 WHERE id = $2`, [
+              waliLecturerUserId,
+              mhsId,
+            ]);
+          }
+        }
+
         // Insert status history
         await pgPool.query(
           `INSERT INTO skripsi_proposal_statuses (proposal_id, status, notes, changed_by)
