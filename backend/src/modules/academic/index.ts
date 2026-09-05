@@ -281,7 +281,7 @@ export function createAcademicRouter(): Router {
                p.id AS prodi_id, p.name AS prodi_name, p.code AS prodi_code,
                f.id AS faculty_id, f.name AS faculty_name, f.code AS faculty_code
         FROM courses c
-        LEFT JOIN curricula cur ON cur.course_id = c.id AND cur.is_active = true
+        LEFT JOIN curricula cur ON cur.course_id = c.id
         LEFT JOIN prodis p ON p.id = cur.prodi_id
         LEFT JOIN faculties f ON f.id = p.faculty_id
         WHERE c.is_active = true
