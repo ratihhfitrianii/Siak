@@ -183,4 +183,134 @@ describe('Academic module (T1.7)', () => {
       expect(Array.isArray(res.body.data.items)).toBe(true);
     });
   });
+
+  // --- KELAS (admin — kelola jadwal) ---
+  describe('Kelas (admin — /admin/classes)', () => {
+    it('GET /api/v1/admin/classes?facultyId= — admin_akademik lihat daftar kelas', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin/classes?facultyId=1')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .expect(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data.items)).toBe(true);
+    });
+
+    it('GET /api/v1/admin/classes — tanpa fakultas tetap OK', async () => {
+      const res = await request(app)
+        .get('/api/v1/admin/classes')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .expect(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data.items)).toBe(true);
+    });
+
+    it('GET /api/v1/admin/classes — mahasiswa 403 (schedule.manage)', async () => {
+      await request(app)
+        .get('/api/v1/admin/classes')
+        .set('Authorization', `Bearer ${tokenByRole.get('mahasiswa')}`)
+        .expect(403);
+    });
+
+    it('POST /api/v1/admin/classes — validasi: curriculumId wajib', async () => {
+      await request(app)
+        .post('/api/v1/admin/classes')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .send({ classCode: 'A', capacity: 30 })
+        .expect(400);
+    });
+
+    it('POST /api/v1/admin/classes — kurikulum tidak ada → 404', async () => {
+      const res = await request(app)
+        .post('/api/v1/admin/classes')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .send({ curriculumId: 99999999, classCode: 'A', capacity: 30 })
+        .expect(404);
+      expect(res.body.error.message).toBe('Kurikulum tidak ditemukan');
+    });
+
+    it('POST /api/v1/admin/classes — admin_akademik buat kelas sukses', async () => {
+      // Ambil kurikulum pertama dari DB
+      const curRes = await pgPool.query('SELECT id FROM curricula ORDER BY id LIMIT 1');
+      if (curRes.rows.length === 0) {
+        // Tanpa kurikulum → skip (tidak mungkin di DB test)
+        return;
+      }
+      const curriculumId = Number(curRes.rows[0].id);
+      const classCode = `Z${Date.now().toString().slice(-6)}`;
+      const res = await request(app)
+        .post('/api/v1/admin/classes')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .send({
+          curriculumId,
+          classCode,
+          capacity: 35,
+          room: 'R.TEST',
+          dayOfWeek: 3,
+          startTime: '13:00',
+          endTime: '14:40',
+        })
+        .expect(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.class_code).toBe(classCode);
+      expect(res.body.data.room).toBe('R.TEST');
+    });
+
+    it('POST /api/v1/admin/classes — kelas aktif cek bentrok ruangan → 409', async () => {
+      const curRes = await pgPool.query('SELECT id FROM curricula ORDER BY id LIMIT 1');
+      if (curRes.rows.length === 0) return;
+      const curriculumId = Number(curRes.rows[0].id);
+
+      // Buat kelas pertama dengan ruangan + slot
+      const firstCode = `Y${Date.now().toString().slice(-6)}`;
+      await request(app)
+        .post('/api/v1/admin/classes')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .send({
+          curriculumId,
+          classCode: firstCode,
+          capacity: 30,
+          room: 'R.CLASH',
+          dayOfWeek: 4,
+          startTime: '08:00',
+          endTime: '09:40',
+        })
+        .expect(201);
+
+      // Kelas kedua ruangan sama + hari sama + jam bentrok → 409
+      const clashRes = await request(app)
+        .post('/api/v1/admin/classes')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .send({
+          curriculumId,
+          classCode: `X${Date.now().toString().slice(-6)}`,
+          capacity: 30,
+          room: 'R.CLASH',
+          dayOfWeek: 4,
+          startTime: '08:30',
+          endTime: '10:10',
+        })
+        .expect(409);
+      expect(clashRes.body.error.message).toMatch(/Ruangan R.CLASH sudah dipakai/);
+    });
+
+    it('POST /api/v1/admin/classes — duplikat class_code per kurikulum → 409', async () => {
+      const curRes = await pgPool.query('SELECT id FROM curricula ORDER BY id LIMIT 1');
+      if (curRes.rows.length === 0) return;
+      const curriculumId = Number(curRes.rows[0].id);
+      const dupCode = `W${Date.now().toString().slice(-6)}`;
+
+      await request(app)
+        .post('/api/v1/admin/classes')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .send({ curriculumId, classCode: dupCode, capacity: 25 })
+        .expect(201);
+
+      const dupRes = await request(app)
+        .post('/api/v1/admin/classes')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .send({ curriculumId, classCode: dupCode, capacity: 25 })
+        .expect(409);
+      expect(dupRes.body.error.message).toMatch(/Kode kelas sudah dipakai/);
+    });
+  });
 });
