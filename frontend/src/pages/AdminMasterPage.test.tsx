@@ -1647,21 +1647,25 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
       },
     ];
     mockAllLists();
-    mockedApi.listAcademicProdis
-      .mockResolvedValueOnce({ items: [], pagination: { page: 1, limit: 10, total: 0 } })
-      .mockResolvedValueOnce({ items: AK_PRODIS_FT, pagination: { page: 1, limit: 10, total: 1 } })
-      .mockResolvedValueOnce({ items: AK_PRODIS_FE, pagination: { page: 1, limit: 10, total: 1 } });
+    mockedApi.listAcademicProdis.mockImplementation(async (params?: { facultyId?: number }) => {
+      const fid = params?.facultyId;
+      if (fid === 1) return { items: AK_PRODIS_FT, pagination: { page: 1, limit: 10, total: 1 } };
+      if (fid === 2) return { items: AK_PRODIS_FE, pagination: { page: 1, limit: 10, total: 1 } };
+      return { items: [], pagination: { page: 1, limit: 10, total: 0 } };
+    });
 
     render(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
-    const select = screen.getByDisplayValue('Pilih Fakultas');
+    // Re-query select fresh sebelum setiap change (hindari stale node setelah re-render)
+    let select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: '1' } });
-    expect(await screen.findByText('Teknik Informatika')).toBeInTheDocument();
+    await screen.findByText('Teknik Informatika');
 
+    select = screen.getByRole('combobox');
     fireEvent.change(select, { target: { value: '2' } });
-    expect(await screen.findByText('Akuntansi')).toBeInTheDocument();
+    await screen.findByText('Akuntansi');
   });
 });
 

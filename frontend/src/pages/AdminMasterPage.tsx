@@ -324,12 +324,15 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
   // ===== Admin Akademik: Mata Kuliah =====
   const loadCourses = useCallback(async () => {
     try {
-      const data = await listCourses({ search: courseSearch || undefined });
+      const data = await listCourses({
+        search: courseSearch || undefined,
+        facultyId: adminFacultyId ?? undefined,
+      });
       setCourses(data.items);
     } catch {
       setError('Gagal memuat data mata kuliah');
     }
-  }, [courseSearch]);
+  }, [courseSearch, adminFacultyId]);
 
   useEffect(() => {
     setLoading(true);
@@ -1645,59 +1648,102 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
             />
           </div>
 
-          {/* Table Mata Kuliah */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="pb-2 font-medium">Kode</th>
-                  <th className="pb-2 font-medium">Nama</th>
-                  <th className="pb-2 font-medium">SKS</th>
-                  <th className="pb-2 font-medium">Deskripsi</th>
-                  <th className="pb-2 font-medium">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {courses.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-500">
-                      Belum ada data mata kuliah.
-                    </td>
-                  </tr>
-                ) : (
-                  courses.map((c) => (
-                    <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-3 font-mono text-slate-900">{c.code}</td>
-                      <td className="py-3 text-slate-900">{c.name}</td>
-                      <td className="py-3 text-slate-600">{c.credits}</td>
-                      <td
-                        className="py-3 text-slate-600 max-w-xs truncate"
-                        title={c.description || ''}
-                      >
-                        {c.description || '-'}
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openCourseModal(c)}
-                            className="px-2 py-1 text-xs text-primary-600 hover:text-primary-700 underline"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleCourseDelete(c.id)}
-                            className="px-2 py-1 text-xs text-red-600 hover:text-red-700 underline"
-                          >
-                            Nonaktifkan
-                          </button>
+          {/* Daftar Mata Kuliah per Prodi */}
+          {courses.length === 0 ? (
+            <div className="py-8 text-center text-slate-500">Belum ada data mata kuliah.</div>
+          ) : (
+            (() => {
+              // Group by prodiName
+              const grouped = new Map<string, typeof courses>();
+              for (const c of courses) {
+                const key = c.prodiName || 'Tanpa Prodi';
+                const arr = grouped.get(key) || [];
+                arr.push(c);
+                grouped.set(key, arr);
+              }
+              // Warna per prodi (palette pastel berbeda)
+              const PRODI_COLORS = [
+                'border-blue-300 bg-blue-50',
+                'border-emerald-300 bg-emerald-50',
+                'border-violet-300 bg-violet-50',
+                'border-amber-300 bg-amber-50',
+                'border-rose-300 bg-rose-50',
+                'border-cyan-300 bg-cyan-50',
+                'border-fuchsia-300 bg-fuchsia-50',
+                'border-lime-300 bg-lime-50',
+                'border-orange-300 bg-orange-50',
+                'border-teal-300 bg-teal-50',
+              ];
+              let colorIdx = 0;
+              return (
+                <div className="space-y-6">
+                  {Array.from(grouped.entries()).map(([prodiName, items]) => {
+                    const color = PRODI_COLORS[colorIdx % PRODI_COLORS.length];
+                    colorIdx++;
+                    return (
+                      <div key={prodiName}>
+                        <div className={`px-4 py-2 border-l-4 ${color} rounded-t-lg`}>
+                          <h4 className="font-semibold text-slate-800 text-sm">
+                            {prodiName}{' '}
+                            <span className="text-slate-500 font-normal">
+                              ({items.length} mata kuliah)
+                            </span>
+                          </h4>
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                        <div className="overflow-x-auto border border-t-0 border-slate-200 rounded-b-lg">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="text-left text-slate-500 border-b border-slate-200 bg-slate-50">
+                                <th className="px-4 py-2 font-medium">Kode</th>
+                                <th className="px-4 py-2 font-medium">Nama</th>
+                                <th className="px-4 py-2 font-medium">SKS</th>
+                                <th className="px-4 py-2 font-medium">Deskripsi</th>
+                                <th className="px-4 py-2 font-medium">Aksi</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {items.map((c) => (
+                                <tr
+                                  key={c.id}
+                                  className="border-b border-slate-100 hover:bg-slate-50"
+                                >
+                                  <td className="px-4 py-2 font-mono text-slate-900">{c.code}</td>
+                                  <td className="px-4 py-2 text-slate-900">{c.name}</td>
+                                  <td className="px-4 py-2 text-slate-600">{c.credits}</td>
+                                  <td
+                                    className="px-4 py-2 text-slate-600 max-w-xs truncate"
+                                    title={c.description || ''}
+                                  >
+                                    {c.description || '-'}
+                                  </td>
+                                  <td className="px-4 py-2">
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={() => openCourseModal(c)}
+                                        className="px-2 py-1 text-xs text-primary-600 hover:text-primary-700 underline"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() => handleCourseDelete(c.id)}
+                                        className="px-2 py-1 text-xs text-red-600 hover:text-red-700 underline"
+                                      >
+                                        Nonaktifkan
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
+          )}
         </div>
       )}
 
@@ -2337,8 +2383,9 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                       id="room-faculty"
                       value={roomForm.facultyCode}
                       onChange={(e) => setRoomForm({ ...roomForm, facultyCode: e.target.value })}
-                      className={inputCls}
+                      className={`${inputCls} ${akademikOnly ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                       required
+                      disabled={akademikOnly}
                     >
                       <option value="">Pilih Fakultas</option>
                       {adminFaculties
@@ -2349,6 +2396,11 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                           </option>
                         ))}
                     </select>
+                    {akademikOnly && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Fakultas otomatis mengikuti akun admin akademik
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center">

@@ -1034,6 +1034,12 @@ export interface Course {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  prodiId: number | null;
+  prodiName: string | null;
+  prodiCode: string | null;
+  facultyId: number | null;
+  facultyName: string | null;
+  facultyCode: string | null;
 }
 
 export interface CreateCourseInput {

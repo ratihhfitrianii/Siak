@@ -105,13 +105,13 @@ const MENU_ITEMS: {
       },
     ],
   },
-  // KRS — parent dropdown: Pemrograman KRS + Kurikulum
+  // Pengajuan KRS — persetujuan KRS oleh admin akademik / KRS mahasiswa
   {
     permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
-    label: 'KRS',
+    label: 'Pengajuan KRS',
     path: '/krs',
     icon: 'document',
-    description: 'Kartu Rencana Studi',
+    description: 'Pengajuan dan persetujuan Kartu Rencana Studi',
     children: [
       {
         permissions: ['krs.fill', 'krs.view_classes', 'krs.approve'],
@@ -119,13 +119,6 @@ const MENU_ITEMS: {
         path: '/krs',
         icon: 'document',
         description: 'Kartu Rencana Studi semester berjalan',
-      },
-      {
-        permissions: ['krs.fill', 'krs.approve'],
-        label: 'Kurikulum',
-        path: '/krs/kurikulum',
-        icon: 'book',
-        description: 'Semua mata kuliah yang pernah dikontrak',
       },
     ],
   },

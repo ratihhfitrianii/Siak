@@ -1966,11 +1966,50 @@ export async function deleteRoom(id: number): Promise<{ message: string }> {
 }
 
 /** GET /courses — daftar mata kuliah aktif (modul academic, admin_akademik). */
-export async function listCourses(params?: { search?: string }): Promise<{ items: Course[] }> {
+export async function listCourses(params?: {
+  search?: string;
+  facultyId?: number;
+}): Promise<{ items: Course[] }> {
   const qs = new URLSearchParams();
   if (params?.search) qs.set('search', params.search);
+  if (params?.facultyId) qs.set('facultyId', String(params.facultyId));
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
-  return apiRequest<{ items: Course[] }>(`/courses${suffix}`);
+  const raw = await apiRequest<{
+    items: Array<{
+      id: number;
+      code: string;
+      name: string;
+      credits: number;
+      description: string | null;
+      is_active: boolean;
+      created_at: string;
+      updated_at: string;
+      prodi_id: number | null;
+      prodi_name: string | null;
+      prodi_code: string | null;
+      faculty_id: number | null;
+      faculty_name: string | null;
+      faculty_code: string | null;
+    }>;
+  }>(`/courses${suffix}`);
+  return {
+    items: raw.items.map((r) => ({
+      id: Number(r.id),
+      code: r.code,
+      name: r.name,
+      credits: Number(r.credits),
+      description: r.description,
+      isActive: r.is_active,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      prodiId: r.prodi_id != null ? Number(r.prodi_id) : null,
+      prodiName: r.prodi_name,
+      prodiCode: r.prodi_code,
+      facultyId: r.faculty_id != null ? Number(r.faculty_id) : null,
+      facultyName: r.faculty_name,
+      facultyCode: r.faculty_code,
+    })),
+  };
 }
 
 /** POST /courses — buat mata kuliah (perm course.manage, admin_akademik). */

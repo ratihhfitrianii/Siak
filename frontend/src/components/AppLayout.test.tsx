@@ -191,7 +191,7 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('menu disaring dari permission user (mahasiswa → Hasil Studi & Keuangan sebagai parent dropdown; KRS link)', () => {
+  it('menu disaring dari permission user (mahasiswa → Hasil Studi & Keuangan sebagai parent dropdown; Pengajuan KRS link)', () => {
     mockUser = MAHASISWA;
     renderLayout();
 
@@ -199,8 +199,8 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     // Parent dropdown render sebagai button
     expect(screen.getByRole('button', { name: /Hasil Studi/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Keuangan/ })).toBeInTheDocument();
-    // KRS sekarang parent dropdown (button) dengan children Pemrograman KRS & Kurikulum
-    expect(screen.getByRole('button', { name: 'KRS' })).toBeInTheDocument();
+    // Pengajuan KRS sekarang parent dropdown (button) dengan children Pemrograman KRS
+    expect(screen.getByRole('button', { name: 'Pengajuan KRS' })).toBeInTheDocument();
     // Children tersembunyi sampai parent di-expand
     expect(screen.queryByRole('link', { name: 'Riwayat Studi' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Kartu Hasil Studi (KHS)' })).not.toBeInTheDocument();
@@ -220,7 +220,7 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     renderLayout();
 
     // Expanded: label inline tampil (bukan tooltip).
-    expect(screen.getByText('KRS')).toBeInTheDocument();
+    expect(screen.getByText('Pengajuan KRS')).toBeInTheDocument();
     expect(screen.getByText('Virtual Absensi')).toBeInTheDocument();
     expect(screen.getByText('Jadwal Kuliah')).toBeInTheDocument();
     expect(screen.getByText('Hasil Studi')).toBeInTheDocument();
@@ -239,7 +239,7 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     expect(screen.getByRole('link', { name: 'Informasi Penting' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Audit' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'KRS' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pengajuan KRS' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Transkrip' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Pembayaran' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Tagihan' })).not.toBeInTheDocument();
@@ -481,7 +481,7 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     renderLayout();
 
     // Expanded: label inline terlihat (parent dropdown + menu sederhana)
-    expect(screen.getByRole('button', { name: 'KRS' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pengajuan KRS' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Virtual Absensi' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
     // Tooltip (label+deskripsi) TIDAK dirender saat expanded

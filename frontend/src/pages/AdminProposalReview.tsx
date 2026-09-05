@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState, useCallback, useMemo } from 'react';
-import { getSkripsiProposals, getSkripsiProposalStatuses } from '../lib/api';
+import { getSkripsiProposals, getSkripsiProposalStatuses, updateSkripsiProposal } from '../lib/api';
 import type { SkripsiProposal, SkripsiStatus, SkripsiProposalStatus } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
@@ -30,6 +30,13 @@ const STATUS_COLOR: Record<SkripsiStatus, string> = {
   siap_sidang: 'bg-purple-100 text-purple-700',
   lulus: 'bg-green-100 text-green-800 font-medium',
   tidak_lulus: 'bg-red-100 text-red-800 font-medium',
+};
+
+/** Pesan status untuk riwayat proposal — mengganti "Oleh: ..." dengan deskripsi konteks. */
+const STATUS_DETAIL_MESSAGE: Partial<Record<SkripsiStatus, string>> = {
+  diajukan: 'Menunggu review dosen',
+  dilihat_dosen: 'Proposal dilihat oleh dosen pembimbing',
+  disetujui_dosen: 'Proposal disetujui oleh dosen pembimbing',
 };
 
 function formatDate(iso: string) {
@@ -96,6 +103,12 @@ export function AdminProposalReview() {
   const [historyLoadingId, setHistoryLoadingId] = useState<number | null>(null);
   // Pencarian (judul/NIM/nama/prodi)
   const [searchTerm, setSearchTerm] = useState('');
+  // Aksi admin: approve/reject proposal
+  const [actionProposalId, setActionProposalId] = useState<number | null>(null);
+  const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
+  const [rejectNotes, setRejectNotes] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Filter klien-side: judul, NIM, nama mahasiswa, atau prodi
   const filteredProposals = useMemo(() => {
@@ -148,6 +161,52 @@ export function AdminProposalReview() {
       await loadStatusHistory(proposalId);
     }
   };
+
+  /** Admin approve proposal → status 'disetujui_admin' */
+  const handleApprove = useCallback(
+    async (proposalId: number) => {
+      setActionLoading(true);
+      setActionError(null);
+      try {
+        await updateSkripsiProposal(proposalId, {
+          status: 'disetujui_admin',
+          statusNotes: 'Disetujui oleh admin akademik',
+        });
+        await loadProposals();
+        setActionProposalId(null);
+        setActionType(null);
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Gagal menyetujui proposal');
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [loadProposals],
+  );
+
+  /** Admin reject proposal → status 'ditolak_admin' */
+  const handleReject = useCallback(
+    async (proposalId: number, notes: string) => {
+      if (notes.trim().length < 5) return;
+      setActionLoading(true);
+      setActionError(null);
+      try {
+        await updateSkripsiProposal(proposalId, {
+          status: 'ditolak_admin',
+          statusNotes: notes.trim(),
+        });
+        await loadProposals();
+        setActionProposalId(null);
+        setActionType(null);
+        setRejectNotes('');
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Gagal menolak proposal');
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [loadProposals],
+  );
 
   if (isLoading) {
     return (
@@ -307,6 +366,73 @@ export function AdminProposalReview() {
                       <tr className="bg-slate-50">
                         <td colSpan={6} className="px-4 py-2">
                           <div className="ml-4 mt-2 border-l-2 border-slate-200 pl-4 space-y-2">
+                            {/* Aksi admin saat status disetujui_dosen */}
+                            {p.status === 'disetujui_dosen' && (
+                              <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <p className="text-sm font-medium text-green-800 mb-2">
+                                  Proposal ini telah disetujui oleh dosen pembimbing. Tinjau dan
+                                  putuskan:
+                                </p>
+                                {actionError && (
+                                  <p className="text-sm text-red-600 mb-2">{actionError}</p>
+                                )}
+                                {actionProposalId === p.id && actionType === 'reject' ? (
+                                  <div className="space-y-2">
+                                    <textarea
+                                      value={rejectNotes}
+                                      onChange={(e) => setRejectNotes(e.target.value)}
+                                      placeholder="Alasan penolakan (min. 5 karakter)..."
+                                      rows={3}
+                                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    />
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => {
+                                          setActionProposalId(null);
+                                          setActionType(null);
+                                          setRejectNotes('');
+                                          setActionError(null);
+                                        }}
+                                        className="px-3 py-1 text-sm bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+                                      >
+                                        Batal
+                                      </button>
+                                      <button
+                                        onClick={() => handleReject(p.id, rejectNotes)}
+                                        disabled={actionLoading || rejectNotes.trim().length < 5}
+                                        className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                                      >
+                                        {actionLoading ? 'Memproses...' : 'Tolak Proposal'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setActionError(null);
+                                        handleApprove(p.id);
+                                      }}
+                                      disabled={actionLoading}
+                                      className="px-4 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                                    >
+                                      {actionLoading ? 'Memproses...' : 'Setujui'}
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setActionProposalId(p.id);
+                                        setActionType('reject');
+                                        setActionError(null);
+                                      }}
+                                      disabled={actionLoading}
+                                      className="px-4 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                                    >
+                                      Tolak
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             {historyLoadingId === p.id ? (
                               <div className="flex justify-center py-4">
                                 <Spinner label="Memuat riwayat..." />
@@ -323,7 +449,11 @@ export function AdminProposalReview() {
                                         {STATUS_LABEL[h.status as SkripsiStatus]}
                                       </span>
                                     </p>
-                                    <p className="text-slate-600">{h.notes ?? '-'}</p>
+                                    <p className="text-slate-600">
+                                      {STATUS_DETAIL_MESSAGE[h.status as SkripsiStatus] ??
+                                        h.notes ??
+                                        '-'}
+                                    </p>
                                     <p className="text-xs text-slate-400">
                                       Oleh: {h.changedByName} • {formatDate(h.changedAt)}
                                     </p>
