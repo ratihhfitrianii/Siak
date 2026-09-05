@@ -111,6 +111,8 @@ function mockUsersRoutes({
             email: isNimNik ? 'andi@kampus.ac.id' : String(body.email),
             full_name: isNimNik ? 'Andi' : 'User Baru',
             is_wali: false,
+            is_kaprodi: false,
+            is_wakil_kaprodi: false,
             created_at: '2026-08-03T00:00:00Z',
             message: isNimNik
               ? 'Akun Andi diaktifkan — password awal = NIM'
@@ -452,6 +454,8 @@ describe('UsersPage (T1.11c)', () => {
           email: 'wali@kampus.ac.id',
           full_name: 'Pak Wali',
           is_wali: false,
+          is_kaprodi: false,
+          is_wakil_kaprodi: false,
           role_code: 'dosen',
           role_name: 'Dosen',
           is_active: true,

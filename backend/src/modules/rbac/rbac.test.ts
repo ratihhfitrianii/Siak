@@ -230,7 +230,7 @@ const EXPECTED_MATRIX: Record<Permission, Record<RoleCode, boolean>> = {
     dosen: false,
     admin_akademik: false,
     admin_keuangan: false,
-    admin_sistem: false,
+    admin_sistem: true,
   },
   'student.profile': {
     mahasiswa: true,
