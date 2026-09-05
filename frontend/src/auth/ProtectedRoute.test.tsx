@@ -11,6 +11,8 @@ const USER: MeUser = {
   role: 'mahasiswa',
   roleName: 'Mahasiswa',
   isWali: false,
+  isKaprodi: false,
+  isWakilKaprodi: false,
   isActive: true,
   mustChangePassword: false,
   studentId: null,

@@ -185,6 +185,8 @@ export interface UserListItem {
   email: string;
   fullName: string;
   isWali: boolean;
+  isKaprodi: boolean;
+  isWakilKaprodi: boolean;
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
@@ -239,8 +241,35 @@ export interface UserCreateLookup {
 export interface UpdateRoleInput {
   roleCode: 'mahasiswa' | 'dosen' | 'admin_akademik' | 'admin_keuangan' | 'admin_sistem';
   isWali: boolean;
+  isKaprodi?: boolean;
+  isWakilKaprodi?: boolean;
   /** Admin akademik terikat 1 fakultas — wajib untuk role admin_akademik. */
   adminFacultyCode?: string;
+}
+
+// ==== Fitur Persetujuan Jadwal Kaprodi (2026-09) ====
+
+export interface ScheduleSubmission {
+  id: number;
+  lecturerId: number;
+  semesterId: number;
+  status: 'awaiting' | 'approved' | 'rejected';
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+  semesterCode: string;
+  semesterName: string;
+  reviewerName?: string | null;
+}
+
+export interface ScheduleSubmissionItem extends ScheduleSubmission {
+  lecturerName: string;
+  lecturerEmail: string;
+  totalClasses: number;
+}
+
+export interface ScheduleSubmissionsResponse {
+  items: ScheduleSubmissionItem[];
 }
 
 // ==== #16 Master Data (admin_sistem) ====

@@ -65,6 +65,9 @@ const WaitingRoomPage = lazy(() =>
 const AdminSchedulePage = lazy(() =>
   import('./pages/AdminSchedulePage').then((m) => ({ default: m.AdminSchedulePage })),
 );
+const KaprodiScheduleReview = lazy(() =>
+  import('./pages/KaprodiScheduleReview').then((m) => ({ default: m.KaprodiScheduleReview })),
+);
 
 const MahasiswaCheckIn = lazy(() =>
   import('./pages/MahasiswaCheckIn').then((m) => ({ default: m.MahasiswaCheckIn })),
@@ -453,6 +456,17 @@ export default function App() {
               <ProtectedRoute perm="lecturer.select_course">
                 <AppLayout>
                   <DosenProfilePage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* Dosen Kaprodi/Wakil — Persetujuan Jadwal (schedule.approve) */}
+          <Route
+            path="/dosen/kaprodi/persetujuan"
+            element={
+              <ProtectedRoute perm="schedule.approve">
+                <AppLayout>
+                  <KaprodiScheduleReview />
                 </AppLayout>
               </ProtectedRoute>
             }

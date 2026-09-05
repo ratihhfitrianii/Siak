@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Guide SIAK — Sistem Informasi Akademik</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #dbeafe;
+            --secondary: #0f172a;
+            --accent: #0ea5e9;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-800);
+            line-height: 1.7;
+        }
+
+        /* Cover Page */
+        .cover {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 50%, var(--secondary) 100%);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            page-break-after: always;
+        }
+
+        .cover-logo {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .cover h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .cover .subtitle {
+            font-size: 1.5rem;
+            opacity: 0.9;
+            margin-bottom: 3rem;
+        }
+
+        .cover .meta {
+            font-size: 1rem;
+            opacity: 0.7;
+            margin-top: 2rem;
+        }
+
+        .cover .version-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1.5rem;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Table of Contents */
+        .toc {
+            background: white;
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin: 2rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            page-break-after: always;
+        }
+
+        .toc h2 {
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid var(--primary-light);
+        }
+
+        .toc-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .toc-section h3 {
+            font-size: 1.1rem;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toc-section h3 .role-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .toc-section ul {
+            list-style: none;
+            padding-left: 1.5rem;
+        }
+
+        .toc-section ul li {
+            padding: 0.3rem 0;
+            color: var(--gray-600);
+            font-size: 0.95rem;
+        }
+
+        .toc-section ul li::before {
+            content: "→";
+            color: var(--primary);
+            margin-right: 0.5rem;
+        }
+
+        /* Role Sections */
+        .role-section {
+            page-break-before: always;
+            margin-top: 3rem;
+        }
+
+        .role-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 2rem 2.5rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+        }
+
+        .role-header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .role-header .role-desc {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .role-header .role-features {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .role-header .feature-tag {
+            background: rgba(255,255,255,0.2);
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Feature Cards */
+        .feature-card {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            page-break-inside: avoid;
+        }
+
+        .feature-card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .feature-card-header .feature-number {
+            background: var(--primary-light);
+            color: var(--primary);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .feature-card-header h3 {
+            font-size: 1.2rem;
+            color: var(--gray-800);
+        }
+
+        .feature-card-body {
+            padding: 1.5rem;
+        }
+
+        .feature-card-body p {
+            color: var(--gray-600);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card-body .screenshot-container {
+            background: var(--gray-100);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .feature-card-body img {
+            width: 100%;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .feature-card-body .screenshot-caption {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        /* Info Boxes */
+        .info-box {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+        }
+
+        .info-box.tip {
+            background: #ecfdf5;
+            border-left: 4px solid var(--success);
+            color: #065f46;
+        }
+
+        .info-box.warning {
+            background: #fffbeb;
+            border-left: 4px solid var(--warning);
+            color: #92400e;
+        }
+
+        .info-box.info {
+            background: var(--primary-light);
+            border-left: 4px solid var(--primary);
+            color: var(--primary-dark);
+        }
+
+        /* Feature List */
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        /* Tables */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+        }
+
+        .info-table th {
+            background: var(--gray-100);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700);
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .info-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .info-table tr:hover td {
+            background: var(--gray-50);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-blue { background: var(--primary-light); color: var(--primary); }
+        .badge-green { background: #dcfce7; color: var(--success); }
+        .badge-yellow { background: #fef3c7; color: var(--warning); }
+        .badge-red { background: #fee2e2; color: var(--danger); }
+
+        /* Steps */
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+        }
+
+        .steps li {
+            counter-increment: step-counter;
+            padding: 0.75rem 0 0.75rem 3rem;
+            position: relative;
+            border-left: 2px solid var(--gray-200);
+            margin-left: 1rem;
+        }
+
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: -14px;
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .steps li:last-child {
+            border-left-color: transparent;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--gray-200);
+            margin-top: 4rem;
+        }
+
+        /* Print Styles */
+        @media print {
+            .cover { min-height: auto; padding: 4rem 2rem; }
+            .role-section { page-break-before: always; }
+            .feature-card { page-break-inside: avoid; }
+            body { font-size: 11pt; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .cover h1 { font-size: 2rem; }
+            .cover .subtitle { font-size: 1.2rem; }
+            .role-header h2 { font-size: 1.5rem; }
+            .container { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== COVER PAGE ==================== -->
+<div class="cover">
+    <div class="cover-logo">S</div>
+    <h1>Manual Guide</h1>
+    <div class="subtitle">Sistem Informasi Akademik (SIAK)</div>
+    <p style="max-width: 600px; opacity: 0.85; font-size: 1.1rem;">
+        Panduan lengkap penggunaan sistem akademik untuk setiap peran pengguna:
+        Mahasiswa, Dosen, Admin Akademik, Admin Keuangan, dan Admin Sistem.
+    </p>
+    <div class="version-badge">Versi 1.0 — September 2026</div>
+    <div class="meta">
+        <p>Untuk dukungan teknis, hubungi:</p>
+        <p style="font-size: 1.2rem; margin-top: 0.5rem;">IRMA — +62 852-2888-8296</p>
+    </div>
+</div>
+
+<!-- ==================== TABLE OF CONTENTS ==================== -->
+<div class="container">
+<div class="toc">
+    <h2>📋 Daftar Isi</h2>
+
+    <div class="toc-section">
+        <h3><span class="role-dot" style="background: var(--gray-400)"></span> Umum</h3>
+        <ul>
+            <li>Cara Login ke Sistem</li>
+            <li>Antarmuka Utama (Dashboard & Sidebar)</li>
+        </ul>
+    </div>
+
+    <div class="toc-section">
+        <h3><span class="role-dot" style="background: #3b82f6"></span> Mahasiswa</h3>
+        <ul>
+            <li>Dashboard</li>
+            <li>Profil Saya</li>
+            <li>Hasil Studi — Kartu Hasil Studi (KHS)</li>
+            <li>Hasil Studi — Riwayat Studi</li>
+            <li>KRS — Pemrograman KRS</li>
+            <li>KRS — Kurikulum</li>
+            <li>Virtual Absensi (Check-in)</li>
+            <li>Jadwal Kuliah</li>
+            <li>Keuangan — Tagihan Saya</li>
+            <li>Keuangan — Pembayaran</li>
+            <li>Skripsi — Ajukan Bimbingan</li>
+            <li>Skripsi — Sidang</li>
+        </ul>
+    </div>
+
+    <div class="toc-section">
+        <h3><span class="role-dot" style="background: #8b5cf6"></span> Dosen</h3>
+        <ul>
+            <li>Dashboard</li>
+            <li>Pilih Mata Kuliah</li>
+            <li>Jadwal — Rencana Mengajar</li>
+            <li>Jadwal — Substitute</li>
+            <li>Absensi — Kelola Absensi</li>
+            <li>Absensi — Rekap Kehadiran</li>
+            <li>Bimbingan — Pengajuan Proposal</li>
+            <li>Bimbingan — Mahasiswa Binaan</li>
+            <li>Input & Edit Nilai</li>
+            <li>Slip Gaji</li>
+            <li>Profil Dosen</li>
+        </ul>
+    </div>
+
+    <div class="toc-section">
+        <h3><span class="role-dot" style="background: #f59e0b"></span> Admin Akademik</h3>
+        <ul>
+            <li>Dashboard</li>
+            <li>Kelola Pengguna (User)</li>
+            <li>Master Data — Fakultas & Prodi</li>
+            <li>Jadwal Pengajar</li>
+            <li>Persetujuan Mata Kuliah Dosen</li>
+            <li>Ajuan Proposal Skripsi</li>
+            <li>Master Akademik (Ruangan, Prodi, MK)</li>
+        </ul>
+    </div>
+
+    <div class="toc-section">
+        <h3><span class="role-dot" style="background: #10b981"></span> Admin Keuangan</h3>
+        <ul>
+            <li>Dashboard</li>
+            <li>Kelola Tagihan</li>
+            <li>Daftar Gaji Dosen</li>
+        </ul>
+    </div>
+
+    <div class="toc-section">
+        <h3><span class="role-dot" style="background: #ef4444"></span> Admin Sistem</h3>
+        <ul>
+            <li>Dashboard</li>
+            <li>Kelola Pengguna (User)</li>
+            <li>Master Data</li>
+            <li>Informasi Penting (Pengumuman)</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ==================== LOGIN & UMUM ==================== -->
+<div class="role-section">
+    <div class="role-header" style="background: linear-gradient(135deg, #475569, #334155);">
+        <h2>🔐 Login & Antarmuka Utama</h2>
+        <div class="role-desc">Cara masuk ke sistem dan mengenal antarmuka SIAK</div>
+    </div>
+
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">1</div>
+            <h3>Cara Login ke Sistem</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Buka halaman login SIAK di browser Anda. Masukkan <strong>NIM</strong> (mahasiswa), <strong>NIK</strong> (dosen), atau <strong>email</strong> (admin) beserta password Anda.</p>
+
+            <ol class="steps">
+                <li>Buka halaman login di <strong>https://siak-vercel.vercel.app/login</strong></li>
+                <li>Masukkan <strong>NIM / NIK / Email</strong> pada kolom pertama</li>
+                <li>Masukkan <strong>Password</strong> pada kolom kedua</li>
+                <li>Klik tombol <strong>「Masuk」</strong></li>
+                <li>Anda akan diarahkan ke Dashboard sesuai peran Anda</li>
+            </ol>
+
+            <div class="info-box info">
+                <strong>💡 Tips:</strong> Akun mahasiswa/dosen menggunakan email institusi. Hubungi Admin Sistem bila lupa password.
+            </div>
+
+            <div class="screenshot-container">
+                <img src="screenshots/general/01-login-page.png" alt="Halaman Login SIAK">
+                <div class="screenshot-caption">Halaman Login SIAK</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">2</div>
+            <h3>Antarmuka Utama — Sidebar & Dashboard</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Setelah login, Anda akan melihat <strong>Dashboard</strong> sebagai halaman utama. Di sebelah kiri terdapat <strong>Sidebar</strong> berisi menu navigasi yang berbeda untuk setiap peran.</p>
+
+            <ul class="feature-list">
+                <li><strong>Dashboard</strong> — Ringkasan informasi dan akses cepat ke fitur utama</li>
+                <li><strong>Sidebar</strong> — Menu navigasi di sebelah kiri layar</li>
+                <li><strong>Profil Pengguna</strong> — Ikon profil di pojok kanan atas</li>
+            </ul>
+
+            <table class="info-table">
+                <thead>
+                    <tr>
+                        <th>Peran</th>
+                        <th>Menu yang Tersedia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-blue">Mahasiswa</span></td>
+                        <td>Profil, Hasil Studi, KRS, Virtual Absensi, Jadwal Kuliah, Keuangan, Skripsi</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">Dosen</span></td>
+                        <td>Pilih MK, Jadwal, Absensi, Bimbingan, Nilai, Slip Gaji, Profile</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-yellow">Admin Akademik</span></td>
+                        <td>User, Master, Jadwal, Persetujuan MK, Ajuan Proposal, Master Akademik</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-green">Admin Keuangan</span></td>
+                        <td>Tagihan, Daftar Gaji</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-red">Admin Sistem</span></td>
+                        <td>User, Master, Informasi Penting</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MAHASISWA ==================== -->
+<div class="role-section">
+    <div class="role-header">
+        <h2>🎓 Panduan Mahasiswa</h2>
+        <div class="role-desc">Fitur-fitur yang tersedia untuk mahasiswa</div>
+        <div class="role-features">
+            <span class="feature-tag">Profil</span>
+            <span class="feature-tag">KHS / Transkrip</span>
+            <span class="feature-tag">KRS</span>
+            <span class="feature-tag">Absensi</span>
+            <span class="feature-tag">Jadwal</span>
+            <span class="feature-tag">Keuangan</span>
+            <span class="feature-tag">Skripsi</span>
+        </div>
+    </div>
+
+    <!-- 1. Dashboard Mahasiswa -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">1</div>
+            <h3>Dashboard Mahasiswa</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Dashboard menampilkan ringkasan informasi akademik mahasiswa, termasuk status KRS, informasi pembayaran, pengumuman terbaru, dan akses cepat ke menu yang sering digunakan.</p>
+
+            <ul class="feature-list">
+                <li>Ringkasan status KRS semester aktif</li>
+                <li>Informasi pembayaran (lunas/belum lunas)</li>
+                <li>Pengumuman terbaru dari admin</li>
+                <li>Akses cepat ke fitur utama</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/01-dashboard.png" alt="Dashboard Mahasiswa">
+                <div class="screenshot-caption">Dashboard Mahasiswa — Ringkasan informasi akademik</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Profil -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">2</div>
+            <h3>Profil Saya</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Halaman profil menampilkan data diri mahasiswa secara lengkap. Anda dapat melihat dan mengunduh E-KTM, serta mengubah informasi kontak (nomor HP, email pribadi, alamat domisili).</p>
+
+            <ul class="feature-list">
+                <li>Foto profil dan nama lengkap</li>
+                <li>Data akademik: NIM, Program Studi, Fakultas, Angkatan, Jalur Masuk, Status</li>
+                <li>Email kampus</li>
+                <li>Download E-KTM</li>
+                <li>Edit kontak: No. HP, Email Pribadi, Alamat Domisili</li>
+            </ul>
+
+            <div class="info-box tip">
+                <strong>💡 Tips:</strong> Klik tombol "Edit" pada bagian Kontak & Domisili untuk mengubah informasi kontak Anda.
+            </div>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/02-profil.png" alt="Profil Mahasiswa">
+                <div class="screenshot-caption">Profil Mahasiswa — Data diri dan kontak</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. KHS -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">3</div>
+            <h3>Kartu Hasil Studi (KHS)</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>KHS menampilkan daftar mata kuliah beserta nilai yang diperoleh pada semester tertentu. Anda dapat melihat transkrip nilai dan mengunduhnya dalam format PDF.</p>
+
+            <ul class="feature-list">
+                <li>Daftar mata kuliah per semester</li>
+                <li>Nilai huruf dan nilai angka (IP)</li>
+                <li>Jumlah SKS semester</li>
+                <li>IPS (Indeks Prestasi Semester) dan IPK (Indeks Kumulatif)</li>
+                <li>Download transkrip dalam format PDF</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/03-khs-transkrip.png" alt="KHS Transkrip">
+                <div class="screenshot-caption">Kartu Hasil Studi (KHS) — Transkrip nilai semester</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Riwayat Studi -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">4</div>
+            <h3>Riwayat Studi</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Riwayat Studi menampilkan grafik perkembangan IPS dari semester ke semester, termasuk grafik bar chart IPS per semester dan ringkasan IPK kumulatif.</p>
+
+            <ul class="feature-list">
+                <li>Grafik bar chart IPS per semester</li>
+                <li>Ringkasan IPK kumulatif</li>
+                <li>Total SKS yang telah ditempuh</li>
+                <li>Jumlah semester aktif</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/04-riwayat-studi.png" alt="Riwayat Studi">
+                <div class="screenshot-caption">Riwayat Studi — Grafik IPS dan ringkasan IPK</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. KRS -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">5</div>
+            <h3>Pemrograman KRS (Kartu Rencana Studi)</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>KRS digunakan untuk memilih mata kuliah yang akan diambil pada semester depan. Pastikan pembayaran sudah lunas sebelum mengisi KRS.</p>
+
+            <ul class="feature-list">
+                <li>Daftar mata kuliah yang tersedia sesuai kurikulum</li>
+                <li>Pilihan kelas per mata kuliah</li>
+                <li>Informasi kapasitas dan jumlah terisi</li>
+                <li>Status KRS: Draft → Submitted → Approved</li>
+                <li>Download KRS dalam format PDF</li>
+            </ul>
+
+            <div class="info-box warning">
+                <strong>⚠️ Perhatian:</strong> KRS hanya bisa diisi jika pembayaran semester sudah <strong>LUNAS</strong>. Pastikan status pembayaran Anda lunas sebelum periode KRS dibuka.
+            </div>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/05-krs.png" alt="Pemrograman KRS">
+                <div class="screenshot-caption">Pemrograman KRS — Pilih mata kuliah semester depan</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Kurikulum -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">6</div>
+            <h3>Kurikulum</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Halaman Kurikulum menampilkan daftar lengkap semua mata kuliah yang pernah dan akan dikontrak sesuai kurikulum program studi Anda.</p>
+
+            <ul class="feature-list">
+                <li>Daftar lengkap mata kuliah kurikulum</li>
+                <li>Informasi SKS per mata kuliah</li>
+                <li>Status: Sudah Ditempuh / Belum</li>
+                <li>Nilai untuk mata kuliah yang sudah ditempuh</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/06-kurikulum.png" alt="Kurikulum">
+                <div class="screenshot-caption">Kurikulum — Daftar lengkap mata kuliah program studi</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Virtual Absensi -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">7</div>
+            <h3>Virtual Absensi (Check-in)</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Fitur absensi online untuk mahasiswa. Anda dapat melakukan check-in kehadiran dengan memasukkan ID Sesi atau memindai QR Code yang ditampilkan oleh dosen.</p>
+
+            <ol class="steps">
+                <li>Buka halaman Virtual Absensi dari sidebar</li>
+                <li>Masukkan <strong>ID Sesi</strong> yang diberikan dosen, atau</li>
+                <li>Gunakan <strong>QR Code</strong> yang ditampilkan dosen di kelas</li>
+                <li>Klik <strong>Check-in</strong> untuk mencatat kehadiran</li>
+            </ol>
+
+            <div class="info-box info">
+                <strong>💡 Info:</strong> ID Sesi ditampilkan pada kartu kelas di halaman Jadwal Dosen. Pastikan Anda memasukkan ID yang benar untuk kelas yang sedang berlangsung.
+            </div>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/07-virtual-absensi.png" alt="Virtual Absensi">
+                <div class="screenshot-caption">Virtual Absensi — Check-in kehadiran kelas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. Jadwal Kuliah -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">8</div>
+            <h3>Jadwal Kuliah</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Menampilkan jadwal kuliah mingguan untuk semua kelas yang Anda ikuti, lengkap dengan informasi hari, jam, ruangan, dan dosen pengampu.</p>
+
+            <ul class="feature-list">
+                <li>Jadwal mingguan: Senin — Sabtu</li>
+                <li>Informasi mata kuliah, kelas, dan dosen</li>
+                <li>Waktu dan ruangan per kelas</li>
+                <li>Status presensi per pertemuan</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/08-jadwal-kuliah.png" alt="Jadwal Kuliah">
+                <div class="screenshot-caption">Jadwal Kuliah — Jadwal mingguan kelas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. Keuangan - Tagihan -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">9</div>
+            <h3>Keuangan — Tagihan Saya</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Menampilkan detail tagihan pembayaran kuliah per semester, termasuk jumlah tagihan, status pembayaran, dan tanggal jatuh tempo.</p>
+
+            <ul class="feature-list">
+                <li>Detail tagihan per semester</li>
+                <li>Jumlah tagihan total</li>
+                <li>Status: Lunas / Belum Lunas</li>
+                <li>Tanggal jatuh tempo</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/09-keuangan-tagihan.png" alt="Tagihan Saya">
+                <div class="screenshot-caption">Tagihan Saya — Detail pembayaran per semester</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 10. Keuangan - Pembayaran -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">10</div>
+            <h3>Keuangan — Riwayat Pembayaran</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Riwayat pembayaran menampilkan semua transaksi pembayaran yang pernah Anda lakukan, termasuk bukti upload pembayaran.</p>
+
+            <ul class="feature-list">
+                <li>Riwayat semua pembayaran</li>
+                <li>Status pembayaran per semester</li>
+                <li>Bukti upload pembayaran</li>
+                <li>Detail jumlah bayar</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/10-keuangan-pembayaran.png" alt="Riwayat Pembayaran">
+                <div class="screenshot-caption">Riwayat Pembayaran — Semua transaksi pembayaran</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 11. Skripsi - Ajukan Bimbingan -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">11</div>
+            <h3>Skripsi — Ajukan Bimbingan</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Fitur untuk mengajukan proposal skripsi dan bimbingan. Mahasiswa dapat memilih maksimal 2 dosen pembimbing dan mengupload file proposal.</p>
+
+            <ol class="steps">
+                <li>Isi judul skripsi</li>
+                <li>Pilih dosen pembimbing (maksimal 2 orang) menggunakan fitur pencarian</li>
+                <li>Upload file proposal skripsi</li>
+                <li>Klik <strong>「Ajukan」</strong> untuk mengirim proposal</li>
+                <li>Pantau status: Diajukan → Diterima / Ditolak</li>
+            </ol>
+
+            <div class="info-box tip">
+                <strong>💡 Tips:</strong> Gunakan fitur pencarian pada kolom dosen pembimbing untuk menemukan dosen yang diinginkan. Pilih dosen sesuai bidang keahlian Anda.
+            </div>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/11-skripsi-ajukan.png" alt="Ajukan Bimbingan Skripsi">
+                <div class="screenshot-caption">Ajukan Bimbingan — Form pengajuan proposal skripsi</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 12. Skripsi - Sidang -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">12</div>
+            <h3>Skripsi — Sidang</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Fitur pendaftaran sidang skripsi. Halaman ini tersedia untuk mahasiswa yang status bimbingannya sudah disetujui dan siap untuk sidang.</p>
+
+            <div class="screenshot-container">
+                <img src="screenshots/mahasiswa/12-skripsi-sidang.png" alt="Sidang Skripsi">
+                <div class="screenshot-caption">Sidang Skripsi — Pendaftaran sidang</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== DOSEN ==================== -->
+<div class="role-section">
+    <div class="role-header" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+        <h2>👨‍🏫 Panduan Dosen</h2>
+        <div class="role-desc">Fitur-fitur yang tersedia untuk dosen pengampu</div>
+        <div class="role-features">
+            <span class="feature-tag">Pilih MK</span>
+            <span class="feature-tag">Jadwal</span>
+            <span class="feature-tag">Substitute</span>
+            <span class="feature-tag">Absensi</span>
+            <span class="feature-tag">Bimbingan</span>
+            <span class="feature-tag">Nilai</span>
+            <span class="feature-tag">Slip Gaji</span>
+        </div>
+    </div>
+
+    <!-- 1. Dashboard Dosen -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">1</div>
+            <h3>Dashboard Dosen</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Dashboard dosen menampilkan ringkasan kelas yang diampu, jumlah mahasiswa, jadwal mengajar hari ini, dan akses cepat ke fitur utama dosen.</p>
+
+            <ul class="feature-list">
+                <li>Ringkasan kelas yang diampu</li>
+                <li>Jumlah mahasiswa aktif</li>
+                <li>Jadwal mengajar hari ini</li>
+                <li>Statistik kehadiran</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/dosen/01-dashboard.png" alt="Dashboard Dosen">
+                <div class="screenshot-caption">Dashboard Dosen — Ringkasan kelas dan jadwal</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Pilih MK -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">2</div>
+            <h3>Pilih Mata Kuliah</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Halaman untuk memilih mata kuliah yang akan diampu. Dosen dapat melihat daftar mata kuliah yang tersedia berdasarkan program studi dan mengklaim kelas yang diinginkan.</p>
+
+            <ul class="feature-list">
+                <li>Filter mata kuliah berdasarkan program studi</li>
+                <li>Lihat kapasitas dan jumlah terisi</li>
+                <li>Klaim kelas (ambill mengajar)</li>
+                <li>Batalkan klaim kelas</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/dosen/02-pilih-mk.png" alt="Pilih Mata Kuliah">
+                <div class="screenshot-caption">Pilih Mata Kuliah — Pilih kelas yang akan diampu</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Jadwal Rencana Mengajar -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">3</div>
+            <h3>Jadwal — Rencana Mengajar</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Menampilkan jadwal mengajar dosen dalam format kalender mingguan. Panel kiri menampilkan daftar kelas, panel kanan menampilkan grid kalender mingguan dengan blok warna untuk setiap kelas.</p>
+
+            <ul class="feature-list">
+                <li><strong>Panel Kiri:</strong> Daftar kelas dengan indikator status (hijau/merah)</li>
+                <li><strong>Panel Kanan:</strong> Kalender mingguan (Senin-Sabtu, 07:00-18:00)</li>
+                <li>Blok warna pastel untuk setiap mata kuliah</li>
+                <li>Informasi ruangan dan jam per kelas</li>
+                <li>Status: Draft / Proses / Disetujui</li>
+            </ul>
+
+            <div class="info-box info">
+                <strong>💡 Info:</strong> Blok pada kalender berdasarkan jadwal waktu (time slot) yang ditetapkan Kaprodi, bukan jumlah pertemuan. Kelas yang belum terjadwal tidak akan muncul di kalender.
+            </div>
+
+            <div class="screenshot-container">
+                <img src="screenshots/dosen/03-jadwal-rencana-mengajar.png" alt="Rencana Mengajar">
+                <div class="screenshot-caption">Rencana Mengajar — Kalender jadwal mingguan dosen</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Substitute -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">4</div>
+            <h3>Jadwal — Substitute</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Fitur penggantian jadwal mengajar. Dosen dapat mengajukan substitusi ketika tidak bisa mengajar pada jadwal tertentu.</p>
+
+            <div class="screenshot-container">
+                <img src="screenshots/dosen/04-substitute.png" alt="Substitute">
+                <div class="screenshot-caption">Substitute — Penggantian jadwal mengajar</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Kelola Absensi -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">5</div>
+            <h3>Absensi — Kelola Absensi</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Dosen dapat membuat sesi absensi, membuka/menutup sesi, dan mengelola kehadiran mahasiswa per pertemuan.</p>
+
+            <ol class="steps">
+                <li>Pilih kelas yang akan diabsen</li>
+                <li>Buat sesi absensi baru (POST /attendance/sessions)</li>
+                <li>Buka sesi agar mahasiswa bisa check-in</li>
+                <li>Lihat daftar kehadiran mahasiswa secara real-time</li>
+                <li>Update status kehadiran manual jika diperlukan</li>
+                <li>Tutup sesi setelah pertemuan selesai</li>
+            </ol>
+
+            <div class="info-box tip">
+                <strong>💡 Tips:</strong> Setiap sesi absensi memiliki ID unik. ID ini ditampilkan pada kartu kelas sehingga mahasiswa tahu ID yang harus dimasukkan saat check-in.
+            </div>
+
+            <div class="screenshot-container">
+                <img src="screenshots/dosen/05-absensi-kelola.png" alt="Kelola Absensi">
+                <div class="screenshot-caption">Kelola Absensi — Buat dan kelola sesi kehadiran</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Rekap Kehadiran -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">6</div>
+            <h3>Absensi — Rekap Kehadiran Mahasiswa</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Menampilkan persentase kehadiran setiap mahasiswa di setiap kelas yang diampu. Berguna untuk memantau tingkat kehadiran mahasiswa secara keseluruhan.</p>
+
+            <ul class="feature-list">
+                <li>Persentase kehadiran per mahasiswa</li>
+                <li>Filter per kelas</li>
+                <li>Detail jumlah hadir, izin, sakit, tidak hadir</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/dosen/06-absensi-rekap.png" alt="Rekap Kehadiran">
+                <div class="screenshot-caption">Rekap Kehadiran — Persentase kehadiran mahasiswa</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Bimbingan - Proposal -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">7</div>
+            <h3>Bimbingan — Pengajuan Proposal</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Dosen pembimbing dapat melihat dan mereview proposal skripsi yang diajukan mahasiswa binaan. Dosen dapat menyetujui atau menolak proposal beserta catatan.</p>
+
+            <ul class="feature-list">
+                <li>Daftar proposal skripsi yang perlu direview</li>
+                <li>Detail proposal: judul, file, status</li>
+                <li>Action: Setujui / Tolak dengan catatan</li>
+                <li>Riwayat review proposal</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/dosen/07-bimbingan-proposal.png" alt="Pengajuan Proposal">
+                <div class="screenshot-caption">Pengajuan Proposal — Review proposal skripsi mahasiswa</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. Bimbingan - Mahasiswa Binaan -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">8</div>
+            <h3>Bimbingan — Mahasiswa Binaan</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Daftar mahasiswa yang sedang dalam proses bimbingan (status: dalam_bimbingan, siap_sidang). Dosen dapat mencatat progres bimbingan untuk setiap mahasiswa.</p>
+
+            <ul class="feature-list">
+                <li>Daftar mahasiswa aktif dalam bimbingan</li>
+                <li>Status: Dalam Bimbingan / Siap Sidang</li>
+                <li>Catat bimbingan (tanggal, catatan)</li>
+                <li>Lihat riwayat bimbingan</li>
+            </ul>
+
+            <div class="info-box warning">
+                <strong>⚠️ Perhatian:</strong> Mahasiswa dengan status <strong>lulus</strong> tidak ditampilkan pada daftar ini dan tombol "Catat Bimbingan" dinonaktifkan.
+            </div>
+
+            <div class="screenshot-container">
+                <img src="screenshots/dosen/08-bimbingan-mahasiswa-binaan.png" alt="Mahasiswa Binaan">
+                <div class="screenshot-caption">Mahasiswa Binaan — Daftar dan catat bimbingan</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. Nilai -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">9</div>
+            <h3>Input & Edit Nilai</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Dosen dapat menginput dan mengubah nilai mahasiswa untuk kelas yang diampu. Nilai meliputi tugas, UTS, UAS, dan nilai akhir.</p>
+
+            <ul class="feature-list">
+                <li>Input nilai baru (POST /grades)</li>
+                <li>Edit nilai yang sudah ada (PUT /grades/:id)</li>
+                <li>Komponen nilai: Tugas, UTS, UAS, Final Score</li>
+                <li>Nilai huruf dan grade point otomatis</li>
+                <li>Atribusi input_by (dosen yang menginput)</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/dosen/09-nilai.png" alt="Input Nilai">
+                <div class="screenshot-caption">Input Nilai — Kelola nilai mahasiswa</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 10. Slip Gaji -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">10</div>
+            <h3>Slip Gaji</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Dosen dapat melihat dan mengunduh slip gaji per periode (bulan/tahun). Slip gaji tersedia dalam format PDF.</p>
+
+            <ul class="feature-list">
+                <li>Filter slip gaji per bulan dan tahun</li>
+                <li>Detail komponen gaji</li>
+                <li>Download slip gaji PDF</li>
+                <li>Riwayat slip gaji</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/dosen/10-slip-gaji.png" alt="Slip Gaji">
+                <div class="screenshot-caption">Slip Gaji — Lihat dan unduh slip gaji dosen</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 11. Profile Dosen -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">11</div>
+            <h3>Profil Dosen</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Halaman profil dosen menampilkan data diri, foto profil, dan informasi kontak. Dosen dapat mengubah foto profil dan informasi kontak.</p>
+
+            <ul class="feature-list">
+                <li>Foto profil dan nama lengkap</li>
+                <li>Informasi akademik: NIDN, NIK, Program Studi</li>
+                <li>Edit foto profil</li>
+                <li>Edit informasi kontak</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/dosen/11-profile.png" alt="Profil Dosen">
+                <div class="screenshot-caption">Profil Dosen — Data diri dan pengaturan profil</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== ADMIN AKADEMIK ==================== -->
+<div class="role-section">
+    <div class="role-header" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+        <h2>🏛️ Panduan Admin Akademik</h2>
+        <div class="role-desc">Fitur-fitur pengelolaan data akademik</div>
+        <div class="role-features">
+            <span class="feature-tag">User Management</span>
+            <span class="feature-tag">Master Data</span>
+            <span class="feature-tag">Jadwal</span>
+            <span class="feature-tag">Persetujuan MK</span>
+            <span class="feature-tag">Proposal Skripsi</span>
+            <span class="feature-tag">Master Akademik</span>
+        </div>
+    </div>
+
+    <!-- 1. Dashboard -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">1</div>
+            <h3>Dashboard Admin Akademik</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Dashboard admin akademik menampilkan ringkasan data akademik, jumlah mahasiswa aktif, dosen, dan status operasional sistem.</p>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-akademik/01-dashboard.png" alt="Dashboard Admin Akademik">
+                <div class="screenshot-caption">Dashboard Admin Akademik — Ringkasan data akademik</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. User Management -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">2</div>
+            <h3>Kelola Pengguna (User)</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Kelola data pengguna sistem: mahasiswa, dosen, dan admin lainnya. Admin akademik hanya dapat mengelola pengguna di fakultas yang dikepalainya.</p>
+
+            <ul class="feature-list">
+                <li><strong>+ Buat User</strong> — Tambah pengguna baru</li>
+                <li><strong>Cari</strong> — Pencarian berdasarkan nama atau email</li>
+                <li><strong>Filter</strong> — Filter berdasarkan peran (role)</li>
+                <li><strong>Ubah Peran</strong> — Ganti peran pengguna</li>
+                <li><strong>Hapus</strong> — Hapus pengguna dari sistem</li>
+                <li><strong>Status</strong> — Aktif / Non-aktif</li>
+            </ul>
+
+            <div class="info-box warning">
+                <strong>⚠️ Batasan:</strong> Admin akademik hanya bisa mengelola pengguna di fakultas yang terikat. Maksimal 3 admin akademik per fakultas.
+            </div>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-akademik/02-users.png" alt="Kelola Pengguna">
+                <div class="screenshot-caption">Kelola Pengguna — CRUD pengguna sistem</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Master Fakultas & Prodi -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">3</div>
+            <h3>Master Data — Fakultas & Program Studi</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Kelola data master fakultas dan program studi. Tersedia dalam format tab terpisah untuk kemudahan navigasi.</p>
+
+            <ul class="feature-list">
+                <li><strong>Tab Fakultas:</strong> Daftar fakultas dengan CRUD</li>
+                <li><strong>Tab Prodi:</strong> Daftar program studi per fakultas</li>
+                <li>Tambah, edit, hapus data fakultas dan prodi</li>
+                <li>Status aktif/non-aktif</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-akademik/03-master-fakultas-prodi.png" alt="Master Fakultas & Prodi">
+                <div class="screenshot-caption">Master Fakultas & Prodi — Pengelolaan data akademik</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Jadwal Pengajar -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">4</div>
+            <h3>Jadwal Pengajar</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Kelola jadwal pengajar per kelas. Admin akademik dapat menetapkan dosen pengampu dan mengatur waktu/kota pengajaran.</p>
+
+            <ul class="feature-list">
+                <li>Daftar kelas per semester</li>
+                <li>Assign dosen ke kelas</li>
+                <li>Atur jadwal waktu (hari, jam, ruangan)</li>
+                <li>Monitor kapasitas kelas</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-akademik/04-jadwal-pengajar.png" alt="Jadwal Pengajar">
+                <div class="screenshot-caption">Jadwal Pengajar — Kelola jadwal per kelas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Persetujuan MK -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">5</div>
+            <h3>Persetujuan Mata Kuliah Dosen</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Review dan setujui/tolak pilihan mata kuliah yang diajukan dosen. Data dikelompokkan berdasarkan dosen dengan status keseluruhan.</p>
+
+            <ul class="feature-list">
+                <li>Data dikelompokkan per dosen (1 baris = 1 dosen)</li>
+                <li>Filter: Semester, Program Studi, Status</li>
+                <li>Detail: Lihat semua MK yang diajukan dosen</li>
+                <li>Action: Setujui / Tolak per MK</li>
+                <li>Pencatatan reviewer dan waktu review</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-akademik/05-persetujuan-mk.png" alt="Persetujuan MK">
+                <div class="screenshot-caption">Persetujuan MK — Review pilihan mata kuliah dosen</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Ajuan Proposal -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">6</div>
+            <h3>Ajuan Proposal Skripsi</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Kelola semua proposal skripsi mahasiswa. Admin akademik dapat melihat, menyetujui, atau menolak proposal yang masuk.</p>
+
+            <ul class="feature-list">
+                <li>Daftar semua proposal skripsi</li>
+                <li>Filter berdasarkan status</li>
+                <li>Detail proposal: judul, mahasiswa, dosen pembimbing</li>
+                <li>Action: Setujui / Tolak dengan catatan</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-akademik/06-ajuan-proposal.png" alt="Ajuan Proposal Skripsi">
+                <div class="screenshot-caption">Ajuan Proposal — Review proposal skripsi mahasiswa</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Master Akademik -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">7</div>
+            <h3>Master Akademik</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Kelola data master akademik termasuk Ruangan, Program Studi per Fakultas, dan Mata Kuliah.</p>
+
+            <ul class="feature-list">
+                <li><strong>Tab Ruangan:</strong> Daftar ruangan kampus</li>
+                <li><strong>Tab Prodi per Fakultas:</strong> Pemetaan prodi ke fakultas</li>
+                <li><strong>Tab Mata Kuliah:</strong> Daftar matakuliah global</li>
+                <li>CRUD untuk semua master data</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-akademik/07-master-akademik.png" alt="Master Akademik">
+                <div class="screenshot-caption">Master Akademik — Ruangan, Prodi, Mata Kuliah</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== ADMIN KEUANGAN ==================== -->
+<div class="role-section">
+    <div class="role-header" style="background: linear-gradient(135deg, #10b981, #059669);">
+        <h2>💰 Panduan Admin Keuangan</h2>
+        <div class="role-desc">Fitur pengelolaan keuangan dan pembayaran</div>
+        <div class="role-features">
+            <span class="feature-tag">Tagihan</span>
+            <span class="feature-tag">Pembayaran</span>
+            <span class="feature-tag">Gaji Dosen</span>
+        </div>
+    </div>
+
+    <!-- 1. Dashboard -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">1</div>
+            <h3>Dashboard Admin Keuangan</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Dashboard admin keuangan menampilkan ringkasan data keuangan, jumlah tagihan aktif, status pembayaran mahasiswa, dan data gaji dosen.</p>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-keuangan/01-dashboard.png" alt="Dashboard Admin Keuangan">
+                <div class="screenshot-caption">Dashboard Admin Keuangan — Ringkasan data keuangan</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Tagihan -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">2</div>
+            <h3>Kelola Tagihan</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Kelola tagihan pembayaran mahasiswa. Data ditampilkan terkelompok per NIM (mahasiswa) dengan detail tagihan per semester.</p>
+
+            <ul class="feature-list">
+                <li>Data terkelompok berdasarkan NIM</li>
+                <li>Generate tagihan baru per semester</li>
+                <li>Update status pembayaran (lunas/belum lunas)</li>
+                <li>Fitur "Bayar Semua" untuk update batch</li>
+                <li>Detail tagihan per mahasiswa per semester</li>
+                <li>Upload bukti pembayaran</li>
+            </ul>
+
+            <div class="info-box info">
+                <strong>💡 Info:</strong> Status "Lunas" hanya tercapai jika SEMUA semester sudah dibayar. Gunakan "Bayar Semua" untuk update batch beberapa tagihan sekaligus.
+            </div>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-keuangan/02-tagihan.png" alt="Kelola Tagihan">
+                <div class="screenshot-caption">Kelola Tagihan — Data terkelompok per NIM</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Daftar Gaji -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">3</div>
+            <h3>Daftar Gaji Dosen</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Generate dan kelola slip gaji dosen. Admin keuangan dapat membuat, menyetujui, dan mencetak slip gaji per periode.</p>
+
+            <ul class="feature-list">
+                <li>Generate slip gaji dosen per periode</li>
+                <li>Live search dosen</li>
+                <li>Sortable columns</li>
+                <li>Pagination 10 data per halaman</li>
+                <li>Bulk approve (rata kanan)</li>
+                <li>Download slip gaji PDF</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-keuangan/03-daftar-gaji.png" alt="Daftar Gaji">
+                <div class="screenshot-caption">Daftar Gaji — Generate dan kelola slip gaji dosen</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== ADMIN SISTEM ==================== -->
+<div class="role-section">
+    <div class="role-header" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+        <h2>🔧 Panduan Admin Sistem</h2>
+        <div class="role-desc">Superuser — Pengelolaan sistem secara menyeluruh</div>
+        <div class="role-features">
+            <span class="feature-tag">User Management</span>
+            <span class="feature-tag">Master Data</span>
+            <span class="feature-tag">Informasi Penting</span>
+        </div>
+    </div>
+
+    <div class="info-box info">
+        <strong>ℹ️ Catatan:</strong> Admin Sistem adalah <strong>superuser</strong> dengan akses penuh ke semua permission di sistem. Namun, menu sidebar dibatasi hanya untuk: Dashboard, User, Master, dan Informasi Penting.
+    </div>
+
+    <!-- 1. Dashboard -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">1</div>
+            <h3>Dashboard Admin Sistem</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Dashboard admin sistem menampilkan ringkasan seluruh data sistem, jumlah pengguna aktif, dan status operasional.</p>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-sistem/01-dashboard.png" alt="Dashboard Admin Sistem">
+                <div class="screenshot-caption">Dashboard Admin Sistem — Ringkasan seluruh sistem</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. User Management -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">2</div>
+            <h3>Kelola Pengguna (User)</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Kelola semua pengguna sistem tanpa batasan fakultas. Admin sistem memiliki akses penuh untuk CRUD pengguna, mengubah peran, dan mengatur status aktif/non-aktif.</p>
+
+            <ul class="feature-list">
+                <li><strong>+ Buat User</strong> — Tambah pengguna baru dengan peran apapun</li>
+                <li><strong>Cari</strong> — Pencarian global (tidak dibatasi fakultas)</li>
+                <li><strong>Filter</strong> — Filter berdasarkan peran</li>
+                <li><strong>Ubah Peran</strong> — Ganti peran pengguna (termasuk admin)</li>
+                <li><strong>Toggle Status</strong> — Aktifkan/non-aktifkan pengguna</li>
+                <li><strong>Reset Password</strong> — Reset password pengguna</li>
+                <li><strong>Toggle Wali</strong> — Atur status wali dosen</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-sistem/02-users.png" alt="Kelola Pengguna">
+                <div class="screenshot-caption">Kelola Pengguna — Akses penuh tanpa batasan fakultas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Master -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">3</div>
+            <h3>Master Data</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Kelola data master fakultas dan program studi. Admin sistem memiliki akses penuh untuk semua data master.</p>
+
+            <ul class="feature-list">
+                <li>Kelola semua fakultas</li>
+                <li>Kelola semua program studi</li>
+                <li>CRUD penuh tanpa batasan</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-sistem/03-master.png" alt="Master Data">
+                <div class="screenshot-caption">Master Data — Kelola fakultas dan program studi</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Informasi Penting -->
+    <div class="feature-card">
+        <div class="feature-card-header">
+            <div class="feature-number">4</div>
+            <h3>Informasi Penting (Pengumuman)</h3>
+        </div>
+        <div class="feature-card-body">
+            <p>Kelola pengumuman dan informasi penting untuk mahasiswa dan dosen. Pengumuman akan ditampilkan di dashboard pengguna.</p>
+
+            <ul class="feature-list">
+                <li>Buat pengumuman baru</li>
+                <li>Edit pengumuman yang sudah ada</li>
+                <li>Hapus pengumuman</li>
+                <li>Pengumuman ditampilkan di dashboard semua pengguna</li>
+            </ul>
+
+            <div class="screenshot-container">
+                <img src="screenshots/admin-sistem/04-informasi-penting.png" alt="Informasi Penting">
+                <div class="screenshot-caption">Informasi Penting — Kelola pengumuman sistem</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== RBAC MATRIX ==================== -->
+<div class="role-section">
+    <div class="role-header" style="background: linear-gradient(135deg, #334155, #1e293b);">
+        <h2>🔐 Matriks Hak Akses (RBAC)</h2>
+        <div class="role-desc">Ringkasan hak akses setiap peran terhadap fitur sistem</div>
+    </div>
+
+    <div class="feature-card">
+        <div class="feature-card-body" style="overflow-x: auto;">
+            <table class="info-table" style="min-width: 900px;">
+                <thead>
+                    <tr>
+                        <th>Fitur / Permission</th>
+                        <th style="text-align: center;">Mahasiswa</th>
+                        <th style="text-align: center;">Dosen</th>
+                        <th style="text-align: center;">Admin Akademik</th>
+                        <th style="text-align: center;">Admin Keuangan</th>
+                        <th style="text-align: center;">Admin Sistem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Profil Saya</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Edit Kontak</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Transkrip / KHS</td>
+                        <td style="text-align: center;">✅ (Sendiri)</td>
+                        <td style="text-align: center;">✅ (Sendiri)</td>
+                        <td style="text-align: center;">✅ (Semua)</td>
+                        <td style="text-align: center;">✅ (Sendiri)</td>
+                        <td style="text-align: center;">✅ (Semua)</td>
+                    </tr>
+                    <tr>
+                        <td>Isi KRS</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Approve KRS</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Absensi Check-in</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                    </tr>
+                    <tr>
+                        <td>Kelola Absensi</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                    </tr>
+                    <tr>
+                        <td>Rekap Kehadiran</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                    </tr>
+                    <tr>
+                        <td>Input / Edit Nilai</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Pilih MK (Dosen)</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Jadwal Mengajar</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Substitute</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Bimbingan (Catatan)</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅ (Wali)</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Submit Proposal Skripsi</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                    </tr>
+                    <tr>
+                        <td>Review Proposal Skripsi</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                    </tr>
+                    <tr>
+                        <td>Kelola Proposal (Admin)</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                    </tr>
+                    <tr>
+                        <td>Kelola User</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Master Fakultas/Prodi</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Jadwal Pengajar</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                    </tr>
+                    <tr>
+                        <td>Persetujuan MK Dosen</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                    </tr>
+                    <tr>
+                        <td>Master Akademik (MK/Ruangan)</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                    </tr>
+                    <tr>
+                        <td>Kelola Tagihan</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Generate Tagihan</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Daftar Gaji (Input)</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Slip Gaji (Lihat)</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Informasi Penting</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td>Audit Log</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">—</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                        <td style="text-align: center;">✅</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== GLOSSARY ==================== -->
+<div class="role-section">
+    <div class="role-header" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+        <h2>📚 Daftar Istilah</h2>
+        <div class="role-desc">Istilah-istilah yang digunakan dalam sistem SIAK</div>
+    </div>
+
+    <div class="feature-card">
+        <div class="feature-card-body">
+            <table class="info-table">
+                <thead>
+                    <tr>
+                        <th>Istilah</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>SIAK</strong></td><td>Sistem Informasi Akademik — Sistem terpadu untuk pengelolaan data akademik perguruan tinggi</td></tr>
+                    <tr><td><strong>KRS</strong></td><td>Kartu Rencana Studi — Formulir pemilihan mata kuliah untuk semester depan</td></tr>
+                    <tr><td><strong>KHS</strong></td><td>Kartu Hasil Studi — Daftar nilai mata kuliah per semester</td></tr>
+                    <tr><td><strong>IPS</strong></td><td>Indeks Prestasi Semester — Rata-rata nilai semester tertentu</td></tr>
+                    <tr><td><strong>IPK</strong></td><td>Indeks Prestasi Kumulatif — Rata-rata nilai seluruh semester</td></tr>
+                    <tr><td><strong>SKS</strong></td><td>Satuan Kredit Semester — Unit ukuran beban studi</td></tr>
+                    <tr><td><strong>NIM</strong></td><td>Nomor Induk Mahasiswa — Identitas unik mahasiswa</td></tr>
+                    <tr><td><strong>NIK</strong></td><td>Nomor Induk Kependudukan — Nomor identitas dosen</td></tr>
+                    <tr><td><strong>NIDN</strong></td><td>Nomor Induk Dosen Nasional — Nomor registrasi dosen nasional</td></tr>
+                    <tr><td><strong>Prodi</strong></td><td>Program Studi — Jurusan/bidang studi mahasiswa</td></tr>
+                    <tr><td><strong>RBAC</strong></td><td>Role-Based Access Control — Sistem hak akses berdasarkan peran</td></tr>
+                    <tr><td><strong>Wali</strong></td><td>Dosen Wali — Dosen yang ditunjuk sebagai pembimbing akademik mahasiswa</td></tr>
+                    <tr><td><strong>E-KTM</strong></td><td>Kartu Tanda Mahasiswa Elektronik — Kartu identitas digital mahasiswa</td></tr>
+                    <tr><td><strong>Substitute</strong></td><td>Penggantian jadwal mengajar ketika dosen berhalangan</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+    <p><strong>SIAK — Sistem Informasi Akademik</strong></p>
+    <p>Manual Guide v1.0 — September 2026</p>
+    <p style="margin-top: 1rem;">Untuk dukungan teknis, hubungi: <strong>IRMA</strong> — +62 852-2888-8296</p>
+    <p style="margin-top: 0.5rem; opacity: 0.6;">© 2026 SIAK. Hak cipta dilindungi.</p>
+</div>
+
+</div><!-- end container -->
+
+</body>
+</html>

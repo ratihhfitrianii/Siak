@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { getMyClasses } from '../lib/api';
-import type { MyClass } from '../lib/types';
+import { getMyClasses, getMySubmission, submitSchedule } from '../lib/api';
+import { ApiError } from '../lib/api';
+import type { MyClass, ScheduleSubmission } from '../lib/types';
 
 const DAY_LABELS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const DAY_COL_MAP: Record<number, number> = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7 };
@@ -86,6 +87,8 @@ export function DosenSchedule() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [submission, setSubmission] = useState<ScheduleSubmission | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -97,6 +100,12 @@ export function DosenSchedule() {
       setError('Gagal memuat jadwal mengajar');
     } finally {
       setIsLoading(false);
+    }
+    try {
+      const sub = await getMySubmission();
+      setSubmission(sub);
+    } catch {
+      // status pengajuan gagal dimuat — tidak memblokir tampilan jadwal
     }
   }, []);
 
@@ -110,13 +119,14 @@ export function DosenSchedule() {
 
     const semMap = new Map<
       number,
-      { code: string; name: string; totalSks: number; scheduledSks: number }
+      { id: number; code: string; name: string; totalSks: number; scheduledSks: number }
     >();
     let totalSksAll = 0;
     let scheduledSksAll = 0;
 
     for (const cls of classes) {
       const sem = semMap.get(cls.semesterId) ?? {
+        id: cls.semesterId,
         code: cls.semesterCode,
         name: cls.semesterName,
         totalSks: 0,
@@ -138,11 +148,23 @@ export function DosenSchedule() {
 
     const allScheduled = scheduledSksAll === totalSksAll;
     const noneScheduled = scheduledSksAll === 0;
-    const statusPengajuan: 'disetujui' | 'draft' | 'proses' = noneScheduled
-      ? 'draft'
-      : allScheduled
-        ? 'disetujui'
-        : 'proses';
+
+    // Status pengajuan: prioritas dari backend (submission).
+    // - Kalau belum ada submission (null): status = draft/proses (pakai kelengkapan lokal), TAMPILKAN tombol ajukan.
+    // - Kalau ada submission: ikuti status backend (awaiting/approved/rejected).
+    let statusPengajuan: 'disetujui' | 'draft' | 'proses' | 'ditolak';
+    if (submission) {
+      if (submission.status === 'approved') statusPengajuan = 'disetujui';
+      else if (submission.status === 'rejected') statusPengajuan = 'ditolak';
+      else if (submission.status === 'awaiting') statusPengajuan = 'proses';
+      else statusPengajuan = 'draft';
+    } else {
+      // Belum ada submission sama sekali
+      if (noneScheduled) statusPengajuan = 'draft';
+      else if (allScheduled)
+        statusPengajuan = 'proses'; // lengkap, siap diajukan
+      else statusPengajuan = 'proses'; // sebagian
+    }
 
     return {
       totalSks: totalSksAll,
@@ -152,7 +174,7 @@ export function DosenSchedule() {
       activeSemester,
       statusPengajuan,
     };
-  }, [classes]);
+  }, [classes, submission]);
 
   // Auto-select first class on load
   useEffect(() => {
@@ -188,12 +210,10 @@ export function DosenSchedule() {
       const col = DAY_COL_MAP[cls.dayOfWeek];
       if (!col) continue;
 
-      const startIdx = timeToSlotIdx(cls.startTime);
-      const endIdx = timeToSlotIdx(cls.endTime);
-      const startRow = startIdx + 2; // +2: row 1 = header, slots start at row 2
-      const endRow = endIdx + 2;
-
-      if (endRow <= startRow) continue; // invalid range
+      const startSlot = timeToSlotIdx(cls.startTime);
+      const endSlot = timeToSlotIdx(cls.endTime);
+      const startRow = startSlot + 2; // row 1 = header, row 2 = 07:00
+      const endRow = endSlot + 2;
 
       blocks.push({
         cls,
@@ -210,7 +230,22 @@ export function DosenSchedule() {
     draft: { label: 'Draft', color: 'bg-slate-100 text-slate-700' },
     proses: { label: 'Menunggu Persetujuan Kaprodi', color: 'bg-amber-100 text-amber-700' },
     disetujui: { label: 'Disetujui', color: 'bg-green-100 text-green-700' },
+    ditolak: { label: 'Ditolak Kaprodi', color: 'bg-red-100 text-red-700' },
   };
+
+  const handleSubmit = useCallback(async () => {
+    if (!summary || summary.unscheduledSks > 0) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await submitSchedule(summary.activeSemester.id);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Gagal mengajukan jadwal');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [summary, load]);
 
   const schedPercent = summary ? Math.round((summary.scheduledSks / summary.totalSks) * 100) : 0;
 
@@ -234,11 +269,28 @@ export function DosenSchedule() {
                   </p>
                 </div>
               </div>
-              <span
-                className={`text-xs font-medium px-3 py-1 rounded-full ${statusLabels[summary.statusPengajuan].color}`}
-              >
-                {statusLabels[summary.statusPengajuan].label}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={`text-xs font-medium px-3 py-1 rounded-full ${statusLabels[summary.statusPengajuan].color}`}
+                >
+                  {statusLabels[summary.statusPengajuan].label}
+                </span>
+                {((summary.statusPengajuan === 'proses' && !submission) ||
+                  summary.statusPengajuan === 'ditolak') &&
+                  summary.unscheduledSks === 0 && (
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                      className="text-xs font-medium px-3 py-1.5 rounded-full bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {submitting ? 'Mengirim...' : 'Ajukan Persetujuan'}
+                    </button>
+                  )}
+                {summary.statusPengajuan === 'ditolak' && submission?.reviewNote && (
+                  <p className="text-xs text-red-600">Catatan: {submission.reviewNote}</p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -318,74 +370,24 @@ export function DosenSchedule() {
                           }`}
                         />
                       </div>
-
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-slate-900 text-sm leading-tight">
+                        <h4 className="text-sm font-semibold text-slate-900 truncate">
                           {cls.courseName}
                         </h4>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {cls.courseCode} • {cls.credits} SKS
+                        <p className="text-xs text-slate-500 truncate">
+                          {cls.classCode} • {cls.credits} SKS
                         </p>
-                        <p className="text-xs text-slate-500">Kelas {cls.classCode}</p>
-
-                        {hasSchedules ? (
-                          <div className="mt-1.5 pt-1.5 border-t border-slate-100">
-                            <p className="text-xs text-slate-600">
-                              {DAY_LABELS[(cls.dayOfWeek ?? 1) - 1]}{' '}
-                              {cls.startTime && cls.endTime
-                                ? `${cls.startTime}–${cls.endTime}`
-                                : ''}
-                            </p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-xs text-green-600 font-medium">
-                                {cls.schedules.length} pertemuan
-                              </span>
-                              {cls.room && (
-                                <>
-                                  <span className="text-xs text-slate-300">•</span>
-                                  <span className="text-xs text-slate-400">{cls.room}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-1.5 pt-1.5 border-t border-slate-100">
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
-                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                  fillRule="evenodd"
-                                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              Belum Terjadwal
-                            </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedId(cls.id);
-                              }}
-                              className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-md hover:bg-red-600 transition-colors"
-                            >
-                              <svg
-                                className="w-3.5 h-3.5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                />
-                              </svg>
-                              Atur Jadwal
-                            </button>
-                          </div>
+                        {cls.room && <p className="text-xs text-slate-400 truncate">{cls.room}</p>}
+                        {!hasSchedules && (
+                          <p className="text-xs text-red-500 mt-1">Belum dijadwalkan</p>
                         )}
                       </div>
                     </div>
+                    {hasSchedules && (
+                      <div className="mt-2 text-xs text-slate-500">
+                        {cls.schedules.length} pertemuan terjadwal
+                      </div>
+                    )}
                   </div>
                 );
               })}

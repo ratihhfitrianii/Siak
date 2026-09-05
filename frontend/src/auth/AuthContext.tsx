@@ -17,6 +17,9 @@ export interface MeUser {
   role: string;
   roleName: string;
   isWali: boolean;
+  /** dosen yang ditunjuk admin sistem sebagai Kaprodi / Wakil Kaprodi (persetujuan jadwal). */
+  isKaprodi: boolean;
+  isWakilKaprodi: boolean;
   isActive: boolean;
   mustChangePassword: boolean;
   createdAt: string;

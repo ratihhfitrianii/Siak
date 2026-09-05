@@ -15,6 +15,8 @@ export interface AuthUser {
   roleId: number;
   roleCode: string;
   isWali: boolean;
+  isKaprodi: boolean;
+  isWakilKaprodi: boolean;
   studentId: number | null;
   lecturerId: number | null;
   prodiId: number | null;
@@ -54,7 +56,7 @@ export async function authenticate(
 
     const result = await pgPool.query(
       `SELECT u.id, u.email, u.full_name, u.role_id, u.is_wali, u.is_active,
-              u.admin_faculty_code,
+              u.admin_faculty_code, u.is_kaprodi, u.is_wakil_kaprodi,
               r.code AS role_code,
               s.id AS student_id,
               l.id AS lecturer_id,
@@ -83,6 +85,8 @@ export async function authenticate(
       roleId: row.role_id,
       roleCode: row.role_code,
       isWali: row.is_wali,
+      isKaprodi: row.is_kaprodi,
+      isWakilKaprodi: row.is_wakil_kaprodi,
       studentId: row.student_id ? Number(row.student_id) : null,
       lecturerId: row.lecturer_id ? Number(row.lecturer_id) : null,
       prodiId: row.prodi_id ? Number(row.prodi_id) : null,
@@ -131,6 +135,24 @@ export function authorizeWali(permission: Permission) {
     const isDosenWali = req.user.roleCode === 'dosen' && req.user.isWali;
     if (!isDosenWali && !can(req.user.roleCode, permission)) {
       next(new AppError('FORBIDDEN', 'Akses ditolak: hanya dosen Wali', 403));
+      return;
+    }
+    next();
+  };
+}
+
+/**
+ * AuthorizeKaprodi — khusus dosen beratribut is_kaprodi / is_wakil_kaprodi.
+ * Untuk resource persetujuan jadwal (review pengajuan jadwal dosen seprodi).
+ */
+export function authorizeKaprodi() {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      next(new AppError('UNAUTHORIZED', 'Authenticate required', 401));
+      return;
+    }
+    if (req.user.roleCode !== 'dosen' || (!req.user.isKaprodi && !req.user.isWakilKaprodi)) {
+      next(new AppError('FORBIDDEN', 'Akses ditolak: hanya Kaprodi / Wakil Kaprodi', 403));
       return;
     }
     next();

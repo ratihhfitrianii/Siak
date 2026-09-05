@@ -74,6 +74,8 @@ const createUserSchema = z
 const updateRoleSchema = z.object({
   roleCode: z.enum(['mahasiswa', 'dosen', 'admin_akademik', 'admin_keuangan', 'admin_sistem']),
   isWali: z.boolean().default(false),
+  isKaprodi: z.boolean().default(false),
+  isWakilKaprodi: z.boolean().default(false),
   adminFacultyCode: z.string().max(10).optional(),
 });
 
@@ -136,10 +138,18 @@ export function createRbacRouter(): Router {
       if (user.roleCode === 'dosen' && user.isWali && !menu.includes('guidance.manage')) {
         menu = [...menu, 'guidance.manage'];
       }
+      // Dosen Kaprodi/Wakil mendapat schedule.approve (persetujuan jadwal dosen seprodi)
+      if (
+        user.roleCode === 'dosen' &&
+        (user.isKaprodi || user.isWakilKaprodi) &&
+        !menu.includes('schedule.approve')
+      ) {
+        menu = [...menu, 'schedule.approve'];
+      }
 
       const result = await pgPool.query(
         `SELECT u.id, u.email, u.full_name, u.is_active, u.must_change_password, u.created_at,
-                u.admin_faculty_code,
+                u.admin_faculty_code, u.is_kaprodi, u.is_wakil_kaprodi,
                 r.code AS role_code, r.name AS role_name
          FROM users u
          JOIN roles r ON u.role_id = r.id
@@ -161,6 +171,8 @@ export function createRbacRouter(): Router {
           role: row.role_code,
           roleName: row.role_name,
           isWali: user.isWali,
+          isKaprodi: row.is_kaprodi === true,
+          isWakilKaprodi: row.is_wakil_kaprodi === true,
           isActive: row.is_active,
           mustChangePassword: row.must_change_password === true,
           studentId: user.studentId, // untuk transkrip mandiri (T1.11b); null untuk non-mahasiswa
@@ -274,13 +286,13 @@ export function createRbacRouter(): Router {
 
         const listResult = await pgPool.query(
           `SELECT u.id, u.email, u.full_name, u.is_wali, u.is_active, u.last_login_at, u.created_at,
-                u.admin_faculty_code,
-                r.code AS role_code, r.name AS role_name
-         FROM users u
-         JOIN roles r ON u.role_id = r.id
-         ${whereSql}
-         ORDER BY u.id
-         LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+                        u.admin_faculty_code, u.is_kaprodi, u.is_wakil_kaprodi,
+                        r.code AS role_code, r.name AS role_name
+                  FROM users u
+                  JOIN roles r ON u.role_id = r.id
+                  ${whereSql}
+                  ORDER BY u.id
+                  LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
           [...params, limit, offset],
         );
 
@@ -288,6 +300,8 @@ export function createRbacRouter(): Router {
           ...row,
           id: Number(row.id),
           adminFacultyCode: row.admin_faculty_code ?? null,
+          isKaprodi: row.is_kaprodi,
+          isWakilKaprodi: row.is_wakil_kaprodi,
         }));
 
         res.json({
@@ -537,7 +551,7 @@ export function createRbacRouter(): Router {
           });
         }
 
-        const { roleCode, isWali, adminFacultyCode } = parsed.data;
+        const { roleCode, isWali, isKaprodi, isWakilKaprodi, adminFacultyCode } = parsed.data;
         const actor = req.user!;
 
         // Keamanan: tidak boleh mengubah role diri sendiri (anti self-lockout)
@@ -565,7 +579,8 @@ export function createRbacRouter(): Router {
         }
 
         const target = await pgPool.query(
-          `SELECT u.id, u.email, u.full_name, r.code AS role_code, u.is_wali
+          `SELECT u.id, u.email, u.full_name, r.code AS role_code, u.is_wali,
+                  u.is_kaprodi, u.is_wakil_kaprodi
            FROM users u
            JOIN roles r ON u.role_id = r.id
            WHERE u.id = $1`,
@@ -577,10 +592,18 @@ export function createRbacRouter(): Router {
 
         const result = await pgPool.query(
           `UPDATE users
-        SET role_id = $1, is_wali = $2, admin_faculty_code = $3, updated_at = now()
-        WHERE id = $4
-        RETURNING id, email, full_name, is_wali`,
-          [roleResult.rows[0].id, roleCode === 'dosen' ? isWali : false, nextFacultyCode, targetId],
+        SET role_id = $1, is_wali = $2, admin_faculty_code = $3,
+            is_kaprodi = $4, is_wakil_kaprodi = $5, updated_at = now()
+        WHERE id = $6
+        RETURNING id, email, full_name, is_wali, is_kaprodi, is_wakil_kaprodi`,
+          [
+            roleResult.rows[0].id,
+            roleCode === 'dosen' ? isWali : false,
+            nextFacultyCode,
+            roleCode === 'dosen' ? isKaprodi : false,
+            roleCode === 'dosen' ? isWakilKaprodi : false,
+            targetId,
+          ],
         );
 
         // Audit trail (F-13, S-06, S-07) — perubahan RBAC paling penting dicatat
@@ -588,8 +611,18 @@ export function createRbacRouter(): Router {
           tableName: 'users',
           recordId: targetId,
           action: 'UPDATE',
-          oldValues: { roleCode: target.rows[0].role_code, isWali: target.rows[0].is_wali },
-          newValues: { roleCode, isWali: roleCode === 'dosen' ? isWali : false },
+          oldValues: {
+            roleCode: target.rows[0].role_code,
+            isWali: target.rows[0].is_wali,
+            isKaprodi: target.rows[0].is_kaprodi,
+            isWakilKaprodi: target.rows[0].is_wakil_kaprodi,
+          },
+          newValues: {
+            roleCode,
+            isWali: roleCode === 'dosen' ? isWali : false,
+            isKaprodi: roleCode === 'dosen' ? isKaprodi : false,
+            isWakilKaprodi: roleCode === 'dosen' ? isWakilKaprodi : false,
+          },
         });
 
         res.json({

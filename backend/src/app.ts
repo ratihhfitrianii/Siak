@@ -17,6 +17,7 @@ import { createImportRouter } from './modules/import';
 import { createGradesRouter } from './modules/grades';
 import { createTranscriptRouter } from './modules/transcript';
 import { createScheduleRouter } from './modules/schedule';
+import { createKaprodiRouter } from './modules/kaprodi';
 import { createAttendanceRouter } from './modules/attendance';
 import { createGuidanceRouter } from './modules/guidance';
 import { createSubstituteRouter } from './modules/substitute';
@@ -87,6 +88,7 @@ export function createApp(healthDeps: HealthDependencies = {}, options: AppOptio
   app.use('/api/v1/finance', createFinanceRouter());
   app.use('/api/v1', createAcademicRouter());
   app.use('/api/v1/dosen', createDosenRouter());
+  app.use('/api/v1/kaprodi', createKaprodiRouter());
   app.use('/api/v1', createAuditRouter());
   app.use('/api/v1', createNotificationRouter());
   app.use('/api/v1/import', createImportRouter());

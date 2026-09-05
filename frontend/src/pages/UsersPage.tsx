@@ -88,6 +88,8 @@ export function UsersPage() {
   const [editTarget, setEditTarget] = useState<UserListItem | null>(null);
   const [editRole, setEditRole] = useState('');
   const [editWali, setEditWali] = useState(false);
+  const [editKaprodi, setEditKaprodi] = useState(false);
+  const [editWakil, setEditWakil] = useState(false);
   const [editFaculty, setEditFaculty] = useState('');
   const [editing, setEditing] = useState(false);
 
@@ -206,6 +208,8 @@ export function UsersPage() {
     setEditTarget(u);
     setEditRole(u.roleCode);
     setEditWali(u.isWali);
+    setEditKaprodi(u.isKaprodi ?? false);
+    setEditWakil(u.isWakilKaprodi ?? false);
     setEditFaculty(u.adminFacultyCode ?? '');
     setActionError(null);
   };
@@ -218,6 +222,8 @@ export function UsersPage() {
       const input: UpdateRoleInput = {
         roleCode: editRole as UpdateRoleInput['roleCode'],
         isWali: editRole === 'dosen' && editWali,
+        isKaprodi: editRole === 'dosen' && editKaprodi,
+        isWakilKaprodi: editRole === 'dosen' && editWakil,
         adminFacultyCode: editRole === 'admin_akademik' ? editFaculty || undefined : undefined,
       };
       await updateUserRole(editTarget.id, input);
@@ -231,7 +237,18 @@ export function UsersPage() {
     } finally {
       setEditing(false);
     }
-  }, [editTarget, editRole, editWali, editFaculty, page, roleFilter, debouncedSearch, load]);
+  }, [
+    editTarget,
+    editRole,
+    editWali,
+    editKaprodi,
+    editWakil,
+    editFaculty,
+    page,
+    roleFilter,
+    debouncedSearch,
+    load,
+  ]);
 
   // Keluhan lama: "hanya admin sistem yang dapat menghapus ... user" — soft-delete (nonaktifkan).
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -702,15 +719,41 @@ export function UsersPage() {
                 </select>
               </div>
               {editRole === 'dosen' && (
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={editWali}
-                    onChange={(e) => setEditWali(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-primary-600"
-                  />
-                  Dosen Wali
-                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={editWali}
+                      onChange={(e) => setEditWali(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600"
+                    />
+                    Dosen Wali
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={editKaprodi}
+                      onChange={(e) => {
+                        setEditKaprodi(e.target.checked);
+                        if (e.target.checked) setEditWakil(false);
+                      }}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600"
+                    />
+                    Kaprodi (Kepala Prodi)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={editWakil}
+                      onChange={(e) => {
+                        setEditWakil(e.target.checked);
+                        if (e.target.checked) setEditKaprodi(false);
+                      }}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600"
+                    />
+                    Wakil Kaprodi
+                  </label>
+                </div>
               )}
               {editRole === 'admin_akademik' && (
                 <div>

@@ -45,6 +45,7 @@ const ICON_PATHS: Record<string, string> = {
 /** Mapping permission → item menu (RBAC UI: menu disaring dari /users/me, bukan hardcode per role).
  *  Field `roles` opsional: jika ada, item HANYA tampil untuk role tsb (submenu dosen — keluhan #5).
  *  Field `requiresWali`: hanya tampil untuk dosen wali.
+ *  Field `requiresKaprodi`: hanya tampil untuk dosen kaprodi/wakil kaprodi (persetujuan jadwal).
  *  Field `visible`: optional async function (user) => boolean untuk cek tambahan (mis. eligibility skripsi). */
 const MENU_ITEMS: {
   permissions: string[];
@@ -54,7 +55,14 @@ const MENU_ITEMS: {
   description: string;
   roles?: string[];
   requiresWali?: boolean;
-  visible?: (user: { role: string; menu: string[]; isWali: boolean }) => boolean | Promise<boolean>;
+  requiresKaprodi?: boolean;
+  visible?: (user: {
+    role: string;
+    menu: string[];
+    isWali: boolean;
+    isKaprodi: boolean;
+    isWakilKaprodi: boolean;
+  }) => boolean | Promise<boolean>;
   children?: {
     permissions: string[];
     label: string;
@@ -63,10 +71,13 @@ const MENU_ITEMS: {
     description: string;
     roles?: string[];
     requiresWali?: boolean;
+    requiresKaprodi?: boolean;
     visible?: (user: {
       role: string;
       menu: string[];
       isWali: boolean;
+      isKaprodi: boolean;
+      isWakilKaprodi: boolean;
     }) => boolean | Promise<boolean>;
   }[];
 }[] = [
@@ -272,6 +283,16 @@ const MENU_ITEMS: {
         description: 'Kelola penggantian jadwal',
       },
     ],
+  },
+  // ---- Dosen Kaprodi/Wakil: Persetujuan Jadwal (2026-09) ----
+  {
+    permissions: ['schedule.approve'],
+    roles: ['dosen'],
+    requiresKaprodi: true,
+    label: 'Persetujuan Jadwal',
+    path: '/dosen/kaprodi/persetujuan',
+    icon: 'check',
+    description: 'Setujui/tolak jadwal mengajar dosen pada prodi Anda',
   },
   // ---- Admin Akademik: Jadwal Pengajar (T3.2, perm schedule.manage) ----
   {
@@ -578,6 +599,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           !hidden.includes(item.path) &&
           (!item.roles || item.roles.includes(user.role)) &&
           (!item.requiresWali || user.isWali) &&
+          (!item.requiresKaprodi || user.isKaprodi || user.isWakilKaprodi) &&
           item.permissions.some((p) => user.menu.includes(p)),
       );
 
@@ -589,6 +611,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
             role: user.role,
             menu: user.menu,
             isWali: user.isWali,
+            isKaprodi: user.isKaprodi,
+            isWakilKaprodi: user.isWakilKaprodi,
           });
           if (!cancelled) visibility[item.path] = visible;
         } else {
@@ -602,11 +626,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 role: user.role,
                 menu: user.menu,
                 isWali: user.isWali,
+                isKaprodi: user.isKaprodi,
+                isWakilKaprodi: user.isWakilKaprodi,
               });
               if (!cancelled) visibility[child.path] = visible;
             } else {
               if (!cancelled)
-                visibility[child.path] = child.permissions.some((p) => user.menu.includes(p));
+                visibility[child.path] =
+                  (!child.requiresWali || user.isWali) &&
+                  (!child.requiresKaprodi || user.isKaprodi || user.isWakilKaprodi) &&
+                  child.permissions.some((p) => user.menu.includes(p));
             }
           }
         }
@@ -634,6 +663,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       !hidden.includes(item.path) &&
       (!item.roles || item.roles.includes(user.role)) &&
       (!item.requiresWali || user.isWali) &&
+      (!item.requiresKaprodi || user.isKaprodi || user.isWakilKaprodi) &&
       item.permissions.some((p) => user.menu.includes(p)),
   );
 

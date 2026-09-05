@@ -225,6 +225,13 @@ const EXPECTED_MATRIX: Record<Permission, Record<RoleCode, boolean>> = {
     admin_keuangan: false,
     admin_sistem: true,
   },
+  'schedule.approve': {
+    mahasiswa: false,
+    dosen: false,
+    admin_akademik: false,
+    admin_keuangan: false,
+    admin_sistem: false,
+  },
   'student.profile': {
     mahasiswa: true,
     dosen: false,

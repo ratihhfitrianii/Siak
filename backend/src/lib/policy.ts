@@ -47,6 +47,7 @@ export const PERMISSIONS = [
   'kurikulum.manage', // Kurikulum per prodi/semester CRUD
   'course.manage', // Mata Kuliah CRUD (global)
   'schedule.manage', // Jadwal Kelas CRUD
+  'schedule.approve', // Persetujuan jadwal dosen (Kaprodi/Wakil atribut dosen)
   'student.profile', // Profil Mahasiswa (foto, detail, IP per semester)
   'thesis.submit', // Mahasiswa submit proposal skripsi
   'thesis.review', // Dosen review proposal skripsi

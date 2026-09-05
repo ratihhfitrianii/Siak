@@ -20,6 +20,8 @@ const SNAKE_USER = (id: number, name: string, email: string, roleCode: string) =
   email,
   full_name: name,
   is_wali: false,
+  is_kaprodi: false,
+  is_wakil_kaprodi: false,
   is_active: true,
   last_login_at: null,
   created_at: '2026-01-01T00:00:00Z',
@@ -281,7 +283,12 @@ describe('UsersPage (T1.11c)', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Simpan Perubahan' }));
 
     await vi.waitFor(() => expect(onRole).toHaveBeenCalledTimes(1));
-    expect(onRole).toHaveBeenCalledWith({ roleCode: 'admin_akademik', isWali: false });
+    expect(onRole).toHaveBeenCalledWith({
+      roleCode: 'admin_akademik',
+      isWali: false,
+      isKaprodi: false,
+      isWakilKaprodi: false,
+    });
     expect(
       await screen.findByText('Role rina@kampus.ac.id diperbarui menjadi Admin Akademik.'),
     ).toBeInTheDocument();
@@ -424,7 +431,12 @@ describe('UsersPage (T1.11c)', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Simpan Perubahan' }));
 
     await vi.waitFor(() => expect(onRole).toHaveBeenCalledTimes(1));
-    expect(onRole).toHaveBeenCalledWith({ roleCode: 'admin_akademik', isWali: false });
+    expect(onRole).toHaveBeenCalledWith({
+      roleCode: 'admin_akademik',
+      isWali: false,
+      isKaprodi: false,
+      isWakilKaprodi: false,
+    });
     expect(
       await screen.findByText('Role rina@kampus.ac.id diperbarui menjadi Admin Akademik.'),
     ).toBeInTheDocument();
@@ -462,7 +474,53 @@ describe('UsersPage (T1.11c)', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Simpan Perubahan' }));
 
     await vi.waitFor(() => expect(onRole).toHaveBeenCalledTimes(1));
-    expect(onRole).toHaveBeenCalledWith({ roleCode: 'dosen', isWali: true });
+    expect(onRole).toHaveBeenCalledWith({
+      roleCode: 'dosen',
+      isWali: true,
+      isKaprodi: false,
+      isWakilKaprodi: false,
+    });
+  });
+
+  it('ubah peran dosen → checkbox Kaprodi/Wakil muncul, pilih Kaprodi → payload isKaprodi true', async () => {
+    const user = userEvent.setup();
+    const onRole = vi.fn();
+    mockUsersRoutes({
+      items: [
+        {
+          id: 3,
+          email: 'kaprodi@kampus.ac.id',
+          full_name: 'Pak Kaprodi',
+          is_wali: false,
+          is_kaprodi: false,
+          is_wakil_kaprodi: false,
+          role_code: 'dosen',
+          role_name: 'Dosen',
+          is_active: true,
+          last_login_at: null,
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      ],
+      onRole,
+    });
+    render(<UsersPage />);
+
+    await screen.findByText('Pak Kaprodi');
+    const editButtons = screen.getAllByRole('button', { name: 'Ubah Peran' });
+    await user.click(editButtons[0]);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Ubah peran' });
+    const kaprodiCheckbox = within(dialog).getByLabelText('Kaprodi (Kepala Prodi)');
+    await user.click(kaprodiCheckbox);
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan Perubahan' }));
+
+    await vi.waitFor(() => expect(onRole).toHaveBeenCalledTimes(1));
+    expect(onRole).toHaveBeenCalledWith({
+      roleCode: 'dosen',
+      isWali: false,
+      isKaprodi: true,
+      isWakilKaprodi: false,
+    });
   });
 
   it('hapus user → confirm → DELETE /users/:id → sukses + reload', async () => {

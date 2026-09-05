@@ -19,6 +19,9 @@ import type {
   CreateUserInput,
   UserCreateLookup,
   UpdateRoleInput,
+  ScheduleSubmission,
+  ScheduleSubmissionItem,
+  ScheduleSubmissionsResponse,
   PaginationParams,
   WaitingRoomStatus,
   MasterListResponse,
@@ -339,6 +342,8 @@ export async function listUsers(params?: PaginationParams): Promise<UserListResp
       email: string;
       full_name: string;
       is_wali: boolean;
+      is_kaprodi: boolean;
+      is_wakil_kaprodi: boolean;
       is_active: boolean;
       last_login_at: string | null;
       created_at: string;
@@ -353,6 +358,8 @@ export async function listUsers(params?: PaginationParams): Promise<UserListResp
       email: r.email,
       fullName: r.full_name,
       isWali: r.is_wali,
+      isKaprodi: r.is_kaprodi ?? false,
+      isWakilKaprodi: r.is_wakil_kaprodi ?? false,
       isActive: r.is_active,
       lastLoginAt: r.last_login_at ?? null,
       createdAt: r.created_at,
@@ -432,6 +439,61 @@ export async function updateUserRole(
     isWali: raw.is_wali,
     role: raw.role,
   };
+}
+
+/* ==== Fitur Persetujuan Jadwal Kaprodi (2026-09) ==== */
+
+/** POST /kaprodi/submissions — dosen mengajukan jadwalnya untuk disetujui kaprodi. */
+export async function submitSchedule(
+  semesterId?: number,
+): Promise<{ id: number; status: string; submittedAt: string | null }> {
+  const raw = await apiRequest<{ id: number; status: string; submitted_at: string | null }>(
+    '/kaprodi/submissions',
+    { method: 'POST', body: semesterId ? { semesterId } : {} },
+  );
+  return {
+    id: Number(raw.id),
+    status: raw.status,
+    submittedAt: raw.submitted_at,
+  };
+}
+
+/** GET /kaprodi/my-submission — status pengajuan dosen sendiri. */
+export async function getMySubmission(): Promise<ScheduleSubmission | null> {
+  const raw = await apiRequest<ScheduleSubmission | null>('/kaprodi/my-submission');
+  if (!raw) return null;
+  return {
+    ...raw,
+    id: Number(raw.id),
+    lecturerId: Number(raw.lecturerId),
+    semesterId: Number(raw.semesterId),
+  };
+}
+
+/** GET /kaprodi/submissions?status= — daftar pengajuan dosen seprodi (kaprodi). */
+export async function listScheduleSubmissions(status?: string): Promise<ScheduleSubmissionItem[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  const raw = await apiRequest<ScheduleSubmissionsResponse>(`/kaprodi/submissions${qs}`);
+  return (raw.items ?? []).map((it) => ({
+    ...it,
+    id: Number(it.id),
+    lecturerId: Number(it.lecturerId),
+    semesterId: Number(it.semesterId),
+    totalClasses: Number(it.totalClasses),
+  }));
+}
+
+/** PUT /kaprodi/submissions/:id — kaprodi setujui (approved) / tolak (rejected). */
+export async function reviewScheduleSubmission(
+  id: number,
+  action: 'approved' | 'rejected',
+  note?: string,
+): Promise<{ id: number; status: string; message?: string }> {
+  const raw = await apiRequest<{ id: number; status: string; message?: string }>(
+    `/kaprodi/submissions/${id}`,
+    { method: 'PUT', body: { action, note } },
+  );
+  return { id: Number(raw.id), status: raw.status, message: raw.message };
 }
 
 /** DELETE /users/:id — nonaktifkan user (perm user.manage, admin_sistem; keluhan lama). */
