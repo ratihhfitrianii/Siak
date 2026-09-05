@@ -713,7 +713,7 @@ export function createDosenRouter(): Router {
         const result = await pgPool.query(
           `SELECT
              l.id,
-             l.nik,
+             COALESCE(l.nik, l.nidn) AS nik,
              l.nidn,
              l.photo_url,
              l.phone,

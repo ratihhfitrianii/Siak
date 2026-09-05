@@ -271,6 +271,154 @@ export function createAcademicRouter(): Router {
     }
   });
 
+  // --- ADMIN: Daftar kelas (jadwal mengajar) per fakultas ---
+  router.get(
+    '/admin/classes',
+    authenticate,
+    authorize('schedule.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { facultyId, prodiId } = req.query;
+        let query = `
+          SELECT
+            cl.id, cl.class_code, cl.day_of_week, cl.start_time, cl.end_time,
+            cl.room, cl.capacity, cl.current_enrolled, cl.is_active,
+            cl.lecturer_id, u.full_name AS lecturer_name,
+            cur.id AS curriculum_id, cur.semester_number, cur.semester_id,
+            co.code AS course_code, co.name AS course_name, co.credits,
+            p.id AS prodi_id, p.name AS prodi_name, p.code AS prodi_code,
+            f.id AS faculty_id, f.name AS faculty_name, f.code AS faculty_code
+          FROM classes cl
+          JOIN curricula cur ON cur.id = cl.curriculum_id
+          JOIN courses co ON co.id = cur.course_id
+          JOIN prodis p ON p.id = cur.prodi_id
+          JOIN faculties f ON f.id = p.faculty_id
+          LEFT JOIN users u ON u.id = cl.lecturer_id
+          WHERE cl.is_active = true
+        `;
+        const params: (string | number)[] = [];
+        if (facultyId) {
+          params.push(Number(facultyId));
+          query += ` AND f.id = $${params.length}`;
+        }
+        if (prodiId) {
+          params.push(Number(prodiId));
+          query += ` AND p.id = $${params.length}`;
+        }
+        query += ' ORDER BY p.name, co.code, cl.class_code';
+        const result = await pgPool.query(query, params);
+        res.json({
+          success: true,
+          data: { items: result.rows },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // --- ADMIN: Buat kelas (jadwal mengajar) baru ---
+  const adminClassCreateSchema = z.object({
+    curriculumId: z.number().int().positive(),
+    classCode: z.string().min(1).max(20),
+    capacity: z.number().int().min(1).max(500).default(30),
+    room: z.string().max(50).optional(),
+    dayOfWeek: z.number().int().min(1).max(7).optional(),
+    startTime: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/)
+      .optional(),
+    endTime: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/)
+      .optional(),
+  });
+
+  router.post(
+    '/admin/classes',
+    authenticate,
+    authorize('schedule.manage'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const parsed = adminClassCreateSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data kelas tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const data = parsed.data;
+
+        // Verifikasi kurikulum ada
+        const curRes = await pgPool.query('SELECT id FROM curricula WHERE id = $1', [
+          data.curriculumId,
+        ]);
+        if (curRes.rows.length === 0) {
+          return res.status(404).json({ success: false, error: 'Kurikulum tidak ditemukan' });
+        }
+
+        // Verifikasi class_code unik per kurikulum
+        const dupRes = await pgPool.query(
+          `SELECT id FROM classes WHERE curriculum_id = $1 AND class_code = $2 AND is_active`,
+          [data.curriculumId, data.classCode],
+        );
+        if (dupRes.rows.length > 0) {
+          return res
+            .status(409)
+            .json({ success: false, error: 'Kode kelas sudah dipakai untuk kurikulum ini' });
+        }
+
+        // Cek bentrok ruangan: ruangan sama + hari sama + rentang jam tumpang tindih
+        if (data.room && data.dayOfWeek && data.startTime && data.endTime) {
+          const clashRes = await pgPool.query(
+            `SELECT cl.class_code, co.code AS course_code, cl.start_time, cl.end_time
+             FROM classes cl
+             JOIN curricula cur ON cur.id = cl.curriculum_id
+             JOIN courses co ON co.id = cur.course_id
+             WHERE cl.is_active
+               AND cl.room = $1
+               AND cl.day_of_week = $2
+               AND cl.start_time < $4
+               AND cl.end_time > $3
+             LIMIT 5`,
+            [data.room, data.dayOfWeek, data.startTime, data.endTime],
+          );
+          if (clashRes.rows.length > 0) {
+            const clash = clashRes.rows[0];
+            return res.status(409).json({
+              success: false,
+              error: `Ruangan ${data.room} sudah dipakai ${clash.course_code} ${clash.class_code} (${clash.start_time}–${clash.end_time})`,
+            });
+          }
+        }
+
+        const result = await pgPool.query(
+          `INSERT INTO classes (curriculum_id, class_code, capacity, room, day_of_week, start_time, end_time, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, true) RETURNING *`,
+          [
+            data.curriculumId,
+            data.classCode,
+            data.capacity,
+            data.room ?? null,
+            data.dayOfWeek ?? null,
+            data.startTime ?? null,
+            data.endTime ?? null,
+          ],
+        );
+
+        await auditFromRequest(req.user!, req, {
+          tableName: 'classes',
+          recordId: Number(result.rows[0].id),
+          action: 'INSERT',
+          newValues: data,
+        });
+
+        res.status(201).json({ success: true, data: result.rows[0] });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // --- MATA KULIAH (COURSES) ---
   router.get('/courses', authenticate, async (req: Request, res: Response, next: NextFunction) => {
     try {
