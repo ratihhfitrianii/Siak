@@ -972,6 +972,12 @@ describe('AdminMasterPage (Ruangan)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
       {
         id: 2,
@@ -984,6 +990,12 @@ describe('AdminMasterPage (Ruangan)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockedApi.listRooms.mockResolvedValue({
@@ -1084,6 +1096,12 @@ describe('AdminMasterPage (Ruangan)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1135,6 +1153,12 @@ describe('AdminMasterPage (Ruangan)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1213,6 +1237,12 @@ describe('AdminMasterPage (Ruangan)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1249,6 +1279,12 @@ describe('AdminMasterPage (Ruangan)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1308,6 +1344,12 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
       {
         id: 2,
@@ -1321,6 +1363,12 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockedApi.listAcademicProdis.mockResolvedValue({
@@ -1423,6 +1471,12 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1475,6 +1529,12 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1554,6 +1614,12 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1591,6 +1657,12 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1629,6 +1701,12 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     const AK_PRODIS_FE = [
@@ -1644,6 +1722,12 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1688,6 +1772,12 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
       {
         id: 2,
@@ -1698,6 +1788,12 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockedApi.listCourses.mockResolvedValue({ items: COURSES });
@@ -1778,6 +1874,12 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1820,6 +1922,12 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1883,6 +1991,12 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1911,6 +2025,12 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
@@ -1940,6 +2060,12 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
         isActive: true,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
+        prodiId: 1,
+        prodiName: 'Teknik Informatika',
+        prodiCode: 'TI',
+        facultyId: 1,
+        facultyName: 'Fakultas Teknik',
+        facultyCode: 'FT',
       },
     ];
     mockAllLists();
