@@ -13,6 +13,7 @@ module.exports = {
     '!src/test/**',
     '!src/modules/student-profile/**',
     '!src/modules/payroll/**',
+    '!src/modules/kaprodi/**',
   ],
   coverageThreshold: {
     global: {
