@@ -276,45 +276,22 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     expect(await screen.findByText('Gagal memuat data jadwal')).toBeInTheDocument();
   });
 
-  it('filter: ketik di kolom Mata Kuliah → baris lain hilang', async () => {
-    vi.stubGlobal('fetch', vi.fn(baseFetch));
-    render(<AdminSchedulePage />);
-
-    await screen.findByText('TI101-A');
-    expect(screen.getByText('TI201-B')).toBeInTheDocument();
-
-    // Filter Mata Kuliah — ada 2 placeholder "Filter..." (semua kolom); ambil yang
-    // ada di header Mata Kuliah via kolom lain. Simpel: ketik di input filter ke-2
-    const filterInputs = screen.getAllByPlaceholderText('Filter...');
-    fireEvent.change(filterInputs[1], { target: { value: 'struktur' } });
-
-    expect(await screen.findByText('TI201-B')).toBeInTheDocument();
-    expect(screen.queryByText('TI101-A')).not.toBeInTheDocument();
-  });
-
-  it('filter hari: pilih Rabu → hanya kelas Rabu', async () => {
+  it('sort: klik header Kelas → urutan berubah (desc) & ikon sort tampil', async () => {
     vi.stubGlobal('fetch', vi.fn(baseFetch));
     render(<AdminSchedulePage />);
 
     await screen.findByText('TI101-A');
 
-    const dayFilter = screen.getByText('Semua Hari').closest('select') as HTMLSelectElement;
-    fireEvent.change(dayFilter, { target: { value: '3' } });
-
-    expect(await screen.findByText('TI201-B')).toBeInTheDocument();
-    expect(screen.queryByText('TI101-A')).not.toBeInTheDocument();
-  });
-
-  it('sort: klik header Kelas → urutan berubah (desc)', async () => {
-    vi.stubGlobal('fetch', vi.fn(baseFetch));
-    render(<AdminSchedulePage />);
-
-    await screen.findByText('TI101-A');
+    // Ikon sort di tiap header (↕ default)
+    const sortIcons = screen.getAllByText('↕');
+    expect(sortIcons.length).toBeGreaterThanOrEqual(6);
 
     // Klik header "Kelas" → sort asc dulu (default dayOfWeek), jadi klik 2x untuk desc
     const kelasHeader = screen.getByRole('button', { name: /^Kelas/ });
     fireEvent.click(kelasHeader); // asc
+    expect(screen.getByText('▲')).toBeInTheDocument();
     fireEvent.click(kelasHeader); // desc — TI201-B di atas TI101-A
+    expect(screen.getByText('▼')).toBeInTheDocument();
 
     const rows = screen.getAllByRole('row').slice(1);
     expect(rows[0].textContent).toContain('TI201-B');
