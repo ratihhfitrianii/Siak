@@ -353,7 +353,7 @@ export function createAcademicRouter(): Router {
           data.curriculumId,
         ]);
         if (curRes.rows.length === 0) {
-          return res.status(404).json({ success: false, error: 'Kurikulum tidak ditemukan' });
+          throw new AppError('CURRICULUM_NOT_FOUND', 'Kurikulum tidak ditemukan', 404);
         }
 
         // Verifikasi class_code unik per kurikulum
@@ -362,9 +362,11 @@ export function createAcademicRouter(): Router {
           [data.curriculumId, data.classCode],
         );
         if (dupRes.rows.length > 0) {
-          return res
-            .status(409)
-            .json({ success: false, error: 'Kode kelas sudah dipakai untuk kurikulum ini' });
+          throw new AppError(
+            'CLASS_CODE_EXISTS',
+            'Kode kelas sudah dipakai untuk kurikulum ini',
+            409,
+          );
         }
 
         // Cek bentrok ruangan: ruangan sama + hari sama + rentang jam tumpang tindih
@@ -384,10 +386,11 @@ export function createAcademicRouter(): Router {
           );
           if (clashRes.rows.length > 0) {
             const clash = clashRes.rows[0];
-            return res.status(409).json({
-              success: false,
-              error: `Ruangan ${data.room} sudah dipakai ${clash.course_code} ${clash.class_code} (${clash.start_time}–${clash.end_time})`,
-            });
+            throw new AppError(
+              'ROOM_CLASH',
+              `Ruangan ${data.room} sudah dipakai ${clash.course_code} ${clash.class_code} (${clash.start_time}–${clash.end_time})`,
+              409,
+            );
           }
         }
 
