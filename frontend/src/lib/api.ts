@@ -980,6 +980,8 @@ import type {
   MyCourseSelection,
   MyCourseSelectionsResponse,
   KrsPeriod,
+  AdminClass,
+  CreateAdminClassInput,
 } from './types';
 
 /** GET /dosen/courses/available?semesterId= — daftar MK tersedia untuk dosen. */
@@ -1247,6 +1249,68 @@ export async function updateSchedule(
 /** DELETE /schedule/:id — hapus jadwal (admin akademik/sistem). */
 export async function deleteSchedule(id: number): Promise<{ id: number; deleted: boolean }> {
   return apiRequest<{ id: number; deleted: boolean }>(`/schedule/${id}`, { method: 'DELETE' });
+}
+
+/** GET /admin/classes?facultyId=N — daftar kelas (jadwal mengajar) per fakultas. */
+export async function listAdminClasses(facultyId?: number): Promise<AdminClass[]> {
+  const qs = new URLSearchParams();
+  if (facultyId) qs.set('facultyId', String(facultyId));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  const res = await apiRequest<{ items: Record<string, unknown>[] }>(`/admin/classes${suffix}`);
+  return res.items.map((r) => ({
+    id: Number(r.id),
+    classCode: String(r.class_code ?? ''),
+    dayOfWeek: r.day_of_week == null ? null : Number(r.day_of_week),
+    startTime: r.start_time == null ? null : String(r.start_time).slice(0, 5),
+    endTime: r.end_time == null ? null : String(r.end_time).slice(0, 5),
+    room: r.room == null ? null : String(r.room),
+    capacity: Number(r.capacity ?? 0),
+    currentEnrolled: Number(r.current_enrolled ?? 0),
+    lecturerId: r.lecturer_id == null ? null : Number(r.lecturer_id),
+    lecturerName: r.lecturer_name == null ? null : String(r.lecturer_name),
+    curriculumId: Number(r.curriculum_id),
+    semesterNumber: Number(r.semester_number ?? 0),
+    courseCode: String(r.course_code ?? ''),
+    courseName: String(r.course_name ?? ''),
+    credits: Number(r.credits ?? 0),
+    prodiId: Number(r.prodi_id),
+    prodiName: String(r.prodi_name ?? ''),
+    prodiCode: String(r.prodi_code ?? ''),
+    facultyId: Number(r.faculty_id),
+    facultyName: String(r.faculty_name ?? ''),
+    facultyCode: String(r.faculty_code ?? ''),
+  }));
+}
+
+/** POST /admin/classes — buat kelas baru (admin akademik, schedule.manage). */
+export async function createAdminClass(input: CreateAdminClassInput): Promise<AdminClass> {
+  const res = await apiRequest<Record<string, unknown>>('/admin/classes', {
+    method: 'POST',
+    body: input,
+  });
+  return {
+    id: Number(res.id),
+    classCode: String(res.class_code ?? ''),
+    dayOfWeek: res.day_of_week == null ? null : Number(res.day_of_week),
+    startTime: res.start_time == null ? null : String(res.start_time).slice(0, 5),
+    endTime: res.end_time == null ? null : String(res.end_time).slice(0, 5),
+    room: res.room == null ? null : String(res.room),
+    capacity: Number(res.capacity ?? 0),
+    currentEnrolled: Number(res.current_enrolled ?? 0),
+    lecturerId: null,
+    lecturerName: null,
+    curriculumId: Number(res.curriculum_id),
+    semesterNumber: 0,
+    courseCode: '',
+    courseName: '',
+    credits: 0,
+    prodiId: 0,
+    prodiName: '',
+    prodiCode: '',
+    facultyId: 0,
+    facultyName: '',
+    facultyCode: '',
+  };
 }
 
 /* --- Absensi (semua path /attendance/sessions, snake_case → camelCase) --- */

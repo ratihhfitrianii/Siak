@@ -1017,6 +1017,42 @@ export interface CreateRoomInput {
   isActive?: boolean;
 }
 
+/** Kelas (jadwal mengajar tetap) — GET /admin/classes. */
+export interface AdminClass {
+  id: number;
+  classCode: string;
+  dayOfWeek: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  room: string | null;
+  capacity: number;
+  currentEnrolled: number;
+  lecturerId: number | null;
+  lecturerName: string | null;
+  curriculumId: number;
+  semesterNumber: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  prodiId: number;
+  prodiName: string;
+  prodiCode: string;
+  facultyId: number;
+  facultyName: string;
+  facultyCode: string;
+}
+
+/** Input buat kelas baru (POST /admin/classes). */
+export interface CreateAdminClassInput {
+  curriculumId: number;
+  classCode: string;
+  capacity: number;
+  room?: string;
+  dayOfWeek?: number;
+  startTime?: string;
+  endTime?: string;
+}
+
 export interface UpdateRoomInput {
   name?: string;
   capacity?: number;
