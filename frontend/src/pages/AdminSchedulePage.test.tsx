@@ -160,7 +160,7 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     expect(screen.getByText('Belum ada pengampu')).toBeInTheDocument();
   });
 
-  it('buka form tambah kelas → pilih prodi, MK, hari/jam, ruangan → POST /admin/classes', async () => {
+  it('buka form tambah kelas → pilih prodi, MK, kode kelas (dropdown), kapasitas, ruangan → POST /admin/classes (tanpa hari/jam)', async () => {
     const fetchCalls: string[] = [];
     const fetchSpy = vi.fn((url: string, init?: RequestInit) => {
       fetchCalls.push(url);
@@ -172,9 +172,9 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
             data: {
               id: 11,
               class_code: 'B',
-              day_of_week: 3,
-              start_time: '10:00:00',
-              end_time: '11:40:00',
+              day_of_week: null,
+              start_time: null,
+              end_time: null,
               room: 'R.101',
               capacity: 40,
               current_enrolled: 0,
@@ -194,35 +194,27 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Tambah Kelas/i }));
     expect(await screen.findByText('Tambah Kelas Baru')).toBeInTheDocument();
 
-    // Pilih prodi (SearchableDropdown: klik tombol → pilih opsi)
-    const prodiBtn = screen.getByText('Pilih Prodi');
-    fireEvent.click(prodiBtn);
+    // Pilih prodi
+    fireEvent.click(screen.getByText('Pilih Prodi'));
     const prodiOption = await screen.findByText('TI — Teknik Informatika');
     fireEvent.click(prodiOption);
 
     // Pilih MK
-    const mkPlaceholder = screen.getByText('Pilih Mata Kuliah');
-    fireEvent.click(mkPlaceholder);
+    fireEvent.click(screen.getByText('Pilih Mata Kuliah'));
     const mkOption = await screen.findByText('TI101 — Pemrograman Dasar (Sem 1)');
     fireEvent.click(mkOption);
 
-    // Kode kelas
-    const codeInput = screen.getByPlaceholderText('Contoh: A, B, C');
-    fireEvent.change(codeInput, { target: { value: 'B' } });
+    // Kode kelas: dropdown — 'A' sudah dipakai kelas TI101-A (curriculum 1), jadi pilih 'B'
+    const codePlaceholder = await screen.findByText('Pilih Kode Kelas');
+    fireEvent.click(codePlaceholder);
+    const codeOption = await screen.findByText('B');
+    fireEvent.click(codeOption);
 
-    // Hari
-    const daySelect = screen.getByLabelText('Hari');
-    fireEvent.change(daySelect, { target: { value: '3' } });
+    // Kapasitas (label "Kapasitas *")
+    fireEvent.change(screen.getByLabelText('Kapasitas *'), { target: { value: '40' } });
 
-    // Jam
-    const startInput = screen.getByPlaceholderText('08:00');
-    const endInput = screen.getByPlaceholderText('09:40');
-    fireEvent.change(startInput, { target: { value: '10:00' } });
-    fireEvent.change(endInput, { target: { value: '11:40' } });
-
-    // Ruangan (pilih R.101)
-    const roomBtn = await screen.findByText('Pilih Ruangan');
-    fireEvent.click(roomBtn);
+    // Ruangan — R.101 langsung tersedia tanpa hari/jam
+    fireEvent.click(screen.getByText('Pilih Ruangan'));
     const roomOption = await screen.findByText(/R\.101 — Ruang 101 \(40 kursi\)/);
     fireEvent.click(roomOption);
 
@@ -237,7 +229,7 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     expect(postCall).toBeTruthy();
   });
 
-  it('ruangan yang dipakai kelas lain di hari/jam sama tidak muncul di dropdown', async () => {
+  it('dropdown ruangan menampilkan ruangan aktif fakultas tanpa perlu hari/jam dulu', async () => {
     vi.stubGlobal('fetch', vi.fn(baseFetch));
     render(<AdminSchedulePage />);
 
@@ -247,28 +239,21 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Tambah Kelas/i }));
     await screen.findByText('Tambah Kelas Baru');
 
-    const prodiBtn = screen.getByText('Pilih Prodi');
-    fireEvent.click(prodiBtn);
+    fireEvent.click(screen.getByText('Pilih Prodi'));
     const prodiOption = await screen.findByText('TI — Teknik Informatika');
     fireEvent.click(prodiOption);
 
-    const mkPlaceholder = screen.getByText('Pilih Mata Kuliah');
-    fireEvent.click(mkPlaceholder);
+    fireEvent.click(screen.getByText('Pilih Mata Kuliah'));
     const mkOption = await screen.findByText('TI101 — Pemrograman Dasar (Sem 1)');
     fireEvent.click(mkOption);
 
-    fireEvent.change(screen.getByPlaceholderText('Contoh: A, B, C'), {
-      target: { value: 'C' },
-    });
-    // Hari Selasa (2) = hari kelas R.101 yang sudah dipakai; atur jam tumpang tindih
-    const daySelect = screen.getByLabelText('Hari');
-    fireEvent.change(daySelect, { target: { value: '2' } });
-    fireEvent.change(screen.getByPlaceholderText('08:00'), { target: { value: '08:30' } });
-    fireEvent.change(screen.getByPlaceholderText('09:40'), { target: { value: '10:10' } });
+    // Ruangan langsung tersedia tanpa hari/jam
+    fireEvent.click(screen.getByText('Pilih Ruangan'));
+    expect(await screen.findByText(/R\.101 — Ruang 101 \(40 kursi\)/)).toBeInTheDocument();
 
-    // Semua ruangan bentrok → pesan peringatan muncul; R.101 TIDAK tersedia di dropdown
+    // Catatan ada
     expect(
-      await screen.findByText(/Semua ruangan fakultas ini sedang dipakai/),
+      screen.getByText(/hari dan jam mengajar akan diatur oleh dosen pengampu/),
     ).toBeInTheDocument();
   });
 

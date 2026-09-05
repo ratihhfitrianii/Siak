@@ -51,9 +51,6 @@ const DEFAULT_FORM = {
   classCode: '',
   capacity: 30,
   room: null as string | null,
-  dayOfWeek: null as number | null,
-  startTime: '',
-  endTime: '',
 };
 
 /**
@@ -155,38 +152,32 @@ export function AdminSchedulePage() {
     [curricula, prodiNames],
   );
 
-  // Opsi ruangan: aktif + kapasitas belum penuh (current_enrolled < capacity) + tidak
-  // dipakai kelas lain di hari+jam yang sama (kecuali kelas itu sendiri saat edit).
-  const usedRoomsAtSlot = useMemo(() => {
-    const used = new Set<string>();
-    if (form.dayOfWeek == null || !form.startTime || !form.endTime) {
-      return used;
-    }
-    for (const c of classes) {
-      if (c.room && c.dayOfWeek === form.dayOfWeek && c.startTime && c.endTime) {
-        // tumpang tindih jam
-        if (c.startTime < form.endTime && c.endTime > form.startTime) {
-          used.add(c.room);
-        }
-      }
-    }
-    return used;
-  }, [classes, form.dayOfWeek, form.startTime, form.endTime]);
-
+  // Opsi ruangan: aktif + kapasitas > 0 milik fakultas admin.
+  // Hari & jam belum ditentukan di tahap ini (dosen pengampu yang menentukan),
+  // jadi cek bentrok ruangan dilakukan saat dosen menetapkan jadwal (halaman dosen).
   const roomOptions = useMemo(() => {
     return rooms
       .filter(
-        (r) =>
-          r.isActive &&
-          (r.facultyCode === facultyCode || !facultyCode) &&
-          r.capacity > 0 &&
-          !usedRoomsAtSlot.has(r.code),
+        (r) => r.isActive && (r.facultyCode === facultyCode || !facultyCode) && r.capacity > 0,
       )
       .map((r) => ({
         value: r.code,
         label: `${r.code} — ${r.name} (${r.capacity} kursi)`,
-      }));
-  }, [rooms, facultyCode, usedRoomsAtSlot]);
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [rooms, facultyCode]);
+
+  // Kode kelas tersedia: huruf A-Z yang BELUM dipakai di matkul (kurikulum) yang dipilih
+  const availableClassCodes = useMemo(() => {
+    if (form.curriculumId == null) return [];
+    const used = new Set(
+      classes.filter((c) => c.curriculumId === form.curriculumId).map((c) => c.classCode),
+    );
+    return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+      .split('')
+      .filter((ch) => !used.has(ch))
+      .map((ch) => ({ value: ch, label: ch }));
+  }, [classes, form.curriculumId]);
 
   // --- Filter & sort ---
   const normalizedFilters = useMemo(() => {
@@ -294,9 +285,6 @@ export function AdminSchedulePage() {
         classCode: form.classCode.trim(),
         capacity: form.capacity,
         room: form.room ?? undefined,
-        dayOfWeek: form.dayOfWeek ?? undefined,
-        startTime: form.startTime || undefined,
-        endTime: form.endTime || undefined,
       });
       setShowForm(false);
       setForm(DEFAULT_FORM);
@@ -375,45 +363,40 @@ export function AdminSchedulePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label
+                  htmlFor="class-code"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
                   Kode Kelas *
                 </label>
-                <input
-                  type="text"
-                  value={form.classCode}
-                  onChange={(e) => setForm({ ...form, classCode: e.target.value.toUpperCase() })}
-                  placeholder="Contoh: A, B, C"
-                  maxLength={20}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  required
+                <SearchableDropdown
+                  options={availableClassCodes}
+                  value={form.classCode || null}
+                  onChange={(v) => setForm({ ...form, classCode: v ?? '' })}
+                  placeholder={
+                    form.curriculumId == null
+                      ? 'Pilih Mata Kuliah dulu'
+                      : availableClassCodes.length === 0
+                        ? 'Semua kode terpakai'
+                        : 'Pilih Kode Kelas'
+                  }
+                  disabled={form.curriculumId == null || availableClassCodes.length === 0}
                 />
+                {form.curriculumId != null && availableClassCodes.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Semua kode kelas (A–Z) sudah dipakai untuk matkul ini.
+                  </p>
+                )}
               </div>
               <div>
                 <label
-                  htmlFor="class-day"
+                  htmlFor="class-capacity"
                   className="block text-sm font-medium text-slate-700 mb-1"
                 >
-                  Hari
+                  Kapasitas *
                 </label>
-                <select
-                  id="class-day"
-                  value={form.dayOfWeek ?? ''}
-                  onChange={(e) =>
-                    setForm({ ...form, dayOfWeek: e.target.value ? Number(e.target.value) : null })
-                  }
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="">Pilih Hari</option>
-                  {dayNames.slice(1).map((d, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kapasitas *</label>
                 <input
+                  id="class-capacity"
                   type="number"
                   min={1}
                   max={500}
@@ -423,55 +406,26 @@ export function AdminSchedulePage() {
                   required
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Jam Mulai (HH:MM)
-                </label>
-                <input
-                  type="text"
-                  value={form.startTime}
-                  onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                  placeholder="08:00"
-                  pattern="\d{2}:\d{2}"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Jam Selesai (HH:MM)
-                </label>
-                <input
-                  type="text"
-                  value={form.endTime}
-                  onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                  placeholder="09:40"
-                  pattern="\d{2}:\d{2}"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Ruangan</label>
                 <SearchableDropdown
                   options={roomOptions}
                   value={form.room}
                   onChange={(v) => setForm({ ...form, room: v })}
-                  placeholder={
-                    form.dayOfWeek && form.startTime && form.endTime
-                      ? 'Pilih Ruangan'
-                      : 'Pilih hari & jam dulu'
-                  }
-                  disabled={form.dayOfWeek == null || !form.startTime || !form.endTime}
+                  placeholder="Pilih Ruangan"
                 />
-                {form.dayOfWeek && form.startTime && form.endTime && roomOptions.length === 0 && (
+                {roomOptions.length === 0 && (
                   <p className="text-xs text-amber-600 mt-1">
-                    Semua ruangan fakultas ini sedang dipakai / penuh pada slot tersebut.
+                    Belum ada ruangan aktif di fakultas ini.
                   </p>
                 )}
               </div>
             </div>
+
+            <p className="text-sm text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+              <span className="font-medium">Catatan:</span> hari dan jam mengajar akan diatur oleh
+              dosen pengampu pada halaman dosen setelah kelas ini dibuat.
+            </p>
 
             {selectedCurriculum && (
               <p className="text-sm text-slate-500">
