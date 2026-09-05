@@ -47,6 +47,30 @@ const CLASSES = {
         faculty_name: 'Fakultas Teknik',
         faculty_code: 'FT',
       },
+      {
+        id: 11,
+        class_code: 'B',
+        day_of_week: 3,
+        start_time: '13:00:00',
+        end_time: '14:40:00',
+        room: 'R.102',
+        capacity: 30,
+        current_enrolled: 30,
+        is_active: true,
+        lecturer_id: 2,
+        lecturer_name: 'Dr. Budi',
+        curriculum_id: 2,
+        semester_number: 2,
+        course_code: 'TI201',
+        course_name: 'Struktur Data',
+        credits: 3,
+        prodi_id: 1,
+        prodi_name: 'Teknik Informatika',
+        prodi_code: 'TI',
+        faculty_id: 1,
+        faculty_name: 'Fakultas Teknik',
+        faculty_code: 'FT',
+      },
     ],
   },
 };
@@ -129,7 +153,7 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     // Baris kelas tampil
     expect(await screen.findByText('TI101-A')).toBeInTheDocument();
     expect(screen.getByText('Pemrograman Dasar')).toBeInTheDocument();
-    expect(screen.getByText('Teknik Informatika')).toBeInTheDocument();
+    expect(screen.getAllByText('Teknik Informatika').length).toBeGreaterThan(0);
     expect(screen.getByText('Selasa 08:00–09:40')).toBeInTheDocument();
     expect(screen.getByText('R.101')).toBeInTheDocument();
     expect(screen.getByText('20/40')).toBeInTheDocument();
@@ -265,5 +289,50 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
     );
     render(<AdminSchedulePage />);
     expect(await screen.findByText('Gagal memuat data jadwal')).toBeInTheDocument();
+  });
+
+  it('filter: ketik di kolom Mata Kuliah → baris lain hilang', async () => {
+    vi.stubGlobal('fetch', vi.fn(baseFetch));
+    render(<AdminSchedulePage />);
+
+    await screen.findByText('TI101-A');
+    expect(screen.getByText('TI201-B')).toBeInTheDocument();
+
+    // Filter Mata Kuliah — ada 2 placeholder "Filter..." (semua kolom); ambil yang
+    // ada di header Mata Kuliah via kolom lain. Simpel: ketik di input filter ke-2
+    const filterInputs = screen.getAllByPlaceholderText('Filter...');
+    fireEvent.change(filterInputs[1], { target: { value: 'struktur' } });
+
+    expect(await screen.findByText('TI201-B')).toBeInTheDocument();
+    expect(screen.queryByText('TI101-A')).not.toBeInTheDocument();
+  });
+
+  it('filter hari: pilih Rabu → hanya kelas Rabu', async () => {
+    vi.stubGlobal('fetch', vi.fn(baseFetch));
+    render(<AdminSchedulePage />);
+
+    await screen.findByText('TI101-A');
+
+    const dayFilter = screen.getByText('Semua Hari').closest('select') as HTMLSelectElement;
+    fireEvent.change(dayFilter, { target: { value: '3' } });
+
+    expect(await screen.findByText('TI201-B')).toBeInTheDocument();
+    expect(screen.queryByText('TI101-A')).not.toBeInTheDocument();
+  });
+
+  it('sort: klik header Kelas → urutan berubah (desc)', async () => {
+    vi.stubGlobal('fetch', vi.fn(baseFetch));
+    render(<AdminSchedulePage />);
+
+    await screen.findByText('TI101-A');
+
+    // Klik header "Kelas" → sort asc dulu (default dayOfWeek), jadi klik 2x untuk desc
+    const kelasHeader = screen.getByRole('button', { name: /^Kelas/ });
+    fireEvent.click(kelasHeader); // asc
+    fireEvent.click(kelasHeader); // desc — TI201-B di atas TI101-A
+
+    const rows = screen.getAllByRole('row').slice(1);
+    expect(rows[0].textContent).toContain('TI201-B');
+    expect(rows[1].textContent).toContain('TI101-A');
   });
 });

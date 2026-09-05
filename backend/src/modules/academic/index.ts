@@ -279,6 +279,7 @@ export function createAcademicRouter(): Router {
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { facultyId, prodiId } = req.query;
+        const adminFacultyCode = req.user?.adminFacultyCode ?? null;
         let query = `
           SELECT
             cl.id, cl.class_code, cl.day_of_week, cl.start_time, cl.end_time,
@@ -300,6 +301,10 @@ export function createAcademicRouter(): Router {
         if (facultyId) {
           params.push(Number(facultyId));
           query += ` AND f.id = $${params.length}`;
+        } else if (adminFacultyCode) {
+          // Admin akademik: tanpa facultyId eksplisit, hanya jadwal fakultas akunnya
+          params.push(adminFacultyCode);
+          query += ` AND f.code = $${params.length}`;
         }
         if (prodiId) {
           params.push(Number(prodiId));

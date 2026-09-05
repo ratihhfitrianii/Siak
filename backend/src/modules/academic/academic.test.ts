@@ -195,13 +195,44 @@ describe('Academic module (T1.7)', () => {
       expect(Array.isArray(res.body.data.items)).toBe(true);
     });
 
-    it('GET /api/v1/admin/classes — tanpa fakultas tetap OK', async () => {
+    it('GET /api/v1/admin/classes — tanpa fakultas: HANYA kelas fakultas admin (auto-filter)', async () => {
+      // Ambil fakultas admin akademik seed dari DB
+      const adminId = userIdByRole.get('admin_akademik');
+      const facRes = await pgPool.query(
+        `SELECT u.admin_faculty_code, f.id AS faculty_id
+         FROM users u
+         JOIN faculties f ON f.code = u.admin_faculty_code
+         WHERE u.id = $1`,
+        [adminId],
+      );
+      if (facRes.rows.length === 0 || !facRes.rows[0].admin_faculty_code) {
+        // admin akademik seed tanpa fakultas terikat → auto-filter off (semua tampil)
+        // test tetap verifikasi 200 + items array
+        const res = await request(app)
+          .get('/api/v1/admin/classes')
+          .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+          .expect(200);
+        expect(res.body.success).toBe(true);
+        expect(Array.isArray(res.body.data.items)).toBe(true);
+        return;
+      }
+      const facultyId = Number(facRes.rows[0].faculty_id);
       const res = await request(app)
         .get('/api/v1/admin/classes')
         .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
         .expect(200);
       expect(res.body.success).toBe(true);
-      expect(Array.isArray(res.body.data.items)).toBe(true);
+      const items = res.body.data.items as Array<Record<string, unknown>>;
+      expect(Array.isArray(items)).toBe(true);
+      for (const item of items) {
+        expect(item.faculty_id).toBe(facultyId);
+      }
+      // Bandingkan dengan query eksplisit facultyId → jumlah sama
+      const explicit = await request(app)
+        .get(`/api/v1/admin/classes?facultyId=${facultyId}`)
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .expect(200);
+      expect(explicit.body.data.items.length).toBe(items.length);
     });
 
     it('GET /api/v1/admin/classes — mahasiswa 403 (schedule.manage)', async () => {

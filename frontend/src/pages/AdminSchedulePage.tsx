@@ -24,6 +24,27 @@ interface CurriculumOption {
 
 const dayNames = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
+type SortKey =
+  | 'classCode'
+  | 'courseName'
+  | 'prodiName'
+  | 'dayOfWeek'
+  | 'startTime'
+  | 'room'
+  | 'capacity'
+  | 'lecturerName';
+
+const DEFAULT_FILTERS = {
+  classCode: '',
+  courseName: '',
+  prodiName: '',
+  dayOfWeek: '',
+  startTime: '',
+  room: '',
+  capacity: '',
+  lecturerName: '',
+};
+
 const DEFAULT_FORM = {
   prodiId: null as number | null,
   curriculumId: null as number | null,
@@ -55,6 +76,9 @@ export function AdminSchedulePage() {
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(DEFAULT_FORM);
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [sortKey, setSortKey] = useState<SortKey>('dayOfWeek');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   // Fakultas admin diambil dari akun (user.adminFacultyCode) — disamakan dengan Master Akademik.
   // Kita tidak menyimpan pilihan fakultas; hanya butuh prodi + ruangan fakultas tsb.
@@ -163,6 +187,102 @@ export function AdminSchedulePage() {
         label: `${r.code} — ${r.name} (${r.capacity} kursi)`,
       }));
   }, [rooms, facultyCode, usedRoomsAtSlot]);
+
+  // --- Filter & sort ---
+  const normalizedFilters = useMemo(() => {
+    const q = (v: string) => v.trim().toLowerCase();
+    return {
+      classCode: q(filters.classCode),
+      courseName: q(filters.courseName),
+      prodiName: q(filters.prodiName),
+      dayOfWeek: filters.dayOfWeek,
+      startTime: q(filters.startTime),
+      room: q(filters.room),
+      capacity: q(filters.capacity),
+      lecturerName: q(filters.lecturerName),
+    };
+  }, [filters]);
+
+  const filteredClasses = useMemo(() => {
+    const f = normalizedFilters;
+    const filtered = classes.filter((c) => {
+      const classLabel = `${c.courseCode}-${c.classCode}`.toLowerCase();
+      if (f.classCode && !classLabel.includes(f.classCode)) return false;
+      if (
+        f.courseName &&
+        !`${c.courseName} Sem ${c.semesterNumber}`.toLowerCase().includes(f.courseName)
+      ) {
+        return false;
+      }
+      if (f.prodiName && !c.prodiName.toLowerCase().includes(f.prodiName)) return false;
+      if (f.dayOfWeek && String(c.dayOfWeek ?? '') !== f.dayOfWeek) return false;
+      if (
+        f.startTime &&
+        !`${c.startTime ?? ''}–${c.endTime ?? ''}`.toLowerCase().includes(f.startTime)
+      ) {
+        return false;
+      }
+      if (f.room && !`${c.room ?? ''}`.toLowerCase().includes(f.room)) return false;
+      if (f.capacity && !`${c.currentEnrolled}/${c.capacity}`.includes(f.capacity)) return false;
+      if (f.lecturerName && !`${c.lecturerName ?? ''}`.toLowerCase().includes(f.lecturerName)) {
+        return false;
+      }
+      return true;
+    });
+
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const sorted = [...filtered].sort((a, b) => {
+      let av: string | number = '';
+      let bv: string | number = '';
+      switch (sortKey) {
+        case 'classCode':
+          av = `${a.courseCode}-${a.classCode}`.toLowerCase();
+          bv = `${b.courseCode}-${b.classCode}`.toLowerCase();
+          break;
+        case 'courseName':
+          av = `${a.courseName} ${a.semesterNumber}`.toLowerCase();
+          bv = `${b.courseName} ${b.semesterNumber}`.toLowerCase();
+          break;
+        case 'prodiName':
+          av = a.prodiName.toLowerCase();
+          bv = b.prodiName.toLowerCase();
+          break;
+        case 'dayOfWeek':
+          av = a.dayOfWeek ?? 99;
+          bv = b.dayOfWeek ?? 99;
+          break;
+        case 'startTime':
+          av = a.startTime ?? '';
+          bv = b.startTime ?? '';
+          break;
+        case 'room':
+          av = a.room?.toLowerCase() ?? '';
+          bv = b.room?.toLowerCase() ?? '';
+          break;
+        case 'capacity':
+          av = a.currentEnrolled / a.capacity;
+          bv = b.currentEnrolled / b.capacity;
+          break;
+        case 'lecturerName':
+          av = a.lecturerName?.toLowerCase() ?? '';
+          bv = b.lecturerName?.toLowerCase() ?? '';
+          break;
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return sorted;
+  }, [classes, normalizedFilters, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -409,36 +529,75 @@ export function AdminSchedulePage() {
             <p className="mt-4">Belum ada kelas untuk fakultas ini.</p>
             <p className="text-sm mt-1">Klik "+ Tambah Kelas" untuk membuat jadwal pertama.</p>
           </div>
+        ) : filteredClasses.length === 0 ? (
+          <div className="p-12 text-center text-slate-500">
+            <p className="mt-4">Tidak ada kelas yang cocok dengan filter.</p>
+            <p className="text-sm mt-1">
+              Ubah kata kunci filter atau{' '}
+              <button
+                onClick={() => setFilters(DEFAULT_FILTERS)}
+                className="text-primary-600 font-medium hover:underline"
+              >
+                reset filter
+              </button>
+            </p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-max">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Kelas
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Mata Kuliah
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Prodi
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Jadwal
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Ruangan
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Kapasitas
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Pengampu
-                  </th>
+                  {(
+                    [
+                      ['classCode', 'Kelas'],
+                      ['courseName', 'Mata Kuliah'],
+                      ['prodiName', 'Prodi'],
+                      ['dayOfWeek', 'Jadwal'],
+                      ['room', 'Ruangan'],
+                      ['capacity', 'Kapasitas'],
+                      ['lecturerName', 'Pengampu'],
+                    ] as Array<[SortKey, string]>
+                  ).map(([key, label]) => (
+                    <th
+                      key={key}
+                      className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider"
+                    >
+                      <button
+                        onClick={() => toggleSort(key)}
+                        className="flex items-center gap-1 hover:text-slate-900"
+                      >
+                        {label}
+                        <span className="text-slate-400">
+                          {sortKey === key ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+                        </span>
+                      </button>
+                      {key === 'dayOfWeek' ? (
+                        <select
+                          value={filters.dayOfWeek}
+                          onChange={(e) => setFilters({ ...filters, dayOfWeek: e.target.value })}
+                          className="mt-1 w-full px-2 py-1 text-xs border border-slate-300 rounded-md bg-white"
+                        >
+                          <option value="">Semua Hari</option>
+                          {dayNames.slice(1).map((d, i) => (
+                            <option key={i + 1} value={i + 1}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          value={filters[key]}
+                          onChange={(e) => setFilters({ ...filters, [key]: e.target.value })}
+                          placeholder="Filter..."
+                          className="mt-1 w-full px-2 py-1 text-xs border border-slate-300 rounded-md"
+                        />
+                      )}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {classes.map((c) => (
+                {filteredClasses.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-medium text-slate-900">
