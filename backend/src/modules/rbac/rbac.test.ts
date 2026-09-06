@@ -834,12 +834,12 @@ describe('User Service (RBAC endpoints)', () => {
       const d1 = await mkDosen('rbac-kp-1@siak.local', 'Kaprodi Satu');
       const d2 = await mkDosen('rbac-kp-2@siak.local', 'Kaprodi Dua');
       await pgPool.query(
-        'INSERT INTO lecturers (user_id, prodi_id, nidn, full_name, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now())',
-        [d1.rows[0].id, prodiId, '000000001', 'Kaprodi Satu'],
+        'INSERT INTO lecturers (user_id, prodi_id, nidn, created_at, updated_at) VALUES ($1, $2, $3, now(), now())',
+        [d1.rows[0].id, prodiId, '000000001'],
       );
       await pgPool.query(
-        'INSERT INTO lecturers (user_id, prodi_id, nidn, full_name, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now())',
-        [d2.rows[0].id, prodiId, '000000002', 'Kaprodi Dua'],
+        'INSERT INTO lecturers (user_id, prodi_id, nidn, created_at, updated_at) VALUES ($1, $2, $3, now(), now())',
+        [d2.rows[0].id, prodiId, '000000002'],
       );
 
       try {
