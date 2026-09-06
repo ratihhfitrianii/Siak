@@ -35,6 +35,10 @@ const courseSchema = z.object({
   name: z.string().min(3).max(150),
   credits: z.number().int().min(1).max(6),
   description: z.string().optional(),
+  // MK terikat 1 fakultas + 1 prodi (via kurikulum). Admin pilih prodi; fakultas turunan prodi.
+  prodiId: z.coerce.number().int().positive(),
+  semesterId: z.coerce.number().int().positive(),
+  semesterNumber: z.coerce.number().int().min(1).max(14).default(1),
 });
 
 const prodiQuerySchema = z.object({
@@ -470,18 +474,53 @@ export function createAcademicRouter(): Router {
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const data = courseSchema.parse(req.body);
-        const result = await pgPool.query(
-          'INSERT INTO courses (code, name, credits, description) VALUES ($1, $2, $3, $4) RETURNING *',
-          [data.code, data.name, data.credits, data.description ?? null],
+        // Validasi prodi & semester ada.
+        const prodiCheck = await pgPool.query(
+          'SELECT id FROM prodis WHERE id = $1 AND is_active = true',
+          [data.prodiId],
         );
-        // Audit trail (F-13, S-06, S-07)
-        await auditFromRequest(req.user!, req, {
-          tableName: 'courses',
-          recordId: Number(result.rows[0].id),
-          action: 'INSERT',
-          newValues: { code: data.code, name: data.name, credits: data.credits },
-        });
-        res.status(201).json({ success: true, data: result.rows[0] });
+        if (prodiCheck.rows.length === 0) {
+          throw new AppError('VALIDATION_ERROR', 'Program studi tidak ditemukan atau tidak aktif', 400);
+        }
+        const semCheck = await pgPool.query('SELECT id FROM semesters WHERE id = $1', [
+          data.semesterId,
+        ]);
+        if (semCheck.rows.length === 0) {
+          throw new AppError('VALIDATION_ERROR', 'Semester tidak ditemukan', 400);
+        }
+        // Quantum: buat MK + sekaligus daftarkan ke kurikulum prodi tsb (1 MK = 1 prodi).
+        const client = await pgPool.connect();
+        try {
+          await client.query('BEGIN');
+          const result = await client.query(
+            'INSERT INTO courses (code, name, credits, description) VALUES ($1, $2, $3, $4) RETURNING *',
+            [data.code, data.name, data.credits, data.description ?? null],
+          );
+          const course = result.rows[0];
+          await client.query(
+            `INSERT INTO curricula (prodi_id, semester_id, course_id, semester_number)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (prodi_id, semester_id, course_id) DO NOTHING`,
+            [data.prodiId, data.semesterId, course.id, data.semesterNumber],
+          );
+          await client.query('COMMIT');
+          // Audit trail (F-13, S-06, S-07)
+          await auditFromRequest(req.user!, req, {
+            tableName: 'courses',
+            recordId: Number(course.id),
+            action: 'INSERT',
+            newValues: { code: data.code, name: data.name, credits: data.credits, prodiId: data.prodiId },
+          });
+          res.status(201).json({
+            success: true,
+            data: { ...course, prodiId: data.prodiId, semesterId: data.semesterId },
+          });
+        } catch (e) {
+          await client.query('ROLLBACK');
+          throw e;
+        } finally {
+          client.release();
+        }
       } catch (err) {
         next(err);
       }

@@ -61,6 +61,7 @@ vi.mock('../lib/api', async (importOriginal) => {
     createCourse: vi.fn(),
     updateCourse: vi.fn(),
     deleteCourse: vi.fn(),
+    getFinanceSemesters: vi.fn(),
   };
 });
 
@@ -190,6 +191,10 @@ function mockAllLists() {
 
 /** Default honest responses untuk fungsi baru (tab Ruangan/Prodi/MK). */
 function mockNewLists() {
+  mockedApi.getFinanceSemesters.mockResolvedValue([
+    { id: 1, code: '20241', name: 'Ganjil 2024/2025' },
+    { id: 2, code: '20242', name: 'Genap 2024/2025' },
+  ]);
   mockedApi.listAcademicFaculties.mockResolvedValue(facultyResponse());
   mockedApi.listAcademicProdis.mockResolvedValue(prodiResponse());
   mockedApi.listRooms.mockResolvedValue({
@@ -1778,6 +1783,14 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     fireEvent.change(screen.getByLabelText('SKS *'), { target: { value: '3' } });
     fireEvent.change(screen.getByLabelText('Deskripsi'), { target: { value: 'Algoritma dasar' } });
 
+    // Pilih Fakultas, Program Studi, Semester (wajib sekarang)
+    fireEvent.change(screen.getByLabelText('Fakultas *'), { target: { value: '1' } });
+    await screen.findByRole('option', { name: 'Teknik Informatika (TI)' });
+    fireEvent.change(screen.getByLabelText('Program Studi *'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('Semester Awal * (kurikulum)'), {
+      target: { value: '1' },
+    });
+
     fireEvent.click(screen.getByRole('button', { name: 'Simpan Mata Kuliah' }));
 
     await waitFor(() => {
@@ -1786,6 +1799,8 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
         name: 'Algoritma',
         credits: 3,
         description: 'Algoritma dasar',
+        prodiId: 1,
+        semesterId: 1,
       });
     });
 
@@ -1834,6 +1849,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
         name: 'Algoritma Lanjut',
         credits: 3,
         description: 'Algoritma dasar',
+        prodiId: 1,
       });
     });
 
@@ -1903,6 +1919,13 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     fireEvent.change(screen.getByLabelText('Kode Mata Kuliah *'), { target: { value: 'DUP' } });
     fireEvent.change(screen.getByLabelText('Nama Mata Kuliah *'), {
       target: { value: 'Duplikat' },
+    });
+    // Pilih Fakultas, Program Studi, Semester (wajib sekarang)
+    fireEvent.change(screen.getByLabelText('Fakultas *'), { target: { value: '1' } });
+    await screen.findByRole('option', { name: 'Teknik Informatika (TI)' });
+    fireEvent.change(screen.getByLabelText('Program Studi *'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('Semester Awal * (kurikulum)'), {
+      target: { value: '1' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Simpan Mata Kuliah' }));
 

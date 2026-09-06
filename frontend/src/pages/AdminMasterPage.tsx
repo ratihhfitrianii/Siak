@@ -26,6 +26,7 @@ import {
   createCourse,
   updateCourse,
   deleteCourse,
+  getFinanceSemesters,
 } from '../lib/api';
 import type {
   Faculty,
@@ -40,6 +41,7 @@ import type {
   CreateRoomInput,
   Course,
   CreateCourseInput,
+  SemesterOption,
 } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 
@@ -106,6 +108,9 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
       setActiveTab(tabFromQuery);
     }
   }, [tabFromQuery, akademikOnly, activeTab]);
+
+  // Mode submenu: ?tab= dari sidebar Master → sembunyikan tab bar, tampilkan konten tab itu saja.
+  const isSubmenu = !akademikOnly && isValidTab(tabFromQuery);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [prodis, setProdis] = useState<Prodi[]>([]);
   const [students, setStudents] = useState<MasterStudent[]>([]);
@@ -214,8 +219,14 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
     name: '',
     credits: 3,
     description: '',
+    prodiId: 0,
+    semesterId: 0,
   });
   const [editingCourseId, setEditingCourseId] = useState<number | null>(null);
+  // Dropdown Fakultas/Prodi/Semester utk form MK (admin sistem: semua; admin akademik: fakultas akun).
+  const [courseSemesters, setCourseSemesters] = useState<SemesterOption[]>([]);
+  const [courseProdis, setCourseProdis] = useState<Prodi[]>([]);
+  const [courseFacultyId, setCourseFacultyId] = useState<number>(0);
 
   const loadFaculties = useCallback(
     async (page = 1) => {
@@ -345,6 +356,25 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
       setError('Gagal memuat data mata kuliah');
     }
   }, [courseSearch, adminFacultyId]);
+
+  // Muat daftar semester utk dropdown form MK (sekali saat mount; daftar semester jarang berubah).
+  useEffect(() => {
+    getFinanceSemesters()
+      .then((sems) => setCourseSemesters(sems))
+      .catch(() => setCourseSemesters([]));
+  }, []);
+
+  // Muat prodi utk dropdown form MK saat fakultas dipilih (filter fakultas).
+  useEffect(() => {
+    if (!courseFacultyId) {
+      setCourseProdis([]);
+      setCourseForm((f) => ({ ...f, prodiId: 0 }));
+      return;
+    }
+    listAcademicProdis({ facultyId: courseFacultyId, limit: 100 })
+      .then((res) => setCourseProdis(res.items ?? []))
+      .catch(() => setCourseProdis([]));
+  }, [courseFacultyId]);
 
   useEffect(() => {
     setLoading(true);
@@ -799,10 +829,14 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
         name: c.name,
         credits: c.credits,
         description: c.description ?? '',
+        prodiId: c.prodiId ?? 0,
+        semesterId: 0,
       });
+      setCourseFacultyId(c.facultyId ?? 0);
       setEditingCourseId(c.id);
     } else {
-      setCourseForm({ code: '', name: '', credits: 3, description: '' });
+      setCourseForm({ code: '', name: '', credits: 3, description: '', prodiId: 0, semesterId: 0 });
+      setCourseFacultyId(akademikOnly ? (adminFacultyId ?? 0) : 0);
       setEditingCourseId(null);
     }
     setModalTab('courses');
@@ -819,13 +853,20 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           name: courseForm.name,
           credits: courseForm.credits,
           description: courseForm.description || undefined,
+          prodiId: courseForm.prodiId || undefined,
         });
         setSuccess('Mata kuliah berhasil diupdate');
       } else {
+        if (!courseForm.prodiId || !courseForm.semesterId) {
+          setError('Fakultas, Program Studi, dan Semester wajib diisi');
+          setSaving(false);
+          return;
+        }
         await createCourse(courseForm);
         setSuccess('Mata kuliah berhasil dibuat');
       }
-      setCourseForm({ code: '', name: '', credits: 3, description: '' });
+      setCourseForm({ code: '', name: '', credits: 3, description: '', prodiId: 0, semesterId: 0 });
+      setCourseFacultyId(0);
       setEditingCourseId(null);
       setModalTab(null);
       await loadCourses();
@@ -869,111 +910,114 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
 
   return (
     <div className="space-y-6">
-      {/* Tab navigation */}
-      <div className="bg-white rounded-lg shadow-sm border-b">
-        <nav className="flex -mb-px" role="tablist">
-          {!akademikOnly && (
-            <>
-              <button
-                role="tab"
-                aria-selected={activeTab === 'faculties'}
-                onClick={() => {
-                  setActiveTab('faculties');
-                  if (!akademikOnly) setSearchParams({ tab: 'faculties' }, { replace: true });
-                }}
-                className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                  activeTab === 'faculties'
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Fakultas
-              </button>
-              <button
-                role="tab"
-                aria-selected={activeTab === 'prodis'}
-                onClick={() => {
-                  setActiveTab('prodis');
-                  if (!akademikOnly) setSearchParams({ tab: 'prodis' }, { replace: true });
-                }}
-                className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                  activeTab === 'prodis'
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Program Studi
-              </button>
-              <button
-                role="tab"
-                aria-selected={activeTab === 'students'}
-                onClick={() => {
-                  setActiveTab('students');
-                  if (!akademikOnly) setSearchParams({ tab: 'students' }, { replace: true });
-                }}
-                className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                  activeTab === 'students'
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Mahasiswa
-              </button>
-              <button
-                role="tab"
-                aria-selected={activeTab === 'lecturers'}
-                onClick={() => {
-                  setActiveTab('lecturers');
-                  if (!akademikOnly) setSearchParams({ tab: 'lecturers' }, { replace: true });
-                }}
-                className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                  activeTab === 'lecturers'
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Dosen
-              </button>
-            </>
-          )}
-          <button
-            role="tab"
-            aria-selected={activeTab === 'rooms'}
-            onClick={() => setActiveTab('rooms')}
-            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-              activeTab === 'rooms'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Ruangan
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'prodi-akademik'}
-            onClick={() => setActiveTab('prodi-akademik')}
-            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-              activeTab === 'prodi-akademik'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Prodi
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'courses'}
-            onClick={() => setActiveTab('courses')}
-            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-              activeTab === 'courses'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Mata Kuliah
-          </button>
-        </nav>
-      </div>
+      {/* Tab navigation — disembunyikan saat mode submenu (?tab= dari sidebar Master).
+          Di mode submenu, sidebar submenu (Fakultas/Prodi/Mahasiswa/Dosen) jadi navigasinya. */}
+      {!isSubmenu && (
+        <div className="bg-white rounded-lg shadow-sm border-b">
+          <nav className="flex -mb-px" role="tablist">
+            {!akademikOnly && (
+              <>
+                <button
+                  role="tab"
+                  aria-selected={activeTab === 'faculties'}
+                  onClick={() => {
+                    setActiveTab('faculties');
+                    if (!akademikOnly) setSearchParams({ tab: 'faculties' }, { replace: true });
+                  }}
+                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'faculties'
+                      ? 'border-primary-500 text-primary-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Fakultas
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={activeTab === 'prodis'}
+                  onClick={() => {
+                    setActiveTab('prodis');
+                    if (!akademikOnly) setSearchParams({ tab: 'prodis' }, { replace: true });
+                  }}
+                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'prodis'
+                      ? 'border-primary-500 text-primary-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Program Studi
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={activeTab === 'students'}
+                  onClick={() => {
+                    setActiveTab('students');
+                    if (!akademikOnly) setSearchParams({ tab: 'students' }, { replace: true });
+                  }}
+                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'students'
+                      ? 'border-primary-500 text-primary-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Mahasiswa
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={activeTab === 'lecturers'}
+                  onClick={() => {
+                    setActiveTab('lecturers');
+                    if (!akademikOnly) setSearchParams({ tab: 'lecturers' }, { replace: true });
+                  }}
+                  className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                    activeTab === 'lecturers'
+                      ? 'border-primary-500 text-primary-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Dosen
+                </button>
+              </>
+            )}
+            <button
+              role="tab"
+              aria-selected={activeTab === 'rooms'}
+              onClick={() => setActiveTab('rooms')}
+              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === 'rooms'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Ruangan
+            </button>
+            <button
+              role="tab"
+              aria-selected={activeTab === 'prodi-akademik'}
+              onClick={() => setActiveTab('prodi-akademik')}
+              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === 'prodi-akademik'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Prodi
+            </button>
+            <button
+              role="tab"
+              aria-selected={activeTab === 'courses'}
+              onClick={() => setActiveTab('courses')}
+              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === 'courses'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Mata Kuliah
+            </button>
+          </nav>
+        </div>
+      )}
 
       {error && <FormAlert>{error}</FormAlert>}
       {success && (
@@ -2691,6 +2735,95 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                       className={inputCls}
                       required
                     />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label
+                      htmlFor="course-faculty"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Fakultas *
+                    </label>
+                    <select
+                      id="course-faculty"
+                      value={courseFacultyId}
+                      onChange={(e) => {
+                        setCourseFacultyId(Number(e.target.value));
+                        setCourseForm({ ...courseForm, prodiId: 0 });
+                      }}
+                      className={inputCls}
+                      required
+                      disabled={akademikOnly}
+                    >
+                      <option value={0}>
+                        {akademikOnly
+                          ? (adminFaculties.find((f) => f.id === adminFacultyId)?.name ??
+                            'Fakultas akun')
+                          : 'Pilih Fakultas'}
+                      </option>
+                      {!akademikOnly &&
+                        faculties.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.name} ({f.code})
+                          </option>
+                        ))}
+                    </select>
+                    {akademikOnly && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Fakultas mengikuti akun Anda (tidak bisa diubah)
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="course-prodi"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Program Studi *
+                    </label>
+                    <select
+                      id="course-prodi"
+                      value={courseForm.prodiId}
+                      onChange={(e) =>
+                        setCourseForm({ ...courseForm, prodiId: Number(e.target.value) })
+                      }
+                      className={inputCls}
+                      required
+                    >
+                      <option value={0}>
+                        {courseProdis.length ? 'Pilih Program Studi' : 'Pilih Fakultas dahulu'}
+                      </option>
+                      {courseProdis.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="course-semester"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Semester Awal * <span className="font-normal">(kurikulum)</span>
+                    </label>
+                    <select
+                      id="course-semester"
+                      value={courseForm.semesterId}
+                      onChange={(e) =>
+                        setCourseForm({ ...courseForm, semesterId: Number(e.target.value) })
+                      }
+                      className={inputCls}
+                      required
+                    >
+                      <option value={0}>Pilih Semester</option>
+                      {courseSemesters.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.code})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

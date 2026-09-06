@@ -63,6 +63,10 @@ const courseUpdateSchema = z.object({
   name: z.string().min(2).max(150).optional(),
   credits: z.number().int().min(1).max(6).optional(),
   description: z.string().max(2000).nullable().optional(),
+  // Pindah binding MK ke prodi/semester lain (opsional, via kurikulum).
+  prodiId: z.coerce.number().int().positive().optional(),
+  semesterId: z.coerce.number().int().positive().optional(),
+  semesterNumber: z.coerce.number().int().min(1).max(14).optional(),
 });
 
 export function createAdminMasterRouter(): Router {
@@ -1259,6 +1263,43 @@ export function createAdminMasterRouter(): Router {
         );
         if (result.rowCount === 0) {
           throw new AppError('NOT_FOUND', 'Mata kuliah tidak ditemukan', 404);
+        }
+        // Pindah prodi/semester (opsional): update baris kurikulum yg terkait MK ini.
+        // 1 MK = 1 prodi → ganti prodi_id/semester_id pada curricula course tsb.
+        if (data.prodiId != null || data.semesterId != null || data.semesterNumber != null) {
+          if (data.prodiId != null) {
+            const prodiCheck = await pgPool.query(
+              'SELECT id FROM prodis WHERE id = $1 AND is_active = true',
+              [data.prodiId],
+            );
+            if (prodiCheck.rows.length === 0) {
+              throw new AppError('VALIDATION_ERROR', 'Program studi tidak ditemukan atau tidak aktif', 400);
+            }
+          }
+          if (data.semesterId != null) {
+            const semCheck = await pgPool.query('SELECT id FROM semesters WHERE id = $1', [
+              data.semesterId,
+            ]);
+            if (semCheck.rows.length === 0) {
+              throw new AppError('VALIDATION_ERROR', 'Semester tidak ditemukan', 400);
+            }
+          }
+          // Ambil kurikulum pertama MK ini (1 MK = 1 prodi).
+          const cur = await pgPool.query(
+            'SELECT id FROM curricula WHERE course_id = $1 ORDER BY id LIMIT 1',
+            [id],
+          );
+          if (cur.rows.length > 0) {
+            await pgPool.query(
+              `UPDATE curricula
+               SET prodi_id = COALESCE($1, prodi_id),
+                   semester_id = COALESCE($2, semester_id),
+                   semester_number = COALESCE($3, semester_number),
+                   updated_at = now()
+               WHERE id = $4`,
+              [data.prodiId ?? null, data.semesterId ?? null, data.semesterNumber ?? null, cur.rows[0].id],
+            );
+          }
         }
         await auditFromRequest(req.user!, req, {
           tableName: 'courses',

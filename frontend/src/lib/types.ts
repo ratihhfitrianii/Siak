@@ -1116,6 +1116,10 @@ export interface CreateCourseInput {
   name: string;
   credits: number;
   description?: string;
+  /** MK terikat 1 prodi (+ fakultas turunan) — didaftarkan ke kurikulum prodi tsb. */
+  prodiId: number;
+  semesterId: number;
+  semesterNumber?: number;
 }
 
 export interface UpdateCourseInput {
@@ -1123,4 +1127,7 @@ export interface UpdateCourseInput {
   credits?: number;
   description?: string;
   isActive?: boolean;
+  prodiId?: number;
+  semesterId?: number;
+  semesterNumber?: number;
 }
