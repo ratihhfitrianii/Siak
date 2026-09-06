@@ -287,9 +287,12 @@ export function createRbacRouter(): Router {
         const listResult = await pgPool.query(
           `SELECT u.id, u.email, u.full_name, u.is_wali, u.is_active, u.last_login_at, u.created_at,
                         u.admin_faculty_code, u.is_kaprodi, u.is_wakil_kaprodi,
-                        r.code AS role_code, r.name AS role_name
+                        r.code AS role_code, r.name AS role_name,
+                        l.prodi_id, p.code AS prodi_code, p.name AS prodi_name
                   FROM users u
                   JOIN roles r ON u.role_id = r.id
+                  LEFT JOIN lecturers l ON l.user_id = u.id
+                  LEFT JOIN prodis p ON p.id = l.prodi_id
                   ${whereSql}
                   ORDER BY u.id
                   LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
@@ -302,6 +305,7 @@ export function createRbacRouter(): Router {
           adminFacultyCode: row.admin_faculty_code ?? null,
           isKaprodi: row.is_kaprodi,
           isWakilKaprodi: row.is_wakil_kaprodi,
+          prodi_id: row.prodi_id != null ? Number(row.prodi_id) : null,
         }));
 
         res.json({
@@ -588,6 +592,50 @@ export function createRbacRouter(): Router {
         );
         if (target.rows.length === 0) {
           throw new AppError('NOT_FOUND', 'User tidak ditemukan', 404);
+        }
+
+        // Unik kaprodi/wakil per prodi (dosen): tidak boleh ada 2 kaprodi dalam 1 prodi,
+        // begitu juga 2 wakil kaprodi. Hanya divalidasi saat dosen & flag diaktifkan.
+        if (roleCode === 'dosen' && (isKaprodi || isWakilKaprodi)) {
+          const lecturerRes = await pgPool.query(
+            'SELECT prodi_id FROM lecturers WHERE user_id = $1',
+            [targetId],
+          );
+          const prodiId = lecturerRes.rows[0]?.prodi_id;
+          if (prodiId != null) {
+            if (isKaprodi) {
+              const dup = await pgPool.query(
+                `SELECT u.id, u.full_name FROM users u
+                 JOIN lecturers l ON l.user_id = u.id
+                 WHERE l.prodi_id = $1 AND u.is_kaprodi = true AND u.id <> $2 AND u.is_active = true
+                 LIMIT 1`,
+                [prodiId, targetId],
+              );
+              if (dup.rows.length > 0) {
+                throw new AppError(
+                  'VALIDATION_ERROR',
+                  `Prodi ini sudah memiliki Kaprodi (${dup.rows[0].full_name})`,
+                  400,
+                );
+              }
+            }
+            if (isWakilKaprodi) {
+              const dup = await pgPool.query(
+                `SELECT u.id, u.full_name FROM users u
+                 JOIN lecturers l ON l.user_id = u.id
+                 WHERE l.prodi_id = $1 AND u.is_wakil_kaprodi = true AND u.id <> $2 AND u.is_active = true
+                 LIMIT 1`,
+                [prodiId, targetId],
+              );
+              if (dup.rows.length > 0) {
+                throw new AppError(
+                  'VALIDATION_ERROR',
+                  `Prodi ini sudah memiliki Wakil Kaprodi (${dup.rows[0].full_name})`,
+                  400,
+                );
+              }
+            }
+          }
         }
 
         const result = await pgPool.query(

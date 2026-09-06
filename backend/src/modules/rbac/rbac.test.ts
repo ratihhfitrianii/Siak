@@ -813,6 +813,63 @@ describe('User Service (RBAC endpoints)', () => {
         .send({ roleCode: 'admin_sistem' })
         .expect(403);
     });
+
+    it('kaprodi unik per prodi: dosen kedua di prodi sama ditolak → 400', async () => {
+      // Buat prodi + 2 dosen (via lecturers) di prodi yang sama.
+      const prodiRes = await pgPool.query(
+        `INSERT INTO prodis (faculty_id, code, name, degree, is_active, created_at, updated_at)
+         VALUES ((SELECT id FROM faculties ORDER BY id LIMIT 1), 'TEST-KP', 'Test Kaprodi', 'S1', true, now(), now())
+         ON CONFLICT (code) DO UPDATE SET code = EXCLUDED.code
+         RETURNING id`,
+      );
+      const prodiId = prodiRes.rows[0].id;
+
+      const mkDosen = async (email: string, name: string) =>
+        pgPool.query(
+          `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+           VALUES ($1, 'x', $2, (SELECT id FROM roles WHERE code='dosen'), true)
+           RETURNING id`,
+          [email, name],
+        );
+      const d1 = await mkDosen('rbac-kp-1@siak.local', 'Kaprodi Satu');
+      const d2 = await mkDosen('rbac-kp-2@siak.local', 'Kaprodi Dua');
+      await pgPool.query(
+        'INSERT INTO lecturers (user_id, prodi_id, nidn, full_name, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now())',
+        [d1.rows[0].id, prodiId, '000000001', 'Kaprodi Satu'],
+      );
+      await pgPool.query(
+        'INSERT INTO lecturers (user_id, prodi_id, nidn, full_name, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now())',
+        [d2.rows[0].id, prodiId, '000000002', 'Kaprodi Dua'],
+      );
+
+      try {
+        // Dosen 1 jadi kaprodi → OK
+        await request(app)
+          .put(`/api/v1/users/${d1.rows[0].id}/role`)
+          .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+          .send({ roleCode: 'dosen', isKaprodi: true })
+          .expect(200);
+
+        // Dosen 2 di prodi sama → ditolak (sudah ada kaprodi)
+        const res = await request(app)
+          .put(`/api/v1/users/${d2.rows[0].id}/role`)
+          .set('Authorization', `Bearer ${tokenByRole.get('admin_sistem')}`)
+          .send({ roleCode: 'dosen', isKaprodi: true })
+          .expect(400);
+        expect(res.body.error.code).toBe('VALIDATION_ERROR');
+        expect(res.body.error.message).toContain('Kaprodi');
+      } finally {
+        await pgPool.query('DELETE FROM lecturers WHERE user_id IN ($1, $2)', [
+          d1.rows[0].id,
+          d2.rows[0].id,
+        ]);
+        await pgPool.query('DELETE FROM users WHERE id IN ($1, $2)', [
+          d1.rows[0].id,
+          d2.rows[0].id,
+        ]);
+        await pgPool.query('DELETE FROM prodis WHERE id = $1', [prodiId]);
+      }
+    });
   });
 
   describe('DELETE /users/:id (nonaktifkan user — keluhan lama)', () => {
