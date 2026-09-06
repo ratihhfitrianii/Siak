@@ -62,6 +62,40 @@ async function main() {
       }
     }
     console.log('✅ users.admin_faculty_code ensured');
+
+    // Kolom kaprodi/wakil kaprodi (migrasi 20260905010000) — wajib ada karena
+    // auth-middleware SELECT u.is_kaprodi, u.is_wakil_kaprodi di SETIAP request.
+    // Kalau kolom tidak ada → query auth error → 401 "Token tidak valid atau kadaluarsa".
+    await pool.query(
+      `ALTER TABLE users
+         ADD COLUMN IF NOT EXISTS is_kaprodi BOOLEAN NOT NULL DEFAULT false,
+         ADD COLUMN IF NOT EXISTS is_wakil_kaprodi BOOLEAN NOT NULL DEFAULT false;`,
+    );
+    console.log('✅ users.is_kaprodi / is_wakil_kaprodi ensured');
+
+    // Tabel pengajuan jadwal kaprodi (migrasi 20260905010000)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS schedule_submissions (
+        id            BIGSERIAL PRIMARY KEY,
+        lecturer_id   BIGINT NOT NULL REFERENCES lecturers(id) ON DELETE CASCADE,
+        semester_id   SMALLINT NOT NULL REFERENCES semesters(id),
+        status        VARCHAR(20) NOT NULL DEFAULT 'awaiting', -- awaiting | approved | rejected
+        submitted_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+        reviewed_by   BIGINT REFERENCES users(id),
+        reviewed_at   TIMESTAMPTZ,
+        review_note   VARCHAR(500),
+        UNIQUE (lecturer_id, semester_id)
+      );
+    `);
+    console.log('✅ schedule_submissions table ensured');
+
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_schedule_submissions_lecturer ON schedule_submissions(lecturer_id);`,
+    );
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_schedule_submissions_semester ON schedule_submissions(semester_id);`,
+    );
+    console.log('✅ schedule_submissions indexes ensured');
   } catch (err) {
     // Best-effort: jangan blok start aplikasi kalau ensure gagal (mis. DB sementara down).
     // Log ke output agar terlihat di dashboard, tapi biarkan proses lanjut (exit 0).
