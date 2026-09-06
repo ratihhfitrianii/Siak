@@ -193,6 +193,10 @@ export interface UserListItem {
   roleCode: string;
   roleName: string;
   adminFacultyCode?: string | null;
+  /** Prodi dosen (hasil LEFT JOIN lecturers/prodis di GET /users) — null utk non-dosen. */
+  prodiId?: number | null;
+  prodiCode?: string | null;
+  prodiName?: string | null;
 }
 
 export interface UserListResponse {

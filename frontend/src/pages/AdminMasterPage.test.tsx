@@ -1,7 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AdminMasterPage } from './AdminMasterPage';
 import * as api from '../lib/api';
+
+/** render dengan router (AdminMasterPage kini membaca ?tab= via useSearchParams). */
+function renderWithRouter(ui: ReactElement) {
+  return render(<MemoryRouter initialEntries={['/admin/master']}>{ui}</MemoryRouter>);
+}
 
 // Holds the current mock user for AuthContext (set per-test).
 const { mockAuthUser, setMockAuthUser } = vi.hoisted(() => {
@@ -202,7 +209,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
   it('menampilkan tab Fakultas sebagai default + daftar fakultas', async () => {
     mockAllLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     expect(await screen.findByText('Fakultas Teknik')).toBeInTheDocument();
     expect(screen.getByText('FT')).toBeInTheDocument();
@@ -215,7 +222,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
   it('ganti tab ke Program Studi → daftar prodi', async () => {
     mockAllLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
@@ -238,7 +245,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
       updatedAt: '2026-01-01T00:00:00Z',
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
 
@@ -278,7 +285,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
       updatedAt: '2026-01-01T00:00:00Z',
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
 
@@ -314,7 +321,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     // Stub window.confirm
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
 
@@ -346,7 +353,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
       updatedAt: '2026-01-01T00:00:00Z',
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
@@ -384,7 +391,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
   it('tab Mahasiswa → menampilkan daftar mahasiswa', async () => {
     mockAllLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
@@ -398,7 +405,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
   it('tab Dosen → menampilkan daftar dosen', async () => {
     mockAllLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
@@ -417,7 +424,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
       lecturersResponse([{ ...LECTURERS[0], userActive: false, isWali: false }]),
     );
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
@@ -434,7 +441,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.listMasterStudents.mockResolvedValue(studentsResponse([]));
     mockedApi.listMasterLecturers.mockResolvedValue(lecturersResponse());
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
@@ -448,7 +455,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.listMasterStudents.mockResolvedValue(studentsResponse());
     mockedApi.listMasterLecturers.mockResolvedValue(lecturersResponse([]));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
@@ -464,7 +471,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
       message: 'Mahasiswa berhasil dibuat',
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
@@ -501,7 +508,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
       message: 'Dosen berhasil dibuat',
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
@@ -535,7 +542,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.listMasterLecturers.mockResolvedValue(lecturersResponse());
     mockNewLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     expect(await screen.findByText('Gagal memuat data mahasiswa')).toBeInTheDocument();
   });
@@ -547,7 +554,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.listMasterLecturers.mockRejectedValue(new Error('x'));
     mockNewLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     expect(await screen.findByText('Gagal memuat data dosen')).toBeInTheDocument();
   });
@@ -556,7 +563,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockAllLists();
     mockedApi.createMasterStudent.mockRejectedValue({ message: 'NIM sudah terdaftar' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
@@ -579,7 +586,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockAllLists();
     mockedApi.createMasterLecturer.mockRejectedValue({ message: 'NIDN sudah terdaftar' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
@@ -605,7 +612,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.listMasterStudents.mockResolvedValue(studentsResponse());
     mockedApi.listMasterLecturers.mockResolvedValue(lecturersResponse());
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await waitFor(() => screen.findByText('Fakultas Teknik'));
 
     const table = await screen.findByRole('table');
@@ -619,7 +626,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.listMasterStudents.mockResolvedValue(studentsResponse());
     mockedApi.listMasterLecturers.mockResolvedValue(lecturersResponse());
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
     expect(await screen.findByText('Belum ada data program studi.')).toBeInTheDocument();
@@ -628,7 +635,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
   it('klik Tambah Mahasiswa → popup modal muncul dengan judul + form kosong', async () => {
     mockAllLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
     await screen.findByText('Budi Santoso');
@@ -649,7 +656,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
       message: 'Mahasiswa berhasil diupdate',
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
     await screen.findByText('Budi Santoso');
@@ -687,7 +694,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
       message: 'Dosen berhasil diupdate',
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
     await screen.findByText('Dr. Andi Wijaya');
@@ -718,7 +725,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
   it('tombol Batal menutup modal tanpa menyimpan', async () => {
     mockAllLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
 
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Fakultas' }));
@@ -732,7 +739,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
   it('tombol Tutup (X) menutup modal', async () => {
     mockAllLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
     await screen.findByText('Dr. Andi Wijaya');
@@ -748,7 +755,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.deleteProdi.mockResolvedValue({ message: 'Prodi dinonaktifkan' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
     await screen.findByText('Teknik Informatika');
@@ -778,7 +785,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
       updatedAt: '2026-01-01T00:00:00Z',
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
     await screen.findByText('Teknik Informatika');
@@ -810,7 +817,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockAllLists();
     mockedApi.createFaculty.mockRejectedValue({ message: 'Kode sudah ada' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
 
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Fakultas' }));
@@ -827,7 +834,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockAllLists();
     mockedApi.updateFaculty.mockRejectedValue({ message: 'Tidak ditemukan' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
 
     fireEvent.click(screen.getAllByText('Edit')[0]);
@@ -844,7 +851,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.deleteFaculty.mockRejectedValue({ message: 'Gagal hapus' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
 
     fireEvent.click(screen.getAllByText('Nonaktifkan')[0]);
@@ -857,7 +864,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.deleteProdi.mockRejectedValue({ message: 'Prodi terpakai' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
     await screen.findByText('Teknik Informatika');
@@ -871,7 +878,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockAllLists();
     mockedApi.createProdi.mockRejectedValue({ message: 'Prodi duplikat' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
     await screen.findByText('Teknik Informatika');
@@ -889,7 +896,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockAllLists();
     mockedApi.updateProdi.mockRejectedValue({ message: 'Gagal update' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
     await screen.findByText('Teknik Informatika');
@@ -910,7 +917,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.listMasterLecturers.mockResolvedValue(lecturersResponse());
     mockNewLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     expect(await screen.findByText('Belum ada data fakultas.')).toBeInTheDocument();
   });
 
@@ -921,7 +928,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.listMasterLecturers.mockResolvedValue(lecturersResponse());
     mockNewLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     expect(await screen.findByText('Gagal memuat data fakultas')).toBeInTheDocument();
   });
 
@@ -932,7 +939,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     mockedApi.listMasterLecturers.mockResolvedValue(lecturersResponse());
     mockNewLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
     expect(await screen.findByText('Gagal memuat data prodi')).toBeInTheDocument();
@@ -949,7 +956,7 @@ describe('AdminMasterPage (Ruangan)', () => {
   it('tab Ruangan tanpa fakultas dipilih → pesan pilih fakultas', async () => {
     mockAllLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
 
@@ -991,7 +998,7 @@ describe('AdminMasterPage (Ruangan)', () => {
       pagination: { page: 1, limit: 10, total: 2 },
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
 
@@ -1012,7 +1019,7 @@ describe('AdminMasterPage (Ruangan)', () => {
       pagination: { page: 1, limit: 10, total: 0 },
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
 
@@ -1041,7 +1048,7 @@ describe('AdminMasterPage (Ruangan)', () => {
       updatedAt: '2026-01-01T00:00:00Z',
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
 
@@ -1093,7 +1100,7 @@ describe('AdminMasterPage (Ruangan)', () => {
     });
     mockedApi.updateRoom.mockResolvedValue({ ...ROOMS[0], name: 'Ruang 301 Baru' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
 
@@ -1145,7 +1152,7 @@ describe('AdminMasterPage (Ruangan)', () => {
     mockedApi.deleteRoom.mockResolvedValue({ message: 'Ruangan dinonaktifkan' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
 
@@ -1166,7 +1173,7 @@ describe('AdminMasterPage (Ruangan)', () => {
     mockAllLists();
     mockedApi.listRooms.mockRejectedValue(new Error('x'));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
 
@@ -1184,7 +1191,7 @@ describe('AdminMasterPage (Ruangan)', () => {
     });
     mockedApi.createRoom.mockRejectedValue({ message: 'Kode ruangan sudah ada' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
 
@@ -1223,7 +1230,7 @@ describe('AdminMasterPage (Ruangan)', () => {
     mockedApi.deleteRoom.mockRejectedValue({ message: 'Ruangan sedang dipakai' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
 
@@ -1258,7 +1265,7 @@ describe('AdminMasterPage (Ruangan)', () => {
     });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(false));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
 
@@ -1284,7 +1291,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
   it('tab Prodi tanpa fakultas dipilih → pesan pilih fakultas', async () => {
     mockAllLists();
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
@@ -1328,7 +1335,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
       pagination: { page: 1, limit: 10, total: 2 },
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
@@ -1349,7 +1356,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
       pagination: { page: 1, limit: 10, total: 0 },
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
@@ -1381,7 +1388,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
       updatedAt: '2026-01-01T00:00:00Z',
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
@@ -1432,7 +1439,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
     });
     mockedApi.updateProdi.mockResolvedValue({ ...AK_PRODIS[0], name: 'TI Updated' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
@@ -1485,7 +1492,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
     mockedApi.deleteProdi.mockResolvedValue({ message: 'Prodi dinonaktifkan' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
@@ -1506,7 +1513,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
     mockAllLists();
     mockedApi.listAcademicProdis.mockRejectedValue(new Error('x'));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
@@ -1524,7 +1531,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
     });
     mockedApi.createProdi.mockRejectedValue({ message: 'Prodi sudah ada' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
@@ -1564,7 +1571,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
     mockedApi.deleteProdi.mockRejectedValue({ message: 'Prodi terpakai' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
@@ -1600,7 +1607,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
     });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(false));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
@@ -1654,7 +1661,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
       return { items: [], pagination: { page: 1, limit: 10, total: 0 } };
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
 
@@ -1714,7 +1721,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     ];
     mockedApi.listCourses.mockResolvedValue({ items: COURSES });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
 
@@ -1729,7 +1736,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     mockAllLists();
     mockedApi.listCourses.mockResolvedValue({ items: [] });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
 
@@ -1756,7 +1763,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
       facultyCode: 'FT',
     });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
     await screen.findByText('Belum ada data mata kuliah.');
@@ -1808,7 +1815,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     mockedApi.listCourses.mockResolvedValue({ items: COURSES });
     mockedApi.updateCourse.mockResolvedValue({ ...COURSES[0], name: 'Algoritma Lanjut' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
     await screen.findByText('TI101');
@@ -1857,7 +1864,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     mockedApi.deleteCourse.mockResolvedValue({ message: 'Mata kuliah dinonaktifkan' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
     await screen.findByText('TI101');
@@ -1875,7 +1882,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     mockAllLists();
     mockedApi.listCourses.mockRejectedValue(new Error('x'));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
 
@@ -1887,7 +1894,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     mockedApi.listCourses.mockResolvedValue({ items: [] });
     mockedApi.createCourse.mockRejectedValue({ message: 'Kode MK sudah ada' });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
     await screen.findByText('Belum ada data mata kuliah.');
@@ -1926,7 +1933,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     mockedApi.deleteCourse.mockRejectedValue({ message: 'MK terpakai' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
     await screen.findByText('TI101');
@@ -1959,7 +1966,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     mockedApi.listCourses.mockResolvedValue({ items: COURSES });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(false));
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
     await screen.findByText('TI101');
@@ -1993,7 +2000,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     mockAllLists();
     mockedApi.listCourses.mockResolvedValue({ items: COURSES });
 
-    render(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
     fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
     await screen.findByText('TI101');
@@ -2029,7 +2036,7 @@ describe('AdminMasterPage (mode akademikOnly)', () => {
       pagination: { page: 1, limit: 10, total: 1 },
     });
 
-    render(<AdminMasterPage akademikOnly />);
+    renderWithRouter(<AdminMasterPage akademikOnly />);
 
     expect(await screen.findByText('R101')).toBeInTheDocument();
     // Tab admin_sistem TIDAK muncul

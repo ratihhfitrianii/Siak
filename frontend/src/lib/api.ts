@@ -349,6 +349,9 @@ export async function listUsers(params?: PaginationParams): Promise<UserListResp
       created_at: string;
       role_code: string;
       role_name: string;
+      prodi_id?: number | string | null;
+      prodi_code?: string | null;
+      prodi_name?: string | null;
     }>;
     pagination: { page: number; limit: number; total: number };
   }>(`/users${qs ? `?${qs}` : ''}`);
@@ -365,6 +368,9 @@ export async function listUsers(params?: PaginationParams): Promise<UserListResp
       createdAt: r.created_at,
       roleCode: r.role_code,
       roleName: r.role_name,
+      prodiId: r.prodi_id != null ? Number(r.prodi_id) : null,
+      prodiCode: r.prodi_code ?? null,
+      prodiName: r.prodi_name ?? null,
     })),
     pagination: raw.pagination,
   };
@@ -1871,10 +1877,31 @@ export async function listProdis(params?: {
   if (params?.search) qs.set('search', params.search);
   if (params?.facultyId) qs.set('facultyId', String(params.facultyId));
   const suffix = qs.toString() ? `?${qs.toString()}` : '';
-  // Use academic module's /prodis endpoint (requires academic.manage which admin_akademik has)
-  // Note: academic module now returns pagination
+  // GET /prodis (academic module) returns raw snake_case rows (is_active, faculty_id).
+  // Normalize to the camelCase Prodi type here — apiRequest() does NOT auto-convert.
   const res = await apiRequest<MasterListResponse<Prodi>>(`/prodis${suffix}`);
-  return res;
+  return {
+    ...res,
+    items: res.items.map((p) => {
+      const raw = p as unknown as {
+        is_active?: boolean;
+        faculty_id?: number;
+        faculty_code?: string;
+        faculty_name?: string;
+        created_at?: string;
+        updated_at?: string;
+      };
+      return {
+        ...p,
+        isActive: Boolean(raw.is_active ?? p.isActive),
+        facultyId: Number(raw.faculty_id ?? p.facultyId),
+        facultyCode: raw.faculty_code ?? p.facultyCode ?? '',
+        facultyName: raw.faculty_name ?? p.facultyName ?? '',
+        createdAt: raw.created_at ?? p.createdAt,
+        updatedAt: raw.updated_at ?? p.updatedAt,
+      };
+    }),
+  };
 }
 
 export async function createProdi(input: CreateProdiInput): Promise<Prodi> {

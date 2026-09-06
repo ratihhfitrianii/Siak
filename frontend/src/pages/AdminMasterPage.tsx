@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import {
   listFaculties,
@@ -91,9 +92,20 @@ function PaginationBar({
 /** Halaman Master Data (Admin Sistem) — Fakultas, Prodi, Mahasiswa, Dosen. */
 export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boolean } = {}) {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromQuery = searchParams.get('tab');
+  const isValidTab = (t: string | null): t is 'faculties' | 'prodis' | 'students' | 'lecturers' =>
+    t === 'faculties' || t === 'prodis' || t === 'students' || t === 'lecturers';
   const [activeTab, setActiveTab] = useState<
     'faculties' | 'prodis' | 'students' | 'lecturers' | 'rooms' | 'prodi-akademik' | 'courses'
-  >(akademikOnly ? 'rooms' : 'faculties');
+  >(akademikOnly ? 'rooms' : isValidTab(tabFromQuery) ? tabFromQuery : 'faculties');
+
+  // Sinkron: sidebar submenu memakai ?tab=... — saat berubah, ikuti tab tsb.
+  useEffect(() => {
+    if (!akademikOnly && isValidTab(tabFromQuery) && tabFromQuery !== activeTab) {
+      setActiveTab(tabFromQuery);
+    }
+  }, [tabFromQuery, akademikOnly, activeTab]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [prodis, setProdis] = useState<Prodi[]>([]);
   const [students, setStudents] = useState<MasterStudent[]>([]);
@@ -865,7 +877,10 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               <button
                 role="tab"
                 aria-selected={activeTab === 'faculties'}
-                onClick={() => setActiveTab('faculties')}
+                onClick={() => {
+                  setActiveTab('faculties');
+                  if (!akademikOnly) setSearchParams({ tab: 'faculties' }, { replace: true });
+                }}
                 className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === 'faculties'
                     ? 'border-primary-500 text-primary-600'
@@ -877,7 +892,10 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               <button
                 role="tab"
                 aria-selected={activeTab === 'prodis'}
-                onClick={() => setActiveTab('prodis')}
+                onClick={() => {
+                  setActiveTab('prodis');
+                  if (!akademikOnly) setSearchParams({ tab: 'prodis' }, { replace: true });
+                }}
                 className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === 'prodis'
                     ? 'border-primary-500 text-primary-600'
@@ -889,7 +907,10 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               <button
                 role="tab"
                 aria-selected={activeTab === 'students'}
-                onClick={() => setActiveTab('students')}
+                onClick={() => {
+                  setActiveTab('students');
+                  if (!akademikOnly) setSearchParams({ tab: 'students' }, { replace: true });
+                }}
                 className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === 'students'
                     ? 'border-primary-500 text-primary-600'
@@ -901,7 +922,10 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               <button
                 role="tab"
                 aria-selected={activeTab === 'lecturers'}
-                onClick={() => setActiveTab('lecturers')}
+                onClick={() => {
+                  setActiveTab('lecturers');
+                  if (!akademikOnly) setSearchParams({ tab: 'lecturers' }, { replace: true });
+                }}
                 className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === 'lecturers'
                     ? 'border-primary-500 text-primary-600'

@@ -279,6 +279,32 @@ export function UsersPage() {
   const errText = (field: string): string | undefined =>
     fieldErrors?.[field] ? fieldErrors[field].join(', ') : undefined;
 
+  // #4: Kaprodi/Wakil unik per prodi — nonaktifkan checkbox bila prodi sudah punya jabatan tsb
+  // (user lain yang aktif, bukan editTarget). prodiId dosen datang dari join lecturers di GET /users.
+  const editProdiId = editTarget?.prodiId ?? null;
+  const kaprodiTakenBy = editProdiId
+    ? items.find(
+        (u) =>
+          u.id !== editTarget?.id &&
+          u.isActive &&
+          u.isKaprodi &&
+          (u.prodiId ?? null) === editProdiId,
+      )
+    : undefined;
+  const wakilTakenBy = editProdiId
+    ? items.find(
+        (u) =>
+          u.id !== editTarget?.id &&
+          u.isActive &&
+          u.isWakilKaprodi &&
+          (u.prodiId ?? null) === editProdiId,
+      )
+    : undefined;
+  const kaprodiDisabled =
+    (!!kaprodiTakenBy || !editProdiId) && !(editTarget?.isKaprodi && editRole === 'dosen');
+  const wakilDisabled =
+    (!!wakilTakenBy || !editProdiId) && !(editTarget?.isWakilKaprodi && editRole === 'dosen');
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -368,6 +394,9 @@ export function UsersPage() {
                     Wali
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    Jabatan Prodi
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
                     Status
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
@@ -378,7 +407,7 @@ export function UsersPage() {
               <tbody className="divide-y divide-slate-100">
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                    <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
                       Tidak ada pengguna yang cocok.
                     </td>
                   </tr>
@@ -393,6 +422,22 @@ export function UsersPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-600">{u.isWali ? 'Ya' : '—'}</td>
+                      <td className="px-4 py-3">
+                        {u.isKaprodi ? (
+                          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                            Kaprodi
+                          </span>
+                        ) : u.isWakilKaprodi ? (
+                          <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-700">
+                            Wakil Kaprodi
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                        {u.prodiName ? (
+                          <span className="ml-1.5 text-xs text-slate-500">{u.prodiName}</span>
+                        ) : null}
+                      </td>
                       <td className="px-4 py-3">
                         <span
                           className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -737,10 +782,18 @@ export function UsersPage() {
                         setEditKaprodi(e.target.checked);
                         if (e.target.checked) setEditWakil(false);
                       }}
-                      className="h-4 w-4 rounded border-slate-300 text-primary-600"
+                      disabled={kaprodiDisabled}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
                     />
                     Kaprodi (Kepala Prodi)
                   </label>
+                  {kaprodiDisabled && (
+                    <p className="text-xs text-amber-600">
+                      {kaprodiTakenBy
+                        ? `Prodi ini sudah punya Kaprodi: ${kaprodiTakenBy.fullName}`
+                        : 'Dosen belum memiliki prodi — isi prodi dosen via Menu Master → Dosen terlebih dahulu.'}
+                    </p>
+                  )}
                   <label className="flex items-center gap-2 text-sm text-slate-700">
                     <input
                       type="checkbox"
@@ -749,10 +802,18 @@ export function UsersPage() {
                         setEditWakil(e.target.checked);
                         if (e.target.checked) setEditKaprodi(false);
                       }}
-                      className="h-4 w-4 rounded border-slate-300 text-primary-600"
+                      disabled={wakilDisabled}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
                     />
                     Wakil Kaprodi
                   </label>
+                  {wakilDisabled && (
+                    <p className="text-xs text-amber-600">
+                      {wakilTakenBy
+                        ? `Prodi ini sudah punya Wakil Kaprodi: ${wakilTakenBy.fullName}`
+                        : 'Dosen belum memiliki prodi — isi prodi dosen via Menu Master → Dosen terlebih dahulu.'}
+                    </p>
+                  )}
                 </div>
               )}
               {editRole === 'admin_akademik' && (

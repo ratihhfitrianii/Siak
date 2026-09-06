@@ -233,6 +233,36 @@ const MENU_ITEMS: {
     path: '/admin/master',
     icon: 'database',
     description: 'Master data mahasiswa & dosen',
+    children: [
+      {
+        permissions: ['user.manage'],
+        label: 'Fakultas',
+        path: '/admin/master?tab=faculties',
+        icon: 'database',
+        description: 'Kelola data fakultas',
+      },
+      {
+        permissions: ['user.manage'],
+        label: 'Prodi',
+        path: '/admin/master?tab=prodis',
+        icon: 'book',
+        description: 'Kelola data program studi',
+      },
+      {
+        permissions: ['user.manage'],
+        label: 'Mahasiswa',
+        path: '/admin/master?tab=students',
+        icon: 'users',
+        description: 'Kelola data mahasiswa',
+      },
+      {
+        permissions: ['user.manage'],
+        label: 'Dosen',
+        path: '/admin/master?tab=lecturers',
+        icon: 'user',
+        description: 'Kelola data dosen',
+      },
+    ],
   },
   {
     permissions: ['payment.update'],
@@ -750,7 +780,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           {menu.map((item) => {
             const isExpanded = expandedMenus.has(item.path);
             const isParentActive = item.children
-              ? item.children.some((c) => location.pathname.startsWith(c.path))
+              ? item.children.some((c) => (location.pathname + location.search).startsWith(c.path))
               : false;
             if (item.children) {
               const visibleChildren = item.children.filter((c) =>

@@ -15,7 +15,26 @@ function jsonResponse(payload: unknown, status = 200) {
   } as Response;
 }
 
-const SNAKE_USER = (id: number, name: string, email: string, roleCode: string) => ({
+const SNAKE_USER = (
+  id: number,
+  name: string,
+  email: string,
+  roleCode: string,
+): {
+  id: number;
+  email: string;
+  full_name: string;
+  is_wali: boolean;
+  is_kaprodi: boolean;
+  is_wakil_kaprodi: boolean;
+  is_active: boolean;
+  last_login_at: null;
+  created_at: string;
+  role_code: string;
+  role_name: string;
+  prodi_id: number | null;
+  prodi_name: string | null;
+} => ({
   id,
   email,
   full_name: name,
@@ -27,6 +46,8 @@ const SNAKE_USER = (id: number, name: string, email: string, roleCode: string) =
   created_at: '2026-01-01T00:00:00Z',
   role_code: roleCode,
   role_name: roleCode.replace('_', ' '),
+  prodi_id: null,
+  prodi_name: null,
 });
 
 interface UsersMocks {
@@ -461,6 +482,8 @@ describe('UsersPage (T1.11c)', () => {
           is_active: true,
           last_login_at: null,
           created_at: '2026-01-01T00:00:00Z',
+          prodi_id: null,
+          prodi_name: null,
         },
       ],
       onRole,
@@ -503,6 +526,8 @@ describe('UsersPage (T1.11c)', () => {
           is_active: true,
           last_login_at: null,
           created_at: '2026-01-01T00:00:00Z',
+          prodi_id: 10,
+          prodi_name: 'Teknik Informatika',
         },
       ],
       onRole,

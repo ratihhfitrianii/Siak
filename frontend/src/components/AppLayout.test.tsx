@@ -235,7 +235,8 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     renderLayout();
 
     expect(screen.getByRole('link', { name: 'User' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Master' })).toBeInTheDocument();
+    // Master kini parent dropdown (sidebar submenu Fakultas/Prodi/Mahasiswa/Dosen) → trigger = button
+    expect(screen.getByRole('button', { name: 'Master' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Informasi Penting' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Audit' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Nilai' })).not.toBeInTheDocument();
