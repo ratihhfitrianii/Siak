@@ -5,9 +5,22 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AdminMasterPage } from './AdminMasterPage';
 import * as api from '../lib/api';
 
-/** render dengan router (AdminMasterPage kini membaca ?tab= via useSearchParams). */
-function renderWithRouter(ui: ReactElement) {
-  return render(<MemoryRouter initialEntries={['/admin/master']}>{ui}</MemoryRouter>);
+/** render dengan router. `initialPath` default /admin/master; bisa diberi ?tab=... */
+function renderWithRouter(ui: ReactElement, initialPath = '/admin/master') {
+  return render(<MemoryRouter initialEntries={[initialPath]}>{ui}</MemoryRouter>);
+}
+
+/**
+ * Klik tab navigasi. Tab bar disembunyikan visual saat mode submenu (hidden),
+ * tapi tetap di DOM — getByRole mengecualikan hidden elements, jadi query
+ * via text dalam [role=tab], lalu native .click() (trigger handler React).
+ */
+function clickTab(name: string) {
+  const tab = Array.from(document.querySelectorAll('[role="tab"]')).find(
+    (t) => t.textContent?.trim() === name,
+  );
+  if (!tab) throw new Error(`Tab "${name}" tidak ditemukan`);
+  fireEvent.click(tab as HTMLElement);
 }
 
 // Holds the current mock user for AuthContext (set per-test).
@@ -230,7 +243,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
+    clickTab('Program Studi');
 
     expect(await screen.findByText('Teknik Informatika')).toBeInTheDocument();
     expect(screen.getByText('TI')).toBeInTheDocument();
@@ -361,7 +374,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
+    clickTab('Program Studi');
 
     await screen.findByText('Teknik Informatika');
 
@@ -399,7 +412,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
+    clickTab('Mahasiswa');
 
     expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
     expect(screen.getByText('20240001')).toBeInTheDocument();
@@ -413,7 +426,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
+    clickTab('Dosen');
 
     expect(await screen.findByText('Dr. Andi Wijaya')).toBeInTheDocument();
     expect(screen.getByText('198001001')).toBeInTheDocument();
@@ -432,7 +445,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
+    clickTab('Dosen');
 
     expect(await screen.findByText('Dr. Andi Wijaya')).toBeInTheDocument();
     const table = screen.getByRole('table');
@@ -449,7 +462,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
+    clickTab('Mahasiswa');
 
     expect(await screen.findByText('Belum ada data mahasiswa.')).toBeInTheDocument();
   });
@@ -463,7 +476,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
+    clickTab('Dosen');
 
     expect(await screen.findByText('Belum ada data dosen.')).toBeInTheDocument();
   });
@@ -479,7 +492,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
+    clickTab('Mahasiswa');
     await screen.findByText('Budi Santoso');
 
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Mahasiswa' }));
@@ -516,7 +529,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
+    clickTab('Dosen');
     await screen.findByText('Dr. Andi Wijaya');
 
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Dosen' }));
@@ -571,7 +584,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
+    clickTab('Mahasiswa');
     await screen.findByText('Budi Santoso');
 
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Mahasiswa' }));
@@ -594,7 +607,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     renderWithRouter(<AdminMasterPage />);
 
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
+    clickTab('Dosen');
     await screen.findByText('Dr. Andi Wijaya');
 
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Dosen' }));
@@ -633,7 +646,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
+    clickTab('Program Studi');
     expect(await screen.findByText('Belum ada data program studi.')).toBeInTheDocument();
   });
 
@@ -642,7 +655,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
+    clickTab('Mahasiswa');
     await screen.findByText('Budi Santoso');
 
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Mahasiswa' }));
@@ -663,7 +676,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mahasiswa' }));
+    clickTab('Mahasiswa');
     await screen.findByText('Budi Santoso');
 
     fireEvent.click(screen.getAllByText('Edit')[0]);
@@ -701,7 +714,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
+    clickTab('Dosen');
     await screen.findByText('Dr. Andi Wijaya');
 
     fireEvent.click(screen.getAllByText('Edit')[0]);
@@ -746,7 +759,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Dosen' }));
+    clickTab('Dosen');
     await screen.findByText('Dr. Andi Wijaya');
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Dosen' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -762,7 +775,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
+    clickTab('Program Studi');
     await screen.findByText('Teknik Informatika');
 
     fireEvent.click(screen.getAllByText('Nonaktifkan')[0]);
@@ -792,7 +805,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
+    clickTab('Program Studi');
     await screen.findByText('Teknik Informatika');
 
     fireEvent.click(screen.getAllByText('Edit')[0]);
@@ -871,7 +884,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
+    clickTab('Program Studi');
     await screen.findByText('Teknik Informatika');
 
     fireEvent.click(screen.getAllByText('Nonaktifkan')[0]);
@@ -885,7 +898,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
+    clickTab('Program Studi');
     await screen.findByText('Teknik Informatika');
 
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Prodi' }));
@@ -903,7 +916,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
+    clickTab('Program Studi');
     await screen.findByText('Teknik Informatika');
 
     fireEvent.click(screen.getAllByText('Edit')[0]);
@@ -946,7 +959,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Program Studi' }));
+    clickTab('Program Studi');
     expect(await screen.findByText('Gagal memuat data prodi')).toBeInTheDocument();
   });
 });
@@ -963,7 +976,7 @@ describe('AdminMasterPage (Ruangan)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
+    clickTab('Ruangan');
 
     expect(
       await screen.findByText('Pilih fakultas terlebih dahulu untuk melihat ruangan.'),
@@ -1005,7 +1018,7 @@ describe('AdminMasterPage (Ruangan)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
+    clickTab('Ruangan');
 
     // Select faculty from dropdown
     const select = screen.getByDisplayValue('Pilih Fakultas');
@@ -1026,7 +1039,7 @@ describe('AdminMasterPage (Ruangan)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
+    clickTab('Ruangan');
 
     const select = screen.getByDisplayValue('Pilih Fakultas');
     fireEvent.change(select, { target: { value: '1' } });
@@ -1055,7 +1068,7 @@ describe('AdminMasterPage (Ruangan)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
+    clickTab('Ruangan');
 
     const select = screen.getByDisplayValue('Pilih Fakultas');
     fireEvent.change(select, { target: { value: '1' } });
@@ -1107,7 +1120,7 @@ describe('AdminMasterPage (Ruangan)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
+    clickTab('Ruangan');
 
     const select = screen.getByDisplayValue('Pilih Fakultas');
     fireEvent.change(select, { target: { value: '1' } });
@@ -1159,7 +1172,7 @@ describe('AdminMasterPage (Ruangan)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
+    clickTab('Ruangan');
 
     const select = screen.getByDisplayValue('Pilih Fakultas');
     fireEvent.change(select, { target: { value: '1' } });
@@ -1180,7 +1193,7 @@ describe('AdminMasterPage (Ruangan)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
+    clickTab('Ruangan');
 
     const select = screen.getByDisplayValue('Pilih Fakultas');
     fireEvent.change(select, { target: { value: '1' } });
@@ -1198,7 +1211,7 @@ describe('AdminMasterPage (Ruangan)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
+    clickTab('Ruangan');
 
     const select = screen.getByDisplayValue('Pilih Fakultas');
     fireEvent.change(select, { target: { value: '1' } });
@@ -1237,7 +1250,7 @@ describe('AdminMasterPage (Ruangan)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
+    clickTab('Ruangan');
 
     const select = screen.getByDisplayValue('Pilih Fakultas');
     fireEvent.change(select, { target: { value: '1' } });
@@ -1272,7 +1285,7 @@ describe('AdminMasterPage (Ruangan)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Ruangan' }));
+    clickTab('Ruangan');
 
     const select = screen.getByDisplayValue('Pilih Fakultas');
     fireEvent.change(select, { target: { value: '1' } });
@@ -1293,20 +1306,9 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
     window.localStorage.clear();
   });
 
-  it('tab Prodi tanpa fakultas dipilih → pesan pilih fakultas', async () => {
+  it('tab Prodi → menampilkan prodi fakultas akun tanpa dropdown pilih fakultas', async () => {
     mockAllLists();
-
-    renderWithRouter(<AdminMasterPage />);
-    await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
-
-    expect(
-      await screen.findByText('Pilih fakultas terlebih dahulu untuk melihat prodi fakultas ini.'),
-    ).toBeInTheDocument();
-  });
-
-  it('tab Prodi → pilih fakultas menampilkan daftar prodi', async () => {
-    mockAllLists();
+    setMockAuthUser({ adminFacultyCode: 'FT' }); // akademikOnly = true
     const AK_PRODIS = [
       {
         id: 1,
@@ -1321,52 +1323,35 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
       },
-      {
-        id: 2,
-        code: 'SI',
-        name: 'Sistem Informasi',
-        facultyId: 1,
-        facultyCode: 'FT',
-        facultyName: 'Fakultas Teknik',
-        degree: 'S1',
-        accreditation: 'B',
-        isActive: true,
-        createdAt: '2026-01-01T00:00:00Z',
-        updatedAt: '2026-01-01T00:00:00Z',
-      },
     ];
     mockedApi.listAcademicProdis.mockResolvedValue({
       items: AK_PRODIS,
-      pagination: { page: 1, limit: 10, total: 2 },
+      pagination: { page: 1, limit: 10, total: 1 },
     });
 
-    renderWithRouter(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage akademikOnly />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
+    clickTab('Prodi');
 
-    const select = screen.getByDisplayValue('Pilih Fakultas');
-    fireEvent.change(select, { target: { value: '1' } });
-
+    // Admin akademik: langsung tampil prodi fakultasnya, TIDAK ada dropdown pilih fakultas
     expect(await screen.findByText('Teknik Informatika')).toBeInTheDocument();
-    expect(screen.getByText('Sistem Informasi')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Pilih Fakultas')).not.toBeInTheDocument();
     expect(mockedApi.listAcademicProdis).toHaveBeenCalledWith(
       expect.objectContaining({ facultyId: 1 }),
     );
   });
 
-  it('tab Prodi → prodi kosong setelah pilih fakultas', async () => {
+  it('tab Prodi → prodi kosong menampilkan empty state', async () => {
     mockAllLists();
+    setMockAuthUser({ adminFacultyCode: 'FT' }); // akademikOnly = true
     mockedApi.listAcademicProdis.mockResolvedValue({
       items: [],
       pagination: { page: 1, limit: 10, total: 0 },
     });
 
-    renderWithRouter(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage akademikOnly />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
-
-    const select = screen.getByDisplayValue('Pilih Fakultas');
-    fireEvent.change(select, { target: { value: '1' } });
+    clickTab('Prodi');
 
     expect(
       await screen.findByText('Belum ada data program studi pada fakultas ini.'),
@@ -1375,6 +1360,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
 
   it('tambah prodi → createProdi dipanggil', async () => {
     mockAllLists();
+    setMockAuthUser({ adminFacultyCode: 'FT' }); // akademikOnly = true
     mockedApi.listAcademicProdis.mockResolvedValue({
       items: [],
       pagination: { page: 1, limit: 10, total: 0 },
@@ -1393,14 +1379,12 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
       updatedAt: '2026-01-01T00:00:00Z',
     });
 
-    renderWithRouter(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage akademikOnly />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
+    clickTab('Prodi');
 
-    const select = screen.getByDisplayValue('Pilih Fakultas');
-    fireEvent.change(select, { target: { value: '1' } });
+    // Admin akademik: tidak ada dropdown pilih fakultas
     await screen.findByText('Belum ada data program studi pada fakultas ini.');
-
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Prodi' }));
     fireEvent.change(screen.getByLabelText('Kode Prodi *'), { target: { value: 'TK' } });
     fireEvent.change(screen.getByLabelText('Nama Prodi *'), { target: { value: 'Teknik Kimia' } });
@@ -1438,18 +1422,18 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
       },
     ];
     mockAllLists();
+    setMockAuthUser({ adminFacultyCode: 'FT' }); // akademikOnly = true
     mockedApi.listAcademicProdis.mockResolvedValue({
       items: AK_PRODIS,
       pagination: { page: 1, limit: 10, total: 1 },
     });
     mockedApi.updateProdi.mockResolvedValue({ ...AK_PRODIS[0], name: 'TI Updated' });
 
-    renderWithRouter(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage akademikOnly />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
+    clickTab('Prodi');
 
-    const select = screen.getByDisplayValue('Pilih Fakultas');
-    fireEvent.change(select, { target: { value: '1' } });
+    // Admin akademik: tidak ada dropdown pilih fakultas
     await screen.findByText('Teknik Informatika');
 
     fireEvent.click(screen.getAllByText('Edit')[0]);
@@ -1490,6 +1474,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
       },
     ];
     mockAllLists();
+    setMockAuthUser({ adminFacultyCode: 'FT' }); // akademikOnly = true
     mockedApi.listAcademicProdis.mockResolvedValue({
       items: AK_PRODIS,
       pagination: { page: 1, limit: 10, total: 1 },
@@ -1497,12 +1482,11 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
     mockedApi.deleteProdi.mockResolvedValue({ message: 'Prodi dinonaktifkan' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    renderWithRouter(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage akademikOnly />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
+    clickTab('Prodi');
 
-    const select = screen.getByDisplayValue('Pilih Fakultas');
-    fireEvent.change(select, { target: { value: '1' } });
+    // Admin akademik: tidak ada dropdown pilih fakultas
     await screen.findByText('Teknik Informatika');
 
     fireEvent.click(screen.getAllByText('Nonaktifkan')[0]);
@@ -1516,32 +1500,31 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
 
   it('gagal memuat prodi akademik → pesan error', async () => {
     mockAllLists();
+    setMockAuthUser({ adminFacultyCode: 'FT' }); // akademikOnly = true
     mockedApi.listAcademicProdis.mockRejectedValue(new Error('x'));
 
-    renderWithRouter(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage akademikOnly />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
+    clickTab('Prodi');
 
-    const select = screen.getByDisplayValue('Pilih Fakultas');
-    fireEvent.change(select, { target: { value: '1' } });
-
+    // Admin akademik: tidak ada dropdown pilih fakultas, langsung muat prodi
     expect(await screen.findByText('Gagal memuat data prodi')).toBeInTheDocument();
   });
 
   it('tambah prodi gagal → pesan error API', async () => {
     mockAllLists();
+    setMockAuthUser({ adminFacultyCode: 'FT' }); // akademikOnly = true
     mockedApi.listAcademicProdis.mockResolvedValue({
       items: [],
       pagination: { page: 1, limit: 10, total: 0 },
     });
     mockedApi.createProdi.mockRejectedValue({ message: 'Prodi sudah ada' });
 
-    renderWithRouter(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage akademikOnly />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
+    clickTab('Prodi');
 
-    const select = screen.getByDisplayValue('Pilih Fakultas');
-    fireEvent.change(select, { target: { value: '1' } });
+    // Admin akademik: tidak ada dropdown pilih fakultas
     await screen.findByText('Belum ada data program studi pada fakultas ini.');
 
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Prodi' }));
@@ -1569,6 +1552,7 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
       },
     ];
     mockAllLists();
+    setMockAuthUser({ adminFacultyCode: 'FT' }); // akademikOnly = true
     mockedApi.listAcademicProdis.mockResolvedValue({
       items: AK_PRODIS,
       pagination: { page: 1, limit: 10, total: 1 },
@@ -1576,12 +1560,11 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
     mockedApi.deleteProdi.mockRejectedValue({ message: 'Prodi terpakai' });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
 
-    renderWithRouter(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage akademikOnly />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
+    clickTab('Prodi');
 
-    const select = screen.getByDisplayValue('Pilih Fakultas');
-    fireEvent.change(select, { target: { value: '1' } });
+    // Admin akademik: fakultas = akun (teks), langsung tampil prodi dari mock.
     await screen.findByText('Teknik Informatika');
 
     fireEvent.click(screen.getAllByText('Nonaktifkan')[0]);
@@ -1606,18 +1589,18 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
       },
     ];
     mockAllLists();
+    setMockAuthUser({ adminFacultyCode: 'FT' }); // akademikOnly = true
     mockedApi.listAcademicProdis.mockResolvedValue({
       items: AK_PRODIS,
       pagination: { page: 1, limit: 10, total: 1 },
     });
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(false));
 
-    renderWithRouter(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage akademikOnly />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
+    clickTab('Prodi');
 
-    const select = screen.getByDisplayValue('Pilih Fakultas');
-    fireEvent.change(select, { target: { value: '1' } });
+    // Admin akademik: fakultas = akun (teks), langsung tampil prodi dari mock.
     await screen.findByText('Teknik Informatika');
 
     fireEvent.click(screen.getAllByText('Nonaktifkan')[0]);
@@ -1628,6 +1611,8 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
   });
 
   it('ganti fakultas → muat ulang prodi', async () => {
+    // Admin akademik: fakultas terikat akun (tanpa dropdown) — test tidak lagi valid.
+    // Skenario "ganti fakultas" hanya berlaku untuk admin sistem (dropdown di konten).
     const AK_PRODIS_FT = [
       {
         id: 1,
@@ -1643,41 +1628,19 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
         updatedAt: '2026-01-01T00:00:00Z',
       },
     ];
-    const AK_PRODIS_FE = [
-      {
-        id: 3,
-        code: 'AKT',
-        name: 'Akuntansi',
-        facultyId: 2,
-        facultyCode: 'FE',
-        facultyName: 'Fakultas Ekonomi',
-        degree: 'S1',
-        accreditation: 'B',
-        isActive: true,
-        createdAt: '2026-01-01T00:00:00Z',
-        updatedAt: '2026-01-01T00:00:00Z',
-      },
-    ];
     mockAllLists();
-    mockedApi.listAcademicProdis.mockImplementation(async (params?: { facultyId?: number }) => {
-      const fid = params?.facultyId;
-      if (fid === 1) return { items: AK_PRODIS_FT, pagination: { page: 1, limit: 10, total: 1 } };
-      if (fid === 2) return { items: AK_PRODIS_FE, pagination: { page: 1, limit: 10, total: 1 } };
-      return { items: [], pagination: { page: 1, limit: 10, total: 0 } };
+    setMockAuthUser({ adminFacultyCode: 'FT' }); // akademikOnly = true
+    mockedApi.listAcademicProdis.mockResolvedValue({
+      items: AK_PRODIS_FT,
+      pagination: { page: 1, limit: 10, total: 1 },
     });
 
-    renderWithRouter(<AdminMasterPage />);
+    renderWithRouter(<AdminMasterPage akademikOnly />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Prodi' }));
+    clickTab('Prodi');
 
-    // Re-query select fresh sebelum setiap change (hindari stale node setelah re-render)
-    let select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: '1' } });
-    await screen.findByText('Teknik Informatika');
-
-    select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: '2' } });
-    await screen.findByText('Akuntansi');
+    // Admin akademik: fakultas = akun, langsung tampil prodi tanpa perlu pilih.
+    expect(await screen.findByText('Teknik Informatika')).toBeInTheDocument();
   });
 });
 
@@ -1728,7 +1691,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
+    clickTab('Mata Kuliah');
 
     expect(await screen.findByText('TI101')).toBeInTheDocument();
     expect(screen.getByText('Algoritma')).toBeInTheDocument();
@@ -1743,7 +1706,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
+    clickTab('Mata Kuliah');
 
     expect(await screen.findByText('Belum ada data mata kuliah.')).toBeInTheDocument();
   });
@@ -1770,7 +1733,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
+    clickTab('Mata Kuliah');
     await screen.findByText('Belum ada data mata kuliah.');
 
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Mata Kuliah' }));
@@ -1832,7 +1795,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
+    clickTab('Mata Kuliah');
     await screen.findByText('TI101');
 
     fireEvent.click(screen.getAllByText('Edit')[0]);
@@ -1882,7 +1845,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
+    clickTab('Mata Kuliah');
     await screen.findByText('TI101');
 
     fireEvent.click(screen.getAllByText('Nonaktifkan')[0]);
@@ -1900,7 +1863,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
+    clickTab('Mata Kuliah');
 
     expect(await screen.findByText('Gagal memuat data mata kuliah')).toBeInTheDocument();
   });
@@ -1912,7 +1875,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
+    clickTab('Mata Kuliah');
     await screen.findByText('Belum ada data mata kuliah.');
 
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Mata Kuliah' }));
@@ -1958,7 +1921,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
+    clickTab('Mata Kuliah');
     await screen.findByText('TI101');
 
     fireEvent.click(screen.getAllByText('Nonaktifkan')[0]);
@@ -1991,7 +1954,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
+    clickTab('Mata Kuliah');
     await screen.findByText('TI101');
 
     fireEvent.click(screen.getAllByText('Nonaktifkan')[0]);
@@ -2025,7 +1988,7 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
 
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
-    fireEvent.click(screen.getByRole('tab', { name: 'Mata Kuliah' }));
+    clickTab('Mata Kuliah');
     await screen.findByText('TI101');
 
     const table = screen.getByRole('table');

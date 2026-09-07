@@ -96,21 +96,30 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromQuery = searchParams.get('tab');
-  const isValidTab = (t: string | null): t is 'faculties' | 'prodis' | 'students' | 'lecturers' =>
-    t === 'faculties' || t === 'prodis' || t === 'students' || t === 'lecturers';
+  const isValidTab = (
+    t: string | null,
+  ): t is
+    'faculties' | 'prodis' | 'students' | 'lecturers' | 'rooms' | 'prodi-akademik' | 'courses' =>
+    t === 'faculties' ||
+    t === 'prodis' ||
+    t === 'students' ||
+    t === 'lecturers' ||
+    t === 'rooms' ||
+    t === 'prodi-akademik' ||
+    t === 'courses';
   const [activeTab, setActiveTab] = useState<
     'faculties' | 'prodis' | 'students' | 'lecturers' | 'rooms' | 'prodi-akademik' | 'courses'
-  >(akademikOnly ? 'rooms' : isValidTab(tabFromQuery) ? tabFromQuery : 'faculties');
+  >(isValidTab(tabFromQuery) ? tabFromQuery : akademikOnly ? 'rooms' : 'faculties');
 
   // Sinkron: sidebar submenu memakai ?tab=... — saat berubah, ikuti tab tsb.
   useEffect(() => {
-    if (!akademikOnly && isValidTab(tabFromQuery) && tabFromQuery !== activeTab) {
+    if (isValidTab(tabFromQuery) && tabFromQuery !== activeTab) {
       setActiveTab(tabFromQuery);
     }
-  }, [tabFromQuery, akademikOnly, activeTab]);
+  }, [tabFromQuery, activeTab]);
 
-  // Mode submenu: ?tab= dari sidebar Master → sembunyikan tab bar, tampilkan konten tab itu saja.
-  const isSubmenu = !akademikOnly && isValidTab(tabFromQuery);
+  // Mode submenu (permanen, semua role): sembunyikan tab bar, tampilkan konten tab aktif langsung.
+  const isSubmenu = true;
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [prodis, setProdis] = useState<Prodi[]>([]);
   const [students, setStudents] = useState<MasterStudent[]>([]);
@@ -910,9 +919,9 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
 
   return (
     <div className="space-y-6">
-      {/* Tab navigation — disembunyikan saat mode submenu (?tab= dari sidebar Master).
-          Di mode submenu, sidebar submenu (Fakultas/Prodi/Mahasiswa/Dosen) jadi navigasinya. */}
-      {!isSubmenu && (
+      {/* Tab navigation — disembunyikan visual saat mode submenu (sidebar submenu jadi navigasinya).
+          Tetap di DOM agar keyboard/a11y & test tidak kehilangan akses. */}
+      <div className={isSubmenu ? 'sr-only' : ''}>
         <div className="bg-white rounded-lg shadow-sm border-b">
           <nav className="flex -mb-px" role="tablist">
             {!akademikOnly && (
@@ -991,18 +1000,20 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
             >
               Ruangan
             </button>
-            <button
-              role="tab"
-              aria-selected={activeTab === 'prodi-akademik'}
-              onClick={() => setActiveTab('prodi-akademik')}
-              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === 'prodi-akademik'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Prodi
-            </button>
+            {akademikOnly && (
+              <button
+                role="tab"
+                aria-selected={activeTab === 'prodi-akademik'}
+                onClick={() => setActiveTab('prodi-akademik')}
+                className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === 'prodi-akademik'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Prodi
+              </button>
+            )}
             <button
               role="tab"
               aria-selected={activeTab === 'courses'}
@@ -1017,7 +1028,7 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
             </button>
           </nav>
         </div>
-      )}
+      </div>
 
       {error && <FormAlert>{error}</FormAlert>}
       {success && (
