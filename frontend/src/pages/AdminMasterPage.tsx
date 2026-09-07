@@ -40,7 +40,6 @@ import type {
   Room,
   CreateRoomInput,
   Course,
-  CreateCourseInput,
   SemesterOption,
 } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
@@ -112,9 +111,12 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
   >(isValidTab(tabFromQuery) ? tabFromQuery : akademikOnly ? 'rooms' : 'faculties');
 
   // Sinkron: sidebar submenu memakai ?tab=... — saat berubah, ikuti tab tsb.
+  // Sekaligus reset pesan error/sukses agar tidak bocor ke tab lain.
   useEffect(() => {
     if (isValidTab(tabFromQuery) && tabFromQuery !== activeTab) {
       setActiveTab(tabFromQuery);
+      setError(null);
+      setSuccess(null);
     }
   }, [tabFromQuery, activeTab]);
 
@@ -222,11 +224,11 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
   });
   const [editingAkademikProdiId, setEditingAkademikProdiId] = useState<number | null>(null);
 
-  // Form Mata Kuliah
-  const [courseForm, setCourseForm] = useState<CreateCourseInput>({
+  // Form Mata Kuliah — credits disimpan sebagai string agar bisa dikosongkan saat mengetik
+  const [courseForm, setCourseForm] = useState({
     code: '',
     name: '',
-    credits: 3,
+    credits: '3',
     description: '',
     prodiId: 0,
     semesterId: 0,
@@ -836,7 +838,7 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
       setCourseForm({
         code: c.code,
         name: c.name,
-        credits: c.credits,
+        credits: String(c.credits),
         description: c.description ?? '',
         prodiId: c.prodiId ?? 0,
         semesterId: 0,
@@ -844,7 +846,14 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
       setCourseFacultyId(c.facultyId ?? 0);
       setEditingCourseId(c.id);
     } else {
-      setCourseForm({ code: '', name: '', credits: 3, description: '', prodiId: 0, semesterId: 0 });
+      setCourseForm({
+        code: '',
+        name: '',
+        credits: '3',
+        description: '',
+        prodiId: 0,
+        semesterId: 0,
+      });
       setCourseFacultyId(akademikOnly ? (adminFacultyId ?? 0) : 0);
       setEditingCourseId(null);
     }
@@ -860,21 +869,40 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
       if (editingCourseId) {
         await updateCourse(editingCourseId, {
           name: courseForm.name,
-          credits: courseForm.credits,
+          credits: Number(courseForm.credits),
           description: courseForm.description || undefined,
           prodiId: courseForm.prodiId || undefined,
         });
         setSuccess('Mata kuliah berhasil diupdate');
       } else {
         if (!courseForm.prodiId || !courseForm.semesterId) {
-          setError('Fakultas, Program Studi, dan Semester wajib diisi');
+          setError('Program Studi dan Semester wajib diisi');
           setSaving(false);
           return;
         }
-        await createCourse(courseForm);
+        if (!courseForm.credits || Number(courseForm.credits) < 1) {
+          setError('SKS wajib diisi minimal 1');
+          setSaving(false);
+          return;
+        }
+        await createCourse({
+          code: courseForm.code,
+          name: courseForm.name,
+          credits: Number(courseForm.credits),
+          description: courseForm.description || undefined,
+          prodiId: courseForm.prodiId,
+          semesterId: courseForm.semesterId,
+        });
         setSuccess('Mata kuliah berhasil dibuat');
       }
-      setCourseForm({ code: '', name: '', credits: 3, description: '', prodiId: 0, semesterId: 0 });
+      setCourseForm({
+        code: '',
+        name: '',
+        credits: '3',
+        description: '',
+        prodiId: 0,
+        semesterId: 0,
+      });
       setCourseFacultyId(0);
       setEditingCourseId(null);
       setModalTab(null);
@@ -913,7 +941,6 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
     setEditingAkademikProdiId(null);
     setEditingCourseId(null);
   };
-
   const inputCls =
     'w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500';
 
@@ -1876,6 +1903,21 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                   (editingAkademikProdiId ? 'Edit Prodi' : 'Tambah Prodi')}
                 {modalTab === 'courses' &&
                   (editingCourseId ? 'Edit Mata Kuliah' : 'Tambah Mata Kuliah')}
+                {akademikOnly &&
+                  (modalTab === 'rooms' ||
+                    modalTab === 'prodi-akademik' ||
+                    modalTab === 'courses') && (
+                    <span className="text-slate-500 text-sm font-normal">
+                      {' '}
+                      pada Fakultas{' '}
+                      <span className="font-medium text-slate-700">
+                        {adminFaculties
+                          .find((f) => f.id === adminFacultyId)
+                          ?.name?.replace(/^Fakultas\s+/i, '') ??
+                          (user?.adminFacultyCode ? user.adminFacultyCode : '—')}
+                      </span>
+                    </span>
+                  )}
               </h3>
               <button
                 onClick={closeModal}
@@ -2385,7 +2427,33 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
             {/* Form Ruangan */}
             {modalTab === 'rooms' && (
               <form onSubmit={handleRoomSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  className={`grid grid-cols-1 gap-4 ${!akademikOnly ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}
+                >
+                  {!akademikOnly && (
+                    <div>
+                      <label
+                        htmlFor="room-faculty"
+                        className="block text-sm font-medium text-slate-700 mb-1"
+                      >
+                        Fakultas *
+                      </label>
+                      <select
+                        id="room-faculty"
+                        value={roomForm.facultyCode}
+                        onChange={(e) => setRoomForm({ ...roomForm, facultyCode: e.target.value })}
+                        className={inputCls}
+                        required
+                      >
+                        <option value="">Pilih Fakultas</option>
+                        {adminFaculties.map((f) => (
+                          <option key={f.code} value={f.code}>
+                            {f.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label
                       htmlFor="room-code"
@@ -2451,48 +2519,18 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                       required
                     />
                   </div>
-                  <div>
-                    <label
-                      htmlFor="room-faculty"
-                      className="block text-sm font-medium text-slate-700 mb-1"
-                    >
-                      Fakultas *
+                  <div className="flex items-center">
+                    <label htmlFor="room-active" className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        id="room-active"
+                        type="checkbox"
+                        checked={roomForm.isActive}
+                        onChange={(e) => setRoomForm({ ...roomForm, isActive: e.target.checked })}
+                        className="h-4 w-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-slate-700">Aktif</span>
                     </label>
-                    <select
-                      id="room-faculty"
-                      value={roomForm.facultyCode}
-                      onChange={(e) => setRoomForm({ ...roomForm, facultyCode: e.target.value })}
-                      className={`${inputCls} ${akademikOnly ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                      required
-                      disabled={akademikOnly}
-                    >
-                      <option value="">Pilih Fakultas</option>
-                      {adminFaculties
-                        .filter((f) => f.isActive)
-                        .map((f) => (
-                          <option key={f.code} value={f.code}>
-                            {f.code} - {f.name}
-                          </option>
-                        ))}
-                    </select>
-                    {akademikOnly && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        Fakultas otomatis mengikuti akun admin akademik
-                      </p>
-                    )}
                   </div>
-                </div>
-                <div className="flex items-center">
-                  <label htmlFor="room-active" className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      id="room-active"
-                      type="checkbox"
-                      checked={roomForm.isActive}
-                      onChange={(e) => setRoomForm({ ...roomForm, isActive: e.target.checked })}
-                      className="h-4 w-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500"
-                    />
-                    <span className="text-sm text-slate-700">Aktif</span>
-                  </label>
                 </div>
                 <div className="flex justify-end gap-2">
                   <button
@@ -2570,43 +2608,6 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label
-                      htmlFor="ak-prodi-faculty"
-                      className="block text-sm font-medium text-slate-700 mb-1"
-                    >
-                      Fakultas *
-                    </label>
-                    <select
-                      id="ak-prodi-faculty"
-                      value={akademikProdiForm.facultyCode}
-                      onChange={(e) =>
-                        setAkademikProdiForm({
-                          ...akademikProdiForm,
-                          facultyCode: e.target.value,
-                        })
-                      }
-                      className={`${inputCls} ${
-                        akademikOnly ? 'bg-slate-100 cursor-not-allowed' : ''
-                      }`}
-                      required
-                      disabled={akademikOnly}
-                    >
-                      <option value="">Pilih Fakultas</option>
-                      {adminFaculties
-                        .filter((f) => f.isActive)
-                        .map((f) => (
-                          <option key={f.code} value={f.code}>
-                            {f.code} - {f.name}
-                          </option>
-                        ))}
-                    </select>
-                    {akademikOnly && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        Fakultas otomatis mengikuti akun admin akademik
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label
                       htmlFor="ak-prodi-degree"
                       className="block text-sm font-medium text-slate-700 mb-1"
                     >
@@ -2631,8 +2632,6 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                       <option value="D4">D4</option>
                     </select>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="ak-prodi-accreditation"
@@ -2748,44 +2747,33 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label
-                      htmlFor="course-faculty"
-                      className="block text-sm font-medium text-slate-700 mb-1"
-                    >
-                      Fakultas *
-                    </label>
-                    <select
-                      id="course-faculty"
-                      value={courseFacultyId}
-                      onChange={(e) => {
-                        setCourseFacultyId(Number(e.target.value));
-                        setCourseForm({ ...courseForm, prodiId: 0 });
-                      }}
-                      className={inputCls}
-                      required
-                      disabled={akademikOnly}
-                    >
-                      <option value={0}>
-                        {akademikOnly
-                          ? (adminFaculties.find((f) => f.id === adminFacultyId)?.name ??
-                            'Fakultas akun')
-                          : 'Pilih Fakultas'}
-                      </option>
-                      {!akademikOnly &&
-                        faculties.map((f) => (
+                <div
+                  className={`grid grid-cols-1 gap-4 ${!akademikOnly ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}
+                >
+                  {!akademikOnly && (
+                    <div>
+                      <label
+                        htmlFor="course-faculty"
+                        className="block text-sm font-medium text-slate-700 mb-1"
+                      >
+                        Fakultas *
+                      </label>
+                      <select
+                        id="course-faculty"
+                        value={courseFacultyId}
+                        onChange={(e) => setCourseFacultyId(Number(e.target.value))}
+                        className={inputCls}
+                        required
+                      >
+                        <option value={0}>Pilih Fakultas</option>
+                        {adminFaculties.map((f) => (
                           <option key={f.id} value={f.id}>
-                            {f.name} ({f.code})
+                            {f.name}
                           </option>
                         ))}
-                    </select>
-                    {akademikOnly && (
-                      <p className="mt-1 text-xs text-slate-500">
-                        Fakultas mengikuti akun Anda (tidak bisa diubah)
-                      </p>
-                    )}
-                  </div>
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label
                       htmlFor="course-prodi"
@@ -2850,10 +2838,9 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                       type="number"
                       min={1}
                       max={6}
+                      inputMode="numeric"
                       value={courseForm.credits}
-                      onChange={(e) =>
-                        setCourseForm({ ...courseForm, credits: Number(e.target.value) })
-                      }
+                      onChange={(e) => setCourseForm({ ...courseForm, credits: e.target.value })}
                       className={inputCls}
                       required
                     />
@@ -2878,30 +2865,6 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                     className={inputCls}
                   />
                 </div>
-                {akademikOnly && (
-                  <div>
-                    <label
-                      htmlFor="course-faculty"
-                      className="block text-sm font-medium text-slate-700 mb-1"
-                    >
-                      Fakultas
-                    </label>
-                    <input
-                      id="course-faculty"
-                      type="text"
-                      value={
-                        adminFaculties.find((f) => f.id === adminFacultyId)?.name ??
-                        adminFaculties[0]?.name ??
-                        ''
-                      }
-                      readOnly
-                      className={`${inputCls} bg-slate-100 cursor-not-allowed`}
-                    />
-                    <p className="text-xs text-slate-500 mt-1">
-                      Fakultas otomatis mengikuti akun admin akademik
-                    </p>
-                  </div>
-                )}
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"

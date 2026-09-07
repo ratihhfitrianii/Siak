@@ -1383,12 +1383,11 @@ describe('AdminMasterPage (Prodi Admin Akademik)', () => {
     await screen.findByText('Fakultas Teknik');
     clickTab('Prodi');
 
-    // Admin akademik: tidak ada dropdown pilih fakultas
+    // Admin akademik: tidak ada dropdown pilih fakultas — fakultas auto dari akun
     await screen.findByText('Belum ada data program studi pada fakultas ini.');
     fireEvent.click(screen.getByRole('button', { name: 'Tambah Prodi' }));
     fireEvent.change(screen.getByLabelText('Kode Prodi *'), { target: { value: 'TK' } });
     fireEvent.change(screen.getByLabelText('Nama Prodi *'), { target: { value: 'Teknik Kimia' } });
-    fireEvent.change(screen.getByLabelText('Fakultas *'), { target: { value: 'FT' } });
     fireEvent.click(screen.getByRole('button', { name: 'Simpan Prodi' }));
 
     await waitFor(() => {
