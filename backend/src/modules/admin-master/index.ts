@@ -1273,7 +1273,11 @@ export function createAdminMasterRouter(): Router {
               [data.prodiId],
             );
             if (prodiCheck.rows.length === 0) {
-              throw new AppError('VALIDATION_ERROR', 'Program studi tidak ditemukan atau tidak aktif', 400);
+              throw new AppError(
+                'VALIDATION_ERROR',
+                'Program studi tidak ditemukan atau tidak aktif',
+                400,
+              );
             }
           }
           if (data.semesterId != null) {
@@ -1297,7 +1301,12 @@ export function createAdminMasterRouter(): Router {
                    semester_number = COALESCE($3, semester_number),
                    updated_at = now()
                WHERE id = $4`,
-              [data.prodiId ?? null, data.semesterId ?? null, data.semesterNumber ?? null, cur.rows[0].id],
+              [
+                data.prodiId ?? null,
+                data.semesterId ?? null,
+                data.semesterNumber ?? null,
+                cur.rows[0].id,
+              ],
             );
           }
         }

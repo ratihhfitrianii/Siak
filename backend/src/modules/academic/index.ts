@@ -480,7 +480,11 @@ export function createAcademicRouter(): Router {
           [data.prodiId],
         );
         if (prodiCheck.rows.length === 0) {
-          throw new AppError('VALIDATION_ERROR', 'Program studi tidak ditemukan atau tidak aktif', 400);
+          throw new AppError(
+            'VALIDATION_ERROR',
+            'Program studi tidak ditemukan atau tidak aktif',
+            400,
+          );
         }
         const semCheck = await pgPool.query('SELECT id FROM semesters WHERE id = $1', [
           data.semesterId,
@@ -509,7 +513,12 @@ export function createAcademicRouter(): Router {
             tableName: 'courses',
             recordId: Number(course.id),
             action: 'INSERT',
-            newValues: { code: data.code, name: data.name, credits: data.credits, prodiId: data.prodiId },
+            newValues: {
+              code: data.code,
+              name: data.name,
+              credits: data.credits,
+              prodiId: data.prodiId,
+            },
           });
           res.status(201).json({
             success: true,
