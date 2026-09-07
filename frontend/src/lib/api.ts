@@ -85,7 +85,7 @@ export class NetworkError extends Error {
 }
 
 /** Batas waktu tiap request (ms) — cegah "loading terus" saat server lambat/hang (AC-08). */
-const DEFAULT_TIMEOUT_MS = 15_000;
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 async function fetchWithTimeout(
   input: RequestInfo | URL,
@@ -97,7 +97,9 @@ async function fetchWithTimeout(
     return await fetch(input, { ...init, signal: controller.signal });
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new NetworkError('Koneksi ke server terlalu lambat. Coba lagi.');
+      throw new NetworkError(
+        'Server sedang memulai ulang (cold start). Silakan coba lagi dalam beberapa detik.',
+      );
     }
     throw err;
   } finally {
