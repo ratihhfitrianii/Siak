@@ -2503,3 +2503,5 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 - Login resolver sudah support email > NIM > NIK > NIDN (deterministik `UNION ALL` + `match_priority`).
 - Password awal NIM/NIK di-hash bcrypt cost 12 (sama `reset-admin-password.ts`).
 - Lookup master data memastikan NIM/NIK sudah terdaftar (impor CSV / tambah manual Master Data dulu).
+- Users (admin sistem): kolom Email diganti NIM/NIK (join students/lecturers), tambah kolom Fakultas, search semua kolom (nama/email/NIM/NIK/prodi/fakultas), sort icon tiap kolom (client-side).
+- Form tambah mahasiswa admin sistem: tambah dropdown Fakultas (filter Prodi).

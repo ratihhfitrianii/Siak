@@ -271,7 +271,17 @@ export function createRbacRouter(): Router {
         }
         if (search) {
           params.push(`%${search}%`);
-          where.push(`(u.full_name ILIKE $${params.length} OR u.email ILIKE $${params.length})`);
+          // Cari semua kolom: nama, email, NIM/NIK, prodi, fakultas.
+          where.push(
+            `(u.full_name ILIKE $${params.length}
+              OR u.email ILIKE $${params.length}
+              OR s.nim ILIKE $${params.length}
+              OR l.nik ILIKE $${params.length}
+              OR l.nidn ILIKE $${params.length}
+              OR p.name ILIKE $${params.length}
+              OR f.name ILIKE $${params.length}
+              OR p.code ILIKE $${params.length})`,
+          );
         }
 
         const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
@@ -279,8 +289,12 @@ export function createRbacRouter(): Router {
 
         const countResult = await pgPool.query(
           `SELECT count(*)::int AS total
-         FROM users u JOIN roles r ON u.role_id = r.id
-         ${whereSql}`,
+        FROM users u JOIN roles r ON u.role_id = r.id
+        LEFT JOIN lecturers l ON l.user_id = u.id
+        LEFT JOIN students s ON s.user_id = u.id
+        LEFT JOIN prodis p ON p.id = COALESCE(l.prodi_id, s.prodi_id)
+        LEFT JOIN faculties f ON f.id = p.faculty_id
+        ${whereSql}`,
           params,
         );
 
@@ -288,11 +302,16 @@ export function createRbacRouter(): Router {
           `SELECT u.id, u.email, u.full_name, u.is_wali, u.is_active, u.last_login_at, u.created_at,
                         u.admin_faculty_code, u.is_kaprodi, u.is_wakil_kaprodi,
                         r.code AS role_code, r.name AS role_name,
-                        l.prodi_id, p.code AS prodi_code, p.name AS prodi_name
+                        s.nim,
+                        l.nik, l.nidn,
+                        l.prodi_id, p.code AS prodi_code, p.name AS prodi_name,
+                        f.name AS faculty_name
                   FROM users u
                   JOIN roles r ON u.role_id = r.id
                   LEFT JOIN lecturers l ON l.user_id = u.id
-                  LEFT JOIN prodis p ON p.id = l.prodi_id
+                  LEFT JOIN students s ON s.user_id = u.id
+                  LEFT JOIN prodis p ON p.id = COALESCE(l.prodi_id, s.prodi_id)
+                  LEFT JOIN faculties f ON f.id = p.faculty_id
                   ${whereSql}
                   ORDER BY u.id
                   LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
@@ -306,6 +325,8 @@ export function createRbacRouter(): Router {
           isKaprodi: row.is_kaprodi,
           isWakilKaprodi: row.is_wakil_kaprodi,
           prodi_id: row.prodi_id != null ? Number(row.prodi_id) : null,
+          nim: row.nim ?? null,
+          nik: row.nik ?? null,
         }));
 
         res.json({

@@ -111,10 +111,12 @@ export function createAdminMasterRouter(): Router {
         const listResult = await pgPool.query(
           `SELECT s.id, s.nim, u.full_name AS "fullName", u.email, u.is_active AS "userActive",
                   p.code AS "prodiCode", p.name AS "prodiName",
+                  f.code AS "facultyCode",
                   ay.code AS angkatan, s.status
            FROM students s
            JOIN users u ON u.id = s.user_id
            JOIN prodis p ON p.id = s.prodi_id
+           JOIN faculties f ON f.id = p.faculty_id
            JOIN academic_years ay ON ay.id = s.academic_year_id
            ${whereSql}
            ORDER BY s.nim

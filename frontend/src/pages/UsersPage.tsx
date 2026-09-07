@@ -71,6 +71,8 @@ export function UsersPage() {
   const [roleFilter, setRoleFilter] = useState('');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortKey, setSortKey] = useState<string>('id');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -130,6 +132,33 @@ export function UsersPage() {
   }, []);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
+
+  // Sorting kolom (client-side pada halaman saat ini) — ikon ▲/▼ tiap kolom.
+  const sortedItems = useMemo(() => {
+    const arr = [...items];
+    arr.sort((a, b) => {
+      // Kolom gabungan NIM/NIK: sort berdasarkan identitas (nim atau nik).
+      if (sortKey === 'nimnik') {
+        const av = (a.nim ?? a.nik ?? '').toLowerCase();
+        const bv = (b.nim ?? b.nik ?? '').toLowerCase();
+        const cmp = av.localeCompare(bv, 'id');
+        return sortDir === 'asc' ? cmp : -cmp;
+      }
+      const av = String(a[sortKey as keyof UserListItem] ?? '');
+      const bv = String(b[sortKey as keyof UserListItem] ?? '');
+      const cmp =
+        !isNaN(Number(av)) && !isNaN(Number(bv))
+          ? Number(av) - Number(bv)
+          : av.localeCompare(bv, 'id');
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return arr;
+  }, [items, sortKey, sortDir]);
+
+  const toggleSort = (key: string) => {
+    setSortDir((d) => (sortKey === key && d === 'asc' ? 'desc' : 'asc'));
+    setSortKey(key);
+  };
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -336,7 +365,7 @@ export function UsersPage() {
             setSearch(e.target.value);
             setPage(1);
           }}
-          placeholder="Cari nama atau email…"
+          placeholder="Cari nama, email, NIM/NIK, prodi, atau fakultas…"
           aria-label="Cari pengguna"
           className="w-full sm:w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
@@ -382,13 +411,40 @@ export function UsersPage() {
               <thead className="border-b border-slate-200 bg-slate-50 text-left">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    Nama
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('fullName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Nama {sortKey === 'fullName' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+                    </button>
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    Email
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('nimnik')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      NIM/NIK {sortKey === 'nimnik' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+                    </button>
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    Peran
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('roleName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Peran {sortKey === 'roleName' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+                    </button>
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-slate-600">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('facultyName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Fakultas {sortKey === 'facultyName' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+                    </button>
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
                     Wali
@@ -397,7 +453,13 @@ export function UsersPage() {
                     Jabatan Prodi
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    Status
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('isActive')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Status {sortKey === 'isActive' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+                    </button>
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
                     Aksi
@@ -405,22 +467,25 @@ export function UsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {items.length === 0 ? (
+                {sortedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
+                    <td colSpan={8} className="px-4 py-10 text-center text-slate-500">
                       Tidak ada pengguna yang cocok.
                     </td>
                   </tr>
                 ) : (
-                  items.map((u) => (
+                  sortedItems.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium text-slate-900">{u.fullName}</td>
-                      <td className="px-4 py-3 text-slate-600">{u.email}</td>
+                      <td className="px-4 py-3 font-mono text-slate-600">
+                        {u.nim ?? u.nik ?? '—'}
+                      </td>
                       <td className="px-4 py-3">
                         <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">
                           {ROLE_LABEL[u.roleCode] ?? u.roleCode}
                         </span>
                       </td>
+                      <td className="px-4 py-3 text-slate-600">{u.facultyName ?? '—'}</td>
                       <td className="px-4 py-3 text-slate-600">{u.isWali ? 'Ya' : '—'}</td>
                       <td className="px-4 py-3">
                         {u.isKaprodi ? (

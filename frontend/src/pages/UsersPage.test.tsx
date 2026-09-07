@@ -34,6 +34,9 @@ const SNAKE_USER = (
   role_name: string;
   prodi_id: number | null;
   prodi_name: string | null;
+  nim: string | null;
+  nik: string | null;
+  faculty_name: string | null;
 } => ({
   id,
   email,
@@ -48,6 +51,9 @@ const SNAKE_USER = (
   role_name: roleCode.replace('_', ' '),
   prodi_id: null,
   prodi_name: null,
+  nim: null,
+  nik: null,
+  faculty_name: null,
 });
 
 interface UsersMocks {
@@ -63,8 +69,16 @@ interface UsersMocks {
 
 function mockUsersRoutes({
   items = [
-    SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa'),
-    SNAKE_USER(2, 'Bu Rina', 'rina@kampus.ac.id', 'dosen'),
+    {
+      ...SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa'),
+      nim: '22051001',
+      faculty_name: 'Fakultas Teknik',
+    },
+    {
+      ...SNAKE_USER(2, 'Bu Rina', 'rina@kampus.ac.id', 'dosen'),
+      nik: '198001002',
+      faculty_name: 'Fakultas Teknik',
+    },
   ],
   total = 2,
   onCreate,
@@ -190,8 +204,10 @@ describe('UsersPage (T1.11c)', () => {
       expect(screen.getByText('Andi')).toBeInTheDocument();
     });
     expect(screen.getByText('Andi')).toBeInTheDocument();
-    expect(screen.getByText('andi@kampus.ac.id')).toBeInTheDocument();
+    expect(screen.getByText('22051001')).toBeInTheDocument();
     expect(screen.getByText('Bu Rina')).toBeInTheDocument();
+    expect(screen.getByText('198001002')).toBeInTheDocument();
+    expect(screen.getAllByText('Fakultas Teknik').length).toBeGreaterThanOrEqual(1);
     // badge peran (ada juga <option> filter dengan label sama → gunakan kuantitas)
     expect(screen.getAllByText('Mahasiswa').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Dosen').length).toBeGreaterThanOrEqual(1);
@@ -484,6 +500,9 @@ describe('UsersPage (T1.11c)', () => {
           created_at: '2026-01-01T00:00:00Z',
           prodi_id: null,
           prodi_name: null,
+          nim: null,
+          nik: null,
+          faculty_name: null,
         },
       ],
       onRole,
@@ -528,6 +547,9 @@ describe('UsersPage (T1.11c)', () => {
           created_at: '2026-01-01T00:00:00Z',
           prodi_id: 10,
           prodi_name: 'Teknik Informatika',
+          nim: null,
+          nik: null,
+          faculty_name: null,
         },
       ],
       onRole,

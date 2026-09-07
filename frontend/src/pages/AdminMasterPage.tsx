@@ -193,6 +193,8 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
     email: '',
   });
   const [editingStudentId, setEditingStudentId] = useState<number | null>(null);
+  // Filter fakultas di form tambah/edit mahasiswa admin sistem (tidak dikirim ke backend).
+  const [studentFacultyCode, setStudentFacultyCode] = useState('');
 
   // Form Lecturer
   const [lecturerForm, setLecturerForm] = useState<CreateMasterLecturerInput>({
@@ -585,9 +587,11 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
         angkatan: s.angkatan,
         email: s.email,
       });
+      setStudentFacultyCode(s.facultyCode ?? '');
       setEditingStudentId(s.id);
     } else {
       setStudentForm({ nim: '', fullName: '', prodiCode: '', angkatan: '', email: '' });
+      setStudentFacultyCode('');
       setEditingStudentId(null);
     }
     setModalTab('students');
@@ -2226,6 +2230,33 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label
+                      htmlFor="student-faculty"
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                    >
+                      Fakultas *
+                    </label>
+                    <select
+                      id="student-faculty"
+                      value={studentFacultyCode}
+                      onChange={(e) => {
+                        setStudentFacultyCode(e.target.value);
+                        setStudentForm({ ...studentForm, prodiCode: '' });
+                      }}
+                      className={inputCls}
+                      required
+                    >
+                      <option value="">Pilih Fakultas</option>
+                      {faculties
+                        .filter((f) => f.isActive)
+                        .map((f) => (
+                          <option key={f.code} value={f.code}>
+                            {f.code} - {f.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
                       htmlFor="student-prodi"
                       className="block text-sm font-medium text-slate-700 mb-1"
                     >
@@ -2239,10 +2270,15 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                       }
                       className={inputCls}
                       required
+                      disabled={!studentFacultyCode}
                     >
                       <option value="">Pilih Prodi</option>
                       {prodis
-                        .filter((p) => p.isActive)
+                        .filter(
+                          (p) =>
+                            p.isActive &&
+                            (!studentFacultyCode || p.facultyCode === studentFacultyCode),
+                        )
                         .map((p) => (
                           <option key={p.code} value={p.code}>
                             {p.code} - {p.name}

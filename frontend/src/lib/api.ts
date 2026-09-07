@@ -354,6 +354,9 @@ export async function listUsers(params?: PaginationParams): Promise<UserListResp
       prodi_id?: number | string | null;
       prodi_code?: string | null;
       prodi_name?: string | null;
+      nim?: string | null;
+      nik?: string | null;
+      faculty_name?: string | null;
     }>;
     pagination: { page: number; limit: number; total: number };
   }>(`/users${qs ? `?${qs}` : ''}`);
@@ -373,6 +376,9 @@ export async function listUsers(params?: PaginationParams): Promise<UserListResp
       prodiId: r.prodi_id != null ? Number(r.prodi_id) : null,
       prodiCode: r.prodi_code ?? null,
       prodiName: r.prodi_name ?? null,
+      nim: r.nim ?? null,
+      nik: r.nik ?? null,
+      facultyName: r.faculty_name ?? null,
     })),
     pagination: raw.pagination,
   };
@@ -1766,7 +1772,14 @@ export async function listMasterStudents(params: {
   if (params.search) qs.set('search', params.search);
   if (params.prodi) qs.set('prodi', params.prodi);
   const q = qs.toString();
-  return apiRequest<MasterListResponse<MasterStudent>>(`/admin-master/students${q ? `?${q}` : ''}`);
+  const raw = await apiRequest<{
+    items: MasterStudent[];
+    pagination: { page: number; limit: number; total: number };
+  }>(`/admin-master/students${q ? `?${q}` : ''}`);
+  return {
+    items: raw.items.map((s) => ({ ...s, facultyCode: s.facultyCode ?? null })),
+    pagination: raw.pagination,
+  };
 }
 
 /** GET /admin-master/lecturers — list master dosen (pagination + filter). */

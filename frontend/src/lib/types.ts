@@ -197,6 +197,12 @@ export interface UserListItem {
   prodiId?: number | null;
   prodiCode?: string | null;
   prodiName?: string | null;
+  /** NIM untuk role mahasiswa (dari JOIN students di GET /users). */
+  nim?: string | null;
+  /** NIK untuk role dosen (dari JOIN lecturers di GET /users). */
+  nik?: string | null;
+  /** Nama fakultas (dari JOIN faculties via prodi di GET /users). */
+  facultyName?: string | null;
 }
 
 export interface UserListResponse {
@@ -286,6 +292,7 @@ export interface MasterStudent {
   userActive: boolean;
   prodiCode: string;
   prodiName: string;
+  facultyCode?: string | null;
   angkatan: string;
   status: string;
 }

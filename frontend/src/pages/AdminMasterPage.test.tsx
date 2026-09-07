@@ -145,6 +145,7 @@ const STUDENTS = [
     userActive: true,
     prodiCode: 'TI',
     prodiName: 'Teknik Informatika',
+    facultyCode: 'FT',
     angkatan: '2024/2025',
     status: 'aktif',
   },
@@ -156,6 +157,7 @@ const STUDENTS = [
     userActive: true,
     prodiCode: 'SI',
     prodiName: 'Sistem Informasi',
+    facultyCode: 'FT',
     angkatan: '2024/2025',
     status: 'aktif',
   },
@@ -500,6 +502,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     fireEvent.change(screen.getByLabelText('Nama Lengkap *'), {
       target: { value: 'Candra Kirana' },
     });
+    fireEvent.change(screen.getByLabelText('Fakultas *'), { target: { value: 'FT' } });
     fireEvent.change(screen.getByLabelText('Program Studi *'), { target: { value: 'TI' } });
     fireEvent.change(screen.getByLabelText('Angkatan *'), { target: { value: '2025/2026' } });
 
@@ -592,6 +595,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     fireEvent.change(screen.getByLabelText('Nama Lengkap *'), {
       target: { value: 'Candra Kirana' },
     });
+    fireEvent.change(screen.getByLabelText('Fakultas *'), { target: { value: 'FT' } });
     fireEvent.change(screen.getByLabelText('Program Studi *'), { target: { value: 'TI' } });
     fireEvent.change(screen.getByLabelText('Angkatan *'), { target: { value: '2025/2026' } });
 
