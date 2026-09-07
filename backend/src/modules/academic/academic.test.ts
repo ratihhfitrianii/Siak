@@ -165,7 +165,7 @@ describe('Academic module (T1.7)', () => {
       const res = await request(app)
         .post('/api/v1/courses')
         .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
-        .send({ code, name: 'Mata Kuliah Test', credits: 3 });
+        .send({ code, name: 'Mata Kuliah Test', credits: 3, prodiId: 1, semesterId: 1 });
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.data.code).toBe(code);
