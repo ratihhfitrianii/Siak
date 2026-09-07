@@ -922,6 +922,47 @@ describe('Modul Admin Master Data (#16)', () => {
         .expect(404);
     });
 
+    it('PUT pindah prodi (prodiId) → 200 + curricula diupdate', async () => {
+      // Kursus sudah ada (courseId dari test sebelumnya); pindah ke prodi 1, semester 1
+      const res = await request(app)
+        .put(`/api/v1/admin-master/courses/${courseId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ prodiId: 1, semesterId: 1 })
+        .expect(200);
+      expect(res.body.data.name).toBe('Kursus Test AM Updated');
+      const cur = await pgPool.query(
+        'SELECT prodi_id, semester_id FROM curricula WHERE course_id = $1 ORDER BY id LIMIT 1',
+        [courseId],
+      );
+      if (cur.rows.length > 0) {
+        expect(Number(cur.rows[0].prodi_id)).toBe(1);
+      }
+    });
+
+    it('PUT prodi tidak ada → 400', async () => {
+      await request(app)
+        .put(`/api/v1/admin-master/courses/${courseId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ prodiId: 32766 })
+        .expect(400);
+    });
+
+    it('PUT body tidak valid (name kosong) → 400', async () => {
+      await request(app)
+        .put(`/api/v1/admin-master/courses/${courseId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: '' })
+        .expect(400);
+    });
+
+    it('PUT semester tidak ada → 400', async () => {
+      await request(app)
+        .put(`/api/v1/admin-master/courses/${courseId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ semesterId: 32766 })
+        .expect(400);
+    });
+
     it('DELETE → 200 nonaktif', async () => {
       const res = await request(app)
         .delete(`/api/v1/admin-master/courses/${courseId}`)

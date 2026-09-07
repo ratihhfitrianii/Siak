@@ -473,7 +473,16 @@ export function createAcademicRouter(): Router {
     authorize('course.manage'),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const data = courseSchema.parse(req.body);
+        const parsed = courseSchema.safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data mata kuliah tidak valid', 400, {
+            issues: parsed.error.issues.map((i) => ({
+              path: i.path.join('.'),
+              message: i.message,
+            })),
+          });
+        }
+        const data = parsed.data;
         // Validasi prodi & semester ada.
         const prodiCheck = await pgPool.query(
           'SELECT id FROM prodis WHERE id = $1 AND is_active = true',

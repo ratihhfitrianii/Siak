@@ -160,6 +160,15 @@ describe('Academic module (T1.7)', () => {
       expect(Array.isArray(res.body.data.items)).toBe(true);
     });
 
+    it('GET /api/v1/courses?facultyId=&search= — filter fakultas & pencarian', async () => {
+      const res = await request(app)
+        .get('/api/v1/courses?facultyId=1&search=test')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .expect(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data.items)).toBe(true);
+    });
+
     it('POST /api/v1/courses — admin_akademik boleh create (course.manage permission)', async () => {
       const code = `C${Date.now().toString().slice(-8)}`;
       const res = await request(app)
@@ -169,6 +178,27 @@ describe('Academic module (T1.7)', () => {
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.data.code).toBe(code);
+    });
+
+    it('POST /api/v1/courses — prodiId/semesterId wajib (validasi baru)', async () => {
+      const code = `C${Date.now().toString().slice(-8)}`;
+      const res = await request(app)
+        .post('/api/v1/courses')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .send({ code, name: 'Mata Kuliah Tanpa Prodi', credits: 3 });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('POST /api/v1/courses — prodi tidak ada ditolak', async () => {
+      const code = `C${Date.now().toString().slice(-8)}`;
+      const res = await request(app)
+        .post('/api/v1/courses')
+        .set('Authorization', `Bearer ${tokenByRole.get('admin_akademik')}`)
+        .send({ code, name: 'Mata Kuliah X', credits: 3, prodiId: 32766, semesterId: 1 });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      expect(res.body.error.message).toContain('Program studi tidak ditemukan');
     });
   });
 
@@ -186,6 +216,13 @@ describe('Academic module (T1.7)', () => {
 
   // --- KELAS (admin — kelola jadwal) ---
   describe('Kelas (admin — /admin/classes)', () => {
+    afterAll(async () => {
+      // Bersihkan kelas test (room R.TEST / R.CLASH) agar run berikutnya tidak bentrok ruangan.
+      await pgPool.query(
+        `DELETE FROM classes WHERE room IN ('R.TEST', 'R.CLASH') OR class_code LIKE 'Z%' OR class_code LIKE 'Y%' OR class_code LIKE 'W%' OR class_code LIKE 'X%'`,
+      );
+    });
+
     it('GET /api/v1/admin/classes?facultyId= — admin_akademik lihat daftar kelas', async () => {
       const res = await request(app)
         .get('/api/v1/admin/classes?facultyId=1')
