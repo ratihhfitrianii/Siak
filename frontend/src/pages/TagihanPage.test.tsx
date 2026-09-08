@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { TagihanPage } from './TagihanPage';
 import { getKrsAccess, getKrsPeriod, getMyPayments } from '../lib/api';
 import type { MyPayment, KrsAccessResult, KrsPeriod } from '../lib/types';
@@ -102,5 +102,40 @@ describe('TagihanPage', () => {
     render(<TagihanPage />);
 
     expect(await screen.findByText('Gagal memuat tagihan')).toBeInTheDocument();
+  });
+
+  it('klik header kolom → urutan berubah (sort)', async () => {
+    vi.mocked(getKrsPeriod).mockResolvedValue(mockPeriod);
+    vi.mocked(getMyPayments).mockResolvedValue([mockPayment]);
+    vi.mocked(getKrsAccess).mockResolvedValue(mockAccessLunas);
+
+    render(<TagihanPage />);
+    await screen.findByText('SPP Semester Ganjil 2026/2027');
+
+    // Sort by Jumlah (amount) asc: Praktikum (1jt) lalu SPP (4jt)
+    fireEvent.click(screen.getByRole('button', { name: /Jumlah/ }));
+    const rows = screen.getAllByRole('row').slice(1, 3); // two item rows
+    expect(rows[0]).toHaveTextContent('Praktikum');
+    expect(rows[1]).toHaveTextContent('SPP Semester Ganjil 2026/2027');
+
+    // Toggle → desc: SPP dulu
+    fireEvent.click(screen.getByRole('button', { name: /Jumlah/ }));
+    const rowsDesc = screen.getAllByRole('row').slice(1, 3);
+    expect(rowsDesc[0]).toHaveTextContent('SPP Semester Ganjil 2026/2027');
+  });
+
+  it('ketik query → hanya baris cocok (search)', async () => {
+    vi.mocked(getKrsPeriod).mockResolvedValue(mockPeriod);
+    vi.mocked(getMyPayments).mockResolvedValue([mockPayment]);
+    vi.mocked(getKrsAccess).mockResolvedValue(mockAccessLunas);
+
+    render(<TagihanPage />);
+    await screen.findByText('SPP Semester Ganjil 2026/2027');
+
+    fireEvent.change(screen.getByPlaceholderText('Cari semua kolom...'), {
+      target: { value: 'Praktikum' },
+    });
+    expect(screen.getByText('Praktikum')).toBeInTheDocument();
+    expect(screen.queryByText('SPP Semester Ganjil 2026/2027')).not.toBeInTheDocument();
   });
 });

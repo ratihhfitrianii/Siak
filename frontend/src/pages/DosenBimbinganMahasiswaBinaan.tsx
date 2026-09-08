@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { getSkripsiProposals, createSkripsiGuidanceLog, getSkripsiGuidanceLogs } from '../lib/api';
 import type { SkripsiProposal, SkripsiStatus, SkripsiGuidanceLog } from '../lib/types';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
 
@@ -55,8 +56,6 @@ export function DosenBimbinganMahasiswaBinaan() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  // Pencarian (judul/NIM/nama/prodi)
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Catat Bimbingan modal state
   const [catatProposal, setCatatProposal] = useState<SkripsiProposal | null>(null);
@@ -122,17 +121,7 @@ export function DosenBimbinganMahasiswaBinaan() {
     }
   };
 
-  const filteredProposals = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q) return proposals;
-    return proposals.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.nim.toLowerCase().includes(q) ||
-        p.studentName.toLowerCase().includes(q) ||
-        p.prodiName.toLowerCase().includes(q),
-    );
-  }, [proposals, searchTerm]);
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(proposals);
 
   const loadProposals = useCallback(async () => {
     try {
@@ -377,8 +366,8 @@ export function DosenBimbinganMahasiswaBinaan() {
           <input
             id="binaan-search"
             type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Cari judul, NIM, nama mahasiswa, atau prodi..."
             className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
@@ -386,6 +375,57 @@ export function DosenBimbinganMahasiswaBinaan() {
       </div>
 
       {error && <FormAlert>{error}</FormAlert>}
+
+      {/* Sort header for cards */}
+      {proposals.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm p-3 border-b border-slate-100">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+            <span className="font-medium text-slate-700">Urutkan:</span>
+            <button
+              type="button"
+              onClick={() => toggleSort('title')}
+              className="inline-flex items-center gap-1 hover:text-slate-900"
+            >
+              Judul <SortIcon active={sortKey === 'title'} dir={sortDir} />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort('nim')}
+              className="inline-flex items-center gap-1 hover:text-slate-900"
+            >
+              NIM <SortIcon active={sortKey === 'nim'} dir={sortDir} />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort('studentName')}
+              className="inline-flex items-center gap-1 hover:text-slate-900"
+            >
+              Nama <SortIcon active={sortKey === 'studentName'} dir={sortDir} />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort('prodiName')}
+              className="inline-flex items-center gap-1 hover:text-slate-900"
+            >
+              Prodi <SortIcon active={sortKey === 'prodiName'} dir={sortDir} />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort('status')}
+              className="inline-flex items-center gap-1 hover:text-slate-900"
+            >
+              Status <SortIcon active={sortKey === 'status'} dir={sortDir} />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort('updatedAt')}
+              className="inline-flex items-center gap-1 hover:text-slate-900"
+            >
+              Diperbarui <SortIcon active={sortKey === 'updatedAt'} dir={sortDir} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {proposals.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
@@ -407,15 +447,13 @@ export function DosenBimbinganMahasiswaBinaan() {
             Mahasiswa yang proposalnya disetujui akan muncul di sini.
           </p>
         </div>
-      ) : filteredProposals.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-          <p className="text-slate-500">
-            Tidak ada mahasiswa binaan yang cocok dengan pencarian "{searchTerm}".
-          </p>
+          <p className="text-slate-500">Tidak ada mahasiswa binaan yang cocok dengan pencarian.</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredProposals.map((p) => {
+          {filtered.map((p) => {
             const isExpanded = expandedId === p.id;
             const primarySupervisor = p.supervisors?.find((s) => s.isPrimary);
             return (

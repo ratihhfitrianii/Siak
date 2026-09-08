@@ -115,4 +115,31 @@ describe('DosenSalarySlip', () => {
     await screen.findByText('Belum Ada Data');
     expect(screen.getByRole('button', { name: /Download PDF/ })).toBeDisabled();
   });
+
+  it('klik header kolom → urutan berubah (sort)', async () => {
+    const user = userEvent.setup();
+    render(<DosenSalarySlip />);
+    await screen.findByText('Agustus 2026');
+
+    // Sort Total Diterima (netAmount) asc: 5.35jt (September) lalu 5.55jt (Agustus)
+    await user.click(screen.getByRole('button', { name: /Total Diterima/ }));
+    const rows = screen.getAllByRole('row').slice(1); // skip header
+    expect(rows[0]).toHaveTextContent('September 2026');
+    expect(rows[1]).toHaveTextContent('Agustus 2026');
+
+    // Toggle → desc
+    await user.click(screen.getByRole('button', { name: /Total Diterima/ }));
+    const rowsDesc = screen.getAllByRole('row').slice(1);
+    expect(rowsDesc[0]).toHaveTextContent('Agustus 2026');
+  });
+
+  it('ketik query → hanya baris cocok (search)', async () => {
+    const user = userEvent.setup();
+    render(<DosenSalarySlip />);
+    await screen.findByText('Agustus 2026');
+
+    await user.type(screen.getByPlaceholderText('Cari semua kolom...'), '09');
+    expect(screen.queryByText('Agustus 2026')).not.toBeInTheDocument();
+    expect(screen.getByText('September 2026')).toBeInTheDocument();
+  });
 });

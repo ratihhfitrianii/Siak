@@ -4,6 +4,7 @@ import { ApiError, apiRequest } from '../lib/api';
 import type { GradeItem } from '../lib/types';
 import { Spinner } from '../components/Spinner';
 import { FormAlert } from '../components/ErrorInline';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 /** Ambil label semester (Ganjil/Genap) dari kode "2024/2025-1" → "Ganjil". */
 function semesterLabel(code: string): string {
@@ -78,10 +79,24 @@ export function RiwayatStudiPage() {
     });
   }, [items]);
 
+  // Flatten untuk search/sort
+  type GradeRow = GradeItem & {
+    courseCode: string;
+    courseName: string;
+    credits: number;
+  };
+  const tableRows: GradeRow[] = sorted.map((it) => ({
+    ...it,
+    courseCode: it.course.code,
+    courseName: it.course.name,
+    credits: it.course.credits,
+  }));
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(tableRows);
+
   const { totalSks, ipk } = useMemo(() => {
-    const totalSks = sorted.reduce((sum, it) => sum + it.course.credits, 0);
-    return { totalSks, ipk: computeIpk(sorted) };
-  }, [sorted]);
+    const totalSks = filtered.reduce((sum, it) => sum + it.credits, 0);
+    return { totalSks, ipk: computeIpk(filtered) };
+  }, [filtered]);
 
   if (loading) {
     return (
@@ -108,38 +123,97 @@ export function RiwayatStudiPage() {
         </p>
       </div>
 
+      {/* Search */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Cari semua kolom..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full sm:w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        />
+      </div>
+
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <th className="px-4 py-3 font-medium text-center w-10">No</th>
-                <th className="px-4 py-3 font-medium">Kode MK</th>
-                <th className="px-4 py-3 font-medium">Mata Kuliah</th>
-                <th className="px-4 py-3 font-medium text-center w-14">SKS</th>
-                <th className="px-4 py-3 font-medium text-center w-16">Nilai</th>
-                <th className="px-4 py-3 font-medium text-center w-20">Nilai Angka</th>
-                <th className="px-4 py-3 font-medium text-center w-20">Semester</th>
+                <th className="px-4 py-3 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('courseCode')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Kode MK <SortIcon active={sortKey === 'courseCode'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('courseName')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Mata Kuliah <SortIcon active={sortKey === 'courseName'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-medium text-center w-14">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('credits')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    SKS <SortIcon active={sortKey === 'credits'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-medium text-center w-16">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('gradeLetter')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Nilai <SortIcon active={sortKey === 'gradeLetter'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-medium text-center w-20">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('finalScore')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Nilai Angka <SortIcon active={sortKey === 'finalScore'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-medium text-center w-20">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('semester')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Semester <SortIcon active={sortKey === 'semester'} dir={sortDir} />
+                  </button>
+                </th>
                 <th className="px-4 py-3 font-medium text-center w-24">TA</th>
               </tr>
             </thead>
             <tbody>
-              {sorted.length === 0 && (
+              {filtered.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                     Belum ada mata kuliah yang tercatat.
                   </td>
                 </tr>
               )}
-              {sorted.map((it, idx) => (
+              {filtered.map((it, idx) => (
                 <tr
                   key={it.id}
                   className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
                 >
                   <td className="px-4 py-2.5 text-center text-slate-500">{idx + 1}</td>
-                  <td className="px-4 py-2.5 font-mono text-xs text-slate-600">{it.course.code}</td>
-                  <td className="px-4 py-2.5 font-medium text-slate-800">{it.course.name}</td>
-                  <td className="px-4 py-2.5 text-center text-slate-700">{it.course.credits}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs text-slate-600">{it.courseCode}</td>
+                  <td className="px-4 py-2.5 font-medium text-slate-800">{it.courseName}</td>
+                  <td className="px-4 py-2.5 text-center text-slate-700">{it.credits}</td>
                   <td className="px-4 py-2.5 text-center">
                     <span
                       className={`inline-flex rounded px-1.5 py-0.5 text-xs font-semibold ${
@@ -166,7 +240,7 @@ export function RiwayatStudiPage() {
               ))}
             </tbody>
             {/* Summary — sejajar kolom tabel otomatis */}
-            {sorted.length > 0 && (
+            {filtered.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 border-slate-300 bg-slate-50">
                   <td colSpan={3} className="px-4 py-3 font-semibold text-slate-600">
@@ -175,7 +249,7 @@ export function RiwayatStudiPage() {
                   <td className="px-4 py-3 text-center font-bold text-slate-900">{totalSks}</td>
                   <td className="px-4 py-3 text-center" />
                   <td className="px-4 py-3 text-center font-bold text-slate-900">
-                    {items.filter((it) => it.finalScore !== null).length}
+                    {filtered.filter((it) => it.finalScore !== null).length}
                   </td>
                   <td colSpan={2} />
                 </tr>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { listScheduleSubmissions, reviewScheduleSubmission } from '../lib/api';
 import { ApiError } from '../lib/api';
 import type { ScheduleSubmissionItem } from '../lib/types';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   awaiting: { label: 'Menunggu', color: 'bg-amber-100 text-amber-700' },
@@ -21,6 +22,8 @@ export function KaprodiScheduleReview() {
   const [actionId, setActionId] = useState<number | null>(null);
   const [rejectNote, setRejectNote] = useState('');
   const [noteTarget, setNoteTarget] = useState<ScheduleSubmissionItem | null>(null);
+
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(items);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -66,17 +69,26 @@ export function KaprodiScheduleReview() {
             Pengajuan jadwal mengajar dosen pada program studi Anda.
           </p>
         </div>
-        <select
-          aria-label="Filter status"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
-        >
-          <option value="">Semua Status</option>
-          <option value="awaiting">Menunggu</option>
-          <option value="approved">Disetujui</option>
-          <option value="rejected">Ditolak</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Cari semua kolom..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full sm:w-48 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+          />
+          <select
+            aria-label="Filter status"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+          >
+            <option value="">Semua Status</option>
+            <option value="awaiting">Menunggu</option>
+            <option value="approved">Disetujui</option>
+            <option value="rejected">Ditolak</option>
+          </select>
+        </div>
       </div>
 
       {error && (
@@ -88,10 +100,10 @@ export function KaprodiScheduleReview() {
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
         {isLoading ? (
           <div className="p-6 text-center text-slate-500">Memuat pengajuan...</div>
-        ) : items.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="p-6 text-center text-slate-500">
-            {filter
-              ? 'Tidak ada pengajuan dengan status tersebut.'
+            {filter || query
+              ? 'Tidak ada pengajuan yang cocok.'
               : 'Belum ada pengajuan jadwal dari dosen.'}
           </div>
         ) : (
@@ -100,19 +112,49 @@ export function KaprodiScheduleReview() {
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                    Dosen
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('lecturerName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Dosen <SortIcon active={sortKey === 'lecturerName'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                    Semester
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('semesterName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Semester <SortIcon active={sortKey === 'semesterName'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">
-                    Kelas
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('totalClasses')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Kelas <SortIcon active={sortKey === 'totalClasses'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">
-                    Diajukan
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('submittedAt')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Diajukan <SortIcon active={sortKey === 'submittedAt'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">
-                    Status
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('status')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Status <SortIcon active={sortKey === 'status'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">
                     Aksi
@@ -120,7 +162,7 @@ export function KaprodiScheduleReview() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {items.map((item) => (
+                {filtered.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/60">
                     <td className="px-4 py-3">
                       <p className="text-sm font-medium text-slate-800">{item.lecturerName}</p>

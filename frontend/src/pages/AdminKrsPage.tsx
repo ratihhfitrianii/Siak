@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ApiError, approveKrs, getAdminPendingKrs, rejectKrs } from '../lib/api';
 import type { AdminKrsItem } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 /**
  * Halaman admin KRS (T1.11c) — daftar pengajuan menunggu persetujuan (perm krs.approve).
@@ -16,6 +17,10 @@ export function AdminKrsPage() {
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectSubmitting, setRejectSubmitting] = useState(false);
+
+  // Tabel tools: client-side search + sort
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } =
+    useTableTools<AdminKrsItem>(pending);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -114,27 +119,74 @@ export function AdminKrsPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          {/* Search client-side */}
+          <div className="px-4 pt-4">
+            <input
+              type="text"
+              placeholder="Cari NIM, nama, prodi…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Cari pengajuan KRS"
+              className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-max text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-left">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    NIM
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('nim')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      NIM <SortIcon active={sortKey === 'nim'} dir={sortDir} />
+                    </button>
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    Mahasiswa
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('studentName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Mahasiswa <SortIcon active={sortKey === 'studentName'} dir={sortDir} />
+                    </button>
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    Prodi
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('prodiCode')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Prodi <SortIcon active={sortKey === 'prodiCode'} dir={sortDir} />
+                    </button>
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    Diajukan
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('submittedAt')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Diajukan <SortIcon active={sortKey === 'submittedAt'} dir={sortDir} />
+                    </button>
                   </th>
                   <th scope="col" className="px-4 py-3 text-center font-medium text-slate-600">
-                    Kelas
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('itemCount')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Kelas <SortIcon active={sortKey === 'itemCount'} dir={sortDir} />
+                    </button>
                   </th>
                   <th scope="col" className="px-4 py-3 text-center font-medium text-slate-600">
-                    SKS
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('totalCredits')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      SKS <SortIcon active={sortKey === 'totalCredits'} dir={sortDir} />
+                    </button>
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
                     Aksi
@@ -142,36 +194,44 @@ export function AdminKrsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {pending.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-mono text-xs text-slate-600">{item.nim}</td>
-                    <td className="px-4 py-3 font-medium text-slate-900">{item.studentName}</td>
-                    <td className="px-4 py-3 text-slate-600">{item.prodiCode}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatDate(item.submittedAt)}</td>
-                    <td className="px-4 py-3 text-center text-slate-600">{item.itemCount}</td>
-                    <td className="px-4 py-3 text-center text-slate-600">{item.totalCredits}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void approve(item.id)}
-                          disabled={busyId !== null}
-                          className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
-                        >
-                          {busyId === item.id ? 'Memproses…' : 'Setujui'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRejectId(item.id)}
-                          disabled={busyId !== null}
-                          className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                        >
-                          Tolak
-                        </button>
-                      </div>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
+                      Tidak ada pengajuan yang cocok.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filtered.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-mono text-xs text-slate-600">{item.nim}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900">{item.studentName}</td>
+                      <td className="px-4 py-3 text-slate-600">{item.prodiCode}</td>
+                      <td className="px-4 py-3 text-slate-600">{formatDate(item.submittedAt)}</td>
+                      <td className="px-4 py-3 text-center text-slate-600">{item.itemCount}</td>
+                      <td className="px-4 py-3 text-center text-slate-600">{item.totalCredits}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void approve(item.id)}
+                            disabled={busyId !== null}
+                            className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            {busyId === item.id ? 'Memproses…' : 'Setujui'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRejectId(item.id)}
+                            disabled={busyId !== null}
+                            className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                          >
+                            Tolak
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

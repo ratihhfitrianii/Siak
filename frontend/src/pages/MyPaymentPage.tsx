@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { getMyPayments, getKrsAccess, getKrsPeriod, ApiError } from '../lib/api';
 import type { MyPayment, KrsAccessResult, KrsPeriod } from '../lib/types';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 /** Halaman Pembayaran Mahasiswa — T2.6
  * Menampilkan semua tagihan setiap semester + status + detail items.
@@ -13,6 +14,8 @@ export function MyPaymentPage() {
   const [selectedPayment, setSelectedPayment] = useState<MyPayment | null>(null);
 
   const krsPeriodRef = useRef<KrsPeriod | null>(null);
+
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(payments);
 
   const checkKrsAccess = useCallback(async (semesterId: number) => {
     try {
@@ -113,6 +116,19 @@ export function MyPaymentPage() {
         </div>
       )}
 
+      {/* Search */}
+      {payments.length > 0 && (
+        <div>
+          <input
+            type="text"
+            placeholder="Cari semua kolom..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full sm:w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          />
+        </div>
+      )}
+
       {/* All Payments Table */}
       {payments.length > 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -124,16 +140,40 @@ export function MyPaymentPage() {
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Semester
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('semesterName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Semester <SortIcon active={sortKey === 'semesterName'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Total Tagihan
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('totalAmount')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Total Tagihan <SortIcon active={sortKey === 'totalAmount'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Terbayar
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('paidAmount')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Terbayar <SortIcon active={sortKey === 'paidAmount'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Status
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('status')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Status <SortIcon active={sortKey === 'status'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Bukti
@@ -144,7 +184,7 @@ export function MyPaymentPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {payments.map((payment) => (
+                {filtered.map((payment) => (
                   <tr key={payment.id} className="hover:bg-slate-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                       {payment.semesterName} ({payment.semesterCode})

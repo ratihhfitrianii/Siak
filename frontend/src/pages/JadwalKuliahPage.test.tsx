@@ -342,4 +342,39 @@ describe('JadwalKuliahPage', () => {
     expect(await screen.findByText('MK Tanpa Jadwal')).toBeInTheDocument();
     expect(screen.getAllByText('-').length).toBeGreaterThan(0);
   });
+
+  it('klik header kolom → urutan berubah (sort)', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <JadwalKuliahPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Pemrograman Dasar');
+
+    // Sort by Kelas (classCode) asc: TI-101-A lalu TI-102-A
+    await user.click(screen.getByRole('button', { name: /Kelas/ }));
+    const rows = screen.getAllByRole('row').slice(1); // skip header
+    expect(rows[0]).toHaveTextContent('Pemrograman Dasar');
+    expect(rows[1]).toHaveTextContent('Struktur Data');
+
+    // Toggle → desc
+    await user.click(screen.getByRole('button', { name: /Kelas/ }));
+    const rowsDesc = screen.getAllByRole('row').slice(1);
+    expect(rowsDesc[0]).toHaveTextContent('Struktur Data');
+  });
+
+  it('ketik query → hanya baris cocok (search)', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <JadwalKuliahPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Pemrograman Dasar');
+
+    await user.type(screen.getByPlaceholderText('Cari semua kolom...'), 'Struktur');
+    expect(screen.queryByText('Pemrograman Dasar')).not.toBeInTheDocument();
+    expect(screen.getByText('Struktur Data')).toBeInTheDocument();
+  });
 });

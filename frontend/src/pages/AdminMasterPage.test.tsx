@@ -239,6 +239,62 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     expect(mockedApi.listProdis).toHaveBeenCalledWith({ page: 1, limit: 10, search: '' });
   });
 
+  it('klik header Kode (Fakultas) → urutan berubah (asc lalu desc)', async () => {
+    mockAllLists();
+
+    renderWithRouter(<AdminMasterPage />);
+    await screen.findByText('Fakultas Teknik');
+
+    // default: FT (id 1) sebelum FE (id 2)
+    const rows0 = screen.getAllByRole('row').map((r) => r.textContent ?? '');
+    expect(rows0.findIndex((r) => r.includes('Fakultas Teknik'))).toBeLessThan(
+      rows0.findIndex((r) => r.includes('Fakultas Ekonomi')),
+    );
+
+    // klik Kode → asc: FE sebelum FT
+    fireEvent.click(screen.getByRole('button', { name: 'Kode' }));
+    const rowsAsc = screen.getAllByRole('row').map((r) => r.textContent ?? '');
+    expect(rowsAsc.findIndex((r) => r.includes('Fakultas Ekonomi'))).toBeLessThan(
+      rowsAsc.findIndex((r) => r.includes('Fakultas Teknik')),
+    );
+
+    // klik lagi → desc: FT sebelum FE
+    fireEvent.click(screen.getByRole('button', { name: 'Kode' }));
+    const rowsDesc = screen.getAllByRole('row').map((r) => r.textContent ?? '');
+    expect(rowsDesc.findIndex((r) => r.includes('Fakultas Teknik'))).toBeLessThan(
+      rowsDesc.findIndex((r) => r.includes('Fakultas Ekonomi')),
+    );
+  });
+
+  it('cari fakultas (server-side) → list dipanggil ulang dengan search + hanya baris cocok', async () => {
+    mockAllLists();
+    // Mock server-side search: kembalikan hanya fakultas yang cocok
+    mockedApi.listFaculties.mockImplementation(async ({ search } = {}) => {
+      const q = String(search ?? '').toLowerCase();
+      const items = FACULTIES.filter(
+        (f) => f.code.toLowerCase().includes(q) || f.name.toLowerCase().includes(q),
+      );
+      return facultyResponse(items);
+    });
+
+    renderWithRouter(<AdminMasterPage />);
+    await screen.findByText('Fakultas Teknik');
+
+    fireEvent.change(screen.getByPlaceholderText('Cari kode/nama fakultas...'), {
+      target: { value: 'FE' },
+    });
+
+    // listFaculties dipanggil ulang dengan search 'FE'
+    await waitFor(() => {
+      expect(mockedApi.listFaculties).toHaveBeenCalledWith({ page: 1, limit: 10, search: 'FE' });
+    });
+    // hanya FE yang tampil (FT hilang dari tabel)
+    await waitFor(() => {
+      expect(screen.getByText('Fakultas Ekonomi')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Fakultas Teknik')).not.toBeInTheDocument();
+  });
+
   it('ganti tab ke Program Studi → daftar prodi', async () => {
     mockAllLists();
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ApiError, apiRequest } from '../lib/api';
 import type { CurriculumItem } from '../lib/types';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 /** Warna latar per semester (bergantian) — indexed by semesterKurikulum. */
 const SEMESTER_COLORS: Record<number, string> = {
@@ -44,15 +45,17 @@ export function KurikulumPage() {
     };
   }, []);
 
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(rows);
+
   const semesterCounts = useMemo(() => {
     const counts = new Map<number, number>();
-    for (const r of rows) {
+    for (const r of filtered) {
       counts.set(r.semesterKurikulum, (counts.get(r.semesterKurikulum) ?? 0) + 1);
     }
     return counts;
-  }, [rows]);
+  }, [filtered]);
 
-  const totalSks = useMemo(() => rows.reduce((sum, r) => sum + r.credits, 0), [rows]);
+  const totalSks = useMemo(() => filtered.reduce((sum, r) => sum + r.credits, 0), [filtered]);
   const semesterCount = semesterCounts.size;
 
   if (loading) {
@@ -77,7 +80,7 @@ export function KurikulumPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
           <p className="text-xs text-slate-500 uppercase tracking-wide">Mata Kuliah Dikontrak</p>
-          <p className="text-lg font-semibold text-slate-900">{rows.length} MK</p>
+          <p className="text-lg font-semibold text-slate-900">{filtered.length} MK</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
           <p className="text-xs text-slate-500 uppercase tracking-wide">Total SKS</p>
@@ -96,6 +99,15 @@ export function KurikulumPage() {
           <p className="text-xs text-slate-500">
             Seluruh mata kuliah selama masa studi (dari riwayat pengambilan KRS)
           </p>
+          <div className="mt-3">
+            <input
+              type="text"
+              placeholder="Cari semua kolom..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full sm:w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+          </div>
         </div>
         {rows.length > 0 ? (
           <div className="overflow-x-auto">
@@ -106,24 +118,55 @@ export function KurikulumPage() {
                     No.
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Semester Kurikulum
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('semesterKurikulum')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Semester Kurikulum{' '}
+                      <SortIcon active={sortKey === 'semesterKurikulum'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Kode MK
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('code')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Kode MK <SortIcon active={sortKey === 'code'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Mata Kuliah
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('name')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Mata Kuliah <SortIcon active={sortKey === 'name'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    SKS
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('credits')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      SKS <SortIcon active={sortKey === 'credits'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Dosen Pengampu
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('lecturerName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Dosen Pengampu <SortIcon active={sortKey === 'lecturerName'} dir={sortDir} />
+                    </button>
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {rows.map((r, idx) => (
+                {filtered.map((r, idx) => (
                   <tr key={`${r.code}-${r.semesterKurikulum}`} className="hover:bg-slate-50">
                     <td className="px-6 py-3 whitespace-nowrap text-sm text-slate-500">
                       {idx + 1}

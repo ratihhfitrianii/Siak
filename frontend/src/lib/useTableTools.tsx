@@ -10,14 +10,33 @@ export type SortDir = 'asc' | 'desc';
  */
 export function useTableTools<T extends object>(items: T[]) {
   const [query, setQuery] = useState('');
-  const [sortKey, setSortKey] = useState<keyof T | ''>('');
+  // keyof T | (string & {}) memungkinkan sort kolom "virtual"/nested (mis. student.nim)
+  const [sortKey, setSortKey] = useState<keyof T | (string & {}) | ''>('');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+
+    const allValues = (row: T): unknown[] => {
+      const out: unknown[] = [];
+      const walk = (v: unknown): void => {
+        if (v === null || v === undefined || typeof v === 'boolean') {
+          out.push(v);
+        } else if (Array.isArray(v)) {
+          v.forEach(walk);
+        } else if (typeof v === 'object') {
+          Object.values(v).forEach(walk);
+        } else {
+          out.push(v);
+        }
+      };
+      walk(row);
+      return out;
+    };
+
     const arr = q
       ? items.filter((row) =>
-          Object.values(row).some((v) =>
+          allValues(row).some((v) =>
             String(v ?? '')
               .toLowerCase()
               .includes(q),
@@ -26,9 +45,10 @@ export function useTableTools<T extends object>(items: T[]) {
       : [...items];
 
     if (sortKey) {
+      const key = sortKey as string;
       arr.sort((a, b) => {
-        const av = String(a[sortKey] ?? '');
-        const bv = String(b[sortKey] ?? '');
+        const av = String((a as Record<string, unknown>)[key] ?? '');
+        const bv = String((b as Record<string, unknown>)[key] ?? '');
         const numA = Number(av);
         const numB = Number(bv);
         const cmp =
@@ -41,7 +61,7 @@ export function useTableTools<T extends object>(items: T[]) {
     return arr;
   }, [items, query, sortKey, sortDir]);
 
-  const toggleSort = (key: keyof T) => {
+  const toggleSort = (key: keyof T | string) => {
     if (sortKey === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {

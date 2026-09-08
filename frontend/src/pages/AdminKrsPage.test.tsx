@@ -112,6 +112,49 @@ describe('AdminKrsPage (T1.11c)', () => {
     expect(screen.getAllByRole('button', { name: 'Tolak' })).toHaveLength(2);
   });
 
+  it('cari pengajuan → hanya baris yang cocok yang tampil', async () => {
+    const user = userEvent.setup();
+    mockAdminRoutes();
+    render(<AdminKrsPage />);
+
+    await screen.findByText('Budi Santoso');
+
+    const search = screen.getByLabelText('Cari pengajuan KRS');
+    await user.type(search, 'Siti');
+
+    expect(screen.getByText('Siti Aminah')).toBeInTheDocument();
+    expect(screen.queryByText('Budi Santoso')).not.toBeInTheDocument();
+    // aksi tetap ada untuk baris yang cocok (1 baris)
+    expect(screen.getAllByRole('button', { name: 'Setujui' })).toHaveLength(1);
+  });
+
+  it('klik header NIM → urutan berubah (asc lalu desc)', async () => {
+    const user = userEvent.setup();
+    mockAdminRoutes();
+    render(<AdminKrsPage />);
+
+    await screen.findByText('Budi Santoso');
+
+    const nimHeader = screen.getByRole('button', { name: 'NIM' });
+    // default asc: 2024001 sebelum 2024002
+    const rows0 = screen.getAllByRole('row').map((r) => r.textContent ?? '');
+    expect(rows0.findIndex((r) => r.includes('2024001'))).toBeLessThan(
+      rows0.findIndex((r) => r.includes('2024002')),
+    );
+
+    await user.click(nimHeader); // → asc (sama dengan default, urut tetap)
+    const rowsAsc = screen.getAllByRole('row').map((r) => r.textContent ?? '');
+    expect(rowsAsc.findIndex((r) => r.includes('2024001'))).toBeLessThan(
+      rowsAsc.findIndex((r) => r.includes('2024002')),
+    );
+
+    await user.click(nimHeader); // toggle → desc
+    const rows1 = screen.getAllByRole('row').map((r) => r.textContent ?? '');
+    expect(rows1.findIndex((r) => r.includes('2024002'))).toBeLessThan(
+      rows1.findIndex((r) => r.includes('2024001')),
+    );
+  });
+
   it('menampilkan state kosong bila tidak ada pengajuan', async () => {
     mockAdminRoutes({ pending: [] });
     render(<AdminKrsPage />);

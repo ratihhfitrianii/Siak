@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DosenSelectMK } from './DosenSelectMK';
@@ -158,37 +158,26 @@ describe('DosenSelectMK (T3.9 — semester dari /dosen/semesters + search 3 huru
     expect(await screen.findByRole('alert')).toHaveTextContent('Gagal memuat daftar MK');
   });
 
-  it('search 3 huruf minimal → debounced API call dengan query param search', async () => {
+  it('search client-side → filter semua kolom (nama MK)', async () => {
     const user = userEvent.setup();
-    const fetchCalls: string[] = [];
 
     fetchMock.mockImplementation((url: string) => {
-      fetchCalls.push(url);
       if (String(url).includes('/dosen/semesters')) {
         return Promise.resolve(jsonResponse({ success: true, data: { items: SEMESTERS } }));
       }
-      if (String(url).includes('/dosen/courses/available')) {
-        return Promise.resolve(jsonResponse(COURSES_RESPONSE));
-      }
-      return Promise.resolve(jsonResponse({ success: true, data: { items: [] } }));
+      return Promise.resolve(jsonResponse(COURSES_RESPONSE));
     });
 
     render(<DosenSelectMK />);
     await screen.findByText('Dasar-Dasar Pemrograman');
+    expect(screen.getByText('Struktur Data')).toBeInTheDocument();
 
-    // Type 2 chars — should NOT trigger API yet (debounce + min 3 chars enforced by backend)
-    await user.type(screen.getByPlaceholderText('Cari berdasarkan nama atau kode MK'), 'St');
-    await waitFor(() =>
-      expect(fetchCalls.filter((u) => u.includes('/dosen/courses/available'))).toHaveLength(1),
-    );
+    // Ketik query → hanya baris yang cocok (semua kolom, termasuk nested course_name) tampil
+    const searchInput = screen.getByPlaceholderText('Cari berdasarkan nama atau kode MK');
+    await user.type(searchInput, 'Struktur');
 
-    // Type 3rd char — should trigger debounced API call with search=Str
-    await user.type(screen.getByPlaceholderText('Cari berdasarkan nama atau kode MK'), 'r');
-    await waitFor(() =>
-      expect(fetchCalls).toContainEqual(
-        expect.stringContaining('/dosen/courses/available?semesterId=1&search=Str'),
-      ),
-    );
+    expect(screen.getByText('Struktur Data')).toBeInTheDocument();
+    expect(screen.queryByText('Dasar-Dasar Pemrograman')).not.toBeInTheDocument();
   });
 
   it('submit tanpa pilih MK → tombol disabled', async () => {

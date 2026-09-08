@@ -2505,3 +2505,5 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 - Lookup master data memastikan NIM/NIK sudah terdaftar (impor CSV / tambah manual Master Data dulu).
 - Users (admin sistem): kolom Email diganti NIM/NIK (join students/lecturers), tambah kolom Fakultas, search semua kolom (nama/email/NIM/NIK/prodi/fakultas), sort icon tiap kolom (client-side).
 - Form tambah mahasiswa admin sistem: tambah dropdown Fakultas (filter Prodi).
+
+- Semua tabel semua role: tambah ikon urutkan (SortIcon ▲/▼/↕) per kolom + pencarian semua kolom (helper useTableTools, deep-search nested) di ~17 halaman (admin, dosen, finance, kurikulum, mahasiswa).

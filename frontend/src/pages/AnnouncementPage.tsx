@@ -7,6 +7,7 @@ import {
 } from '../lib/api';
 import type { Announcement, CreateAnnouncementInput } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 /** Real-time clock component — updates every second. */
 function RealTimeClock() {
@@ -61,6 +62,10 @@ export function AnnouncementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Tabel tools (client-side search + sort)
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } =
+    useTableTools<Announcement>(announcements);
 
   // Form
   const [form, setForm] = useState<CreateAnnouncementInput>({
@@ -332,28 +337,87 @@ export function AnnouncementPage() {
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-medium text-slate-900 mb-4">Daftar Informasi Penting</h3>
+        {/* Search client-side */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Cari judul, target role, status…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Cari informasi penting"
+            className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-slate-500 border-b border-slate-200">
-                <th className="pb-2 font-medium">Judul</th>
-                <th className="pb-2 font-medium">Target Role</th>
-                <th className="pb-2 font-medium">Prioritas</th>
-                <th className="pb-2 font-medium">Status</th>
-                <th className="pb-2 font-medium">Publikasi</th>
-                <th className="pb-2 font-medium">Berakhir</th>
+                <th className="pb-2 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('title')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Judul <SortIcon active={sortKey === 'title'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="pb-2 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('targetRoles')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Target Role <SortIcon active={sortKey === 'targetRoles'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="pb-2 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('priority')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Prioritas <SortIcon active={sortKey === 'priority'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="pb-2 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('isActive')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Status <SortIcon active={sortKey === 'isActive'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="pb-2 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('publishedAt')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Publikasi <SortIcon active={sortKey === 'publishedAt'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="pb-2 font-medium">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('expiresAt')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Berakhir <SortIcon active={sortKey === 'expiresAt'} dir={sortDir} />
+                  </button>
+                </th>
                 <th className="pb-2 font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {announcements.length === 0 ? (
+              {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-slate-500">
                     Belum ada informasi penting.
                   </td>
                 </tr>
               ) : (
-                announcements.map((a) => (
+                filtered.map((a) => (
                   <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="py-3 text-slate-900 max-w-xs truncate" title={a.title}>
                       {a.title}

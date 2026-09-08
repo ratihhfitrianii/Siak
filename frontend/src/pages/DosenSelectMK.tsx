@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getAvailableCourses, submitCourseSelection, getDosenSemesters } from '../lib/api';
 import type { LecturerCourseAvailable, SemesterOption } from '../lib/types';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 import { FormAlert } from '../components/ErrorInline';
 
 type ViewMode = 'grid' | 'list';
@@ -58,15 +59,15 @@ function ListIcon({ className }: { className?: string }) {
 export function DosenSelectMK() {
   const [semesterId, setSemesterId] = useState<number | null>(null);
   const [semesterOptions, setSemesterOptions] = useState<SemesterOption[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [courses, setCourses] = useState<LecturerCourseAvailable[]>([]);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<number>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Client-side search + sort
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(courses);
 
   // Muat daftar semester aktif → set default ke yang terbaru
   useEffect(() => {
@@ -83,22 +84,7 @@ export function DosenSelectMK() {
       });
   }, []);
 
-  // Debounced search - trigger API call after 300ms
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    searchTimeoutRef.current = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 300);
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchTerm]);
-
-  // Load available courses when semester OR debounced search changes
+  // Load available courses when semester changes (server-side for semester filter)
   useEffect(() => {
     if (!semesterId) {
       setCourses([]);
@@ -106,7 +92,7 @@ export function DosenSelectMK() {
     }
     setIsLoading(true);
     setError(null);
-    getAvailableCourses(semesterId, debouncedSearch || undefined)
+    getAvailableCourses(semesterId)
       .then((res) => {
         setCourses(res.items);
       })
@@ -116,16 +102,16 @@ export function DosenSelectMK() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [semesterId, debouncedSearch]);
+  }, [semesterId]);
 
   // Pisahkan MK yang masih bisa dipilih vs yang sudah diajukan (akibat filter search/local)
   const selectableCourses = useMemo(
-    () => courses.filter((c) => c.selection_status === SELECTABLE_STATUS),
-    [courses],
+    () => filtered.filter((c) => c.selection_status === SELECTABLE_STATUS),
+    [filtered],
   );
   const submittedCourses = useMemo(
-    () => courses.filter((c) => c.selection_status !== SELECTABLE_STATUS),
-    [courses],
+    () => filtered.filter((c) => c.selection_status !== SELECTABLE_STATUS),
+    [filtered],
   );
 
   const toggleSelect = (curriculumId: number) => {
@@ -300,8 +286,8 @@ export function DosenSelectMK() {
             </label>
             <input
               type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Cari berdasarkan nama atau kode MK"
               className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -357,18 +343,63 @@ export function DosenSelectMK() {
           <p className="text-slate-500">Memuat daftar MK...</p>
         ) : courses.length === 0 ? (
           <p className="text-slate-500">
-            {debouncedSearch
-              ? 'Tidak ada mata kuliah yang sesuai dengan pencarian.'
-              : 'Tidak ada mata kuliah tersedia untuk prodi Anda di semester ini.'}
+            Tidak ada mata kuliah tersedia untuk prodi Anda di semester ini.
           </p>
+        ) : filtered.length === 0 ? (
+          <p className="text-slate-500">Tidak ada mata kuliah yang cocok dengan pencarian.</p>
         ) : (
           <>
+            {/* Sort header */}
+            <div className="bg-white rounded-lg shadow-sm p-3 border-b border-slate-100 mb-4">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+                <span className="font-medium text-slate-700">Urutkan:</span>
+                <button
+                  type="button"
+                  onClick={() => toggleSort('course_name')}
+                  className="inline-flex items-center gap-1 hover:text-slate-900"
+                >
+                  Nama MK <SortIcon active={sortKey === 'course_name'} dir={sortDir} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSort('course_code')}
+                  className="inline-flex items-center gap-1 hover:text-slate-900"
+                >
+                  Kode MK <SortIcon active={sortKey === 'course_code'} dir={sortDir} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSort('credits')}
+                  className="inline-flex items-center gap-1 hover:text-slate-900"
+                >
+                  SKS <SortIcon active={sortKey === 'credits'} dir={sortDir} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSort('semester_number')}
+                  className="inline-flex items-center gap-1 hover:text-slate-900"
+                >
+                  Semester <SortIcon active={sortKey === 'semester_number'} dir={sortDir} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSort('available_classes')}
+                  className="inline-flex items-center gap-1 hover:text-slate-900"
+                >
+                  Kelas <SortIcon active={sortKey === 'available_classes'} dir={sortDir} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSort('selection_status')}
+                  className="inline-flex items-center gap-1 hover:text-slate-900"
+                >
+                  Status <SortIcon active={sortKey === 'selection_status'} dir={sortDir} />
+                </button>
+              </div>
+            </div>
+
             {selectableCourses.length === 0 ? (
-              <p className="text-slate-500">
-                {debouncedSearch
-                  ? 'Tidak ada mata kuliah yang sesuai dengan pencarian.'
-                  : 'Semua mata kuliah di semester ini sudah diajukan.'}
-              </p>
+              <p className="text-slate-500">Semua mata kuliah di semester ini sudah diajukan.</p>
             ) : (
               renderCourseList(selectableCourses)
             )}

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getKrsAccess, getKrsPeriod, getMyPayments, ApiError } from '../lib/api';
 import type { MyPayment, KrsAccessResult } from '../lib/types';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 /**
  * Halaman Tagihan Mahasiswa — detail tagihan semester yang sedang berjalan (KRS aktif).
@@ -12,6 +13,10 @@ export function TagihanPage() {
   const [semesterLabel, setSemesterLabel] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(
+    payment?.items ?? [],
+  );
 
   const load = useCallback(async () => {
     try {
@@ -143,23 +148,50 @@ export function TagihanPage() {
           {payment.items && payment.items.length > 0 && (
             <div className="px-6 py-4">
               <h4 className="font-medium text-slate-900 mb-2">Rincian Tagihan</h4>
+              <div className="mb-3">
+                <input
+                  type="text"
+                  placeholder="Cari semua kolom..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="w-full sm:w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[480px]">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Item
+                        <button
+                          type="button"
+                          onClick={() => toggleSort('description')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Item <SortIcon active={sortKey === 'description'} dir={sortDir} />
+                        </button>
                       </th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Jumlah
+                        <button
+                          type="button"
+                          onClick={() => toggleSort('amount')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Jumlah <SortIcon active={sortKey === 'amount'} dir={sortDir} />
+                        </button>
                       </th>
                       <th className="px-4 py-2 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        Wajib
+                        <button
+                          type="button"
+                          onClick={() => toggleSort('isMandatory')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Wajib <SortIcon active={sortKey === 'isMandatory'} dir={sortDir} />
+                        </button>
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {payment.items.map((item) => (
+                    {filtered.map((item) => (
                       <tr key={item.id}>
                         <td className="px-4 py-3 text-sm text-slate-900">
                           <div className="font-medium">{item.description}</div>

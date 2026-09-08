@@ -4,6 +4,7 @@ import { apiRequest, checkInAttendance } from '../lib/api';
 import type { GradeItem, MyKrs, MyKrsItem } from '../lib/types';
 import { Spinner } from '../components/Spinner';
 import { FormAlert } from '../components/ErrorInline';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 const DAY_LABELS: Record<number, string> = {
   1: 'Senin',
@@ -103,8 +104,21 @@ export function JadwalKuliahPage() {
     };
   }, [studentId]);
 
-  // Items KRS dari semester berjalan
+  // Items KRS dari semester berjalan — flatten course untuk search/sort
   const krsItems = myKrs?.items ?? [];
+
+  type JadwalRow = MyKrsItem & {
+    courseName: string;
+    courseCode: string;
+    credits: number;
+  };
+  const tableRows: JadwalRow[] = krsItems.map((it) => ({
+    ...it,
+    courseName: it.course.name,
+    courseCode: it.course.code,
+    credits: it.course.credits,
+  }));
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(tableRows);
 
   function openPresence(c: MyKrsItem) {
     setPresenceClass(c);
@@ -193,6 +207,15 @@ export function JadwalKuliahPage() {
                   {krsItems.length} mata kuliah · Total{' '}
                   {krsItems.reduce((s, c) => s + c.course.credits, 0)} SKS
                 </p>
+                <div className="mt-3">
+                  <input
+                    type="text"
+                    placeholder="Cari semua kolom..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="w-full sm:w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
               </div>
 
               <div className="p-6 overflow-x-auto">
@@ -200,29 +223,75 @@ export function JadwalKuliahPage() {
                   <thead>
                     <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
                       <th className="py-2 pr-3 font-medium w-10 text-center">No</th>
-                      <th className="py-2 pr-3 font-medium">Mata Kuliah</th>
-                      <th className="py-2 pr-3 font-medium text-center w-14">SKS</th>
-                      <th className="py-2 pr-3 font-medium text-center w-20">Kelas</th>
-                      <th className="py-2 pr-3 font-medium">Nama Dosen</th>
-                      <th className="py-2 pr-3 font-medium text-center w-20">Ruang</th>
-                      <th className="py-2 pr-3 font-medium text-center w-28">Jam</th>
+                      <th className="py-2 pr-3 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort('courseName')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Mata Kuliah <SortIcon active={sortKey === 'courseName'} dir={sortDir} />
+                        </button>
+                      </th>
+                      <th className="py-2 pr-3 font-medium text-center w-14">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort('credits')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          SKS <SortIcon active={sortKey === 'credits'} dir={sortDir} />
+                        </button>
+                      </th>
+                      <th className="py-2 pr-3 font-medium text-center w-20">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort('classCode')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Kelas <SortIcon active={sortKey === 'classCode'} dir={sortDir} />
+                        </button>
+                      </th>
+                      <th className="py-2 pr-3 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort('lecturerName')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Nama Dosen <SortIcon active={sortKey === 'lecturerName'} dir={sortDir} />
+                        </button>
+                      </th>
+                      <th className="py-2 pr-3 font-medium text-center w-20">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort('room')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Ruang <SortIcon active={sortKey === 'room'} dir={sortDir} />
+                        </button>
+                      </th>
+                      <th className="py-2 pr-3 font-medium text-center w-28">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort('dayOfWeek')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Jam <SortIcon active={sortKey === 'dayOfWeek'} dir={sortDir} />
+                        </button>
+                      </th>
                       <th className="py-2 pr-3 font-medium text-center w-24">Presensi</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {krsItems.map((it, idx) => (
+                    {filtered.map((it, idx) => (
                       <tr
                         key={it.id}
                         className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
                       >
                         <td className="py-3 pr-3 text-center text-slate-500">{idx + 1}</td>
                         <td className="py-3 pr-3">
-                          <div className="font-medium text-slate-800">{it.course.name}</div>
-                          <div className="font-mono text-xs text-slate-400">{it.course.code}</div>
+                          <div className="font-medium text-slate-800">{it.courseName}</div>
+                          <div className="font-mono text-xs text-slate-400">{it.courseCode}</div>
                         </td>
-                        <td className="py-3 pr-3 text-center text-slate-700">
-                          {it.course.credits}
-                        </td>
+                        <td className="py-3 pr-3 text-center text-slate-700">{it.credits}</td>
                         <td className="py-3 pr-3 text-center">
                           <span className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
                             {it.classCode}

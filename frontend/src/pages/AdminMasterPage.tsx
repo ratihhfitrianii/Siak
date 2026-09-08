@@ -43,6 +43,7 @@ import type {
   SemesterOption,
 } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 type ModalTab =
   'faculties' | 'prodis' | 'students' | 'lecturers' | 'rooms' | 'prodi-akademik' | 'courses' | null;
@@ -151,19 +152,17 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomsTotal, setRoomsTotal] = useState(0);
   const [roomPage, setRoomPage] = useState(1);
-  const [roomSearch, setRoomSearch] = useState('');
   const [akademikProdis, setAkademikProdis] = useState<Prodi[]>([]);
   const [akademikProdiTotal, setAkademikProdiTotal] = useState(0);
   const [akademikProdiPage, setAkademikProdiPage] = useState(1);
-  const [akademikProdiSearch, setAkademikProdiSearch] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
-  const [courseSearch, setCourseSearch] = useState('');
 
-  // Search states
+  // Search states (server-side search params)
   const [facultySearch, setFacultySearch] = useState('');
   const [prodiSearch, setProdiSearch] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
   const [lecturerSearch, setLecturerSearch] = useState('');
+  const [akademikProdiSearch, setAkademikProdiSearch] = useState('');
 
   // Form Faculty
   const [facultyForm, setFacultyForm] = useState<CreateFacultyInput>({
@@ -240,6 +239,15 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
   const [courseSemesters, setCourseSemesters] = useState<SemesterOption[]>([]);
   const [courseProdis, setCourseProdis] = useState<Prodi[]>([]);
   const [courseFacultyId, setCourseFacultyId] = useState<number>(0);
+
+  // ===== Sort klien-side + filter tambahan per tabel (server-side search/pagination tetap jalan) =====
+  const facTools = useTableTools<Faculty>(faculties);
+  const prodiTools = useTableTools<Prodi>(prodis);
+  const studentTools = useTableTools<MasterStudent>(students);
+  const lecturerTools = useTableTools<MasterLecturer>(lecturers);
+  const roomTools = useTableTools<Room>(rooms);
+  const akProdiTools = useTableTools<Prodi>(akademikProdis);
+  const courseTools = useTableTools<Course>(courses);
 
   const loadFaculties = useCallback(
     async (page = 1) => {
@@ -340,10 +348,9 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
   const loadRooms = useCallback(
     async (page = 1) => {
       try {
-        const params: { page: number; limit: number; search: string; facultyId?: number } = {
+        const params: { page: number; limit: number; facultyId?: number } = {
           page,
           limit: PAGE_SIZE,
-          search: roomSearch,
         };
         if (adminFacultyId) params.facultyId = adminFacultyId;
         const data = await listRooms(params);
@@ -354,21 +361,20 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
         setError('Gagal memuat data ruangan');
       }
     },
-    [roomSearch, adminFacultyId],
+    [adminFacultyId],
   );
 
   // ===== Admin Akademik: Mata Kuliah =====
   const loadCourses = useCallback(async () => {
     try {
       const data = await listCourses({
-        search: courseSearch || undefined,
         facultyId: adminFacultyId ?? undefined,
       });
       setCourses(data.items);
     } catch {
       setError('Gagal memuat data mata kuliah');
     }
-  }, [courseSearch, adminFacultyId]);
+  }, [adminFacultyId]);
 
   // Muat daftar semester utk dropdown form MK (sekali saat mount; daftar semester jarang berubah).
   useEffect(() => {
@@ -1091,7 +1097,9 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               placeholder="Cari kode/nama fakultas..."
               value={facultySearch}
               onChange={(e) => {
-                setFacultySearch(e.target.value);
+                const val = e.target.value;
+                facTools.setQuery(val); // client-side filter
+                setFacultySearch(val); // server-side search param
                 loadFaculties(1);
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -1103,22 +1111,47 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="pb-2 font-medium">Kode</th>
-                  <th className="pb-2 font-medium">Nama</th>
-                  <th className="pb-2 font-medium">Status</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => facTools.toggleSort('code')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Kode <SortIcon active={facTools.sortKey === 'code'} dir={facTools.sortDir} />
+                    </button>
+                  </th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => facTools.toggleSort('name')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Nama <SortIcon active={facTools.sortKey === 'name'} dir={facTools.sortDir} />
+                    </button>
+                  </th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => facTools.toggleSort('isActive')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Status{' '}
+                      <SortIcon active={facTools.sortKey === 'isActive'} dir={facTools.sortDir} />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">Dibuat</th>
                   <th className="pb-2 font-medium">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {faculties.length === 0 ? (
+                {facTools.filtered.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-8 text-center text-slate-500">
                       Belum ada data fakultas.
                     </td>
                   </tr>
                 ) : (
-                  faculties.map((f) => (
+                  facTools.filtered.map((f) => (
                     <tr key={f.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-3 font-mono text-slate-900">{f.code}</td>
                       <td className="py-3 text-slate-900">{f.name}</td>
@@ -1184,7 +1217,9 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               placeholder="Cari kode/nama prodi..."
               value={prodiSearch}
               onChange={(e) => {
-                setProdiSearch(e.target.value);
+                const val = e.target.value;
+                prodiTools.setQuery(val); // client-side filter
+                setProdiSearch(val); // server-side search param
                 loadProdis(1);
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -1196,24 +1231,63 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="pb-2 font-medium">Kode</th>
-                  <th className="pb-2 font-medium">Nama</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => prodiTools.toggleSort('code')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Kode{' '}
+                      <SortIcon active={prodiTools.sortKey === 'code'} dir={prodiTools.sortDir} />
+                    </button>
+                  </th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => prodiTools.toggleSort('name')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Nama{' '}
+                      <SortIcon active={prodiTools.sortKey === 'name'} dir={prodiTools.sortDir} />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">Fakultas</th>
-                  <th className="pb-2 font-medium">Jenjang</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => prodiTools.toggleSort('degree')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Jenjang{' '}
+                      <SortIcon active={prodiTools.sortKey === 'degree'} dir={prodiTools.sortDir} />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">Akr.</th>
-                  <th className="pb-2 font-medium">Status</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => prodiTools.toggleSort('isActive')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Status{' '}
+                      <SortIcon
+                        active={prodiTools.sortKey === 'isActive'}
+                        dir={prodiTools.sortDir}
+                      />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {prodis.length === 0 ? (
+                {prodiTools.filtered.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-slate-500">
                       Belum ada data program studi.
                     </td>
                   </tr>
                 ) : (
-                  prodis.map((p) => (
+                  prodiTools.filtered.map((p) => (
                     <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-3 font-mono text-slate-900">{p.code}</td>
                       <td className="py-3 text-slate-900">{p.name}</td>
@@ -1279,7 +1353,9 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               placeholder="Cari NIM/nama/email mahasiswa..."
               value={studentSearch}
               onChange={(e) => {
-                setStudentSearch(e.target.value);
+                const val = e.target.value;
+                studentTools.setQuery(val); // client-side filter
+                setStudentSearch(val); // server-side search param
                 loadStudents(1);
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -1291,24 +1367,72 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="pb-2 font-medium">NIM</th>
-                  <th className="pb-2 font-medium">Nama</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => studentTools.toggleSort('nim')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      NIM{' '}
+                      <SortIcon
+                        active={studentTools.sortKey === 'nim'}
+                        dir={studentTools.sortDir}
+                      />
+                    </button>
+                  </th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => studentTools.toggleSort('fullName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Nama{' '}
+                      <SortIcon
+                        active={studentTools.sortKey === 'fullName'}
+                        dir={studentTools.sortDir}
+                      />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">Prodi</th>
-                  <th className="pb-2 font-medium">Angkatan</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => studentTools.toggleSort('angkatan')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Angkatan{' '}
+                      <SortIcon
+                        active={studentTools.sortKey === 'angkatan'}
+                        dir={studentTools.sortDir}
+                      />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">Email</th>
-                  <th className="pb-2 font-medium">Status</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => studentTools.toggleSort('userActive')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Status{' '}
+                      <SortIcon
+                        active={studentTools.sortKey === 'userActive'}
+                        dir={studentTools.sortDir}
+                      />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {students.length === 0 ? (
+                {studentTools.filtered.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-slate-500">
                       Belum ada data mahasiswa.
                     </td>
                   </tr>
                 ) : (
-                  students.map((s) => (
+                  studentTools.filtered.map((s) => (
                     <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-3 font-mono text-slate-900">{s.nim}</td>
                       <td className="py-3 text-slate-900">{s.fullName}</td>
@@ -1372,7 +1496,9 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               placeholder="Cari NIDN/nama/email dosen..."
               value={lecturerSearch}
               onChange={(e) => {
-                setLecturerSearch(e.target.value);
+                const val = e.target.value;
+                lecturerTools.setQuery(val); // client-side filter
+                setLecturerSearch(val); // server-side search param
                 loadLecturers(1);
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -1384,25 +1510,73 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="pb-2 font-medium">NIDN</th>
-                  <th className="pb-2 font-medium">Nama</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => lecturerTools.toggleSort('nidn')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      NIDN{' '}
+                      <SortIcon
+                        active={lecturerTools.sortKey === 'nidn'}
+                        dir={lecturerTools.sortDir}
+                      />
+                    </button>
+                  </th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => lecturerTools.toggleSort('fullName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Nama{' '}
+                      <SortIcon
+                        active={lecturerTools.sortKey === 'fullName'}
+                        dir={lecturerTools.sortDir}
+                      />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">Prodi</th>
                   <th className="pb-2 font-medium">Email</th>
-                  <th className="pb-2 font-medium">Status</th>
-                  <th className="pb-2 font-medium">Wali</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => lecturerTools.toggleSort('userActive')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Status{' '}
+                      <SortIcon
+                        active={lecturerTools.sortKey === 'userActive'}
+                        dir={lecturerTools.sortDir}
+                      />
+                    </button>
+                  </th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => lecturerTools.toggleSort('isWali')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Wali{' '}
+                      <SortIcon
+                        active={lecturerTools.sortKey === 'isWali'}
+                        dir={lecturerTools.sortDir}
+                      />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">Jenis</th>
                   <th className="pb-2 font-medium">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {lecturers.length === 0 ? (
+                {lecturerTools.filtered.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-8 text-center text-slate-500">
                       Belum ada data dosen.
                     </td>
                   </tr>
                 ) : (
-                  lecturers.map((l) => (
+                  lecturerTools.filtered.map((l) => (
                     <tr key={l.id} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-3 font-mono text-slate-900">{l.nidn}</td>
                       <td className="py-3 text-slate-900">{l.fullName}</td>
@@ -1515,11 +1689,8 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                 <input
                   type="text"
                   placeholder="Cari kode/nama ruangan..."
-                  value={roomSearch}
-                  onChange={(e) => {
-                    setRoomSearch(e.target.value);
-                    loadRooms(1);
-                  }}
+                  value={roomTools.query}
+                  onChange={(e) => roomTools.setQuery(e.target.value)}
                   className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
@@ -1529,22 +1700,64 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-500 border-b border-slate-200">
-                      <th className="pb-2 font-medium">Kode</th>
-                      <th className="pb-2 font-medium">Nama</th>
-                      <th className="pb-2 font-medium">Kapasitas</th>
-                      <th className="pb-2 font-medium">Status</th>
+                      <th className="pb-2 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => roomTools.toggleSort('code')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Kode{' '}
+                          <SortIcon active={roomTools.sortKey === 'code'} dir={roomTools.sortDir} />
+                        </button>
+                      </th>
+                      <th className="pb-2 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => roomTools.toggleSort('name')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Nama{' '}
+                          <SortIcon active={roomTools.sortKey === 'name'} dir={roomTools.sortDir} />
+                        </button>
+                      </th>
+                      <th className="pb-2 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => roomTools.toggleSort('capacity')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Kapasitas{' '}
+                          <SortIcon
+                            active={roomTools.sortKey === 'capacity'}
+                            dir={roomTools.sortDir}
+                          />
+                        </button>
+                      </th>
+                      <th className="pb-2 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => roomTools.toggleSort('isActive')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Status{' '}
+                          <SortIcon
+                            active={roomTools.sortKey === 'isActive'}
+                            dir={roomTools.sortDir}
+                          />
+                        </button>
+                      </th>
                       <th className="pb-2 font-medium">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {rooms.length === 0 ? (
+                    {roomTools.filtered.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-8 text-center text-slate-500">
                           Belum ada data ruangan.
                         </td>
                       </tr>
                     ) : (
-                      rooms.map((r) => (
+                      roomTools.filtered.map((r) => (
                         <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="py-3 font-mono text-slate-900">{r.code}</td>
                           <td className="py-3 text-slate-900">{r.name}</td>
@@ -1654,7 +1867,9 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                   placeholder="Cari kode/nama prodi..."
                   value={akademikProdiSearch}
                   onChange={(e) => {
-                    setAkademikProdiSearch(e.target.value);
+                    const val = e.target.value;
+                    akProdiTools.setQuery(val); // client-side filter
+                    setAkademikProdiSearch(val); // server-side search param
                     loadAkademikProdis(1);
                   }}
                   className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -1666,23 +1881,71 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-500 border-b border-slate-200">
-                      <th className="pb-2 font-medium">Kode</th>
-                      <th className="pb-2 font-medium">Nama</th>
-                      <th className="pb-2 font-medium">Jenjang</th>
+                      <th className="pb-2 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => akProdiTools.toggleSort('code')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Kode{' '}
+                          <SortIcon
+                            active={akProdiTools.sortKey === 'code'}
+                            dir={akProdiTools.sortDir}
+                          />
+                        </button>
+                      </th>
+                      <th className="pb-2 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => akProdiTools.toggleSort('name')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Nama{' '}
+                          <SortIcon
+                            active={akProdiTools.sortKey === 'name'}
+                            dir={akProdiTools.sortDir}
+                          />
+                        </button>
+                      </th>
+                      <th className="pb-2 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => akProdiTools.toggleSort('degree')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Jenjang{' '}
+                          <SortIcon
+                            active={akProdiTools.sortKey === 'degree'}
+                            dir={akProdiTools.sortDir}
+                          />
+                        </button>
+                      </th>
                       <th className="pb-2 font-medium">Akr.</th>
-                      <th className="pb-2 font-medium">Status</th>
+                      <th className="pb-2 font-medium">
+                        <button
+                          type="button"
+                          onClick={() => akProdiTools.toggleSort('isActive')}
+                          className="inline-flex items-center gap-1 hover:text-slate-900"
+                        >
+                          Status{' '}
+                          <SortIcon
+                            active={akProdiTools.sortKey === 'isActive'}
+                            dir={akProdiTools.sortDir}
+                          />
+                        </button>
+                      </th>
                       <th className="pb-2 font-medium">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {akademikProdis.length === 0 ? (
+                    {akProdiTools.filtered.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-slate-500">
                           Belum ada data program studi pada fakultas ini.
                         </td>
                       </tr>
                     ) : (
-                      akademikProdis.map((p) => (
+                      akProdiTools.filtered.map((p) => (
                         <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="py-3 font-mono text-slate-900">{p.code}</td>
                           <td className="py-3 text-slate-900">{p.name}</td>
@@ -1749,23 +2012,20 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
             <input
               type="text"
               placeholder="Cari kode/nama mata kuliah..."
-              value={courseSearch}
-              onChange={(e) => {
-                setCourseSearch(e.target.value);
-                loadCourses();
-              }}
+              value={courseTools.query}
+              onChange={(e) => courseTools.setQuery(e.target.value)}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
           {/* Daftar Mata Kuliah per Prodi */}
-          {courses.length === 0 ? (
+          {courseTools.filtered.length === 0 ? (
             <div className="py-8 text-center text-slate-500">Belum ada data mata kuliah.</div>
           ) : (
             (() => {
               // Group by prodiName
               const grouped = new Map<string, typeof courses>();
-              for (const c of courses) {
+              for (const c of courseTools.filtered) {
                 const key = c.prodiName || 'Tanpa Prodi';
                 const arr = grouped.get(key) || [];
                 arr.push(c);
@@ -1804,9 +2064,58 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="text-left text-slate-500 border-b border-slate-200 bg-slate-50">
-                                <th className="px-4 py-2 font-medium">Kode</th>
-                                <th className="px-4 py-2 font-medium">Nama</th>
-                                <th className="px-4 py-2 font-medium">SKS</th>
+                                <th className="px-4 py-2 font-medium">
+                                  <button
+                                    type="button"
+                                    onClick={() => courseTools.toggleSort('code')}
+                                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                                  >
+                                    Kode{' '}
+                                    <SortIcon
+                                      active={courseTools.sortKey === 'code'}
+                                      dir={courseTools.sortDir}
+                                    />
+                                  </button>
+                                </th>
+                                <th className="px-4 py-2 font-medium">
+                                  <button
+                                    type="button"
+                                    onClick={() => courseTools.toggleSort('name')}
+                                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                                  >
+                                    Nama{' '}
+                                    <SortIcon
+                                      active={courseTools.sortKey === 'name'}
+                                      dir={courseTools.sortDir}
+                                    />
+                                  </button>
+                                </th>
+                                <th className="px-4 py-2 font-medium">
+                                  <button
+                                    type="button"
+                                    onClick={() => courseTools.toggleSort('credits')}
+                                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                                  >
+                                    SKS{' '}
+                                    <SortIcon
+                                      active={courseTools.sortKey === 'credits'}
+                                      dir={courseTools.sortDir}
+                                    />
+                                  </button>
+                                </th>
+                                <th className="px-4 py-2 font-medium">
+                                  <button
+                                    type="button"
+                                    onClick={() => courseTools.toggleSort('isActive')}
+                                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                                  >
+                                    Status{' '}
+                                    <SortIcon
+                                      active={courseTools.sortKey === 'isActive'}
+                                      dir={courseTools.sortDir}
+                                    />
+                                  </button>
+                                </th>
                                 <th className="px-4 py-2 font-medium">Deskripsi</th>
                                 <th className="px-4 py-2 font-medium">Aksi</th>
                               </tr>

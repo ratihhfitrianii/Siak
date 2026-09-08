@@ -1,8 +1,9 @@
-import { Fragment, useEffect, useState, useCallback, useMemo } from 'react';
+import { Fragment, useEffect, useState, useCallback } from 'react';
 import { getSkripsiProposals, getSkripsiProposalStatuses, updateSkripsiProposal } from '../lib/api';
 import type { SkripsiProposal, SkripsiStatus, SkripsiProposalStatus } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 const STATUS_LABEL: Record<SkripsiStatus, string> = {
   draft: 'Draft',
@@ -101,8 +102,6 @@ export function AdminProposalReview() {
     {},
   );
   const [historyLoadingId, setHistoryLoadingId] = useState<number | null>(null);
-  // Pencarian (judul/NIM/nama/prodi)
-  const [searchTerm, setSearchTerm] = useState('');
   // Aksi admin: approve/reject proposal
   const [actionProposalId, setActionProposalId] = useState<number | null>(null);
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
@@ -110,18 +109,9 @@ export function AdminProposalReview() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Filter klien-side: judul, NIM, nama mahasiswa, atau prodi
-  const filteredProposals = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q) return proposals;
-    return proposals.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.nim.toLowerCase().includes(q) ||
-        p.studentName.toLowerCase().includes(q) ||
-        p.prodiName.toLowerCase().includes(q),
-    );
-  }, [proposals, searchTerm]);
+  // Tabel tools: client-side search + sort
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } =
+    useTableTools<SkripsiProposal>(proposals);
 
   const loadProposals = useCallback(async () => {
     try {
@@ -225,12 +215,11 @@ export function AdminProposalReview() {
           <p className="text-slate-600">Review dan kelola proposal skripsi mahasiswa</p>
         </div>
         <div className="text-sm text-slate-500">
-          Total: <span className="font-medium text-slate-900">{filteredProposals.length}</span>{' '}
-          proposal
+          Total: <span className="font-medium text-slate-900">{filtered.length}</span> proposal
         </div>
       </div>
 
-      {/* Pencarian */}
+      {/* Pencarian — gunakan useTableTools query */}
       <div className="bg-white rounded-lg shadow-sm p-4">
         <div className="relative">
           <svg
@@ -249,8 +238,8 @@ export function AdminProposalReview() {
           <input
             id="admin-proposal-search"
             type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Cari judul, NIM, nama mahasiswa, atau prodi..."
             className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
@@ -259,7 +248,7 @@ export function AdminProposalReview() {
 
       {error && <FormAlert>{error}</FormAlert>}
 
-      {filteredProposals.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
           <svg
             className="mx-auto h-12 w-12 text-slate-400"
@@ -283,24 +272,48 @@ export function AdminProposalReview() {
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Mahasiswa
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('studentName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Mahasiswa <SortIcon active={sortKey === 'studentName'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Judul
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('title')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Judul <SortIcon active={sortKey === 'title'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Status
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('status')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Status <SortIcon active={sortKey === 'status'} dir={sortDir} />
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Dosen Pembimbing
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Diajukan
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('createdAt')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Diajukan <SortIcon active={sortKey === 'createdAt'} dir={sortDir} />
+                    </button>
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {filteredProposals.map((p) => (
+                {filtered.map((p) => (
                   <Fragment key={p.id}>
                     <tr
                       onClick={() => toggleExpand(p.id)}
@@ -436,7 +449,7 @@ export function AdminProposalReview() {
                                   <div className="text-sm">
                                     <p className="font-medium text-slate-900">
                                       <span
-                                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLOR[h.status]}`}
+                                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLOR[h.status as SkripsiStatus]}`}
                                       >
                                         {STATUS_LABEL[h.status as SkripsiStatus]}
                                       </span>

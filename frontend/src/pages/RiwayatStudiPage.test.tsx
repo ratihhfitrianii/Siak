@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RiwayatStudiPage } from './RiwayatStudiPage';
@@ -213,5 +213,42 @@ describe('RiwayatStudiPage', () => {
     expect(await screen.findByText('MK Tanpa Semester')).toBeInTheDocument();
     // semesterLabel fallback → kode asli; TA fallback → kode asli
     expect(screen.getAllByText('GANJIL').length).toBeGreaterThan(0);
+  });
+
+  it('klik header kolom → urutan berubah (sort)', async () => {
+    render(
+      <MemoryRouter>
+        <RiwayatStudiPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Pemrograman Dasar');
+
+    // Sort by Nilai (gradeLetter) asc: A (Pemrograman Dasar) lalu B+ (Struktur Data)
+    // Get the header button (first one with role=button and name=/Nilai/)
+    const nilaiButtons = screen.getAllByRole('button', { name: /Nilai/ });
+    fireEvent.click(nilaiButtons[0]);
+    const rows = screen.getAllByRole('row').slice(1, 3); // two data rows
+    expect(rows[0]).toHaveTextContent('Pemrograman Dasar');
+    expect(rows[1]).toHaveTextContent('Struktur Data');
+
+    // Toggle → desc: B+ dulu
+    fireEvent.click(nilaiButtons[0]);
+    const rowsDesc = screen.getAllByRole('row').slice(1, 3);
+    expect(rowsDesc[0]).toHaveTextContent('Struktur Data');
+  });
+
+  it('ketik query → hanya baris cocok (search)', async () => {
+    render(
+      <MemoryRouter>
+        <RiwayatStudiPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Pemrograman Dasar');
+
+    fireEvent.change(screen.getByPlaceholderText('Cari semua kolom...'), {
+      target: { value: 'Struktur' },
+    });
+    expect(screen.getByText('Struktur Data')).toBeInTheDocument();
+    expect(screen.queryByText('Pemrograman Dasar')).not.toBeInTheDocument();
   });
 });

@@ -3,6 +3,7 @@ import { getMySalarySlips, downloadSalarySlipPdf } from '../lib/api';
 import type { SalarySlip } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 const BULAN = [
   'Januari',
@@ -51,6 +52,8 @@ export function DosenSalarySlip() {
   // Filter bulan ('' = semua) + tahun
   const [bulanFilter, setBulanFilter] = useState('');
   const [tahunFilter, setTahunFilter] = useState(String(TAHUN_SEKARANG));
+
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(slips);
 
   const loadSlips = useCallback(async () => {
     setLoading(true);
@@ -109,7 +112,7 @@ export function DosenSalarySlip() {
     }
   }
 
-  const totalNet = slips.reduce((sum, s) => sum + s.netAmount, 0);
+  const totalNet = filtered.reduce((sum, s) => sum + s.netAmount, 0);
 
   return (
     <div className="space-y-6">
@@ -151,6 +154,22 @@ export function DosenSalarySlip() {
               ))}
             </select>
           </div>
+          <div>
+            <label
+              htmlFor="filter-search"
+              className="block text-sm font-medium text-slate-700 mb-1"
+            >
+              Cari
+            </label>
+            <input
+              id="filter-search"
+              type="text"
+              placeholder="Cari semua kolom..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+            />
+          </div>
           <button
             type="button"
             onClick={() => void handleDownload()}
@@ -184,20 +203,64 @@ export function DosenSalarySlip() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Periode</th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-700">Gaji Pokok</th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-700">
-                    Honor Mengajar
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('periodStart')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Periode <SortIcon active={sortKey === 'periodStart'} dir={sortDir} />
+                    </button>
                   </th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-700">Potongan</th>
                   <th className="px-4 py-3 text-right font-medium text-slate-700">
-                    Total Diterima
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('baseSalary')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Gaji Pokok <SortIcon active={sortKey === 'baseSalary'} dir={sortDir} />
+                    </button>
                   </th>
-                  <th className="px-4 py-3 text-center font-medium text-slate-700">Status</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('totalHonor')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Honor Mengajar <SortIcon active={sortKey === 'totalHonor'} dir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('deductions')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Potongan <SortIcon active={sortKey === 'deductions'} dir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('netAmount')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Total Diterima <SortIcon active={sortKey === 'netAmount'} dir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-center font-medium text-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('status')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Status <SortIcon active={sortKey === 'status'} dir={sortDir} />
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {slips.map((s) => (
+                {filtered.map((s) => (
                   <tr key={s.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-900">
                       {periodeLabel(s.periodStart)}

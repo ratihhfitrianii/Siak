@@ -15,6 +15,7 @@ import type {
   StudentPaymentGroup,
   Prodi,
 } from '../lib/types';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 
 /** Halaman Kelola Tagihan — Admin Keuangan
  * Tabel grouped by NIM, detail per-semester + update.
@@ -36,6 +37,8 @@ export function FinancePaymentsPage() {
     limit: 10,
   });
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
+
+  const { sortKey, sortDir, toggleSort, filtered } = useTableTools(groups);
 
   // Detail state
   const [detailStudent, setDetailStudent] = useState<StudentPaymentGroup | null>(null);
@@ -254,22 +257,58 @@ export function FinancePaymentsPage() {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  NIM
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('nim')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    NIM <SortIcon active={sortKey === 'nim'} dir={sortDir} />
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Nama
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('fullName')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Nama <SortIcon active={sortKey === 'fullName'} dir={sortDir} />
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Prodi
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('prodiName')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Prodi <SortIcon active={sortKey === 'prodiName'} dir={sortDir} />
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Semester
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('totalSemesters')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Semester <SortIcon active={sortKey === 'totalSemesters'} dir={sortDir} />
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Total Tagihan
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('totalTagihan')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Total Tagihan <SortIcon active={sortKey === 'totalTagihan'} dir={sortDir} />
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Total Dibayar
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('totalPaid')}
+                    className="inline-flex items-center gap-1 hover:text-slate-900"
+                  >
+                    Total Dibayar <SortIcon active={sortKey === 'totalPaid'} dir={sortDir} />
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Status
@@ -280,14 +319,14 @@ export function FinancePaymentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {groups.length === 0 && !loading && (
+              {filtered.length === 0 && !loading && (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
                     Tidak ada data tagihan
                   </td>
                 </tr>
               )}
-              {groups.map((g) => (
+              {filtered.map((g) => (
                 <tr key={g.studentId} className="hover:bg-slate-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                     {g.nim}

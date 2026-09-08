@@ -115,4 +115,32 @@ describe('KaprodiScheduleReview — Persetujuan Jadwal Kaprodi', () => {
 
     await waitFor(() => expect(listScheduleSubmissions).toHaveBeenCalledWith('approved'));
   });
+
+  it('klik header kolom → urutan berubah (sort)', async () => {
+    const user = userEvent.setup();
+    render(<KaprodiScheduleReview />);
+    await waitFor(() => expect(screen.getByText('Dosen A')).toBeInTheDocument());
+
+    // Sort by Kelas (totalClasses) asc: Dosen B (2) lalu Dosen A (3)
+    await user.click(screen.getByRole('button', { name: /Kelas/ }));
+    const rows = screen.getAllByRole('row').slice(1); // skip header
+    expect(rows[0]).toHaveTextContent('Dosen B');
+    expect(rows[1]).toHaveTextContent('Dosen A');
+
+    // Toggle → desc: Dosen A lalu Dosen B
+    await user.click(screen.getByRole('button', { name: /Kelas/ }));
+    const rowsDesc = screen.getAllByRole('row').slice(1);
+    expect(rowsDesc[0]).toHaveTextContent('Dosen A');
+    expect(rowsDesc[1]).toHaveTextContent('Dosen B');
+  });
+
+  it('ketik query → hanya baris cocok (search)', async () => {
+    const user = userEvent.setup();
+    render(<KaprodiScheduleReview />);
+    await waitFor(() => expect(screen.getByText('Dosen A')).toBeInTheDocument());
+
+    await user.type(screen.getByPlaceholderText('Cari semua kolom...'), 'Dosen B');
+    expect(screen.queryByText('Dosen A')).not.toBeInTheDocument();
+    expect(screen.getByText('Dosen B')).toBeInTheDocument();
+  });
 });

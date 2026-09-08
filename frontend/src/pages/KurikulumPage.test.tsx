@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { KurikulumPage } from './KurikulumPage';
 import { apiRequest } from '../lib/api';
 import type { CurriculumItem } from '../lib/types';
@@ -104,5 +104,36 @@ describe('KurikulumPage', () => {
 
     expect(await screen.findByText('Algoritma')).toBeInTheDocument();
     expect(screen.getByText('-')).toBeInTheDocument();
+  });
+
+  it('klik header kolom → urutan berubah (sort)', async () => {
+    vi.mocked(apiRequest).mockResolvedValue({ items: mockItems });
+    render(<KurikulumPage />);
+    await screen.findByText('Algoritma');
+
+    // Urutan awal: Algoritma (sem 1), Struktur Data (sem 2), Basis Data (sem 1)
+    // Sort by SKS asc: 3 (Algoritma), 3 (Struktur Data), 4 (Basis Data)
+    fireEvent.click(screen.getByRole('button', { name: /SKS/ }));
+    const codes = screen.getAllByText(/^TI\d+$/).map((el) => el.textContent);
+    expect(codes).toEqual(['TI101', 'TI102', 'TI210']);
+    // Toggle again → desc: 4 (Basis Data) first
+    fireEvent.click(screen.getByRole('button', { name: /SKS/ }));
+    const codesDesc = screen.getAllByText(/^TI\d+$/).map((el) => el.textContent);
+    expect(codesDesc[0]).toBe('TI210');
+  });
+
+  it('ketik query → hanya baris cocok (search)', async () => {
+    vi.mocked(apiRequest).mockResolvedValue({ items: mockItems });
+    render(<KurikulumPage />);
+    await screen.findByText('Algoritma');
+
+    fireEvent.change(screen.getByPlaceholderText('Cari semua kolom...'), {
+      target: { value: 'Basis' },
+    });
+    expect(screen.getByText('Basis Data')).toBeInTheDocument();
+    expect(screen.queryByText('Algoritma')).not.toBeInTheDocument();
+    expect(screen.queryByText('Struktur Data')).not.toBeInTheDocument();
+    // Ringkasan ikut memakai data terfilter
+    expect(screen.getByText('1 MK')).toBeInTheDocument();
   });
 });

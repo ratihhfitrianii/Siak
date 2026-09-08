@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AnnouncementPage } from './AnnouncementPage';
 import * as api from '../lib/api';
@@ -332,5 +333,42 @@ describe('AnnouncementPage (Informasi Penting)', () => {
     expect(await screen.findByText('Jadwal UTS Semester Ganjil')).toBeInTheDocument();
     // Tanggal 1 September 2026 dalam locale id-ID (jam ikut ditampilkan, jadi pakai regex)
     expect(screen.getByText(/1\/9\/2026/)).toBeInTheDocument();
+  });
+
+  it('cari informasi penting → hanya baris yang cocok yang tampil', async () => {
+    const user = userEvent.setup();
+    mockList();
+
+    render(<AnnouncementPage />);
+
+    await screen.findByText('Jadwal UTS Semester Ganjil');
+
+    const search = screen.getByLabelText('Cari informasi penting');
+    await user.type(search, 'SPP');
+
+    expect(screen.getByText('Pembayaran SPP Tenggat')).toBeInTheDocument();
+    expect(screen.queryByText('Jadwal UTS Semester Ganjil')).not.toBeInTheDocument();
+  });
+
+  it('klik header Prioritas → urutan berubah (asc: prioritas terendah dulu)', async () => {
+    const user = userEvent.setup();
+    mockList();
+
+    render(<AnnouncementPage />);
+
+    await screen.findByText('Jadwal UTS Semester Ganjil');
+
+    // default: Jadwal (priority 10) tampil sebelum Pembayaran (priority 5)
+    const rows0 = screen.getAllByRole('row').map((r) => r.textContent ?? '');
+    expect(rows0.findIndex((r) => r.includes('Jadwal UTS'))).toBeLessThan(
+      rows0.findIndex((r) => r.includes('Pembayaran')),
+    );
+
+    // klik Prioritas → asc → Pembayaran (5) dulu
+    await user.click(screen.getByRole('button', { name: /Prioritas/ }));
+    const rows1 = screen.getAllByRole('row').map((r) => r.textContent ?? '');
+    expect(rows1.findIndex((r) => r.includes('Pembayaran'))).toBeLessThan(
+      rows1.findIndex((r) => r.includes('Jadwal UTS')),
+    );
   });
 });

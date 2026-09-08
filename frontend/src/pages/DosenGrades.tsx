@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTableTools, SortIcon } from '../lib/useTableTools';
 import {
   getGradesByClass,
   submitGrades,
@@ -220,6 +221,8 @@ export function DosenGrades() {
       )
     : [];
 
+  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(grades);
+
   return (
     <div className="space-y-6">
       {/* Form Section */}
@@ -266,12 +269,46 @@ export function DosenGrades() {
         {/* Grades Table */}
         {selectedGroup && grades.length > 0 && (
           <div className="mt-6 overflow-x-auto">
+            <div className="mb-4">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Cari NIM, nama, atau kelas..."
+                aria-label="Cari nilai"
+                className="w-full sm:w-80 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              />
+            </div>
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">NIM</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Nama</th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">Kelas</th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('nim')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      NIM <SortIcon active={sortKey === 'nim'} dir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('studentName')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Nama <SortIcon active={sortKey === 'studentName'} dir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('classCode')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Kelas <SortIcon active={sortKey === 'classCode'} dir={sortDir} />
+                    </button>
+                  </th>
                   <th className="px-4 py-3 text-center font-medium text-slate-700">Tugas (20%)</th>
                   <th className="px-4 py-3 text-center font-medium text-slate-700">UTS (30%)</th>
                   <th className="px-4 py-3 text-center font-medium text-slate-700">UAS (50%)</th>
@@ -284,7 +321,7 @@ export function DosenGrades() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {grades.map((grade) => {
+                {filtered.map((grade) => {
                   const edit = scores[grade.id] ?? { tugas: '', uts: '', uas: '' };
                   const finalScore = computeFinal(grade, edit);
                   return (
