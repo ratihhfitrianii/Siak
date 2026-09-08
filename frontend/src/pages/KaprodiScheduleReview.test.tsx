@@ -143,4 +143,16 @@ describe('KaprodiScheduleReview — Persetujuan Jadwal Kaprodi', () => {
     expect(screen.queryByText('Dosen A')).not.toBeInTheDocument();
     expect(screen.getByText('Dosen B')).toBeInTheDocument();
   });
+
+  it('klik semua header kolom sortable → sort berfungsi tanpa error', async () => {
+    const user = userEvent.setup();
+    render(<KaprodiScheduleReview />);
+    await waitFor(() => expect(screen.getByText('Dosen A')).toBeInTheDocument());
+
+    const headers = ['Dosen', 'Semester', 'Kelas', 'Diajukan', 'Status'];
+    for (const h of headers) {
+      await user.click(screen.getByRole('button', { name: new RegExp(h) }));
+      expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
+    }
+  });
 });

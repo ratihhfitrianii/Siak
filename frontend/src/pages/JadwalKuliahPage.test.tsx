@@ -377,4 +377,20 @@ describe('JadwalKuliahPage', () => {
     expect(screen.queryByText('Pemrograman Dasar')).not.toBeInTheDocument();
     expect(screen.getByText('Struktur Data')).toBeInTheDocument();
   });
+
+  it('klik semua header kolom sortable → sort berfungsi tanpa error', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <JadwalKuliahPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Pemrograman Dasar');
+
+    const headers = ['Mata Kuliah', 'SKS', 'Kelas', 'Nama Dosen', 'Ruang', 'Jam'];
+    for (const h of headers) {
+      await user.click(screen.getByRole('button', { name: new RegExp(h) }));
+      expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
+    }
+  });
 });

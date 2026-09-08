@@ -371,4 +371,18 @@ describe('AnnouncementPage (Informasi Penting)', () => {
       rows1.findIndex((r) => r.includes('Jadwal UTS')),
     );
   });
+
+  it('klik semua header kolom sortable → sort berfungsi tanpa error', async () => {
+    const user = userEvent.setup();
+    mockList();
+
+    render(<AnnouncementPage />);
+    await screen.findByText('Jadwal UTS Semester Ganjil');
+
+    const headers = ['Judul', 'Target Role', 'Prioritas', 'Status', 'Publikasi', 'Berakhir'];
+    for (const h of headers) {
+      await user.click(screen.getByRole('button', { name: new RegExp(h) }));
+      expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
+    }
+  });
 });

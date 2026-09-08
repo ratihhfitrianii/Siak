@@ -295,6 +295,43 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     expect(screen.queryByText('Fakultas Teknik')).not.toBeInTheDocument();
   });
 
+  it('klik semua header sortable di semua tab (Fakultas, Prodi, Mahasiswa) → tanpa error', async () => {
+    mockAllLists();
+
+    renderWithRouter(<AdminMasterPage />);
+    await screen.findByText('Fakultas Teknik');
+
+    // Tab Fakultas: Kode, Nama, Status
+    for (const h of ['Kode', 'Nama', 'Status']) {
+      fireEvent.click(screen.getAllByRole('button', { name: new RegExp(h) })[0]);
+      expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
+    }
+
+    // Tab Program Studi: Kode, Nama, Jenjang, Status
+    clickTab('Program Studi');
+    await screen.findByText('Teknik Informatika');
+    for (const h of ['Kode', 'Nama', 'Jenjang', 'Status']) {
+      fireEvent.click(screen.getAllByRole('button', { name: new RegExp(h) })[0]);
+      expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
+    }
+
+    // Tab Mahasiswa: NIM, Nama, Angkatan, Status
+    clickTab('Mahasiswa');
+    await screen.findByText('Budi Santoso');
+    for (const h of ['NIM', 'Nama', 'Angkatan', 'Status']) {
+      fireEvent.click(screen.getAllByRole('button', { name: new RegExp(h) })[0]);
+      expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
+    }
+
+    // Tab Dosen: NIDN, Nama, Status, Wali
+    clickTab('Dosen');
+    await screen.findByText('Dr. Siti Rahayu');
+    for (const h of ['NIDN', 'Nama', 'Status', 'Wali']) {
+      fireEvent.click(screen.getAllByRole('button', { name: new RegExp(h) })[0]);
+      expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
+    }
+  });
+
   it('ganti tab ke Program Studi → daftar prodi', async () => {
     mockAllLists();
 

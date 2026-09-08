@@ -335,4 +335,18 @@ describe('AdminKrsPage (T1.11c)', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Server error');
   });
+
+  it('klik semua header kolom sortable → sort berfungsi tanpa error', async () => {
+    const user = userEvent.setup();
+    mockAdminRoutes();
+
+    render(<AdminKrsPage />);
+    await screen.findByText('Budi Santoso');
+
+    const headers = ['NIM', 'Mahasiswa', 'Prodi', 'Diajukan', 'Kelas', 'SKS'];
+    for (const h of headers) {
+      await user.click(screen.getByRole('button', { name: new RegExp(h) }));
+      expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
+    }
+  });
 });

@@ -136,4 +136,16 @@ describe('KurikulumPage', () => {
     // Ringkasan ikut memakai data terfilter
     expect(screen.getByText('1 MK')).toBeInTheDocument();
   });
+
+  it('klik semua header kolom sortable → sort berfungsi tanpa error', async () => {
+    vi.mocked(apiRequest).mockResolvedValue({ items: mockItems });
+    render(<KurikulumPage />);
+    await screen.findByText('Algoritma');
+
+    const headers = ['Semester Kurikulum', 'Kode MK', 'Mata Kuliah', 'SKS', 'Dosen Pengampu'];
+    for (const h of headers) {
+      fireEvent.click(screen.getByRole('button', { name: new RegExp(h) }));
+      expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
+    }
+  });
 });

@@ -173,10 +173,19 @@ function mockUsersRoutes({
       );
     }
     if (u.includes('/users?')) {
+      const urlObj = new URL(u, 'http://x');
+      const searchParam = urlObj.searchParams.get('search')?.toLowerCase() ?? '';
+      const filteredItems = searchParam
+        ? items.filter((it) =>
+            [it.full_name, it.email, it.nim, it.nik, it.faculty_name, it.prodi_name]
+              .filter(Boolean)
+              .some((v) => String(v).toLowerCase().includes(searchParam)),
+          )
+        : items;
       return Promise.resolve(
         jsonResponse({
           success: true,
-          data: { items, pagination: { page: 1, limit: 20, total } },
+          data: { items: filteredItems, pagination: { page: 1, limit: 20, total } },
         }),
       );
     }
@@ -1136,5 +1145,45 @@ describe('UsersPage (T1.11c)', () => {
     (deleteResolve as (() => void) | null)?.();
     await vi.waitFor(() => expect(screen.getByText('User dinonaktifkan')).toBeInTheDocument());
     confirmSpy.mockRestore();
+  });
+
+  it('klik header kolom Nama → urutan berubah (sort)', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes({
+      items: [
+        { ...SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa'), nim: '22051001' },
+        { ...SNAKE_USER(2, 'Bu Rina', 'rina@kampus.ac.id', 'dosen'), nik: '19800101' },
+      ],
+    });
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+
+    // Sort asc → 'Andi' sebelum 'Bu Rina'
+    await user.click(screen.getByRole('button', { name: /Nama/ }));
+    const rows = screen.getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveTextContent('Andi');
+    expect(rows[1]).toHaveTextContent('Bu Rina');
+
+    // Toggle desc → 'Bu Rina' dulu
+    await user.click(screen.getByRole('button', { name: /Nama/ }));
+    const rowsDesc = screen.getAllByRole('row').slice(1);
+    expect(rowsDesc[0]).toHaveTextContent('Bu Rina');
+  });
+
+  it('ketik query → hanya baris cocok (search semua kolom)', async () => {
+    const user = userEvent.setup();
+    mockUsersRoutes({
+      items: [
+        { ...SNAKE_USER(1, 'Andi', 'andi@kampus.ac.id', 'mahasiswa'), nim: '22051001' },
+        { ...SNAKE_USER(2, 'Bu Rina', 'rina@kampus.ac.id', 'dosen'), nik: '19800101' },
+      ],
+    });
+    render(<UsersPage />);
+    await screen.findByText('Andi');
+
+    // Cari NIM (kolom baru) → hanya Andi (server-side search via API)
+    await user.type(screen.getByPlaceholderText(/Cari/), '22051001');
+    await vi.waitFor(() => expect(screen.queryByText('Bu Rina')).not.toBeInTheDocument());
+    expect(screen.getByText('Andi')).toBeInTheDocument();
   });
 });

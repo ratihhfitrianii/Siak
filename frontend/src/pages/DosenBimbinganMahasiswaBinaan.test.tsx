@@ -71,6 +71,36 @@ const PROPOSALS: SkripsiProposal[] = [
     updatedAt: '2026-08-19T10:00:00.000Z',
     supervisors: [{ id: 9, fullName: 'Dosen Lain', nidn: '199001001', nik: '', prodiName: 'TI' }],
   },
+  {
+    id: 30,
+    studentId: 103,
+    supervisorId: 4,
+    supervisorName: '',
+    supervisorEmail: '',
+    nim: '20241673',
+    studentStatus: 'aktif',
+    studentName: 'Dewi Anggraini',
+    studentEmail: 'dewi@example.id',
+    prodiName: 'Teknik Informatika',
+    title: 'Sistem E-Commerce Berbasis Mobile',
+    proposalFile: null,
+    status: 'dalam_bimbingan',
+    statusNotes: null,
+    reviewedBy: null,
+    reviewedAt: null,
+    createdAt: '2026-08-20T13:47:45.373Z',
+    updatedAt: '2026-08-20T13:47:45.373Z',
+    supervisors: [
+      {
+        id: 4,
+        fullName: 'Dosen TI 1',
+        nidn: '198001002',
+        nik: '',
+        prodiName: 'TI',
+        isPrimary: true,
+      },
+    ],
+  },
 ];
 
 describe('DosenBimbinganMahasiswaBinaan', () => {
@@ -120,5 +150,33 @@ describe('DosenBimbinganMahasiswaBinaan', () => {
     fetchMock.mockImplementation(() => Promise.reject(new Error('network down')));
     render(<DosenBimbinganMahasiswaBinaan />);
     expect(await screen.findByText('Gagal memuat daftar mahasiswa binaan')).toBeInTheDocument();
+  });
+
+  it('klik kolom NIM → urutan kartu berubah (sort)', async () => {
+    const user = userEvent.setup();
+    render(<DosenBimbinganMahasiswaBinaan />);
+    await screen.findByText('Sistem Informasi Akademik Berbasis Web');
+
+    // asc: NIM 20241671 (Husni) sebelum 20241673 (Dewi)
+    await user.click(screen.getByRole('button', { name: /^NIM/ }));
+    let headings = screen.getAllByRole('heading', { level: 3 });
+    expect(headings[0]).toHaveTextContent('Sistem Informasi Akademik Berbasis Web');
+    expect(headings[1]).toHaveTextContent('Sistem E-Commerce Berbasis Mobile');
+
+    // desc: sebaliknya
+    await user.click(screen.getByRole('button', { name: /^NIM/ }));
+    headings = screen.getAllByRole('heading', { level: 3 });
+    expect(headings[0]).toHaveTextContent('Sistem E-Commerce Berbasis Mobile');
+    expect(headings[1]).toHaveTextContent('Sistem Informasi Akademik Berbasis Web');
+  });
+
+  it('ketik query → hanya kartu cocok (search)', async () => {
+    const user = userEvent.setup();
+    render(<DosenBimbinganMahasiswaBinaan />);
+    await screen.findByText('Sistem Informasi Akademik Berbasis Web');
+
+    await user.type(screen.getByPlaceholderText(/Cari/), 'Dewi');
+    expect(screen.getByText('Sistem E-Commerce Berbasis Mobile')).toBeInTheDocument();
+    expect(screen.queryByText('Sistem Informasi Akademik Berbasis Web')).not.toBeInTheDocument();
   });
 });

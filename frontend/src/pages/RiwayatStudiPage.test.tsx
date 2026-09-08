@@ -251,4 +251,20 @@ describe('RiwayatStudiPage', () => {
     expect(screen.getByText('Struktur Data')).toBeInTheDocument();
     expect(screen.queryByText('Pemrograman Dasar')).not.toBeInTheDocument();
   });
+
+  it('klik semua header kolom sortable → sort berfungsi tanpa error', async () => {
+    render(
+      <MemoryRouter>
+        <RiwayatStudiPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Pemrograman Dasar');
+
+    const headers = ['Kode MK', 'Mata Kuliah', 'SKS', 'Nilai', 'Nilai Angka', 'Semester'];
+    for (const h of headers) {
+      const btn = screen.getAllByRole('button', { name: new RegExp(h) })[0];
+      fireEvent.click(btn);
+      expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
+    }
+  });
 });

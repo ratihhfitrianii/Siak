@@ -224,6 +224,40 @@ describe('DosenGrades (T3.8)', () => {
     expect(screen.getByText('90')).toBeInTheDocument();
   });
 
+  it('klik kolom Kelas → urutan berubah (sort)', async () => {
+    const user = userEvent.setup();
+    render(<DosenGrades />);
+    await screen.findByText('Form Nilai');
+    const select = screen.getByLabelText('Mata Kuliah / Kelas') as HTMLSelectElement;
+    await user.selectOptions(select, select.options[1].value);
+    await screen.findByText('Budi Santoso');
+
+    // asc: Kelas TI101-A sebelum TI101-B
+    await user.click(screen.getByRole('button', { name: /^Kelas/ }));
+    let rows = screen.getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveTextContent('Budi Santoso');
+    expect(rows[1]).toHaveTextContent('Siti Aminah');
+
+    // desc: sebaliknya
+    await user.click(screen.getByRole('button', { name: /^Kelas/ }));
+    rows = screen.getAllByRole('row').slice(1);
+    expect(rows[0]).toHaveTextContent('Siti Aminah');
+    expect(rows[1]).toHaveTextContent('Budi Santoso');
+  });
+
+  it('ketik query → hanya baris cocok (search)', async () => {
+    const user = userEvent.setup();
+    render(<DosenGrades />);
+    await screen.findByText('Form Nilai');
+    const select = screen.getByLabelText('Mata Kuliah / Kelas') as HTMLSelectElement;
+    await user.selectOptions(select, select.options[1].value);
+    await screen.findByText('Budi Santoso');
+
+    await user.type(screen.getByPlaceholderText(/Cari/), 'Siti');
+    expect(screen.getByText('Siti Aminah')).toBeInTheDocument();
+    expect(screen.queryByText('Budi Santoso')).not.toBeInTheDocument();
+  });
+
   it('load nilai gagal → error', async () => {
     const user = userEvent.setup();
     fetchMock.mockImplementation((url: string) => {

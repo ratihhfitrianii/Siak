@@ -142,4 +142,23 @@ describe('DosenSalarySlip', () => {
     expect(screen.queryByText('Agustus 2026')).not.toBeInTheDocument();
     expect(screen.getByText('September 2026')).toBeInTheDocument();
   });
+
+  it('klik semua header kolom sortable → sort berfungsi tanpa error', async () => {
+    const user = userEvent.setup();
+    render(<DosenSalarySlip />);
+    await screen.findByText('Agustus 2026');
+
+    const headers = [
+      'Periode',
+      'Gaji Pokok',
+      'Honor Mengajar',
+      'Potongan',
+      'Total Diterima',
+      'Status',
+    ];
+    for (const h of headers) {
+      await user.click(screen.getByRole('button', { name: new RegExp(h) }));
+      expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
+    }
+  });
 });
