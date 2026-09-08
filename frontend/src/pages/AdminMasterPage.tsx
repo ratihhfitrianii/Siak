@@ -249,55 +249,69 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
   const akProdiTools = useTableTools<Prodi>(akademikProdis);
   const courseTools = useTableTools<Course>(courses);
 
-  const loadFaculties = useCallback(async (page = 1) => {
-    try {
-      const data = await listFaculties({ page, limit: PAGE_SIZE });
-      setFaculties(data.items);
-      setFacultyTotal(data.pagination.total);
-      setFacultyPage(page);
-    } catch {
-      setError('Gagal memuat data fakultas');
-    }
-  }, []);
+  const loadFaculties = useCallback(
+    async (page = 1, search = facultySearch) => {
+      try {
+        const data = await listFaculties({ page, limit: PAGE_SIZE, search });
+        setFaculties(data.items);
+        setFacultyTotal(data.pagination.total);
+        setFacultyPage(page);
+      } catch {
+        setError('Gagal memuat data fakultas');
+      }
+    },
+    [facultySearch],
+  );
 
-  const loadProdis = useCallback(async (page = 1) => {
-    try {
-      const data = await listProdis({ page, limit: PAGE_SIZE });
-      setProdis(data.items);
-      setProdiTotal(data.pagination.total);
-      setProdiPage(page);
-    } catch {
-      setError('Gagal memuat data prodi');
-    }
-  }, []);
+  const loadProdis = useCallback(
+    async (page = 1, search = prodiSearch) => {
+      try {
+        const data = await listProdis({ page, limit: PAGE_SIZE, search });
+        setProdis(data.items);
+        setProdiTotal(data.pagination.total);
+        setProdiPage(page);
+      } catch {
+        setError('Gagal memuat data prodi');
+      }
+    },
+    [prodiSearch],
+  );
 
-  const loadStudents = useCallback(async (page = 1) => {
-    try {
-      const response = await listMasterStudents({
-        page,
-        limit: PAGE_SIZE,
-      });
-      setStudents(response.items);
-      setStudentTotal(response.pagination.total);
-      setStudentPage(page);
-    } catch {
-      setError('Gagal memuat data mahasiswa');
-    }
-  }, []);
+  const loadStudents = useCallback(
+    async (page = 1, search = studentSearch) => {
+      try {
+        const response = await listMasterStudents({
+          page,
+          limit: PAGE_SIZE,
+          search,
+        });
+        setStudents(response.items);
+        setStudentTotal(response.pagination.total);
+        setStudentPage(page);
+      } catch {
+        setError('Gagal memuat data mahasiswa');
+      }
+    },
+    [studentSearch],
+  );
 
-  const loadLecturers = useCallback(async (page = 1) => {
-    try {
-      const response = await listMasterLecturers({
-        page,
-        limit: PAGE_SIZE,
-      });
-      setLecturers(response.items);
-      setLecturerTotal(response.pagination.total);
-      setLecturerPage(page);
-    } catch {
-      setError('Gagal memuat data dosen');
-    }
-  }, []);
+  const loadLecturers = useCallback(
+    async (page = 1, search = lecturerSearch) => {
+      try {
+        const response = await listMasterLecturers({
+          page,
+          limit: PAGE_SIZE,
+          search,
+        });
+        setLecturers(response.items);
+        setLecturerTotal(response.pagination.total);
+        setLecturerPage(page);
+      } catch {
+        setError('Gagal memuat data dosen');
+      }
+    },
+    [lecturerSearch],
+  );
 
   // ===== Admin Akademik: Fakultas (untuk seleksi fakultas admin) =====
   const loadAdminFaculties = useCallback(async () => {
@@ -311,11 +325,17 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
 
   // ===== Admin Akademik: Prodi per fakultas =====
   const loadAkademikProdis = useCallback(
-    async (page = 1) => {
+    async (page = 1, search = akademikProdiSearch) => {
       try {
-        const params: { page: number; limit: number; facultyId?: number } = {
+        const params: {
+          page: number;
+          limit: number;
+          search: string;
+          facultyId?: number;
+        } = {
           page,
           limit: PAGE_SIZE,
+          search,
         };
         if (adminFacultyId) params.facultyId = adminFacultyId;
         const data = await listAcademicProdis(params);
@@ -326,7 +346,7 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
         setError('Gagal memuat data prodi');
       }
     },
-    [adminFacultyId],
+    [akademikProdiSearch, adminFacultyId],
   );
 
   // ===== Admin Akademik: Ruangan =====
@@ -1086,9 +1106,14 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                 facTools.setQuery(val);
                 setFacultySearch(val);
                 facTools.submit(val);
+                if (val.length >= 3 || val.length === 0) loadFaculties(1, val);
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') facTools.submit(e.currentTarget.value, true);
+                if (e.key === 'Enter') {
+                  const val = e.currentTarget.value;
+                  facTools.submit(val, true);
+                  loadFaculties(1, val);
+                }
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -1209,9 +1234,14 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                 prodiTools.setQuery(val);
                 setProdiSearch(val);
                 prodiTools.submit(val);
+                if (val.length >= 3 || val.length === 0) loadProdis(1, val);
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') prodiTools.submit(e.currentTarget.value, true);
+                if (e.key === 'Enter') {
+                  const val = e.currentTarget.value;
+                  prodiTools.submit(val, true);
+                  loadProdis(1, val);
+                }
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -1360,9 +1390,14 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                 studentTools.setQuery(val);
                 setStudentSearch(val);
                 studentTools.submit(val);
+                if (val.length >= 3 || val.length === 0) loadStudents(1, val);
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') studentTools.submit(e.currentTarget.value, true);
+                if (e.key === 'Enter') {
+                  const val = e.currentTarget.value;
+                  studentTools.submit(val, true);
+                  loadStudents(1, val);
+                }
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -1530,9 +1565,14 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                 lecturerTools.setQuery(val);
                 setLecturerSearch(val);
                 lecturerTools.submit(val);
+                if (val.length >= 3 || val.length === 0) loadLecturers(1, val);
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') lecturerTools.submit(e.currentTarget.value, true);
+                if (e.key === 'Enter') {
+                  const val = e.currentTarget.value;
+                  lecturerTools.submit(val, true);
+                  loadLecturers(1, val);
+                }
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -1935,9 +1975,14 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                     akProdiTools.setQuery(val);
                     setAkademikProdiSearch(val);
                     akProdiTools.submit(val);
+                    if (val.length >= 3 || val.length === 0) loadAkademikProdis(1, val);
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') akProdiTools.submit(e.currentTarget.value, true);
+                    if (e.key === 'Enter') {
+                      const val = e.currentTarget.value;
+                      akProdiTools.submit(val, true);
+                      loadAkademikProdis(1, val);
+                    }
                   }}
                   className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
