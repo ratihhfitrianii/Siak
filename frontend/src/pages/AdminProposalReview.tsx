@@ -110,7 +110,7 @@ export function AdminProposalReview() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   // Tabel tools: client-side search + sort
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } =
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } =
     useTableTools<SkripsiProposal>(proposals);
 
   const loadProposals = useCallback(async () => {
@@ -239,7 +239,14 @@ export function AdminProposalReview() {
             id="admin-proposal-search"
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setQuery(val);
+              submit(val);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submit(e.currentTarget.value, true);
+            }}
             placeholder="Cari judul, NIM, nama mahasiswa, atau prodi..."
             className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />

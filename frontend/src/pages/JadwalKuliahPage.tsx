@@ -118,7 +118,8 @@ export function JadwalKuliahPage() {
     courseCode: it.course.code,
     credits: it.course.credits,
   }));
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(tableRows);
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } =
+    useTableTools(tableRows);
 
   function openPresence(c: MyKrsItem) {
     setPresenceClass(c);
@@ -212,7 +213,14 @@ export function JadwalKuliahPage() {
                     type="text"
                     placeholder="Cari semua kolom..."
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setQuery(val);
+                      submit(val);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') submit(e.currentTarget.value, true);
+                    }}
                     className="w-full sm:w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>

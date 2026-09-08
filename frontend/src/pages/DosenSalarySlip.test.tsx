@@ -138,7 +138,7 @@ describe('DosenSalarySlip', () => {
     render(<DosenSalarySlip />);
     await screen.findByText('Agustus 2026');
 
-    await user.type(screen.getByPlaceholderText('Cari semua kolom...'), '09');
+    await user.type(screen.getByPlaceholderText('Cari semua kolom...'), '2026-09');
     expect(screen.queryByText('Agustus 2026')).not.toBeInTheDocument();
     expect(screen.getByText('September 2026')).toBeInTheDocument();
   });

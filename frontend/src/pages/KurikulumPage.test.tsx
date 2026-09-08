@@ -130,6 +130,7 @@ describe('KurikulumPage', () => {
     fireEvent.change(screen.getByPlaceholderText('Cari semua kolom...'), {
       target: { value: 'Basis' },
     });
+    fireEvent.keyDown(screen.getByPlaceholderText('Cari semua kolom...'), { key: 'Enter' });
     expect(screen.getByText('Basis Data')).toBeInTheDocument();
     expect(screen.queryByText('Algoritma')).not.toBeInTheDocument();
     expect(screen.queryByText('Struktur Data')).not.toBeInTheDocument();

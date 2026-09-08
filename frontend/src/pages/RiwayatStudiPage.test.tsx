@@ -248,6 +248,7 @@ describe('RiwayatStudiPage', () => {
     fireEvent.change(screen.getByPlaceholderText('Cari semua kolom...'), {
       target: { value: 'Struktur' },
     });
+    fireEvent.keyDown(screen.getByPlaceholderText('Cari semua kolom...'), { key: 'Enter' });
     expect(screen.getByText('Struktur Data')).toBeInTheDocument();
     expect(screen.queryByText('Pemrograman Dasar')).not.toBeInTheDocument();
   });

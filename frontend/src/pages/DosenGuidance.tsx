@@ -25,11 +25,11 @@ export function DosenGuidance() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Debounced search
+  // Debounced search — aktif hanya setelah minimal 3 karakter (atau Enter).
   useEffect(() => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
+      setDebouncedSearch(searchTerm.trim().length >= 3 ? searchTerm.trim() : '');
     }, 300);
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -141,7 +141,13 @@ export function DosenGuidance() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Cari berdasarkan NIM, nama, email, atau prodi..."
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const v = searchTerm.trim();
+                setDebouncedSearch(v);
+              }
+            }}
+            placeholder="Cari berdasarkan NIM, nama, email, atau prodi... (min 3 karakter)"
             className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
         </div>

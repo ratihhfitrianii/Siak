@@ -23,7 +23,7 @@ export function KaprodiScheduleReview() {
   const [rejectNote, setRejectNote] = useState('');
   const [noteTarget, setNoteTarget] = useState<ScheduleSubmissionItem | null>(null);
 
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(items);
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } = useTableTools(items);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -74,7 +74,14 @@ export function KaprodiScheduleReview() {
             type="text"
             placeholder="Cari semua kolom..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setQuery(val);
+              submit(val);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submit(e.currentTarget.value, true);
+            }}
             className="w-full sm:w-48 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
           />
           <select

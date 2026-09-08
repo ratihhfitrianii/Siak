@@ -121,9 +121,7 @@ describe('DosenDashboardPage (T3.7)', () => {
 
   it('route /dosen/bimbingan → render DosenGuidance — TIDAK ada header Dashboard Dosen', () => {
     renderAt('/dosen/bimbingan');
-    expect(
-      screen.getByPlaceholderText('Cari berdasarkan NIM, nama, email, atau prodi...'),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Cari berdasarkan NIM, nama, email/)).toBeInTheDocument();
     expect(screen.queryByText('Dashboard Dosen')).not.toBeInTheDocument();
   });
 

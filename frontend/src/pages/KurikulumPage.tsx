@@ -45,7 +45,7 @@ export function KurikulumPage() {
     };
   }, []);
 
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(rows);
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } = useTableTools(rows);
 
   const semesterCounts = useMemo(() => {
     const counts = new Map<number, number>();
@@ -104,7 +104,14 @@ export function KurikulumPage() {
               type="text"
               placeholder="Cari semua kolom..."
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuery(val);
+                submit(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submit(e.currentTarget.value, true);
+              }}
               className="w-full sm:w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
           </div>

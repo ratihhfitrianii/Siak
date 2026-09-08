@@ -53,7 +53,7 @@ export function DosenSalarySlip() {
   const [bulanFilter, setBulanFilter] = useState('');
   const [tahunFilter, setTahunFilter] = useState(String(TAHUN_SEKARANG));
 
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(slips);
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } = useTableTools(slips);
 
   const loadSlips = useCallback(async () => {
     setLoading(true);
@@ -166,7 +166,14 @@ export function DosenSalarySlip() {
               type="text"
               placeholder="Cari semua kolom..."
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuery(val);
+                submit(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submit(e.currentTarget.value, true);
+              }}
               className="px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             />
           </div>

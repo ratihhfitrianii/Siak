@@ -249,69 +249,55 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
   const akProdiTools = useTableTools<Prodi>(akademikProdis);
   const courseTools = useTableTools<Course>(courses);
 
-  const loadFaculties = useCallback(
-    async (page = 1) => {
-      try {
-        const data = await listFaculties({ page, limit: PAGE_SIZE, search: facultySearch });
-        setFaculties(data.items);
-        setFacultyTotal(data.pagination.total);
-        setFacultyPage(page);
-      } catch {
-        setError('Gagal memuat data fakultas');
-      }
-    },
-    [facultySearch],
-  );
+  const loadFaculties = useCallback(async (page = 1) => {
+    try {
+      const data = await listFaculties({ page, limit: PAGE_SIZE });
+      setFaculties(data.items);
+      setFacultyTotal(data.pagination.total);
+      setFacultyPage(page);
+    } catch {
+      setError('Gagal memuat data fakultas');
+    }
+  }, []);
 
-  const loadProdis = useCallback(
-    async (page = 1) => {
-      try {
-        const data = await listProdis({ page, limit: PAGE_SIZE, search: prodiSearch });
-        setProdis(data.items);
-        setProdiTotal(data.pagination.total);
-        setProdiPage(page);
-      } catch {
-        setError('Gagal memuat data prodi');
-      }
-    },
-    [prodiSearch],
-  );
+  const loadProdis = useCallback(async (page = 1) => {
+    try {
+      const data = await listProdis({ page, limit: PAGE_SIZE });
+      setProdis(data.items);
+      setProdiTotal(data.pagination.total);
+      setProdiPage(page);
+    } catch {
+      setError('Gagal memuat data prodi');
+    }
+  }, []);
 
-  const loadStudents = useCallback(
-    async (page = 1) => {
-      try {
-        const response = await listMasterStudents({
-          page,
-          limit: PAGE_SIZE,
-          search: studentSearch,
-        });
-        setStudents(response.items);
-        setStudentTotal(response.pagination.total);
-        setStudentPage(page);
-      } catch {
-        setError('Gagal memuat data mahasiswa');
-      }
-    },
-    [studentSearch],
-  );
+  const loadStudents = useCallback(async (page = 1) => {
+    try {
+      const response = await listMasterStudents({
+        page,
+        limit: PAGE_SIZE,
+      });
+      setStudents(response.items);
+      setStudentTotal(response.pagination.total);
+      setStudentPage(page);
+    } catch {
+      setError('Gagal memuat data mahasiswa');
+    }
+  }, []);
 
-  const loadLecturers = useCallback(
-    async (page = 1) => {
-      try {
-        const response = await listMasterLecturers({
-          page,
-          limit: PAGE_SIZE,
-          search: lecturerSearch,
-        });
-        setLecturers(response.items);
-        setLecturerTotal(response.pagination.total);
-        setLecturerPage(page);
-      } catch {
-        setError('Gagal memuat data dosen');
-      }
-    },
-    [lecturerSearch],
-  );
+  const loadLecturers = useCallback(async (page = 1) => {
+    try {
+      const response = await listMasterLecturers({
+        page,
+        limit: PAGE_SIZE,
+      });
+      setLecturers(response.items);
+      setLecturerTotal(response.pagination.total);
+      setLecturerPage(page);
+    } catch {
+      setError('Gagal memuat data dosen');
+    }
+  }, []);
 
   // ===== Admin Akademik: Fakultas (untuk seleksi fakultas admin) =====
   const loadAdminFaculties = useCallback(async () => {
@@ -327,10 +313,9 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
   const loadAkademikProdis = useCallback(
     async (page = 1) => {
       try {
-        const params: { page: number; limit: number; search: string; facultyId?: number } = {
+        const params: { page: number; limit: number; facultyId?: number } = {
           page,
           limit: PAGE_SIZE,
-          search: akademikProdiSearch,
         };
         if (adminFacultyId) params.facultyId = adminFacultyId;
         const data = await listAcademicProdis(params);
@@ -341,7 +326,7 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
         setError('Gagal memuat data prodi');
       }
     },
-    [akademikProdiSearch, adminFacultyId],
+    [adminFacultyId],
   );
 
   // ===== Admin Akademik: Ruangan =====
@@ -1094,13 +1079,16 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           <div className="mb-4">
             <input
               type="text"
-              placeholder="Cari kode/nama fakultas..."
+              placeholder="Cari kode/nama fakultas... (min 3 karakter)"
               value={facultySearch}
               onChange={(e) => {
                 const val = e.target.value;
-                facTools.setQuery(val); // client-side filter
-                setFacultySearch(val); // server-side search param
-                loadFaculties(1);
+                facTools.setQuery(val);
+                setFacultySearch(val);
+                facTools.submit(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') facTools.submit(e.currentTarget.value, true);
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -1214,13 +1202,16 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           <div className="mb-4">
             <input
               type="text"
-              placeholder="Cari kode/nama prodi..."
+              placeholder="Cari kode/nama prodi... (min 3 karakter)"
               value={prodiSearch}
               onChange={(e) => {
                 const val = e.target.value;
-                prodiTools.setQuery(val); // client-side filter
-                setProdiSearch(val); // server-side search param
-                loadProdis(1);
+                prodiTools.setQuery(val);
+                setProdiSearch(val);
+                prodiTools.submit(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') prodiTools.submit(e.currentTarget.value, true);
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -1251,7 +1242,19 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                       <SortIcon active={prodiTools.sortKey === 'name'} dir={prodiTools.sortDir} />
                     </button>
                   </th>
-                  <th className="pb-2 font-medium">Fakultas</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => prodiTools.toggleSort('facultyCode')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Fakultas{' '}
+                      <SortIcon
+                        active={prodiTools.sortKey === 'facultyCode'}
+                        dir={prodiTools.sortDir}
+                      />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">
                     <button
                       type="button"
@@ -1350,13 +1353,16 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           <div className="mb-4">
             <input
               type="text"
-              placeholder="Cari NIM/nama/email mahasiswa..."
+              placeholder="Cari NIM/nama/email mahasiswa... (min 3 karakter)"
               value={studentSearch}
               onChange={(e) => {
                 const val = e.target.value;
-                studentTools.setQuery(val); // client-side filter
-                setStudentSearch(val); // server-side search param
-                loadStudents(1);
+                studentTools.setQuery(val);
+                setStudentSearch(val);
+                studentTools.submit(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') studentTools.submit(e.currentTarget.value, true);
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -1393,7 +1399,19 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                       />
                     </button>
                   </th>
-                  <th className="pb-2 font-medium">Prodi</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => studentTools.toggleSort('prodiCode')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Prodi{' '}
+                      <SortIcon
+                        active={studentTools.sortKey === 'prodiCode'}
+                        dir={studentTools.sortDir}
+                      />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">
                     <button
                       type="button"
@@ -1407,7 +1425,19 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                       />
                     </button>
                   </th>
-                  <th className="pb-2 font-medium">Email</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => studentTools.toggleSort('email')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Email{' '}
+                      <SortIcon
+                        active={studentTools.sortKey === 'email'}
+                        dir={studentTools.sortDir}
+                      />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">
                     <button
                       type="button"
@@ -1493,13 +1523,16 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           <div className="mb-4">
             <input
               type="text"
-              placeholder="Cari NIDN/nama/email dosen..."
+              placeholder="Cari NIDN/nama/email dosen... (min 3 karakter)"
               value={lecturerSearch}
               onChange={(e) => {
                 const val = e.target.value;
-                lecturerTools.setQuery(val); // client-side filter
-                setLecturerSearch(val); // server-side search param
-                loadLecturers(1);
+                lecturerTools.setQuery(val);
+                setLecturerSearch(val);
+                lecturerTools.submit(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') lecturerTools.submit(e.currentTarget.value, true);
               }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
@@ -1536,8 +1569,32 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                       />
                     </button>
                   </th>
-                  <th className="pb-2 font-medium">Prodi</th>
-                  <th className="pb-2 font-medium">Email</th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => lecturerTools.toggleSort('prodiCode')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Prodi{' '}
+                      <SortIcon
+                        active={lecturerTools.sortKey === 'prodiCode'}
+                        dir={lecturerTools.sortDir}
+                      />
+                    </button>
+                  </th>
+                  <th className="pb-2 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => lecturerTools.toggleSort('email')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Email{' '}
+                      <SortIcon
+                        active={lecturerTools.sortKey === 'email'}
+                        dir={lecturerTools.sortDir}
+                      />
+                    </button>
+                  </th>
                   <th className="pb-2 font-medium">
                     <button
                       type="button"
@@ -1688,9 +1745,16 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               <div className="mb-4">
                 <input
                   type="text"
-                  placeholder="Cari kode/nama ruangan..."
+                  placeholder="Cari kode/nama ruangan... (min 3 karakter)"
                   value={roomTools.query}
-                  onChange={(e) => roomTools.setQuery(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    roomTools.setQuery(val);
+                    roomTools.submit(val);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') roomTools.submit(e.currentTarget.value, true);
+                  }}
                   className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
@@ -1864,13 +1928,16 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               <div className="mb-4">
                 <input
                   type="text"
-                  placeholder="Cari kode/nama prodi..."
+                  placeholder="Cari kode/nama prodi... (min 3 karakter)"
                   value={akademikProdiSearch}
                   onChange={(e) => {
                     const val = e.target.value;
-                    akProdiTools.setQuery(val); // client-side filter
-                    setAkademikProdiSearch(val); // server-side search param
-                    loadAkademikProdis(1);
+                    akProdiTools.setQuery(val);
+                    setAkademikProdiSearch(val);
+                    akProdiTools.submit(val);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') akProdiTools.submit(e.currentTarget.value, true);
                   }}
                   className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
@@ -2011,9 +2078,16 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           <div className="mb-4">
             <input
               type="text"
-              placeholder="Cari kode/nama mata kuliah..."
+              placeholder="Cari kode/nama mata kuliah... (min 3 karakter)"
               value={courseTools.query}
-              onChange={(e) => courseTools.setQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                courseTools.setQuery(val);
+                courseTools.submit(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') courseTools.submit(e.currentTarget.value, true);
+              }}
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>

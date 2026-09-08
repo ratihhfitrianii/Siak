@@ -121,7 +121,8 @@ export function DosenBimbinganMahasiswaBinaan() {
     }
   };
 
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(proposals);
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } =
+    useTableTools(proposals);
 
   const loadProposals = useCallback(async () => {
     try {
@@ -367,7 +368,14 @@ export function DosenBimbinganMahasiswaBinaan() {
             id="binaan-search"
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setQuery(val);
+              submit(val);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submit(e.currentTarget.value, true);
+            }}
             placeholder="Cari judul, NIM, nama mahasiswa, atau prodi..."
             className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />

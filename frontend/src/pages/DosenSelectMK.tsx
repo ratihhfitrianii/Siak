@@ -67,7 +67,8 @@ export function DosenSelectMK() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   // Client-side search + sort
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(courses);
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } =
+    useTableTools(courses);
 
   // Muat daftar semester aktif → set default ke yang terbaru
   useEffect(() => {
@@ -287,7 +288,14 @@ export function DosenSelectMK() {
             <input
               type="text"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuery(val);
+                submit(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submit(e.currentTarget.value, true);
+              }}
               placeholder="Cari berdasarkan nama atau kode MK"
               className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
             />

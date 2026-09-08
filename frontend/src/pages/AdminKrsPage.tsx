@@ -19,7 +19,7 @@ export function AdminKrsPage() {
   const [rejectSubmitting, setRejectSubmitting] = useState(false);
 
   // Tabel tools: client-side search + sort
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } =
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } =
     useTableTools<AdminKrsItem>(pending);
 
   const load = useCallback(async () => {
@@ -125,7 +125,14 @@ export function AdminKrsPage() {
               type="text"
               placeholder="Cari NIM, nama, prodi…"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuery(val);
+                submit(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submit(e.currentTarget.value, true);
+              }}
               aria-label="Cari pengajuan KRS"
               className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />

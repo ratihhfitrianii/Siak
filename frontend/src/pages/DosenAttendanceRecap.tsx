@@ -173,7 +173,7 @@ export function DosenAttendanceRecap() {
 
   const selectedClass = classes.find((c) => c.id === selectedClassId) ?? null;
 
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(recap);
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } = useTableTools(recap);
 
   if (classes.length === 0) {
     return (
@@ -238,7 +238,14 @@ export function DosenAttendanceRecap() {
                 <input
                   type="search"
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setQuery(val);
+                    submit(val);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') submit(e.currentTarget.value, true);
+                  }}
                   placeholder="Cari NIM, nama mahasiswa, atau status kehadiran..."
                   aria-label="Cari rekap kehadiran"
                   className="w-full sm:w-80 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"

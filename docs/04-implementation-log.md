@@ -2507,3 +2507,13 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 - Form tambah mahasiswa admin sistem: tambah dropdown Fakultas (filter Prodi).
 
 - Semua tabel semua role: tambah ikon urutkan (SortIcon ▲/▼/↕) per kolom + pencarian semua kolom (helper useTableTools, deep-search nested) di ~17 halaman (admin, dosen, finance, kurikulum, mahasiswa).
+
+#### Pencarian min. 3 karakter / Enter + ikon sort kolom Prodi/Fakultas/Email
+- Semua kolom pencarian (semua role): mulai mencari ketika minimal 3 karakter diketik, atau saat user menekan Enter (bypass min. 3). Query 1-2 karakter tanpa Enter -> daftar penuh (tidak ada fetch/loading). Diterapkan di helper useTableTools (client-side, 17+ halaman) + AdminMasterPage (6 tab) + UsersPage & DosenGuidance (server-side debounce).
+- Kolom Prodi (Mahasiswa & Dosen), Fakultas (Prodi), Email (Mahasiswa & Dosen) di Master Admin Sistem kini punya ikon urut (SortIcon), sehingga semua kolom data sortable.
+- AdminMasterPage: hapus server-side search per karakter (search murni client-side via useTableTools) - tidak ada lagi loading setiap karakter diketik.
+| Gate | Hasil |
+|------|-------|
+| FE test | 527/527 pass |
+| FE coverage | branches 82.77%, functions 80.83% |
+| FE lint/typecheck/format/build | OK |

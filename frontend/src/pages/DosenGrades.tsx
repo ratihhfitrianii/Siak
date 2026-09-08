@@ -221,7 +221,7 @@ export function DosenGrades() {
       )
     : [];
 
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(grades);
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } = useTableTools(grades);
 
   return (
     <div className="space-y-6">
@@ -273,7 +273,14 @@ export function DosenGrades() {
               <input
                 type="search"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setQuery(val);
+                  submit(val);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') submit(e.currentTarget.value, true);
+                }}
                 placeholder="Cari NIM, nama, atau kelas..."
                 aria-label="Cari nilai"
                 className="w-full sm:w-80 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"

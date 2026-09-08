@@ -411,6 +411,7 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
     fireEvent.change(screen.getByPlaceholderText('Cari semua kolom...'), {
       target: { value: 'Genap 2023' },
     });
+    fireEvent.keyDown(screen.getByPlaceholderText('Cari semua kolom...'), { key: 'Enter' });
     expect(screen.getByText('Genap 2023/2024 (2023/2024-2)')).toBeInTheDocument();
     expect(screen.queryByText('Ganjil 2024/2025 (2024/2025-1)')).not.toBeInTheDocument();
   });

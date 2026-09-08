@@ -235,8 +235,8 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     expect(screen.getByText('FT')).toBeInTheDocument();
     // "Aktif" appears in status badges — use container to scope
     expect(screen.getAllByText('Aktif').length).toBeGreaterThanOrEqual(2); // 2 faculties
-    expect(mockedApi.listFaculties).toHaveBeenCalledWith({ page: 1, limit: 10, search: '' });
-    expect(mockedApi.listProdis).toHaveBeenCalledWith({ page: 1, limit: 10, search: '' });
+    expect(mockedApi.listFaculties).toHaveBeenCalledWith({ page: 1, limit: 10 });
+    expect(mockedApi.listProdis).toHaveBeenCalledWith({ page: 1, limit: 10 });
   });
 
   it('klik header Kode (Fakultas) → urutan berubah (asc lalu desc)', async () => {
@@ -266,29 +266,19 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     );
   });
 
-  it('cari fakultas (server-side) → list dipanggil ulang dengan search + hanya baris cocok', async () => {
+  it('cari fakultas (client-side, min 3 karakter / Enter) → hanya baris cocok', async () => {
     mockAllLists();
-    // Mock server-side search: kembalikan hanya fakultas yang cocok
-    mockedApi.listFaculties.mockImplementation(async ({ search } = {}) => {
-      const q = String(search ?? '').toLowerCase();
-      const items = FACULTIES.filter(
-        (f) => f.code.toLowerCase().includes(q) || f.name.toLowerCase().includes(q),
-      );
-      return facultyResponse(items);
-    });
-
     renderWithRouter(<AdminMasterPage />);
     await screen.findByText('Fakultas Teknik');
 
-    fireEvent.change(screen.getByPlaceholderText('Cari kode/nama fakultas...'), {
-      target: { value: 'FE' },
-    });
+    const input = screen.getByPlaceholderText(/Cari kode\/nama fakultas/);
+    // 2 karakter tanpa Enter → belum memfilter (min 3)
+    fireEvent.change(input, { target: { value: 'FE' } });
+    fireEvent.change(input, { target: { value: 'FE' } }); // re-fire
+    expect(screen.getByText('Fakultas Teknik')).toBeInTheDocument();
 
-    // listFaculties dipanggil ulang dengan search 'FE'
-    await waitFor(() => {
-      expect(mockedApi.listFaculties).toHaveBeenCalledWith({ page: 1, limit: 10, search: 'FE' });
-    });
-    // hanya FE yang tampil (FT hilang dari tabel)
+    // Tekan Enter → filter walau 2 karakter
+    fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => {
       expect(screen.getByText('Fakultas Ekonomi')).toBeInTheDocument();
     });
@@ -384,7 +374,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     expect(await screen.findByText(/Fakultas berhasil dibuat/)).toBeInTheDocument();
     expect(mockedApi.listFaculties).toHaveBeenCalledTimes(2); // initial + after create
-    expect(mockedApi.listFaculties).toHaveBeenCalledWith({ page: 1, limit: 10, search: '' });
+    expect(mockedApi.listFaculties).toHaveBeenCalledWith({ page: 1, limit: 10 });
   });
 
   it('edit fakultas → updateFaculty dipanggil', async () => {
@@ -447,7 +437,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     expect(await screen.findByText(/Fakultas dinonaktifkan/)).toBeInTheDocument();
     expect(mockedApi.listFaculties).toHaveBeenCalledTimes(2);
-    expect(mockedApi.listFaculties).toHaveBeenCalledWith({ page: 1, limit: 10, search: '' });
+    expect(mockedApi.listFaculties).toHaveBeenCalledWith({ page: 1, limit: 10 });
   });
 
   it('tambah prodi baru → createProdi dipanggil + list refresh', async () => {
@@ -498,7 +488,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     expect(await screen.findByText(/Prodi berhasil dibuat/)).toBeInTheDocument();
     expect(mockedApi.listProdis).toHaveBeenCalledTimes(2);
-    expect(mockedApi.listProdis).toHaveBeenCalledWith({ page: 1, limit: 10, search: '' });
+    expect(mockedApi.listProdis).toHaveBeenCalledWith({ page: 1, limit: 10 });
   });
 
   it('tab Mahasiswa → menampilkan daftar mahasiswa', async () => {
@@ -512,7 +502,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     expect(await screen.findByText('Budi Santoso')).toBeInTheDocument();
     expect(screen.getByText('20240001')).toBeInTheDocument();
     expect(screen.getByText('Siti Aminah')).toBeInTheDocument();
-    expect(mockedApi.listMasterStudents).toHaveBeenCalledWith({ page: 1, limit: 10, search: '' });
+    expect(mockedApi.listMasterStudents).toHaveBeenCalledWith({ page: 1, limit: 10 });
   });
 
   it('tab Dosen → menampilkan daftar dosen', async () => {
@@ -526,7 +516,7 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     expect(await screen.findByText('Dr. Andi Wijaya')).toBeInTheDocument();
     expect(screen.getByText('198001001')).toBeInTheDocument();
     expect(screen.getByText('Dr. Siti Rahayu')).toBeInTheDocument();
-    expect(mockedApi.listMasterLecturers).toHaveBeenCalledWith({ page: 1, limit: 10, search: '' });
+    expect(mockedApi.listMasterLecturers).toHaveBeenCalledWith({ page: 1, limit: 10 });
   });
 
   it('tab Dosen → badge status nonaktif + wali', async () => {

@@ -135,6 +135,7 @@ describe('TagihanPage', () => {
     fireEvent.change(screen.getByPlaceholderText('Cari semua kolom...'), {
       target: { value: 'Praktikum' },
     });
+    fireEvent.keyDown(screen.getByPlaceholderText('Cari semua kolom...'), { key: 'Enter' });
     expect(screen.getByText('Praktikum')).toBeInTheDocument();
     expect(screen.queryByText('SPP Semester Ganjil 2026/2027')).not.toBeInTheDocument();
   });

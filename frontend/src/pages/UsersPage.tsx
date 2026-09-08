@@ -114,9 +114,12 @@ export function UsersPage() {
     }
   }, []);
 
-  // debounce pencarian 300ms
+  // debounce pencarian 300ms + minimal 3 karakter (atau Enter → submit langsung).
+  // Query < 3 karakter → reset ke daftar penuh (tidak fetch server).
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    const t = setTimeout(() => {
+      setDebouncedSearch(search.trim().length >= 3 ? search.trim() : '');
+    }, 300);
     return () => clearTimeout(t);
   }, [search]);
 
@@ -365,7 +368,13 @@ export function UsersPage() {
             setSearch(e.target.value);
             setPage(1);
           }}
-          placeholder="Cari nama, email, NIM/NIK, prodi, atau fakultas…"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const v = search.trim();
+              setDebouncedSearch(v);
+            }
+          }}
+          placeholder="Cari nama, email, NIM/NIK, prodi, atau fakultas… (min 3 karakter)"
           aria-label="Cari pengguna"
           className="w-full sm:w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
         />

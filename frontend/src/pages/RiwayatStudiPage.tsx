@@ -91,7 +91,8 @@ export function RiwayatStudiPage() {
     courseName: it.course.name,
     credits: it.course.credits,
   }));
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(tableRows);
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } =
+    useTableTools(tableRows);
 
   const { totalSks, ipk } = useMemo(() => {
     const totalSks = filtered.reduce((sum, it) => sum + it.credits, 0);
@@ -129,7 +130,14 @@ export function RiwayatStudiPage() {
           type="text"
           placeholder="Cari semua kolom..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            setQuery(val);
+            submit(val);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') submit(e.currentTarget.value, true);
+          }}
           className="w-full sm:w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
       </div>

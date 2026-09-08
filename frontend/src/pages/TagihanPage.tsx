@@ -14,7 +14,7 @@ export function TagihanPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } = useTableTools(
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } = useTableTools(
     payment?.items ?? [],
   );
 
@@ -153,7 +153,14 @@ export function TagihanPage() {
                   type="text"
                   placeholder="Cari semua kolom..."
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setQuery(val);
+                    submit(val);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') submit(e.currentTarget.value, true);
+                  }}
                   className="w-full sm:w-64 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>

@@ -64,7 +64,7 @@ export function AnnouncementPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Tabel tools (client-side search + sort)
-  const { query, setQuery, sortKey, sortDir, toggleSort, filtered } =
+  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } =
     useTableTools<Announcement>(announcements);
 
   // Form
@@ -343,7 +343,14 @@ export function AnnouncementPage() {
             type="text"
             placeholder="Cari judul, target role, status…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setQuery(val);
+              submit(val);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submit(e.currentTarget.value, true);
+            }}
             aria-label="Cari informasi penting"
             className="w-full max-w-xs px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
