@@ -882,11 +882,15 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
     setSaving(true);
     try {
       if (editingCourseId) {
+        // Edit: kirim prodiId hanya jika prodi tsb masih ada di dropdown aktif fakultas ini.
+        // Jika prodi lama nonaktif/fakultas lain → jangan kirim (backend pertahankan kurikulum lama
+        // via COALESCE; mengirim prodi tak dikenal = FK violation pada kurikulum → 500 di prod).
+        const prodiStillAvailable = courseProdis.some((p) => p.id === courseForm.prodiId);
         await updateCourse(editingCourseId, {
           name: courseForm.name,
           credits: Number(courseForm.credits),
           description: courseForm.description || undefined,
-          prodiId: courseForm.prodiId || undefined,
+          prodiId: prodiStillAvailable ? courseForm.prodiId : undefined,
         });
         setSuccess('Mata kuliah berhasil diupdate');
       } else {

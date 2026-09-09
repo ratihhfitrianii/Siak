@@ -1893,6 +1893,10 @@ describe('AdminMasterPage (Mata Kuliah)', () => {
     fireEvent.change(screen.getByLabelText('Nama Mata Kuliah *'), {
       target: { value: 'Algoritma Lanjut' },
     });
+    // Tunggu dropdown prodi terisi (fetch listAcademicProdis async) agar prodiId dikirim.
+    await waitFor(() => {
+      expect(screen.getAllByRole('option').length).toBeGreaterThan(3);
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Update Mata Kuliah' }));
 
     await waitFor(() => {
