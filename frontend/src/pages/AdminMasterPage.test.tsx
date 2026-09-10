@@ -5,6 +5,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AdminMasterPage } from './AdminMasterPage';
 import * as api from '../lib/api';
 
+// AdminMasterPage memuat banyak data async (6+ endpoint) — coverage instrumentation
+// memperlambat; naikkan timeout default agar test loop header tidak flaky.
+vi.setConfig({ testTimeout: 20_000 });
+
 /** render dengan router. `initialPath` default /admin/master; bisa diberi ?tab=... */
 function renderWithRouter(ui: ReactElement, initialPath = '/admin/master') {
   return render(<MemoryRouter initialEntries={[initialPath]}>{ui}</MemoryRouter>);

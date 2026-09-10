@@ -1295,12 +1295,12 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                   <th className="pb-2 font-medium">
                     <button
                       type="button"
-                      onClick={() => prodiTools.toggleSort('facultyCode')}
+                      onClick={() => prodiTools.toggleSort('facultyName')}
                       className="inline-flex items-center gap-1 hover:text-slate-900"
                     >
                       Fakultas{' '}
                       <SortIcon
-                        active={prodiTools.sortKey === 'facultyCode'}
+                        active={prodiTools.sortKey === 'facultyName'}
                         dir={prodiTools.sortDir}
                       />
                     </button>
