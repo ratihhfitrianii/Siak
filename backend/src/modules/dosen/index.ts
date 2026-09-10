@@ -756,7 +756,18 @@ export function createDosenRouter(): Router {
           action: 'UPDATE',
         });
 
-        res.json({ success: true, data: result.rows[0] });
+        const row = result.rows[0];
+        res.json({
+          success: true,
+          data: {
+            id: Number(row.id),
+            classCode: row.class_code,
+            dayOfWeek: row.day_of_week,
+            startTime: row.start_time,
+            endTime: row.end_time,
+            room: row.room,
+          },
+        });
       } catch (err) {
         next(err);
       }
