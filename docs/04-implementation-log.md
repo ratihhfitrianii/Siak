@@ -2585,3 +2585,7 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 - sortedClasses useMemo: kelas dgn dayOfWeek+startTime (terjadwal) tampil lebih dulu, belum terjadwal di bawah.
 - Test baru: 2 kelas campur (draft + terjadwal) -> assert urutan kartu di DOM.
 - FE: 533/533 pass; tsc/lint/build hijau. Backend tidak tersentuh.
+
+### 61. Rencana Mengajar Dosen — filter kelas tanpa ruangan
+- Backend GET /dosen/my-classes kini hanya list kelas dgn room IS NOT NULL AND room != "" (plotting tanpa ruangan dari admin akademik tidak tampil).
+- Test: kelas uji tanpa ruangan tidak muncul di items; sinkronisasi COUNT query (room filter).

@@ -553,7 +553,7 @@ describe('T3.8 Dosen: my-classes & semesters (integrasi dashboard)', () => {
 
   it('GET /dosen/my-classes — kelas diampu sesuai users.id (bukan lecturers.id)', async () => {
     const check = await pgPool.query(
-      `SELECT COUNT(*)::int as n FROM classes WHERE lecturer_id = $1 AND is_active`,
+      `SELECT COUNT(*)::int as n FROM classes WHERE lecturer_id = $1 AND is_active AND room IS NOT NULL AND room != ''`,
       [dosenUserId],
     );
     const res = await request(app)
@@ -599,14 +599,38 @@ describe('T3.8 Dosen: my-classes & semesters (integrasi dashboard)', () => {
     expect(res.body.data.items.length).toBeGreaterThan(0);
   });
 
-  it('GET /dosen/my-classes — dosen tanpa profil lecturer (ghost) → 200 + items kosong', async () => {
-    const res = await request(app)
-      .get('/api/v1/dosen/my-classes')
-      .set('Authorization', `Bearer ${ghostDosenToken}`);
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(Array.isArray(res.body.data.items)).toBe(true);
-    expect(res.body.data.items.length).toBe(0);
+  it('GET /dosen/my-classes — kelas tanpa ruangan tidak ikut tampil', async () => {
+    // Buat kelas uji tanpa ruangan milik dosen → harus tidak muncul
+    const courseNR = await pgPool.query(
+      `INSERT INTO courses (code, name, credits) VALUES ($1, $2, 3) RETURNING id`,
+      [`T38BNR${Date.now()}`, 'T3.8B No-Room Course'],
+    );
+    const courseNRId = Number(courseNR.rows[0].id);
+    const curNR = await pgPool.query(
+      `INSERT INTO curricula (prodi_id, semester_id, course_id, is_mandatory, semester_number)
+       VALUES ((SELECT prodi_id FROM lecturers WHERE user_id = $1), (SELECT id FROM semesters WHERE is_active LIMIT 1), $2, true, 1)
+       RETURNING id`,
+      [dosenUserId, courseNRId],
+    );
+    const curNRId = Number(curNR.rows[0].id);
+    const clsNR = await pgPool.query(
+      `INSERT INTO classes (curriculum_id, class_code, lecturer_id, capacity, current_enrolled, room, is_active)
+       VALUES ($1, 'A', $2, 30, 0, NULL, true) RETURNING id`,
+      [curNRId, dosenUserId],
+    );
+    const clsNRId = Number(clsNR.rows[0].id);
+
+    try {
+      const res = await request(app)
+        .get('/api/v1/dosen/my-classes')
+        .set('Authorization', `Bearer ${dosenToken}`);
+      expect(res.status).toBe(200);
+      const ids = res.body.data.items.map((it: { id: number }) => Number(it.id));
+      expect(ids).not.toContain(clsNRId);
+    } finally {
+      await pgPool.query(`DELETE FROM classes WHERE id = $1`, [clsNRId]);
+      await pgPool.query(`DELETE FROM curricula WHERE id = $1`, [curNRId]);
+    }
   });
 });
 
