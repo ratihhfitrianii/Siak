@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import {
@@ -194,6 +194,22 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
   const [editingStudentId, setEditingStudentId] = useState<number | null>(null);
   // Filter fakultas di form tambah/edit mahasiswa admin sistem (tidak dikirim ke backend).
   const [studentFacultyCode, setStudentFacultyCode] = useState('');
+  // Prodi milik fakultas terpilih, di-load server-side via /prodis?facultyId= (backend return faculty_id).
+  const [studentProdis, setStudentProdis] = useState<Prodi[]>([]);
+  const studentFacultyId = useMemo(() => {
+    const f = faculties.find((x) => x.code === studentFacultyCode);
+    return f?.id ?? 0;
+  }, [faculties, studentFacultyCode]);
+
+  useEffect(() => {
+    if (!studentFacultyId) {
+      setStudentProdis([]);
+      return;
+    }
+    listAcademicProdis({ facultyId: studentFacultyId, limit: 100 })
+      .then((res) => setStudentProdis(res.items ?? []))
+      .catch(() => setStudentProdis([]));
+  }, [studentFacultyId]);
 
   // Form Lecturer
   const [lecturerForm, setLecturerForm] = useState<CreateMasterLecturerInput>({
@@ -2704,13 +2720,15 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                       required
                       disabled={!studentFacultyCode}
                     >
-                      <option value="">Pilih Prodi</option>
-                      {prodis
-                        .filter(
-                          (p) =>
-                            p.isActive &&
-                            (!studentFacultyCode || p.facultyCode === studentFacultyCode),
-                        )
+                      <option value="">
+                        {!studentFacultyCode
+                          ? 'Pilih Fakultas dahulu'
+                          : studentProdis.length
+                            ? 'Pilih Prodi'
+                            : 'Memuat prodi...'}
+                      </option>
+                      {studentProdis
+                        .filter((p) => p.isActive)
                         .map((p) => (
                           <option key={p.code} value={p.code}>
                             {p.code} - {p.name}

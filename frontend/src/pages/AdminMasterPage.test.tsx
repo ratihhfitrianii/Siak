@@ -588,6 +588,9 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
       target: { value: 'Candra Kirana' },
     });
     fireEvent.change(screen.getByLabelText('Fakultas *'), { target: { value: 'FT' } });
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'TI - Teknik Informatika' })).toBeInTheDocument();
+    });
     fireEvent.change(screen.getByLabelText('Program Studi *'), { target: { value: 'TI' } });
     fireEvent.change(screen.getByLabelText('Angkatan *'), { target: { value: '2025/2026' } });
 
@@ -681,6 +684,10 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
       target: { value: 'Candra Kirana' },
     });
     fireEvent.change(screen.getByLabelText('Fakultas *'), { target: { value: 'FT' } });
+    // Tunggu prodi fakultas ter-load (useEffect async) sebelum pilih prodi.
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'TI - Teknik Informatika' })).toBeInTheDocument();
+    });
     fireEvent.change(screen.getByLabelText('Program Studi *'), { target: { value: 'TI' } });
     fireEvent.change(screen.getByLabelText('Angkatan *'), { target: { value: '2025/2026' } });
 
@@ -777,6 +784,11 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     fireEvent.change(screen.getByLabelText('Nama Lengkap *'), {
       target: { value: 'Budi Santoso Baru' },
+    });
+    // Tunggu prodi fakultas ter-load agar select prodi punya opsi 'TI' (kalau tidak, HTML5
+    // required mem-block submit karena value 'TI' belum ada di options).
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'TI - Teknik Informatika' })).toBeInTheDocument();
     });
     fireEvent.click(screen.getByRole('button', { name: 'Update Mahasiswa' }));
 

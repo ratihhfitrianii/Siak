@@ -158,7 +158,7 @@ export function createAcademicRouter(): Router {
       );
 
       const listResult = await pgPool.query(
-        `SELECT p.*, f.name as faculty_name FROM prodis p JOIN faculties f ON f.id = p.faculty_id ${whereSql} ORDER BY p.code LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+        `SELECT p.*, f.name as faculty_name, f.code as faculty_code FROM prodis p JOIN faculties f ON f.id = p.faculty_id ${whereSql} ORDER BY p.code LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, limit, offset],
       );
 
