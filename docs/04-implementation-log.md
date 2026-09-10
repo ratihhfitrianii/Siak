@@ -2597,3 +2597,9 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 ### 63. Rencana Mengajar dosen — responsif mobile/tablet/PC
 - 2-panel flex-col lg:flex-row (mobile tumpuk, desktop berdampingan); kalender min-w 760px mobile dgn scroll-x halus, lg:min-w-0 penuh.
 - Grid columns minmax(0,1fr) agar kolom hari tidak meluber di layar sempit. Modal max-w-md mobile-friendly.
+
+### 64. AppLayout — sidebar burger utk mobile/tablet (hapus navbar)
+- Mobile/<1024px: sidebar jadi DRAWER tersembunyi di kiri, dibuka via hamburger di header (dgn backdrop); navbar horizontal bawah-header dihapus.
+- Desktop >=1024px: sidebar tetap kolom kiri (collapse button hanya desktop); breakpoint md -> lg.
+- matchMedia listener utk resize; drawer tutup saat klik menu/navigasi/backdrop/logout.
+- Test: stub matchMedia + 3 test drawer (buka/tutup, backdrop, navigasi). FE 536/536 pass.

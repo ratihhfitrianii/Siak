@@ -537,6 +537,27 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [unread, setUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Mobile/tablet: drawer sidebar via hamburger (paper: hapus navbar, jadikan sidebar burger)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => {
+    try {
+      return window.matchMedia('(min-width: 1024px)').matches;
+    } catch {
+      return true; // jsdom tanpa matchMedia → asumsikan desktop (test collapse tetap jalan)
+    }
+  });
+  useEffect(() => {
+    try {
+      const mq = window.matchMedia('(min-width: 1024px)');
+      const onChange = () => setIsDesktop(mq.matches);
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    } catch {
+      return undefined;
+    }
+  }, []);
+  // Collapse hanya berarti di desktop; mobile drawer selalu expanded.
+  const isCollapsed = isDesktop && sidebarCollapsed;
   const menuRef = useRef<HTMLDivElement>(null);
   // Keluhan: notifikasi berupa HALAMAN MELAYANG (floating), bukan pindah halaman.
   const [notifOpen, setNotifOpen] = useState(false);
@@ -746,13 +767,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   async function handleLogout() {
     setMenuOpen(false);
+    setMobileNavOpen(false);
     await logout();
     navigate('/login', { replace: true });
   }
 
   const navItemClass = ({ isActive }: { isActive: boolean }) =>
     `group relative flex h-10 shrink-0 items-center rounded-md transition ${
-      sidebarCollapsed ? 'w-10 justify-center' : 'w-full justify-start gap-2 px-2.5'
+      isCollapsed ? 'w-10 justify-center' : 'w-full justify-start gap-2 px-2.5'
     } ${
       isActive
         ? isDarkSidebar
@@ -766,20 +788,29 @@ export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Sidebar — desktop: kolom vertikal di kiri (expand: label inline; collapse: ikon + tooltip hover);
-          mobile: bar horizontal di bawah header. */}
+          mobile/tablet: DRAWER tersembunyi di kiri, dibuka lewat hamburger di header. */}
       <aside
-        className={`fixed inset-x-0 top-14 z-30 border-b md:inset-y-0 md:left-0 md:flex-col md:border-b-0 md:border-r transition-all duration-200 ${
-          sidebarCollapsed ? 'md:w-16' : 'md:w-64'
-        } ${isDarkSidebar ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-white'}`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 border-r transition-transform duration-200 md:w-64 ${
+          isDarkSidebar ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-white'
+        } ${isDesktop ? 'translate-x-0' : mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
+        {/* Backdrop gelap di bawah lg (klik → tutup drawer) */}
+        {!isDesktop && mobileNavOpen && (
+          <div
+            className="fixed inset-0 -z-10 bg-black/40"
+            aria-hidden="true"
+            onClick={() => setMobileNavOpen(false)}
+          />
+        )}
         <div
-          className={`hidden items-center justify-center border-b py-3 md:flex ${
+          className={`flex items-center justify-center border-b py-3 ${
             isDarkSidebar ? 'border-slate-700' : 'border-slate-100'
           }`}
         >
           <NavLink
             to="/"
             aria-label="Beranda"
+            onClick={() => setMobileNavOpen(false)}
             className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white"
           >
             S
@@ -787,14 +818,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
         <nav
           aria-label="Menu utama"
-          className={`flex items-center gap-1 overflow-x-auto px-2 py-1.5 md:flex-col md:overflow-visible md:py-2 transition-all duration-200 ${
-            sidebarCollapsed ? 'md:items-center md:px-0' : 'md:items-stretch md:px-2'
-          }`}
+          className="flex flex-col items-stretch gap-1 overflow-y-auto px-2 py-2 max-h-[calc(100vh-6rem)]"
         >
-          <NavLink to="/" end aria-label="Dashboard" title="Dashboard" className={navItemClass}>
+          <NavLink
+            to="/"
+            end
+            aria-label="Dashboard"
+            title="Dashboard"
+            onClick={() => setMobileNavOpen(false)}
+            className={navItemClass}
+          >
             <MenuIcon path={ICON_PATHS.home} />
-            {!sidebarCollapsed && <span className="truncate text-sm font-medium">Dashboard</span>}
-            {sidebarCollapsed && (
+            {!isCollapsed && <span className="truncate text-sm font-medium">Dashboard</span>}
+            {isCollapsed && (
               <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
                 Dashboard
                 <span className="block text-[10px] font-normal text-slate-300">
@@ -819,7 +855,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     onClick={() => {
                       // Keluhan: buka dropdown lain → dropdown sebelumnya tertutup otomatis (accordion)
                       // Jika sidebar collapsed, auto-expand sebelum buka submenu
-                      if (sidebarCollapsed) {
+                      if (isCollapsed) {
                         setSidebarCollapsed(false);
                       }
                       setExpandedMenus((prev) => {
@@ -834,7 +870,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       });
                     }}
                     className={`group relative flex h-10 shrink-0 w-full items-center rounded-md transition cursor-pointer ${
-                      sidebarCollapsed ? 'justify-center' : 'justify-start gap-2 px-2.5'
+                      isCollapsed ? 'justify-center' : 'justify-start gap-2 px-2.5'
                     } ${
                       isDarkSidebar
                         ? isParentActive
@@ -846,7 +882,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     }`}
                   >
                     <MenuIcon path={ICON_PATHS[item.icon]} />
-                    {!sidebarCollapsed && (
+                    {!isCollapsed && (
                       <>
                         <span className="flex-1 truncate text-left text-sm font-medium">
                           {item.label}
@@ -867,10 +903,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       </>
                     )}
                   </button>
-                  {isExpanded && !sidebarCollapsed && (
+                  {isExpanded && !isCollapsed && (
                     <div
-                      className={`mt-0.5 flex shrink-0 items-center space-x-1 md:ml-4 md:flex-col md:items-stretch md:space-x-0 md:space-y-0.5 md:border-l md:pl-2 ${
-                        isDarkSidebar ? 'md:border-slate-600' : 'md:border-slate-200'
+                      className={`mt-0.5 flex shrink-0 flex-col space-y-0.5 border-l pl-2 ml-4 ${
+                        isDarkSidebar ? 'border-slate-600' : 'border-slate-200'
                       }`}
                     >
                       {visibleChildren.map((child) => (
@@ -879,6 +915,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                           to={child.path}
                           aria-label={child.label}
                           title={child.label}
+                          onClick={() => setMobileNavOpen(false)}
                           className={({ isActive }) =>
                             `flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-sm transition ${
                               isActive
@@ -905,13 +942,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 to={item.path}
                 aria-label={item.label}
                 title={item.label}
+                onClick={() => setMobileNavOpen(false)}
                 className={navItemClass}
               >
                 <MenuIcon path={ICON_PATHS[item.icon]} />
-                {!sidebarCollapsed && (
-                  <span className="truncate text-sm font-medium">{item.label}</span>
-                )}
-                {sidebarCollapsed && (
+                {!isCollapsed && <span className="truncate text-sm font-medium">{item.label}</span>}
+                {isCollapsed && (
                   <span className="pointer-events-none absolute left-full z-40 ml-2 hidden whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 md:block">
                     {item.label}
                     <span className="block text-[10px] font-normal text-slate-300">
@@ -923,43 +959,58 @@ export function AppLayout({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        {/* Tombol expand/collapse di ujung bawah sidebar — hanya ikon (tanpa teks). */}
+        {/* Tombol expand/collapse di ujung bawah sidebar — hanya ikon (tanpa teks), desktop saja. */}
         <div
-          className={`hidden border-t p-2 md:block ${
+          className={`hidden border-t p-2 lg:block ${
             isDarkSidebar ? 'border-slate-700' : 'border-slate-100'
           }`}
         >
           <button
             type="button"
             onClick={() => setSidebarCollapsed((c) => !c)}
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className={`flex items-center rounded-md transition ${
               isDarkSidebar
                 ? 'text-slate-300 hover:bg-slate-700 hover:text-white'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            } ${
-              sidebarCollapsed ? 'mx-auto h-10 w-10 justify-center' : 'w-full h-10 justify-center'
-            }`}
+            } ${isCollapsed ? 'mx-auto h-10 w-10 justify-center' : 'w-full h-10 justify-center'}`}
           >
             <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d={sidebarCollapsed ? 'M13 5l7 7-7 7M5 5l7 7-7 7' : 'M11 19l-7-7 7-7m8 14l-7-7 7-7'}
+                d={isCollapsed ? 'M13 5l7 7-7 7M5 5l7 7-7 7' : 'M11 19l-7-7 7-7m8 14l-7-7 7-7'}
               />
             </svg>
           </button>
         </div>
       </aside>
 
-      <div
-        className={`md:transition-all md:duration-200 ${sidebarCollapsed ? 'md:pl-16' : 'md:pl-64'}`}
-      >
+      <div className={`lg:transition-all lg:duration-200 ${isCollapsed ? 'lg:pl-16' : 'lg:pl-64'}`}>
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex h-14 items-center justify-between gap-3 px-4">
-            <span className="text-lg font-bold text-slate-900 md:hidden">Siak</span>
+            {/* Mobile/tablet: hamburger + brand; desktop: tidak ada hamburger */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen((o) => !o)}
+                aria-label="Buka menu navigasi"
+                aria-expanded={mobileNavOpen}
+                className="rounded-md p-2 text-slate-600 transition hover:bg-slate-100 lg:hidden"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+              <span className="text-lg font-bold text-slate-900 lg:hidden">Siak</span>
+            </div>
             <div className="flex-1" />
 
             {/* Keluhan: notifikasi HALAMAN MELAYANG (floating overlay), bukan pindah halaman.

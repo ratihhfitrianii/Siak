@@ -123,6 +123,26 @@ function renderLayout() {
   );
 }
 
+/** Stub matchMedia: `matches` menentukan desktop (>=1024px) vs mobile/tablet (<1024px). */
+function stubMatchMedia(isDesktop: boolean) {
+  const mql = {
+    matches: isDesktop,
+    media: '(min-width: 1024px)',
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  };
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    configurable: true,
+    value: vi.fn().mockReturnValue(mql as unknown as MediaQueryList),
+  });
+  vi.stubGlobal('matchMedia', vi.fn().mockReturnValue(mql as unknown as MediaQueryList));
+}
+
 /** Buka dropdown avatar (keluhan #26) — helper umum. */
 async function openAvatarMenu(user: typeof MAHASISWA | typeof DOSEN = MAHASISWA) {
   mockUser = user;
@@ -542,5 +562,69 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
 
     // Content tetap render (tidak error)
     expect(screen.getByText('KONTEN_UTAMA')).toBeInTheDocument();
+  });
+});
+
+describe('AppLayout — drawer mobile/tablet (hamburger)', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
+    // restore window.matchMedia (defineProperty override)
+    // @ts-expect-error — restore asli dari jsdom bila ada
+    delete window.matchMedia;
+  });
+
+  it('mobile: hamburger tampil; sidebar tersembunyi; klik burger → drawer terbuka (menu terlihat)', async () => {
+    stubMatchMedia(false);
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    // Di mobile: tombol collapse ada di DOM tapi wrapper-nya hidden via CSS lg:block
+    // (tidak diujikan CSS jsdom) — jadi jangan assert ketidakhadiran.
+    // Hamburger ada
+    const burger = screen.getByRole('button', { name: 'Buka menu navigasi' });
+    expect(burger).toBeInTheDocument();
+    // Sidebar drawer TERSEMBUNYI (menu utama tidak tampil di viewport) — tapi DOM ada.
+    // Kita cek class transform: aside punya -translate-x-full saat tertutup.
+    const aside = document.querySelector('aside');
+    expect(aside?.className).toContain('-translate-x-full');
+
+    // Klik burger → drawer terbuka
+    await userEvent.setup().click(burger);
+    expect(document.querySelector('aside')?.className).toContain('translate-x-0');
+    // Klik backdrop → tutup lagi
+    const backdrop = document.querySelector('[aria-hidden="true"]');
+    expect(backdrop).not.toBeNull();
+    await userEvent.setup().click(backdrop as HTMLElement);
+    expect(document.querySelector('aside')?.className).toContain('-translate-x-full');
+  });
+
+  it('mobile: klik menu navigasi → drawer tertutup (navigasi tetap bekerja)', async () => {
+    stubMatchMedia(false);
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Buka menu navigasi' }));
+    expect(document.querySelector('aside')?.className).toContain('translate-x-0');
+
+    // Klik menu (Dashboard — route ada) di dalam drawer → drawer menutup
+    await userEvent.setup().click(screen.getByRole('link', { name: 'Dashboard' }));
+    expect(document.querySelector('aside')?.className).toContain('-translate-x-full');
+    // Konten tetap tampil
+    expect(screen.getByText('KONTEN_UTAMA')).toBeInTheDocument();
+  });
+
+  it('desktop: hamburger ada di DOM (hidden via CSS lg:hidden); sidebar TETAP tampil; collapse button ada', () => {
+    stubMatchMedia(true);
+    mockUser = MAHASISWA;
+    renderLayout();
+
+    // Sidebar tampil (translate-x-0), bukan drawer tersembunyi
+    expect(document.querySelector('aside')?.className).toContain('translate-x-0');
+    expect(document.querySelector('aside')?.className).not.toContain('-translate-x-full');
+    // Collapse button desktop ada
+    expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toBeInTheDocument();
+    // Hamburger konsisten: ada di DOM tapi hidden via lg:hidden (tidak diujikan CSS jsdom)
+    expect(screen.getByRole('button', { name: 'Buka menu navigasi' })).toBeInTheDocument();
   });
 });
