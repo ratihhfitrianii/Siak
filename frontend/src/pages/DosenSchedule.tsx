@@ -355,6 +355,15 @@ export function DosenSchedule() {
     return map;
   }, [classes]);
 
+  // Panel kiri: kelas yang SUDAH terjadwal (hijau) tampil lebih dulu, sisanya di bawah.
+  const sortedClasses = useMemo(() => {
+    return [...classes].sort((a, b) => {
+      const aScheduled = a.dayOfWeek && a.startTime ? 1 : 0;
+      const bScheduled = b.dayOfWeek && b.startTime ? 1 : 0;
+      return bScheduled - aScheduled;
+    });
+  }, [classes]);
+
   /** Scheduled classes → calendar block positions */
   const calendarBlocks = useMemo(() => {
     const blocks: {
@@ -503,7 +512,7 @@ export function DosenSchedule() {
               Daftar Mata Kuliah
             </h3>
             <div className="space-y-2">
-              {classes.map((cls) => {
+              {sortedClasses.map((cls) => {
                 return (
                   <div
                     key={cls.id}

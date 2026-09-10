@@ -388,4 +388,30 @@ describe('DosenSchedule — fitur Atur Jadwal (modal)', () => {
     await waitFor(() => expect(clearClassSchedule).toHaveBeenCalledWith(1));
     vi.restoreAllMocks();
   });
+
+  it('panel kiri urut: kelas terjadwal (hijau) tampil lebih dulu dari yang belum', async () => {
+    // Dua kelas: id 1 belum terjadwal (draft), id 2 sudah terjadwal
+    const scheduled2: MyClass = {
+      ...MOCK_CLASSES_SCHEDULED[0],
+      id: 2,
+      classCode: 'B',
+      courseName: 'Basis Data',
+    };
+    vi.mocked(getMyClasses).mockResolvedValue({
+      items: [MOCK_CLASSES_DRAFT[0], scheduled2],
+    });
+    vi.mocked(getMySubmission).mockResolvedValue(null);
+
+    render(<DosenSchedule />);
+
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: /Basis Data|Algoritma/ }).length).toBe(2),
+    );
+    const cards = screen.getAllByRole('button', { name: /Basis Data|Algoritma/ });
+    // Cards adalah div role=button — urutan DOM: terjadwal (Basis Data) lebih dulu
+    const firstCardText = cards[0].textContent ?? '';
+    const secondCardText = cards[1].textContent ?? '';
+    expect(firstCardText).toContain('Basis Data');
+    expect(secondCardText).toContain('Algoritma');
+  });
 });

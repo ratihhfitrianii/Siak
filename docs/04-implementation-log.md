@@ -2580,3 +2580,8 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 - Validasi bentrok: pola overlap `start_time < end AND end_time > start` (sama dgn academic room check).
 - Rekomendasi: scan slot 30 menit Senin-Sabtu yang tidak bentrok dgn jadwal dosen ATAU ruangan.
 - `getScheduleAvailability(date)` lama tetap utk fitur availability harian — pakai type ScheduleAvailability; endpoint baru pakai ClassAvailability (TS2567 await).
+
+### 60. Panel Kiri Rencana Mengajar — urutkan matkul terjadwal (hijau) di depan
+- sortedClasses useMemo: kelas dgn dayOfWeek+startTime (terjadwal) tampil lebih dulu, belum terjadwal di bawah.
+- Test baru: 2 kelas campur (draft + terjadwal) -> assert urutan kartu di DOM.
+- FE: 533/533 pass; tsc/lint/build hijau. Backend tidak tersentuh.
