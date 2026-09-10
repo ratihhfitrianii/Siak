@@ -613,9 +613,9 @@ export function DosenSchedule() {
 
             <div className="overflow-x-auto">
               <div
-                className="grid relative min-w-[720px]"
+                className="grid relative min-w-[760px] lg:min-w-0"
                 style={{
-                  gridTemplateColumns: '56px repeat(6, 1fr)',
+                  gridTemplateColumns: '56px repeat(6, minmax(0, 1fr))',
                   gridTemplateRows: `36px repeat(${TIME_SLOTS.length - 1}, minmax(28px, auto))`,
                 }}
               >

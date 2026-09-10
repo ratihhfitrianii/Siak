@@ -2593,3 +2593,7 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 ### 62. Kalender Jadwal Mingguan dosen — hilangkan scroll vertikal
 - Hapus max-h-[620px] pada kontainer kalender; seluruh rentang 07:00-18:00 tampil utuh tanpa scroll.
 - Overflow-x tetap untuk hari; FE 533/533 pass.
+
+### 63. Rencana Mengajar dosen — responsif mobile/tablet/PC
+- 2-panel flex-col lg:flex-row (mobile tumpuk, desktop berdampingan); kalender min-w 760px mobile dgn scroll-x halus, lg:min-w-0 penuh.
+- Grid columns minmax(0,1fr) agar kolom hari tidak meluber di layar sempit. Modal max-w-md mobile-friendly.
