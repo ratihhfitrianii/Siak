@@ -589,7 +589,7 @@ export function createDosenRouter(): Router {
             `SELECT cl.day_of_week, cl.start_time, cl.end_time
              FROM classes cl
              WHERE cl.is_active AND cl.day_of_week IS NOT NULL
-               AND (cl.lecturer_id = $1 OR ($2 IS NOT NULL AND cl.room = $2))
+               AND (cl.lecturer_id = $1 OR ($2::text IS NOT NULL AND cl.room = $2))
                AND cl.id <> $3`,
             [req.user!.id, myClass.room ?? null, classId],
           );

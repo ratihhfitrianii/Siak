@@ -733,22 +733,32 @@ describe('T3.8b Dosen: Atur Jadwal (availability + PUT/DELETE schedule)', () => 
     expect(res.body.error.code).toBe('SCHEDULE_CONFLICT');
   });
 
-  it('PUT schedule Senin 12:00 → 200 + slot tersimpan; kalender muncul', async () => {
+  it('PUT schedule Senin 12:00 → 409 karena dosen sudah mengajar (seed "Pemrograman Dasar")', async () => {
     const res = await request(app)
       .put(`/api/v1/dosen/my-classes/${classId}/schedule`)
       .set('Authorization', `Bearer ${dosenToken}`)
       .send({ dayOfWeek: 1, startTime: '12:00' });
+    // Seed dosen punya kelas Senin 12:00 → konflik dosen
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('SCHEDULE_CONFLICT');
+  });
+
+  it('PUT schedule Sabtu 07:00 → 200 + slot tersimpan; kalender muncul', async () => {
+    const res = await request(app)
+      .put(`/api/v1/dosen/my-classes/${classId}/schedule`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ dayOfWeek: 6, startTime: '07:00' });
     expect(res.status).toBe(200);
-    expect(res.body.data.dayOfWeek).toBe(1);
-    expect(res.body.data.startTime).toBe('12:00:00');
-    expect(res.body.data.endTime).toBe('13:50:00'); // 3 SKS × 50 menit
+    expect(res.body.data.dayOfWeek).toBe(6);
+    expect(res.body.data.startTime).toBe('07:00:00');
+    expect(res.body.data.endTime).toBe('08:50:00'); // 3 SKS × 50 menit
 
     const check = await pgPool.query(
       `SELECT day_of_week, start_time, end_time FROM classes WHERE id = $1`,
       [classId],
     );
-    expect(check.rows[0].day_of_week).toBe(1);
-    expect(String(check.rows[0].start_time)).toBe('12:00:00');
+    expect(check.rows[0].day_of_week).toBe(6);
+    expect(String(check.rows[0].start_time)).toBe('07:00:00');
   });
 
   it('PUT schedule body invalid → 400 VALIDATION_ERROR', async () => {
