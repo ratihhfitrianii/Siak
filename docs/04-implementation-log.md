@@ -2549,3 +2549,34 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 - Sort fakultas pakai `facultyName` langsung — tanpa menunggu backend deploy.
 - Angkatan di-parse dari `semesterCode` (mis. `2026/2027-1` → `2026/2027`).
 - Backend `faculty_code` fix sudah di-commit, menunggu Render manual deploy.
+
+---
+
+### 59. Rencana Mengajar Dosen — Atur Jadwal (modal + Cek bentrok + rekomendasi waktu)
+
+**Tanggal:** 2026-09-10
+
+#### Perubahan
+| File | Deskripsi |
+|------|-----------|
+| `backend/src/modules/dosen/index.ts` | +3 endpoint: GET /my-classes/:id/availability (cek bentrok dosen + ruangan + rekomendasi slot kosong 30 menit), PUT /my-classes/:id/schedule (set slot, durasi auto = SKS×50, validasi 409), DELETE /my-classes/:id/schedule (kosongkan slot) |
+| `frontend/src/lib/api.ts` | +3 fungsi: getClassAvailability, setClassSchedule, clearClassSchedule |
+| `frontend/src/lib/types.ts` | +type ScheduleConflict, TimeSuggestion, ClassAvailability (hindari collision dgn ScheduleAvailability lama) |
+| `frontend/src/pages/DosenSchedule.tsx` | Panel kiri: card belum terjadwal → tombol ungu "Atur Jadwal"; sudah terjadwal → info hari/jam + tombol Edit/Hapus. Modal Atur Jadwal: info MK read-only, dropdown Hari + Jam Mulai, Jam Selesai auto (SKS×50m), badge ruangan "Ditetapkan oleh Sistem", validasi real-time (Cek 1 dosen / Cek 2 ruangan + pesan spesifik), 💡 rekomendasi waktu kosong, tombol Simpan hijau hanya saat ok. Auto-update kalender via re-fetch |
+| `frontend/src/pages/DosenSchedule.test.tsx` | +5 test modal: buka modal, konflik dosen, konflik ruangan, simpan sukses, hapus + Edit |
+
+#### Root Cause
+- Dosen tidak bisa mengatur slot waktu mengajar sendiri — slot hanya bisa diatur Kaprodi/admin.
+
+#### Quality Gates
+| Gate | Hasil |
+|------|-------|
+| FE test | 532/532 pass (+5) |
+| FE tsc/lint/build | ✅ (bundle 90.65 kB gzip) |
+| BE tsc/lint/format/build | ✅ |
+
+#### Catatan Teknis
+- Durasi blok = credits × 50 menit (umum SIAKAD); jam operasional 07:00-18:00.
+- Validasi bentrok: pola overlap `start_time < end AND end_time > start` (sama dgn academic room check).
+- Rekomendasi: scan slot 30 menit Senin-Sabtu yang tidak bentrok dgn jadwal dosen ATAU ruangan.
+- `getScheduleAvailability(date)` lama tetap utk fitur availability harian — pakai type ScheduleAvailability; endpoint baru pakai ClassAvailability (TS2567 await).

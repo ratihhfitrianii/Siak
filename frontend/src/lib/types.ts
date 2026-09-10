@@ -727,6 +727,35 @@ export interface MyClassesResponse {
   items: MyClass[];
 }
 
+/** Konflik jadwal (Cek 1 dosen / Cek 2 ruangan) dari GET /dosen/my-classes/:id/availability */
+export interface ScheduleConflict {
+  kind: 'dosen' | 'ruangan';
+  classId: number;
+  courseName: string;
+  classCode: string;
+  startTime: string | null;
+  endTime: string | null;
+  room: string | null;
+}
+
+/** Rekomendasi waktu kosong dari backend (slot 30 menit) */
+export interface TimeSuggestion {
+  day: number;
+  startTime: string;
+  endTime: string;
+}
+
+export interface ClassAvailability {
+  classId: number;
+  courseName: string;
+  classCode: string;
+  credits: number;
+  room: string | null;
+  ok: boolean;
+  conflicts: ScheduleConflict[];
+  recommendations: TimeSuggestion[];
+}
+
 // --- Slip Gaji Dosen (GET /payroll/my) — lihat + download PDF, filter bulan/tahun ---
 export interface SalarySlip {
   id: number;

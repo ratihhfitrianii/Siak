@@ -1,8 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { getMyClasses, getMySubmission, submitSchedule } from '../lib/api';
+import {
+  getMyClasses,
+  getMySubmission,
+  submitSchedule,
+  getClassAvailability,
+  setClassSchedule,
+  clearClassSchedule,
+} from '../lib/api';
 import { ApiError } from '../lib/api';
-import type { MyClass, ScheduleSubmission } from '../lib/types';
+import type { MyClass, ScheduleSubmission, ClassAvailability } from '../lib/types';
 
 const DAY_LABELS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const DAY_COL_MAP: Record<number, number> = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7 };
@@ -89,6 +96,15 @@ export function DosenSchedule() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [submission, setSubmission] = useState<ScheduleSubmission | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Modal "Atur Jadwal"
+  const [scheduleFor, setScheduleFor] = useState<MyClass | null>(null);
+  const [schedDay, setSchedDay] = useState<number>(1);
+  const [schedStart, setSchedStart] = useState<string>('08:00');
+  const [schedEnd, setSchedEnd] = useState<string>('09:50');
+  const [availability, setAvailability] = useState<ClassAvailability | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -112,6 +128,149 @@ export function DosenSchedule() {
   useEffect(() => {
     load();
   }, [load]);
+
+  /** "HH:MM" → menit sejak 00:00 */
+  const minutesOf = useCallback((t: string): number => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + (m ?? 0);
+  }, []);
+  /** menit → "HH:MM" */
+  const formatTime = useCallback((mins: number): string => {
+    return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+  }, []);
+
+  /** Durasi blok = SKS × 50 menit (umum SIAKAD). */
+  const durationMin = useCallback((credits: number): number => Math.max(credits, 1) * 50, []);
+
+  /** Auto-fill jam selesai dari start + SKS (hanya display). */
+  const endFor = useCallback(
+    (start: string, credits: number): string => {
+      return formatTime(Math.min(minutesOf(start) + durationMin(credits), 18 * 60));
+    },
+    [formatTime, minutesOf, durationMin],
+  );
+
+  // Buka modal "Atur Jadwal" utk kelas tertentu → auto-check jam awal.
+  const openScheduleModal = useCallback(
+    (cls: MyClass) => {
+      setScheduleFor(cls);
+      setSchedDay(1);
+      setSchedStart('08:00');
+      const end = endFor('08:00', cls.credits);
+      setSchedEnd(end);
+      setAvailability(null);
+      setModalError(null);
+      setChecking(true);
+      getClassAvailability(cls.id, { day: 1, start: '08:00' })
+        .then((a) => {
+          setAvailability(a);
+          setChecking(false);
+        })
+        .catch((err: unknown) => {
+          setModalError(err instanceof ApiError ? err.message : 'Gagal memeriksa ketersediaan');
+          setChecking(false);
+        });
+    },
+    [endFor],
+  );
+
+  // Tutup modal.
+  const closeScheduleModal = useCallback(() => {
+    setScheduleFor(null);
+    setAvailability(null);
+    setModalError(null);
+    setChecking(false);
+    setSaving(false);
+  }, []);
+
+  // Saat hari/jam berubah → hitung ulang jam selesai + cek ketersediaan (Cek 1 & 2).
+  const onDayChange = useCallback(
+    (d: number) => {
+      setSchedDay(d);
+      if (!scheduleFor) return;
+      const end = endFor(schedStart, scheduleFor.credits);
+      setSchedEnd(end);
+      setChecking(true);
+      setModalError(null);
+      getClassAvailability(scheduleFor.id, { day: d, start: schedStart })
+        .then((a) => {
+          setAvailability(a);
+          setChecking(false);
+        })
+        .catch((err: unknown) => {
+          setModalError(err instanceof ApiError ? err.message : 'Gagal memeriksa ketersediaan');
+          setChecking(false);
+        });
+    },
+    [scheduleFor, schedStart, endFor],
+  );
+
+  const onStartChange = useCallback(
+    (s: string) => {
+      setSchedStart(s);
+      if (!scheduleFor) return;
+      const end = endFor(s, scheduleFor.credits);
+      setSchedEnd(end);
+      setChecking(true);
+      setModalError(null);
+      getClassAvailability(scheduleFor.id, { day: schedDay, start: s })
+        .then((a) => {
+          setAvailability(a);
+          setChecking(false);
+        })
+        .catch((err: unknown) => {
+          setModalError(err instanceof ApiError ? err.message : 'Gagal memeriksa ketersediaan');
+          setChecking(false);
+        });
+    },
+    [scheduleFor, schedDay, endFor],
+  );
+
+  // Simpan jadwal (PUT /dosen/my-classes/:id/schedule) → re-fetch classes → kalender auto-update.
+  const handleSaveSchedule = useCallback(async () => {
+    if (!scheduleFor || !availability || !availability.ok) return;
+    setSaving(true);
+    setModalError(null);
+    try {
+      await setClassSchedule(scheduleFor.id, { dayOfWeek: schedDay, startTime: schedStart });
+      await load();
+      closeScheduleModal();
+    } catch (err: unknown) {
+      setModalError(
+        err instanceof ApiError ? err.message : 'Gagal menyimpan jadwal. Silakan coba lagi.',
+      );
+      if (err instanceof ApiError && err.status === 409) {
+        // Backend return konflik → refresh availability supaya pesan akurat
+        try {
+          const a = await getClassAvailability(scheduleFor.id, {
+            day: schedDay,
+            start: schedStart,
+          });
+          setAvailability(a);
+        } catch {
+          // abaikan
+        }
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [scheduleFor, availability, schedDay, schedStart, load, closeScheduleModal]);
+
+  // Hapus jadwal (DELETE /dosen/my-classes/:id/schedule) → re-fetch.
+  const handleClearSchedule = useCallback(
+    async (cls: MyClass) => {
+      if (cls.id === null) return;
+      if (!window.confirm(`Hapus jadwal ${cls.courseName} (kelas ${cls.classCode})?`)) return;
+      setError(null);
+      try {
+        await clearClassSchedule(cls.id);
+        await load();
+      } catch (err: unknown) {
+        setError(err instanceof ApiError ? err.message : 'Gagal menghapus jadwal');
+      }
+    },
+    [load],
+  );
 
   /* ---- Derived data ---- */
   const summary = useMemo(() => {
@@ -345,8 +504,6 @@ export function DosenSchedule() {
             </h3>
             <div className="space-y-2">
               {classes.map((cls) => {
-                const hasSchedules = cls.schedules.length > 0;
-
                 return (
                   <div
                     key={cls.id}
@@ -366,7 +523,7 @@ export function DosenSchedule() {
                       <div className="mt-0.5 shrink-0">
                         <div
                           className={`w-2.5 h-2.5 rounded-full ${
-                            hasSchedules ? 'bg-green-500' : 'bg-red-500'
+                            cls.dayOfWeek && cls.startTime ? 'bg-green-500' : 'bg-red-500'
                           }`}
                         />
                       </div>
@@ -381,15 +538,54 @@ export function DosenSchedule() {
                         </p>
                         {/* Ruangan */}
                         <p className="text-xs text-slate-400 truncate">{cls.room ?? '—'}</p>
-                        {!hasSchedules && (
-                          <p className="text-xs text-red-500 mt-1">Belum dijadwalkan</p>
+                        {cls.dayOfWeek && cls.startTime ? (
+                          <p className="text-xs font-medium text-green-700 mt-1">
+                            {DAY_LABELS[cls.dayOfWeek - 1]} {cls.startTime}–{cls.endTime}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-red-500 mt-1">Belum Terjadwal</p>
                         )}
                       </div>
                     </div>
-                    {hasSchedules && (
-                      <div className="mt-2 text-xs text-slate-500">
-                        {cls.schedules.length} pertemuan terjadwal
+                    {cls.dayOfWeek && cls.startTime ? (
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span className="text-xs text-slate-500">
+                          {cls.schedules.length} pertemuan
+                        </span>
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openScheduleModal(cls);
+                            }}
+                            className="text-[11px] font-medium px-2 py-1 rounded bg-amber-100 text-amber-700 hover:bg-amber-200"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleClearSchedule(cls);
+                            }}
+                            className="text-[11px] font-medium px-2 py-1 rounded bg-red-100 text-red-600 hover:bg-red-200"
+                          >
+                            Hapus
+                          </button>
+                        </div>
                       </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openScheduleModal(cls);
+                        }}
+                        className="mt-2 w-full text-xs font-semibold px-3 py-1.5 rounded-md bg-primary-600 text-white hover:bg-primary-700 shadow-sm"
+                      >
+                        Atur Jadwal
+                      </button>
                     )}
                   </div>
                 );
@@ -475,6 +671,170 @@ export function DosenSchedule() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL: Atur Jadwal ===== */}
+      {scheduleFor && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={closeScheduleModal}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Atur Jadwal"
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header modal */}
+            <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-primary-50 to-white">
+              <h3 className="text-base font-semibold text-slate-900">Atur Jadwal</h3>
+              <p className="text-xs text-slate-500 mt-0.5">{scheduleFor.courseName}</p>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              {/* Info Matkul (Read-Only) */}
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="bg-slate-50 rounded-lg py-2 px-1">
+                  <p className="text-[10px] uppercase text-slate-400">Matkul</p>
+                  <p className="text-xs font-semibold text-slate-800 truncate">
+                    {scheduleFor.courseName}
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-lg py-2 px-1">
+                  <p className="text-[10px] uppercase text-slate-400">SKS</p>
+                  <p className="text-xs font-semibold text-slate-800">{scheduleFor.credits} SKS</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg py-2 px-1">
+                  <p className="text-[10px] uppercase text-slate-400">Kelas</p>
+                  <p className="text-xs font-semibold text-slate-800">{scheduleFor.classCode}</p>
+                </div>
+              </div>
+
+              {/* Ruangan (Read-Only) */}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400">Ruangan</span>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-medium">
+                    {scheduleFor.room ? (
+                      <>Ditetapkan oleh Sistem: {scheduleFor.room}</>
+                    ) : (
+                      'Belum ada ruangan'
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Pilihan Waktu */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Hari</label>
+                  <select
+                    value={schedDay}
+                    onChange={(e) => onDayChange(Number(e.target.value))}
+                    className="w-full px-2 py-2 border border-slate-300 rounded-md text-sm"
+                  >
+                    {DAY_LABELS.map((d, i) => (
+                      <option key={d} value={i + 1}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Jam Mulai</label>
+                  <select
+                    value={schedStart}
+                    onChange={(e) => onStartChange(e.target.value)}
+                    className="w-full px-2 py-2 border border-slate-300 rounded-md text-sm"
+                  >
+                    {TIME_SLOTS.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Jam Selesai
+                  </label>
+                  <input
+                    type="text"
+                    value={schedEnd}
+                    readOnly
+                    className="w-full px-2 py-2 border border-slate-200 bg-slate-50 text-slate-500 rounded-md text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Status validasi real-time */}
+              {checking ? (
+                <p className="text-xs text-slate-400">Memeriksa ketersediaan...</p>
+              ) : availability ? (
+                availability.ok ? (
+                  <p className="text-xs font-medium text-green-600">
+                    ✓ Waktu ini tersedia. Ruangan {availability.room ?? '—'} kosong dan jadwal
+                    Bapak/Ibu tidak bentrok.
+                  </p>
+                ) : (
+                  <ul className="space-y-1">
+                    {availability.conflicts.map((c, i) => (
+                      <li key={i} className="text-xs text-red-600">
+                        🔴{' '}
+                        {c.kind === 'dosen'
+                          ? `Bapak/Ibu sudah memiliki jadwal mengajar ${c.courseName} (${c.classCode}) di waktu ini.`
+                          : `Ruang ${c.room ?? ''} sudah digunakan oleh kelas lain (${c.courseName} ${c.classCode}) pada waktu ini. Silakan pilih hari atau jam yang berbeda.`}
+                      </li>
+                    ))}
+                  </ul>
+                )
+              ) : (
+                modalError && <p className="text-xs text-red-600">{modalError}</p>
+              )}
+
+              {/* Saran Waktu */}
+              {availability && availability.recommendations.length > 0 && (
+                <div className="text-xs text-slate-500 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                  💡 Rekomendasi Waktu Kosong untuk Ruang {scheduleFor.room ?? '—'}:{' '}
+                  {availability.recommendations
+                    .slice(0, 3)
+                    .map((r) => `${DAY_LABELS[r.day - 1]} (${r.startTime}–${r.endTime})`)
+                    .join(', ')}
+                </div>
+              )}
+
+              {modalError && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">
+                  {modalError}
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={closeScheduleModal}
+                className="text-sm font-medium px-4 py-2 rounded-md text-slate-500 hover:bg-slate-100"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSaveSchedule()}
+                disabled={saving || checking || !availability || !availability.ok}
+                className={`px-4 py-2 rounded-md text-sm font-semibold shadow-sm transition-colors ${
+                  availability && availability.ok
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                {saving ? 'Menyimpan...' : 'Simpan Jadwal'}
+              </button>
             </div>
           </div>
         </div>

@@ -479,6 +479,321 @@ export function createDosenRouter(): Router {
     },
   );
 
+  // --- DOSEN: Cek ketersediaan (bentrok dosen + ruangan) + rekomendasi waktu kosong ---
+  // GET /dosen/my-classes/:id/availability?day=1&start=08:00
+  // Response: { ok, conflicts: [{kind:'dosen'|'ruangan', classId, courseName, classCode, startTime, endTime}],
+  //            recommendations: [{day, startTime, endTime}], room }
+  router.get(
+    '/my-classes/:id/availability',
+    authenticate,
+    authorize('class.view_students'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const classId = Number(req.params.id);
+        const { day, start } = req.query;
+        const myClassRes = await pgPool.query(
+          `SELECT cl.id, cl.class_code, cl.room, cl.day_of_week, cl.start_time, cl.end_time,
+             co.name AS course_name, co.credits, u.id AS lecturer_id
+           FROM classes cl
+           JOIN curricula cur ON cur.id = cl.curriculum_id
+           JOIN courses co ON co.id = cur.course_id
+           JOIN users u ON u.id = cl.lecturer_id
+           WHERE cl.id = $1 AND cl.lecturer_id = $2 AND cl.is_active`,
+          [classId, req.user!.id],
+        );
+        if (myClassRes.rows.length === 0) {
+          throw new AppError('NOT_FOUND', 'Kelas tidak ditemukan', 404);
+        }
+        const myClass = myClassRes.rows[0];
+        const minutesOf = (t: string): number => {
+          const [h, m] = String(t).split(':').map(Number);
+          return (h ?? 0) * 60 + (m ?? 0);
+        };
+        const formatTime = (mins: number): string =>
+          `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+
+        const conflicts: {
+          kind: 'dosen' | 'ruangan';
+          classId: number;
+          courseName: string;
+          classCode: string;
+          startTime: string | null;
+          endTime: string | null;
+          room: string | null;
+        }[] = [];
+
+        let recommendations: { day: number; startTime: string; endTime: string }[] = [];
+
+        if (day && start) {
+          const d = Number(day);
+          const startMin = minutesOf(String(start));
+          const durMin = Number(myClass.credits) * 50; // 50 menit per SKS
+          const endMin = startMin + durMin;
+          const startFmt = formatTime(startMin);
+          const endFmt = formatTime(endMin);
+
+          // Cek 1: bentrok jadwal dosen (kelas lain milik dosen ini, kecuali dirinya sendiri)
+          const dosenRes = await pgPool.query(
+            `SELECT cl.id, cl.class_code, cl.room, cl.start_time, cl.end_time, co.name AS course_name
+             FROM classes cl
+             JOIN curricula cur ON cur.id = cl.curriculum_id
+             JOIN courses co ON co.id = cur.course_id
+             WHERE cl.lecturer_id = $1 AND cl.id <> $2 AND cl.day_of_week = $3
+               AND cl.start_time < $5::time AND cl.end_time > $4::time
+               AND cl.is_active`,
+            [req.user!.id, classId, d, startFmt, endFmt],
+          );
+          for (const row of dosenRes.rows) {
+            conflicts.push({
+              kind: 'dosen',
+              classId: Number(row.id),
+              courseName: row.course_name,
+              classCode: row.class_code,
+              startTime: row.start_time,
+              endTime: row.end_time,
+              room: row.room,
+            });
+          }
+
+          // Cek 2: bentrok ruangan (kelas lain pakai ruangan sama di waktu sama, kecuali dirinya)
+          if (myClass.room) {
+            const roomRes = await pgPool.query(
+              `SELECT cl.id, cl.class_code, cl.room, cl.start_time, cl.end_time, co.name AS course_name
+               FROM classes cl
+               JOIN curricula cur ON cur.id = cl.curriculum_id
+               JOIN courses co ON co.id = cur.course_id
+               WHERE cl.room = $1 AND cl.id <> $2 AND cl.day_of_week = $3
+                 AND cl.start_time < $5::time AND cl.end_time > $4::time
+                 AND cl.is_active`,
+              [myClass.room, classId, d, startFmt, endFmt],
+            );
+            for (const row of roomRes.rows) {
+              conflicts.push({
+                kind: 'ruangan',
+                classId: Number(row.id),
+                courseName: row.course_name,
+                classCode: row.class_code,
+                startTime: row.start_time,
+                endTime: row.end_time,
+                room: row.room,
+              });
+            }
+          }
+        } else {
+          // Tanpa param → hitung rekomendasi waktu kosong untuk ruangan kelas ini.
+          // Cari slot 30 menit dalam Senin-Sabtu 07:00-18:00 yang tidak bentrok dengan
+          // jadwal dosen ATAU ruangan.
+          const durMin = Number(myClass.credits) * 50;
+          const busy = new Set<string>();
+          const otherRes = await pgPool.query(
+            `SELECT cl.day_of_week, cl.start_time, cl.end_time
+             FROM classes cl
+             WHERE cl.is_active AND cl.day_of_week IS NOT NULL
+               AND (cl.lecturer_id = $1 OR ($2 IS NOT NULL AND cl.room = $2))
+               AND cl.id <> $3`,
+            [req.user!.id, myClass.room ?? null, classId],
+          );
+          for (const row of otherRes.rows) {
+            const d = Number(row.day_of_week);
+            for (let m = minutesOf(row.start_time); m < minutesOf(row.end_time); m += 30) {
+              busy.add(`${d}-${m}`);
+            }
+          }
+          for (let d = 1; d <= 6; d++) {
+            for (let m = 7 * 60; m + durMin <= 18 * 60; m += 30) {
+              let free = true;
+              for (let x = m; x < m + durMin; x += 30) {
+                if (busy.has(`${d}-${x}`)) {
+                  free = false;
+                  break;
+                }
+              }
+              if (free) {
+                recommendations.push({
+                  day: d,
+                  startTime: formatTime(m),
+                  endTime: formatTime(m + durMin),
+                });
+                m += durMin - 30; // lompati slot yang sudah diambil
+              }
+            }
+          }
+          // Batasi ke 5 rekomendasi pertama untuk UI
+          recommendations = recommendations.slice(0, 5);
+        }
+
+        res.json({
+          success: true,
+          data: {
+            classId: Number(myClass.id),
+            courseName: myClass.course_name,
+            classCode: myClass.class_code,
+            credits: Number(myClass.credits),
+            room: myClass.room,
+            ok: conflicts.length === 0,
+            conflicts,
+            recommendations,
+          },
+        });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // --- DOSEN: Atur jadwal kelas (set slot waktu mingguan) ---
+  // PUT /dosen/my-classes/:id/schedule  body: { dayOfWeek, startTime }
+  // Durasi otomatis = credits × 50 menit. Validasi bentrok dosen & ruangan.
+  router.put(
+    '/my-classes/:id/schedule',
+    authenticate,
+    authorize('class.view_students'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const classId = Number(req.params.id);
+        const parsed = z
+          .object({
+            dayOfWeek: z.number().int().min(1).max(6),
+            startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+          })
+          .safeParse(req.body);
+        if (!parsed.success) {
+          throw new AppError('VALIDATION_ERROR', 'Data jadwal tidak valid', 400, {
+            fields: parsed.error.flatten().fieldErrors,
+          });
+        }
+        const { dayOfWeek, startTime } = parsed.data;
+
+        const myClassRes = await pgPool.query(
+          `SELECT cl.id, cl.room, cl.start_time, cl.end_time,
+             co.credits, u.id AS lecturer_id
+           FROM classes cl
+           JOIN curricula cur ON cur.id = cl.curriculum_id
+           JOIN courses co ON co.id = cur.course_id
+           JOIN users u ON u.id = cl.lecturer_id
+           WHERE cl.id = $1 AND cl.lecturer_id = $2 AND cl.is_active`,
+          [classId, req.user!.id],
+        );
+        if (myClassRes.rows.length === 0) {
+          throw new AppError('NOT_FOUND', 'Kelas tidak ditemukan', 404);
+        }
+        const myClass = myClassRes.rows[0];
+        const minutesOf = (t: string): number => {
+          const [h, m] = String(t).split(':').map(Number);
+          return (h ?? 0) * 60 + (m ?? 0);
+        };
+        const formatTime = (mins: number): string =>
+          `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+
+        const durMin = Number(myClass.credits) * 50;
+        const startMin = minutesOf(startTime);
+        const endMin = startMin + durMin;
+        if (endMin > 18 * 60) {
+          throw new AppError(
+            'VALIDATION_ERROR',
+            'Jam selesai melebihi jam operasional (18:00)',
+            400,
+          );
+        }
+        const startFmt = formatTime(startMin);
+        const endFmt = formatTime(endMin);
+
+        // Cek 1: bentrok dosen
+        const dosenRes = await pgPool.query(
+          `SELECT cl.id, cl.class_code, co.name AS course_name
+           FROM classes cl
+           JOIN curricula cur ON cur.id = cl.curriculum_id
+           JOIN courses co ON co.id = cur.course_id
+           WHERE cl.lecturer_id = $1 AND cl.id <> $2 AND cl.day_of_week = $3
+             AND cl.start_time < $5::time AND cl.end_time > $4::time
+             AND cl.is_active`,
+          [req.user!.id, classId, dayOfWeek, startFmt, endFmt],
+        );
+        if (dosenRes.rows.length > 0) {
+          const row = dosenRes.rows[0];
+          throw new AppError(
+            'SCHEDULE_CONFLICT',
+            `Bapak/Ibu sudah memiliki jadwal mengajar ${row.course_name} (${row.class_code}) di waktu ini.`,
+            409,
+          );
+        }
+
+        // Cek 2: bentrok ruangan
+        if (myClass.room) {
+          const roomRes = await pgPool.query(
+            `SELECT cl.id, cl.class_code, co.name AS course_name
+             FROM classes cl
+             JOIN curricula cur ON cur.id = cl.curriculum_id
+             JOIN courses co ON co.id = cur.course_id
+             WHERE cl.room = $1 AND cl.id <> $2 AND cl.day_of_week = $3
+               AND cl.start_time < $5::time AND cl.end_time > $4::time
+               AND cl.is_active`,
+            [myClass.room, classId, dayOfWeek, startFmt, endFmt],
+          );
+          if (roomRes.rows.length > 0) {
+            const row = roomRes.rows[0];
+            throw new AppError(
+              'SCHEDULE_CONFLICT',
+              `Ruang ${myClass.room} sudah digunakan oleh kelas lain (${row.course_name} ${row.class_code}) pada waktu ini. Silakan pilih hari atau jam yang berbeda.`,
+              409,
+            );
+          }
+        }
+
+        const result = await pgPool.query(
+          `UPDATE classes
+           SET day_of_week = $2, start_time = $3::time, end_time = $4::time, updated_at = now()
+           WHERE id = $1 AND lecturer_id = $5
+           RETURNING id, class_code, day_of_week, start_time, end_time, room`,
+          [classId, dayOfWeek, startFmt, endFmt, req.user!.id],
+        );
+        if (result.rowCount === 0) {
+          throw new AppError('NOT_FOUND', 'Kelas tidak ditemukan', 404);
+        }
+        await auditFromRequest(req.user!, req, {
+          tableName: 'classes',
+          recordId: classId,
+          action: 'UPDATE',
+        });
+
+        res.json({ success: true, data: result.rows[0] });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
+  // --- DOSEN: Hapus jadwal kelas (kosongkan slot waktu) ---
+  // DELETE /dosen/my-classes/:id/schedule
+  router.delete(
+    '/my-classes/:id/schedule',
+    authenticate,
+    authorize('class.view_students'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const classId = Number(req.params.id);
+        const result = await pgPool.query(
+          `UPDATE classes
+           SET day_of_week = NULL, start_time = NULL, end_time = NULL, updated_at = now()
+           WHERE id = $1 AND lecturer_id = $2
+           RETURNING id, class_code`,
+          [classId, req.user!.id],
+        );
+        if (result.rowCount === 0) {
+          throw new AppError('NOT_FOUND', 'Kelas tidak ditemukan', 404);
+        }
+        await auditFromRequest(req.user!, req, {
+          tableName: 'classes',
+          recordId: classId,
+          action: 'DELETE',
+        });
+        res.json({ success: true, data: { message: 'Jadwal kelas dihapus' } });
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
+
   // --- DOSEN: Daftar semester aktif (dropdown Pilih MK, T3.9) ---
   router.get(
     '/semesters',

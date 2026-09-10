@@ -1033,6 +1033,7 @@ import type {
   PayrollsResponse,
   LecturersResponse,
   ScheduleAvailability,
+  ClassAvailability,
   AttendanceSession,
   CreateAttendanceInput,
   AttendanceRecordsResponse,
@@ -1145,6 +1146,37 @@ export async function getDosenSemesters(): Promise<SemesterOption[]> {
 /** GET /dosen/my-classes — kelas yang diampu dosen + jadwal pertemuan (T3.8). */
 export async function getMyClasses(): Promise<MyClassesResponse> {
   return apiRequest<MyClassesResponse>('/dosen/my-classes');
+}
+
+/** GET /dosen/my-classes/:id/availability — cek bentrok dosen/ruangan + rekomendasi waktu (T3.8). */
+export async function getClassAvailability(
+  classId: number,
+  opts?: { day?: number; start?: string },
+): Promise<ClassAvailability> {
+  const qs = new URLSearchParams();
+  if (opts?.day != null) qs.set('day', String(opts.day));
+  if (opts?.start) qs.set('start', opts.start);
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  return apiRequest<ClassAvailability>(`/dosen/my-classes/${classId}/availability${suffix}`);
+}
+
+/** PUT /dosen/my-classes/:id/schedule — atur slot waktu mingguan kelas (day + start; durasi auto = SKS×50m). */
+export async function setClassSchedule(
+  classId: number,
+  input: { dayOfWeek: number; startTime: string },
+): Promise<{
+  id: number;
+  classCode: string;
+  dayOfWeek: number | null;
+  startTime: string | null;
+  endTime: string | null;
+}> {
+  return apiRequest(`/dosen/my-classes/${classId}/schedule`, { method: 'PUT', body: input });
+}
+
+/** DELETE /dosen/my-classes/:id/schedule — kosongkan slot waktu kelas. */
+export async function clearClassSchedule(classId: number): Promise<{ message: string }> {
+  return apiRequest(`/dosen/my-classes/${classId}/schedule`, { method: 'DELETE' });
 }
 
 /** GET /dosen/lecturers — daftar dosen aktif untuk substitute teaching (T3.8). */

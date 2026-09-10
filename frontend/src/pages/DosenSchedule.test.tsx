@@ -11,10 +11,20 @@ vi.mock('../lib/api', async (importOriginal) => {
     getMyClasses: vi.fn(),
     getMySubmission: vi.fn(),
     submitSchedule: vi.fn(),
+    getClassAvailability: vi.fn(),
+    setClassSchedule: vi.fn(),
+    clearClassSchedule: vi.fn(),
   };
 });
 
-import { getMyClasses, getMySubmission, submitSchedule } from '../lib/api';
+import {
+  getMyClasses,
+  getMySubmission,
+  submitSchedule,
+  getClassAvailability,
+  setClassSchedule,
+  clearClassSchedule,
+} from '../lib/api';
 
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
@@ -202,5 +212,180 @@ describe('DosenSchedule — fitur Ajukan Persetujuan Kaprodi', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Ajukan Persetujuan' })).toBeInTheDocument(),
     );
+  });
+});
+
+/* ============ Fitur Atur Jadwal (Modal) ============ */
+
+function availOk() {
+  return {
+    classId: 1,
+    courseName: 'Algoritma',
+    classCode: 'A',
+    credits: 3,
+    room: 'R.201',
+    ok: true,
+    conflicts: [],
+    recommendations: [
+      { day: 1, startTime: '10:00', endTime: '11:50' },
+      { day: 3, startTime: '08:00', endTime: '09:50' },
+    ],
+  };
+}
+
+describe('DosenSchedule — fitur Atur Jadwal (modal)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('kartu belum terjadwal → tombol "Atur Jadwal" mencolok; klik → modal muncul info MK + ruangan', async () => {
+    const user = userEvent.setup();
+    mockMeDraft();
+    vi.mocked(getClassAvailability).mockResolvedValue(availOk());
+
+    render(<DosenSchedule />);
+
+    await waitFor(() => expect(screen.getByText('Algoritma')).toBeInTheDocument());
+    const btn = screen.getByRole('button', { name: 'Atur Jadwal' });
+    expect(btn).toBeInTheDocument();
+
+    await user.click(btn);
+
+    // Modal
+    await waitFor(() =>
+      expect(screen.getByRole('dialog', { name: 'Atur Jadwal' })).toBeInTheDocument(),
+    );
+    // Draft class room: null → badge "Belum ada ruangan" (read-only)
+    expect(screen.getByText(/Belum ada ruangan/)).toBeInTheDocument();
+    expect(screen.getByText('3 SKS')).toBeInTheDocument();
+    // Rekomendasi muncul
+    expect(screen.getByText(/Rekomendasi Waktu Kosong/)).toBeInTheDocument();
+  });
+
+  it('konflik dosen → pesan error spesifik + tombol Simpan disabled', async () => {
+    const user = userEvent.setup();
+    mockMeDraft();
+    vi.mocked(getClassAvailability).mockResolvedValue({
+      classId: 1,
+      courseName: 'Algoritma',
+      classCode: 'A',
+      credits: 3,
+      room: 'R.201',
+      ok: false,
+      conflicts: [
+        {
+          kind: 'dosen',
+          classId: 2,
+          courseName: 'Basis Data',
+          classCode: 'B',
+          startTime: '08:00',
+          endTime: '09:40',
+          room: 'R.101',
+        },
+      ],
+      recommendations: [],
+    });
+
+    render(<DosenSchedule />);
+
+    await waitFor(() => expect(screen.getByText('Algoritma')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Atur Jadwal' }));
+    await waitFor(() =>
+      expect(screen.getByRole('dialog', { name: 'Atur Jadwal' })).toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Bapak\/Ibu sudah memiliki jadwal mengajar Basis Data/),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByRole('button', { name: 'Simpan Jadwal' })).toBeDisabled();
+  });
+
+  it('konflik ruangan → pesan error spesifik ruangan', async () => {
+    const user = userEvent.setup();
+    mockMeDraft();
+    vi.mocked(getClassAvailability).mockResolvedValue({
+      classId: 1,
+      courseName: 'Algoritma',
+      classCode: 'A',
+      credits: 3,
+      room: 'R.201',
+      ok: false,
+      conflicts: [
+        {
+          kind: 'ruangan',
+          classId: 3,
+          courseName: 'Statistika',
+          classCode: 'A',
+          startTime: '08:00',
+          endTime: '09:40',
+          room: 'R.201',
+        },
+      ],
+      recommendations: [],
+    });
+
+    render(<DosenSchedule />);
+
+    await waitFor(() => expect(screen.getByText('Algoritma')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Atur Jadwal' }));
+    await waitFor(() =>
+      expect(screen.getByRole('dialog', { name: 'Atur Jadwal' })).toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/Ruang R\.201 sudah digunakan oleh kelas lain/)).toBeInTheDocument(),
+    );
+    expect(screen.getByRole('button', { name: 'Simpan Jadwal' })).toBeDisabled();
+  });
+
+  it('waktu tersedia → Simpan hijau; klik → setClassSchedule + re-fetch + modal tertutup', async () => {
+    const user = userEvent.setup();
+    mockMeDraft();
+    vi.mocked(getClassAvailability).mockResolvedValue(availOk());
+    vi.mocked(setClassSchedule).mockResolvedValue({
+      id: 1,
+      classCode: 'A',
+      dayOfWeek: 1,
+      startTime: '08:00',
+      endTime: '09:50',
+    });
+
+    render(<DosenSchedule />);
+
+    await waitFor(() => expect(screen.getByText('Algoritma')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Atur Jadwal' }));
+    await waitFor(() =>
+      expect(screen.getByRole('dialog', { name: 'Atur Jadwal' })).toBeInTheDocument(),
+    );
+    await waitFor(() => expect(screen.getByText(/waktu ini tersedia/i)).toBeInTheDocument());
+
+    const save = screen.getByRole('button', { name: 'Simpan Jadwal' });
+    expect(save).not.toBeDisabled();
+    await user.click(save);
+
+    await waitFor(() =>
+      expect(setClassSchedule).toHaveBeenCalledWith(1, { dayOfWeek: 1, startTime: '08:00' }),
+    );
+    // modal tertutup setelah save
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Atur Jadwal' })).not.toBeInTheDocument(),
+    );
+  });
+
+  it('kartu sudah terjadwal → tombol Edit & Hapus; Hapus → confirm + clearClassSchedule + re-fetch', async () => {
+    const user = userEvent.setup();
+    mockMeScheduled();
+    vi.mocked(getClassAvailability).mockResolvedValue(availOk());
+    vi.mocked(clearClassSchedule).mockResolvedValue({ message: 'ok' });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(<DosenSchedule />);
+
+    await waitFor(() => expect(screen.getAllByText('Algoritma').length).toBeGreaterThanOrEqual(1));
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Hapus' }));
+
+    await waitFor(() => expect(clearClassSchedule).toHaveBeenCalledWith(1));
+    vi.restoreAllMocks();
   });
 });
