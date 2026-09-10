@@ -2589,3 +2589,7 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 ### 61. Rencana Mengajar Dosen — filter kelas tanpa ruangan
 - Backend GET /dosen/my-classes kini hanya list kelas dgn room IS NOT NULL AND room != "" (plotting tanpa ruangan dari admin akademik tidak tampil).
 - Test: kelas uji tanpa ruangan tidak muncul di items; sinkronisasi COUNT query (room filter).
+
+### 62. Kalender Jadwal Mingguan dosen — hilangkan scroll vertikal
+- Hapus max-h-[620px] pada kontainer kalender; seluruh rentang 07:00-18:00 tampil utuh tanpa scroll.
+- Overflow-x tetap untuk hari; FE 533/533 pass.

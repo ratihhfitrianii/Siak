@@ -611,7 +611,7 @@ export function DosenSchedule() {
               </p>
             </div>
 
-            <div className="overflow-x-auto max-h-[620px]">
+            <div className="overflow-x-auto">
               <div
                 className="grid relative min-w-[720px]"
                 style={{
