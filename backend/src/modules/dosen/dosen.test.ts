@@ -751,7 +751,7 @@ describe('T3.8b Dosen: Atur Jadwal (availability + PUT/DELETE schedule)', () => 
     expect(res.status).toBe(200);
     expect(res.body.data.dayOfWeek).toBe(6);
     expect(res.body.data.startTime).toBe('07:00:00');
-    expect(res.body.data.endTime).toBe('08:50:00'); // 3 SKS × 50 menit
+    expect(res.body.data.endTime).toBe('09:30:00'); // 3 SKS × 50 menit = 150 mnt
 
     const check = await pgPool.query(
       `SELECT day_of_week, start_time, end_time FROM classes WHERE id = $1`,
@@ -759,6 +759,7 @@ describe('T3.8b Dosen: Atur Jadwal (availability + PUT/DELETE schedule)', () => 
     );
     expect(check.rows[0].day_of_week).toBe(6);
     expect(String(check.rows[0].start_time)).toBe('07:00:00');
+    expect(String(check.rows[0].end_time)).toBe('09:30:00');
   });
 
   it('PUT schedule body invalid → 400 VALIDATION_ERROR', async () => {
