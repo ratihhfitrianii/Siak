@@ -2516,4 +2516,36 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 |------|-------|
 | FE test | 527/527 pass |
 | FE coverage | branches 82.77%, functions 80.83% |
-| FE lint/typecheck/format/build | OK |
+|| FE lint/typecheck/format/build | OK |
+
+---
+
+### 56–58. Fix dropdown Prodi form mahasiswa admin sistem + sort fakultas master prodi + panel kiri jadwal dosen
+
+**Tanggal:** 2026-09-09
+
+#### Perubahan
+| File | Deskripsi |
+|------|-----------|
+| `backend/src/modules/academic/index.ts` | GET /prodis: tambah `f.code AS faculty_code` di SELECT — root fix untuk sort fakultas & dropdown prodi |
+| `frontend/src/pages/AdminMasterPage.tsx` | Dropdown prodi form tambah/edit mahasiswa: load-on-demand via `listAcademicProdis({facultyId, limit:100})` per fakultas, placeholder dinamis |
+| `frontend/src/pages/AdminMasterPage.tsx` | Sort kolom Fakultas di tab Prodi: pakai `facultyName` (bukan `facultyCode` yang kosong dari backend lama) |
+| `frontend/src/pages/DosenSchedule.tsx` | Panel kiri: di bawah nama matkul → "kelas - angkatan - SKS"; di bawahnya nama ruangan |
+| `frontend/src/pages/AdminMasterPage.test.tsx` | waitFor opsi prodi di test tambah/edit mahasiswa; `vi.setConfig({ testTimeout: 20_000 })` agar loop header flaky |
+
+#### Root Cause
+1. **Dropdown prodi kosong**: backend `/prodis` tidak return `faculty_code` → filter `facultyCode === 'FT'` selalu false; `prodis` state = halaman 1 (10 item) → dropdown kosong.
+2. **Sort fakultas tidak bekerja**: sort pakai `facultyCode` yang kosong → semua identik → tidak ada urutan.
+3. **Panel kiri jadwal dosen**: format card lama "classCode • SKS" tidak sesuai permintaan user.
+
+#### Quality Gates
+| Gate | Hasil |
+|------|-------|
+| FE test | 527/527 pass |
+| FE lint/typecheck/build | ✅ |
+
+#### Catatan Teknis
+- Dropdown prodi: state `studentProdis` isi via `listAcademicProdis({facultyId, limit:100})` saat fakultas dipilih (load-on-demand, FE-only fix).
+- Sort fakultas pakai `facultyName` langsung — tanpa menunggu backend deploy.
+- Angkatan di-parse dari `semesterCode` (mis. `2026/2027-1` → `2026/2027`).
+- Backend `faculty_code` fix sudah di-commit, menunggu Render manual deploy.

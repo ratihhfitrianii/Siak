@@ -374,10 +374,13 @@ export function DosenSchedule() {
                         <h4 className="text-sm font-semibold text-slate-900 truncate">
                           {cls.courseName}
                         </h4>
+                        {/* Kelas - Angkatan - SKS */}
                         <p className="text-xs text-slate-500 truncate">
-                          {cls.classCode} • {cls.credits} SKS
+                          {cls.classCode} - {cls.semesterCode.split('-')[0] || cls.semesterCode} -{' '}
+                          {cls.credits} SKS
                         </p>
-                        {cls.room && <p className="text-xs text-slate-400 truncate">{cls.room}</p>}
+                        {/* Ruangan */}
+                        <p className="text-xs text-slate-400 truncate">{cls.room ?? '—'}</p>
                         {!hasSchedules && (
                           <p className="text-xs text-red-500 mt-1">Belum dijadwalkan</p>
                         )}
