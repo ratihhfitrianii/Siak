@@ -609,3 +609,172 @@ describe('T3.8 Dosen: my-classes & semesters (integrasi dashboard)', () => {
     expect(res.body.data.items.length).toBe(0);
   });
 });
+
+describe('T3.8b Dosen: Atur Jadwal (availability + PUT/DELETE schedule)', () => {
+  let dosenToken: string;
+  let dosenUserId: number;
+  let classId: number; // kelas milik dosen, tanpa slot
+  let otherClassId: number; // kelas orang lain (bentrok ruangan nanti)
+  let room: string;
+  let curriculumId: number;
+  let semesterId: number;
+
+  async function login(email: string, password: string): Promise<string> {
+    const res = await request(app).post('/api/v1/auth/login').send({ identifier: email, password });
+    return res.body.data.accessToken;
+  }
+
+  beforeAll(async () => {
+    const dosenRes = await pgPool.query(
+      `SELECT u.id, u.email, u.full_name FROM users u
+       JOIN lecturers l ON l.user_id = u.id
+       JOIN roles r ON r.id = u.role_id
+       WHERE r.code = 'dosen' AND u.is_active AND l.is_active
+       ORDER BY u.id LIMIT 1`,
+    );
+    dosenUserId = Number(dosenRes.rows[0].id);
+    dosenToken = await login(dosenRes.rows[0].email, 'Dosen123!');
+
+    const semRes = await pgPool.query(`SELECT id FROM semesters WHERE is_active LIMIT 1`);
+    semesterId = Number(semRes.rows[0].id);
+
+    // Buat kelas uji milik dosen (tanpa slot waktu)
+    const courseRes = await pgPool.query(
+      `INSERT INTO courses (code, name, credits) VALUES ($1, $2, 3) RETURNING id`,
+      [`T38B${Date.now()}`, 'T3.8B Test Course'],
+    );
+    const courseId = Number(courseRes.rows[0].id);
+    const curRes = await pgPool.query(
+      `INSERT INTO curricula (prodi_id, semester_id, course_id, is_mandatory, semester_number)
+       VALUES ((SELECT prodi_id FROM lecturers WHERE user_id = $1), $2, $3, true, 1)
+       RETURNING id`,
+      [dosenUserId, semesterId, courseId],
+    );
+    curriculumId = Number(curRes.rows[0].id);
+    room = `R.T38B${Date.now() % 100000}`;
+    const clsRes = await pgPool.query(
+      `INSERT INTO classes (curriculum_id, class_code, lecturer_id, capacity, current_enrolled, room, is_active)
+       VALUES ($1, 'A', $2, 30, 0, $3, true) RETURNING id`,
+      [curriculumId, dosenUserId, room],
+    );
+    classId = Number(clsRes.rows[0].id);
+
+    // Kelas lain (bentrok ruangan) — ruangan sama, slot Senin 08:00-09:40, dipakai user lain
+    const otherDosenRes = await pgPool.query(
+      `SELECT u.id FROM users u
+       JOIN lecturers l ON l.user_id = u.id
+       JOIN roles r ON r.id = u.role_id
+       WHERE r.code = 'dosen' AND u.is_active AND l.is_active AND u.id <> $1
+       ORDER BY u.id LIMIT 1`,
+      [dosenUserId],
+    );
+    const otherDosenId = Number(otherDosenRes.rows[0].id);
+    const course2Res = await pgPool.query(
+      `INSERT INTO courses (code, name, credits) VALUES ($1, $2, 3) RETURNING id`,
+      [`T38B2${Date.now()}`, 'T3.8B Other Course'],
+    );
+    const course2Id = Number(course2Res.rows[0].id);
+    const cur2Res = await pgPool.query(
+      `INSERT INTO curricula (prodi_id, semester_id, course_id, is_mandatory, semester_number)
+       VALUES ((SELECT prodi_id FROM lecturers WHERE user_id = $1), $2, $3, true, 1)
+       RETURNING id`,
+      [otherDosenId, semesterId, course2Id],
+    );
+    const cls2Res = await pgPool.query(
+      `INSERT INTO classes (curriculum_id, class_code, lecturer_id, capacity, current_enrolled, room, day_of_week, start_time, end_time, is_active)
+       VALUES ($1, 'A', $2, 30, 0, $3, 1, '08:00', '09:40', true) RETURNING id`,
+      [Number(cur2Res.rows[0].id), otherDosenId, room],
+    );
+    otherClassId = Number(cls2Res.rows[0].id);
+  });
+
+  afterAll(async () => {
+    await pgPool.query(`DELETE FROM classes WHERE id = ANY($1)`, [[classId, otherClassId]]);
+    await pgPool.query(`DELETE FROM curricula WHERE id = $1`, [curriculumId]);
+  });
+
+  it('GET availability tanpa param → 200 + recommendations (slot kosong utk ruangan ini)', async () => {
+    const res = await request(app)
+      .get(`/api/v1/dosen/my-classes/${classId}/availability`)
+      .set('Authorization', `Bearer ${dosenToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.classId).toBe(classId);
+    expect(res.body.data.room).toBe(room);
+    expect(Array.isArray(res.body.data.recommendations)).toBe(true);
+  });
+
+  it('GET availability Senin 08:00 → konflik ruangan (kelas lain pakai ruangan sama)', async () => {
+    const res = await request(app)
+      .get(`/api/v1/dosen/my-classes/${classId}/availability?day=1&start=08:00`)
+      .set('Authorization', `Bearer ${dosenToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.ok).toBe(false);
+    const roomConflict = res.body.data.conflicts.find(
+      (c: { kind: string }) => c.kind === 'ruangan',
+    );
+    expect(roomConflict).toBeTruthy();
+    expect(roomConflict.room).toBe(room);
+  });
+
+  it('GET availability kelas orang lain → 404 (bukan milik dosen)', async () => {
+    const res = await request(app)
+      .get(`/api/v1/dosen/my-classes/${otherClassId}/availability`)
+      .set('Authorization', `Bearer ${dosenToken}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('PUT schedule Senin 08:00 → 409 (bentrok ruangan)', async () => {
+    const res = await request(app)
+      .put(`/api/v1/dosen/my-classes/${classId}/schedule`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ dayOfWeek: 1, startTime: '08:00' });
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('SCHEDULE_CONFLICT');
+  });
+
+  it('PUT schedule Senin 12:00 → 200 + slot tersimpan; kalender muncul', async () => {
+    const res = await request(app)
+      .put(`/api/v1/dosen/my-classes/${classId}/schedule`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ dayOfWeek: 1, startTime: '12:00' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.dayOfWeek).toBe(1);
+    expect(res.body.data.startTime).toBe('12:00:00');
+    expect(res.body.data.endTime).toBe('13:50:00'); // 3 SKS × 50 menit
+
+    const check = await pgPool.query(
+      `SELECT day_of_week, start_time, end_time FROM classes WHERE id = $1`,
+      [classId],
+    );
+    expect(check.rows[0].day_of_week).toBe(1);
+    expect(String(check.rows[0].start_time)).toBe('12:00:00');
+  });
+
+  it('PUT schedule body invalid → 400 VALIDATION_ERROR', async () => {
+    const res = await request(app)
+      .put(`/api/v1/dosen/my-classes/${classId}/schedule`)
+      .set('Authorization', `Bearer ${dosenToken}`)
+      .send({ dayOfWeek: 0, startTime: '25:99' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('DELETE schedule → 200 + slot kosong', async () => {
+    const res = await request(app)
+      .delete(`/api/v1/dosen/my-classes/${classId}/schedule`)
+      .set('Authorization', `Bearer ${dosenToken}`);
+    expect(res.status).toBe(200);
+    const check = await pgPool.query(
+      `SELECT day_of_week, start_time, end_time FROM classes WHERE id = $1`,
+      [classId],
+    );
+    expect(check.rows[0].day_of_week).toBeNull();
+    expect(check.rows[0].start_time).toBeNull();
+  });
+
+  it('DELETE schedule tanpa token → 401', async () => {
+    const res = await request(app).delete(`/api/v1/dosen/my-classes/${classId}/schedule`);
+    expect(res.status).toBe(401);
+  });
+});
