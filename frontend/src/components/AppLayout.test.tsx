@@ -326,6 +326,14 @@ describe('AppLayout (T1.11d polish + keluhan #5 sidebar ikon & #26 dropdown avat
     mockUser = DOSEN;
     renderLayout();
 
+    // Profil dosen = urutan kedua setelah Dashboard (permintaan user)
+    const links = screen.getAllByRole('link');
+    const labels = links.map((l) => l.getAttribute('aria-label') ?? l.textContent ?? '');
+    const dashIdx = labels.findIndex((l) => l === 'Dashboard');
+    const profilIdx = labels.findIndex((l) => l === 'Profil');
+    expect(dashIdx).toBeGreaterThanOrEqual(0);
+    expect(profilIdx).toBe(dashIdx + 1);
+
     // Non-wali dosen: Bimbingan TIDAK tampil
     for (const label of ['Pilih MK', 'Jadwal', 'Absensi', 'Nilai']) {
       expect(screen.getByText(label)).toBeInTheDocument();

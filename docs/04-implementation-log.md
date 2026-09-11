@@ -2603,3 +2603,8 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 - Desktop >=1024px: sidebar tetap kolom kiri (collapse button hanya desktop); breakpoint md -> lg.
 - matchMedia listener utk resize; drawer tutup saat klik menu/navigasi/backdrop/logout.
 - Test: stub matchMedia + 3 test drawer (buka/tutup, backdrop, navigasi). FE 536/536 pass.
+
+### 65. Sidebar dosen — menu Profil urutan kedua; login default dashboard
+- Menu Profil dosen (label "Profil", /dosen/profile) dipindah ke posisi pertama di MENU_ITEMS (setelah Dashboard di sidebar).
+- Redirect login sudah default "/" = dashboard role-aware (dosen -> DosenDashboardPage) — tidak diubah.
+- Test: assert urutan Dashboard -> Profil pada render dosen. FE 536/536 pass.
