@@ -627,6 +627,14 @@ describe('T3.8 Dosen: my-classes & semesters (integrasi dashboard)', () => {
       expect(res.status).toBe(200);
       const ids = res.body.data.items.map((it: { id: number }) => Number(it.id));
       expect(ids).not.toContain(clsNRId);
+
+      // includeNoRoom=1 → kelas tanpa ruangan ikut tampil (dipakai dashboard)
+      const resAll = await request(app)
+        .get('/api/v1/dosen/my-classes?includeNoRoom=1')
+        .set('Authorization', `Bearer ${dosenToken}`);
+      expect(resAll.status).toBe(200);
+      const idsAll = resAll.body.data.items.map((it: { id: number }) => Number(it.id));
+      expect(idsAll).toContain(clsNRId);
     } finally {
       await pgPool.query(`DELETE FROM classes WHERE id = $1`, [clsNRId]);
       await pgPool.query(`DELETE FROM curricula WHERE id = $1`, [curNRId]);

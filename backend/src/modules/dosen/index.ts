@@ -425,8 +425,12 @@ export function createDosenRouter(): Router {
            JOIN courses co ON co.id = cur.course_id
            JOIN semesters sem ON sem.id = cur.semester_id
            WHERE cl.lecturer_id = $1 AND cl.is_active
-            AND cl.room IS NOT NULL AND cl.room != ''
-           ORDER BY co.code, cl.class_code`,
+                      ${
+                        req.query.includeNoRoom === '1'
+                          ? ''
+                          : `AND cl.room IS NOT NULL AND cl.room != ''`
+                      }
+                     ORDER BY co.code, cl.class_code`,
           [req.user!.id],
         );
 

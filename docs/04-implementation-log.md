@@ -2608,3 +2608,10 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 - Menu Profil dosen (label "Profil", /dosen/profile) dipindah ke posisi pertama di MENU_ITEMS (setelah Dashboard di sidebar).
 - Redirect login sudah default "/" = dashboard role-aware (dosen -> DosenDashboardPage) — tidak diubah.
 - Test: assert urutan Dashboard -> Profil pada render dosen. FE 536/536 pass.
+
+### 66. Dashboard dosen metrik 0 + Rekap Kehadiran lambat
+- Dashboard: getMyClasses({includeNoRoom:true}) — kelas tanpa ruangan ikut dihitung utk Total/Selesai/Akan Datang (sebelumnya kena filter room adf9716 -> 0).
+- Backend /dosen/my-classes dukung ?includeNoRoom=1 (default tetap filter room utk Rencana Mengajar).
+- Rekap Kehadiran: fetch kelas+sesi PARALLEL (Promise.all, sebelumnya serial 2 round-trip) + includeNoRoom.
+- Backend /attendance/sessions: hilangkan subquery COUNT per-baris (N+1) -> 2 query agregat (hadir per sesi + terdaftar per kelas).
+- Test: dosen.test includeNoRoom=1 tampilkan kelas tanpa ruangan.

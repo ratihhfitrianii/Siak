@@ -1143,9 +1143,11 @@ export async function getDosenSemesters(): Promise<SemesterOption[]> {
   }));
 }
 
-/** GET /dosen/my-classes — kelas yang diampu dosen + jadwal pertemuan (T3.8). */
-export async function getMyClasses(): Promise<MyClassesResponse> {
-  return apiRequest<MyClassesResponse>('/dosen/my-classes');
+/** GET /dosen/my-classes — kelas yang diampu dosen + jadwal pertemuan (T3.8).
+ *  includeNoRoom=1 → sertakan kelas tanpa ruangan (dipakai dashboard agar metrik akurat). */
+export async function getMyClasses(opts?: { includeNoRoom?: boolean }): Promise<MyClassesResponse> {
+  const qs = opts?.includeNoRoom ? '?includeNoRoom=1' : '';
+  return apiRequest<MyClassesResponse>(`/dosen/my-classes${qs}`);
 }
 
 /** GET /dosen/my-classes/:id/availability — cek bentrok dosen/ruangan + rekomendasi waktu (T3.8). */

@@ -48,7 +48,9 @@ export function DosenDashboardPage() {
 
   useEffect(() => {
     if (!isSubTab) {
-      getMyClasses()
+      // Termasuk kelas tanpa ruangan agar metrik pertemuan akurat (jadwal pertemuan
+      // bisa ada meski kelas belum di-plotting ruangan oleh admin akademik).
+      getMyClasses({ includeNoRoom: true })
         .then((res) => setMyClasses(res.items))
         .catch(() => setMyClasses([]));
     }

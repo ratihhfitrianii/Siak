@@ -139,9 +139,12 @@ export function DosenAttendanceRecap() {
 
   const loadClasses = useCallback(async () => {
     try {
-      const cls = await getMyClasses();
+      // Parallel: kelas + sesi sekaligus (sebelumnya serial → 2 round-trip lambat)
+      const [cls, sessions] = await Promise.all([
+        getMyClasses({ includeNoRoom: true }),
+        getAttendanceSessions(),
+      ]);
       // Keluhan: hanya kelas yang sudah ada sesi absensinya yang ditampilkan
-      const sessions = await getAttendanceSessions();
       const classIdsWithSessions = new Set(sessions.map((s) => s.classId));
       setClasses(cls.items.filter((c) => classIdsWithSessions.has(c.id)));
     } catch {

@@ -98,20 +98,12 @@ export function createAttendanceRouter(): Router {
         const countRes = await pgPool.query(countSql, params);
         const total = parseInt(countRes.rows[0].count, 10);
 
-        // Data
+        // Data — tanpa subquery per-baris (N+1); agregat dihitung terpisah di bawah.
         const dataSql = `
           SELECT s.*, sch.meeting_number, sch.scheduled_date as schedule_date,
                  cl.class_code, cl.id as class_id,
                  cur.semester_number, co.code as course_code, co.name as course_name,
-                 u.full_name as created_by_name,
-                 (
-                   SELECT COUNT(*) FROM krs_items ki
-                   JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
-                   WHERE ki.class_id = sch.class_id
-                     AND ks.student_id IS NOT NULL
-                     AND ks.status IN ('submitted', 'approved')
-                 ) as total_records,
-                 (SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = s.id AND ar.status = 'hadir') as hadir_count
+                 u.full_name as created_by_name
           FROM attendance_sessions s
           JOIN schedules sch ON sch.id = s.schedule_id
           JOIN classes cl ON cl.id = sch.class_id
@@ -125,13 +117,45 @@ export function createAttendanceRouter(): Router {
         params.push(l, offset);
 
         const dataRes = await pgPool.query(dataSql, params);
+        const rows = dataRes.rows;
+        const sessionIds = rows.map((r) => Number(r.id));
+        const classIds = [...new Set(rows.map((r) => Number(r.class_id)))];
+
+        // Agregat hadir per sesi (satu query, bukan subquery per baris)
+        const hadirMap = new Map<number, number>();
+        if (sessionIds.length > 0) {
+          const hadirRes = await pgPool.query(
+            `SELECT session_id, COUNT(*)::int AS cnt
+             FROM attendance_records
+             WHERE session_id = ANY($1) AND status = 'hadir'
+             GROUP BY session_id`,
+            [sessionIds],
+          );
+          for (const r of hadirRes.rows) hadirMap.set(Number(r.session_id), Number(r.cnt));
+        }
+
+        // Jumlah mahasiswa terdaftar per kelas (satu query)
+        const enrolledMap = new Map<number, number>();
+        if (classIds.length > 0) {
+          const enrollRes = await pgPool.query(
+            `SELECT ki.class_id, COUNT(*)::int AS cnt
+             FROM krs_items ki
+             JOIN krs_submissions ks ON ks.id = ki.krs_submission_id
+             WHERE ki.class_id = ANY($1)
+               AND ks.student_id IS NOT NULL
+               AND ks.status IN ('submitted', 'approved')
+             GROUP BY ki.class_id`,
+            [classIds],
+          );
+          for (const r of enrollRes.rows) enrolledMap.set(Number(r.class_id), Number(r.cnt));
+        }
 
         res.json({
           success: true,
-          data: dataRes.rows.map((r) => ({
+          data: rows.map((r) => ({
             ...r,
-            total_records: parseInt(r.total_records, 10),
-            hadir_count: parseInt(r.hadir_count, 10),
+            total_records: enrolledMap.get(Number(r.class_id)) ?? 0,
+            hadir_count: hadirMap.get(Number(r.id)) ?? 0,
           })),
           pagination: { page: p, limit: l, total, totalPages: Math.ceil(total / l) },
         });
