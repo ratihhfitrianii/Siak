@@ -224,15 +224,16 @@ describe('RiwayatStudiPage', () => {
     await screen.findByText('Pemrograman Dasar');
 
     // Sort by Nilai (gradeLetter) asc: A (Pemrograman Dasar) lalu B+ (Struktur Data)
-    // Get the header button (first one with role=button and name=/Nilai/)
-    const nilaiButtons = screen.getAllByRole('button', { name: /Nilai/ });
-    fireEvent.click(nilaiButtons[0]);
+    // Get the Urutkan button, then pick the Nilai option
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Nilai$/ }));
     const rows = screen.getAllByRole('row').slice(1, 3); // two data rows
     expect(rows[0]).toHaveTextContent('Pemrograman Dasar');
     expect(rows[1]).toHaveTextContent('Struktur Data');
 
     // Toggle → desc: B+ dulu
-    fireEvent.click(nilaiButtons[0]);
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Nilai$/ }));
     const rowsDesc = screen.getAllByRole('row').slice(1, 3);
     expect(rowsDesc[0]).toHaveTextContent('Struktur Data');
   });
@@ -263,8 +264,8 @@ describe('RiwayatStudiPage', () => {
 
     const headers = ['Kode MK', 'Mata Kuliah', 'SKS', 'Nilai', 'Nilai Angka', 'Semester'];
     for (const h of headers) {
-      const btn = screen.getAllByRole('button', { name: new RegExp(h) })[0];
-      fireEvent.click(btn);
+      fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+      fireEvent.click(screen.getByRole('option', { name: new RegExp(`^${h}$`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
   });

@@ -177,7 +177,7 @@ describe('FinancePayrollPage', () => {
     expect(lastCall?.prodiId).toBeUndefined();
   });
 
-  it('sort kolom: klik header Dosen toggle asc/desc; klik Total urutkan angka', async () => {
+  it('sort kolom: via ikon urutkan + dropdown pilihan', async () => {
     const user = userEvent.setup();
     render(<FinancePayrollPage />);
     await screen.findByText('Dosen 01');
@@ -186,21 +186,18 @@ describe('FinancePayrollPage', () => {
     const rows = () => screen.getAllByRole('row').filter((r) => r.textContent?.includes('Dosen 0'));
     expect(rows()[0]).toHaveTextContent('Dosen 01');
 
-    // Klik Dosen → desc → Dosen 03 di atas
-    await user.click(screen.getByRole('button', { name: /Urutkan Dosen/ }));
+    // Buka menu urutkan → pilih "Dosen" (toggle asc → desc → Dosen 03 di atas)
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Dosen/ }));
     expect(rows()[0]).toHaveTextContent('Dosen 03');
 
-    // Sort by Total asc → net terkecil duluan (Dosen 01)
-    await user.click(screen.getByRole('button', { name: /Urutkan Total/ }));
+    // Pilih "Total" asc → net terkecil duluan (Dosen 01); klik lagi item aktif → desc
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Total/ }));
     expect(rows()[0]).toHaveTextContent('Dosen 01');
-    await user.click(screen.getByRole('button', { name: /Urutkan Total/ }));
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Total/ }));
     expect(rows()[0]).toHaveTextContent('Dosen 03');
-
-    // aria-sort tercermin
-    expect(screen.getByRole('button', { name: /Urutkan Total/ }).closest('th')).toHaveAttribute(
-      'aria-sort',
-      'descending',
-    );
   });
 
   it('pagination 10/baris: 13 data → halaman 2 berisi 3 sisa data', async () => {

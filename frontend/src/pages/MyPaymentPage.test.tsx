@@ -387,18 +387,20 @@ describe('MyPaymentPage (T2.6) - All semesters table', () => {
     expect(dashes.length).toBeGreaterThan(0);
   });
 
-  it('klik header kolom → urutan berubah (sort)', async () => {
+  it('klik ikon urutkan → dropdown → urutan berubah (sort)', async () => {
     mockFetch();
     render(<MyPaymentPage />);
     expect(await screen.findByText('Ganjil 2024/2025 (2024/2025-1)')).toBeInTheDocument();
 
     // Sort by Terbayar (paidAmount) asc: 0 (belum lunas) lalu 1.5jt (partial) lalu 3jt (lunas)
-    fireEvent.click(screen.getByRole('button', { name: /Terbayar/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Terbayar/ }));
     const rows = screen.getAllByRole('row').slice(1);
     expect(rows[0]).toHaveTextContent('Belum Lunas');
 
     // Toggle → desc: 3jt (lunas) dulu
-    fireEvent.click(screen.getByRole('button', { name: /Terbayar/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Terbayar/ }));
     const rowsDesc = screen.getAllByRole('row').slice(1);
     expect(rowsDesc[0]).toHaveTextContent('Lunas');
   });

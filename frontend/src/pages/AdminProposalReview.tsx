@@ -3,7 +3,8 @@ import { getSkripsiProposals, getSkripsiProposalStatuses, updateSkripsiProposal 
 import type { SkripsiProposal, SkripsiStatus, SkripsiProposalStatus } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 const STATUS_LABEL: Record<SkripsiStatus, string> = {
   draft: 'Draft',
@@ -274,48 +275,37 @@ export function AdminProposalReview() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="flex justify-end px-4 pt-3">
+            <SortMenu
+              options={[
+                { key: 'studentName', label: 'Mahasiswa' },
+                { key: 'title', label: 'Judul' },
+                { key: 'status', label: 'Status' },
+                { key: 'createdAt', label: 'Diajukan' },
+              ]}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              toggleSort={toggleSort}
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-max">
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('studentName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Mahasiswa <SortIcon active={sortKey === 'studentName'} dir={sortDir} />
-                    </button>
+                    Mahasiswa
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('title')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Judul <SortIcon active={sortKey === 'title'} dir={sortDir} />
-                    </button>
+                    Judul
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('status')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Status <SortIcon active={sortKey === 'status'} dir={sortDir} />
-                    </button>
+                    Status
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Dosen Pembimbing
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('createdAt')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Diajukan <SortIcon active={sortKey === 'createdAt'} dir={sortDir} />
-                    </button>
+                    Diajukan
                   </th>
                 </tr>
               </thead>

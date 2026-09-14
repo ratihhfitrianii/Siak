@@ -12,6 +12,7 @@ import type { AdminClass, Prodi, Room } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { SearchableDropdown } from '../components/SearchableDropdown';
 import { Spinner } from '../components/Spinner';
+import { SortMenu } from '../lib/SortMenu';
 
 interface CurriculumOption {
   id: number;
@@ -433,6 +434,22 @@ export function AdminSchedulePage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
+            <div className="flex justify-end mb-3">
+              <SortMenu
+                options={[
+                  { key: 'classCode', label: 'Kelas' },
+                  { key: 'courseName', label: 'Mata Kuliah' },
+                  { key: 'prodiName', label: 'Prodi' },
+                  { key: 'dayOfWeek', label: 'Jadwal' },
+                  { key: 'room', label: 'Ruangan' },
+                  { key: 'capacity', label: 'Kapasitas' },
+                  { key: 'lecturerName', label: 'Pengampu' },
+                ]}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                toggleSort={toggleSort}
+              />
+            </div>
             <table className="w-full min-w-max">
               <thead className="bg-slate-50">
                 <tr>
@@ -451,21 +468,7 @@ export function AdminSchedulePage() {
                       key={key}
                       className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap"
                     >
-                      <button
-                        onClick={() => toggleSort(key)}
-                        className="inline-flex items-center gap-1 hover:text-slate-900"
-                        title={`Urutkan ${label}`}
-                      >
-                        {label}
-                        <span
-                          className={`text-xs ${
-                            sortKey === key ? 'text-primary-600' : 'text-slate-300'
-                          }`}
-                          aria-hidden="true"
-                        >
-                          {sortKey === key ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
-                        </span>
-                      </button>
+                      {label}
                     </th>
                   ))}
                 </tr>

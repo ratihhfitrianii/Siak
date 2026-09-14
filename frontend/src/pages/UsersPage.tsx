@@ -16,6 +16,7 @@ import type {
   Faculty,
 } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
+import { SortMenu } from '../lib/SortMenu';
 
 const ROLE_OPTIONS: Array<{ code: string; label: string }> = [
   { code: 'mahasiswa', label: 'Mahasiswa' },
@@ -415,45 +416,35 @@ export function UsersPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="flex justify-end px-4 pt-3">
+            <SortMenu
+              options={[
+                { key: 'fullName', label: 'Nama' },
+                { key: 'nimnik', label: 'NIM/NIK' },
+                { key: 'roleName', label: 'Peran' },
+                { key: 'facultyName', label: 'Fakultas' },
+                { key: 'isActive', label: 'Status' },
+              ]}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              toggleSort={toggleSort}
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-max text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-left">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('fullName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Nama {sortKey === 'fullName' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
-                    </button>
+                    Nama
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('nimnik')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      NIM/NIK {sortKey === 'nimnik' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
-                    </button>
+                    NIM/NIK
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('roleName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Peran {sortKey === 'roleName' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
-                    </button>
+                    Peran
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('facultyName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Fakultas {sortKey === 'facultyName' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
-                    </button>
+                    Fakultas
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
                     Wali
@@ -462,13 +453,7 @@ export function UsersPage() {
                     Jabatan Prodi
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('isActive')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Status {sortKey === 'isActive' ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
-                    </button>
+                    Status
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
                     Aksi

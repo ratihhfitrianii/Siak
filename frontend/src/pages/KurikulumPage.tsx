@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ApiError, apiRequest } from '../lib/api';
 import type { CurriculumItem } from '../lib/types';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 /** Warna latar per semester (bergantian) — indexed by semesterKurikulum. */
 const SEMESTER_COLORS: Record<number, string> = {
@@ -118,6 +119,20 @@ export function KurikulumPage() {
         </div>
         {rows.length > 0 ? (
           <div className="overflow-x-auto">
+            <div className="flex justify-end px-6 py-3">
+              <SortMenu
+                options={[
+                  { key: 'semesterKurikulum', label: 'Semester Kurikulum' },
+                  { key: 'code', label: 'Kode MK' },
+                  { key: 'name', label: 'Mata Kuliah' },
+                  { key: 'credits', label: 'SKS' },
+                  { key: 'lecturerName', label: 'Dosen Pengampu' },
+                ]}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                toggleSort={toggleSort}
+              />
+            </div>
             <table className="w-full min-w-[720px]">
               <thead className="bg-slate-50">
                 <tr>
@@ -125,50 +140,19 @@ export function KurikulumPage() {
                     No.
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('semesterKurikulum')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Semester Kurikulum{' '}
-                      <SortIcon active={sortKey === 'semesterKurikulum'} dir={sortDir} />
-                    </button>
+                    Semester Kurikulum
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('code')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Kode MK <SortIcon active={sortKey === 'code'} dir={sortDir} />
-                    </button>
+                    Kode MK
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('name')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Mata Kuliah <SortIcon active={sortKey === 'name'} dir={sortDir} />
-                    </button>
+                    Mata Kuliah
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('credits')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      SKS <SortIcon active={sortKey === 'credits'} dir={sortDir} />
-                    </button>
+                    SKS
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('lecturerName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Dosen Pengampu <SortIcon active={sortKey === 'lecturerName'} dir={sortDir} />
-                    </button>
+                    Dosen Pengampu
                   </th>
                 </tr>
               </thead>

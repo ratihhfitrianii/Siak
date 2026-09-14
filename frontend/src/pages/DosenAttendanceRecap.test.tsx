@@ -87,7 +87,7 @@ describe('DosenAttendanceRecap', () => {
     expect(screen.getByText('85%')).toBeInTheDocument();
   });
 
-  it('klik kolom NIM → urutan berubah (sort)', async () => {
+  it('klik ikon urutkan → dropdown → urutan berubah (sort)', async () => {
     const user = userEvent.setup();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockedApi.getMyClasses.mockResolvedValue(CLASSES as any);
@@ -101,14 +101,16 @@ describe('DosenAttendanceRecap', () => {
     await user.click(screen.getByText(/Algoritma/));
     await screen.findByText('Budi');
 
-    // asc: NIM 2023001 sebelum 2023002
-    await user.click(screen.getByRole('button', { name: /^NIM/ }));
+    // Buka menu, pilih NIM → asc: 2023001 (Budi) sebelum 2023002 (Citra)
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^NIM/ }));
     let rows = screen.getAllByRole('row').slice(1);
     expect(rows[0]).toHaveTextContent('Budi');
     expect(rows[1]).toHaveTextContent('Citra');
 
-    // desc: sebaliknya
-    await user.click(screen.getByRole('button', { name: /^NIM/ }));
+    // Toggle → desc: sebaliknya
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^NIM/ }));
     rows = screen.getAllByRole('row').slice(1);
     expect(rows[0]).toHaveTextContent('Citra');
     expect(rows[1]).toHaveTextContent('Budi');
@@ -133,7 +135,7 @@ describe('DosenAttendanceRecap', () => {
     expect(screen.queryByText('Budi')).not.toBeInTheDocument();
   });
 
-  it('klik semua header kolom sortable → sort berfungsi tanpa error', async () => {
+  it('klik semua opsi urutkan di dropdown → sort berfungsi tanpa error', async () => {
     const user = userEvent.setup();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockedApi.getMyClasses.mockResolvedValue(CLASSES as any);
@@ -155,10 +157,11 @@ describe('DosenAttendanceRecap', () => {
       'Sakit',
       'Alpha',
       'Total Pertemuan',
-      'Kehadiran',
+      '% Kehadiran',
     ];
     for (const h of headers) {
-      await user.click(screen.getByRole('button', { name: new RegExp(h) }));
+      await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+      await user.click(screen.getByRole('option', { name: new RegExp(`^${h}`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
   });

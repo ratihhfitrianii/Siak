@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getMyClasses, getAttendanceRecap, getAttendanceSessions } from '../lib/api';
 import type { MyClass, AttendanceRecapItem } from '../lib/types';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
 
@@ -260,84 +261,40 @@ export function DosenAttendanceRecap() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
+                  <div className="flex justify-end px-4 pt-3">
+                    <SortMenu
+                      options={[
+                        { key: 'nim', label: 'NIM' },
+                        { key: 'studentName', label: 'Nama Mahasiswa' },
+                        { key: 'hadirCount', label: 'Hadir' },
+                        { key: 'izinCount', label: 'Izin' },
+                        { key: 'sakitCount', label: 'Sakit' },
+                        { key: 'alphaCount', label: 'Alpha' },
+                        { key: 'totalSessions', label: 'Total Pertemuan' },
+                        { key: 'attendanceRate', label: '% Kehadiran' },
+                      ]}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      toggleSort={toggleSort}
+                    />
+                  </div>
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50 border-b border-slate-100">
                       <tr>
                         <th className="px-4 py-3 text-left font-medium text-slate-700">No</th>
+                        <th className="px-4 py-3 text-left font-medium text-slate-700">NIM</th>
                         <th className="px-4 py-3 text-left font-medium text-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => toggleSort('nim')}
-                            className="inline-flex items-center gap-1 hover:text-slate-900"
-                          >
-                            NIM <SortIcon active={sortKey === 'nim'} dir={sortDir} />
-                          </button>
+                          Nama Mahasiswa
                         </th>
-                        <th className="px-4 py-3 text-left font-medium text-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => toggleSort('studentName')}
-                            className="inline-flex items-center gap-1 hover:text-slate-900"
-                          >
-                            Nama Mahasiswa{' '}
-                            <SortIcon active={sortKey === 'studentName'} dir={sortDir} />
-                          </button>
+                        <th className="px-4 py-3 text-center font-medium text-slate-700">Hadir</th>
+                        <th className="px-4 py-3 text-center font-medium text-slate-700">Izin</th>
+                        <th className="px-4 py-3 text-center font-medium text-slate-700">Sakit</th>
+                        <th className="px-4 py-3 text-center font-medium text-slate-700">Alpha</th>
+                        <th className="px-4 py-3 text-center font-medium text-slate-700">
+                          Total Pertemuan
                         </th>
                         <th className="px-4 py-3 text-center font-medium text-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => toggleSort('hadirCount')}
-                            className="inline-flex items-center gap-1 hover:text-slate-900"
-                          >
-                            Hadir <SortIcon active={sortKey === 'hadirCount'} dir={sortDir} />
-                          </button>
-                        </th>
-                        <th className="px-4 py-3 text-center font-medium text-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => toggleSort('izinCount')}
-                            className="inline-flex items-center gap-1 hover:text-slate-900"
-                          >
-                            Izin <SortIcon active={sortKey === 'izinCount'} dir={sortDir} />
-                          </button>
-                        </th>
-                        <th className="px-4 py-3 text-center font-medium text-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => toggleSort('sakitCount')}
-                            className="inline-flex items-center gap-1 hover:text-slate-900"
-                          >
-                            Sakit <SortIcon active={sortKey === 'sakitCount'} dir={sortDir} />
-                          </button>
-                        </th>
-                        <th className="px-4 py-3 text-center font-medium text-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => toggleSort('alphaCount')}
-                            className="inline-flex items-center gap-1 hover:text-slate-900"
-                          >
-                            Alpha <SortIcon active={sortKey === 'alphaCount'} dir={sortDir} />
-                          </button>
-                        </th>
-                        <th className="px-4 py-3 text-center font-medium text-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => toggleSort('totalSessions')}
-                            className="inline-flex items-center gap-1 hover:text-slate-900"
-                          >
-                            Total Pertemuan{' '}
-                            <SortIcon active={sortKey === 'totalSessions'} dir={sortDir} />
-                          </button>
-                        </th>
-                        <th className="px-4 py-3 text-center font-medium text-slate-700">
-                          <button
-                            type="button"
-                            onClick={() => toggleSort('attendanceRate')}
-                            className="inline-flex items-center gap-1 hover:text-slate-900"
-                          >
-                            % Kehadiran{' '}
-                            <SortIcon active={sortKey === 'attendanceRate'} dir={sortDir} />
-                          </button>
+                          % Kehadiran
                         </th>
                       </tr>
                     </thead>

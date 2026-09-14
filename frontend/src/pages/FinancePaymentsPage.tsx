@@ -15,7 +15,8 @@ import type {
   StudentPaymentGroup,
   Prodi,
 } from '../lib/types';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 /** Halaman Kelola Tagihan — Admin Keuangan
  * Tabel grouped by NIM, detail per-semester + update.
@@ -253,62 +254,41 @@ export function FinancePaymentsPage() {
         {loading && <div className="h-4 bg-slate-100 animate-pulse" />}
 
         <div className="overflow-x-auto">
+          <div className="flex justify-end px-6 py-3">
+            <SortMenu
+              options={[
+                { key: 'nim', label: 'NIM' },
+                { key: 'fullName', label: 'Nama' },
+                { key: 'prodiName', label: 'Prodi' },
+                { key: 'totalSemesters', label: 'Semester' },
+                { key: 'totalTagihan', label: 'Total Tagihan' },
+                { key: 'totalPaid', label: 'Total Dibayar' },
+              ]}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              toggleSort={toggleSort}
+            />
+          </div>
           <table className="w-full min-w-max">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('nim')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    NIM <SortIcon active={sortKey === 'nim'} dir={sortDir} />
-                  </button>
+                  NIM
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('fullName')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Nama <SortIcon active={sortKey === 'fullName'} dir={sortDir} />
-                  </button>
+                  Nama
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('prodiName')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Prodi <SortIcon active={sortKey === 'prodiName'} dir={sortDir} />
-                  </button>
+                  Prodi
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('totalSemesters')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Semester <SortIcon active={sortKey === 'totalSemesters'} dir={sortDir} />
-                  </button>
+                  Semester
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('totalTagihan')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Total Tagihan <SortIcon active={sortKey === 'totalTagihan'} dir={sortDir} />
-                  </button>
+                  Total Tagihan
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('totalPaid')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Total Dibayar <SortIcon active={sortKey === 'totalPaid'} dir={sortDir} />
-                  </button>
+                  Total Dibayar
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Status

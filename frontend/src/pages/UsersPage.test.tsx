@@ -1159,13 +1159,15 @@ describe('UsersPage (T1.11c)', () => {
     await screen.findByText('Andi');
 
     // Sort asc → 'Andi' sebelum 'Bu Rina'
-    await user.click(screen.getByRole('button', { name: /Nama/ }));
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Nama/ }));
     const rows = screen.getAllByRole('row').slice(1);
     expect(rows[0]).toHaveTextContent('Andi');
     expect(rows[1]).toHaveTextContent('Bu Rina');
 
     // Toggle desc → 'Bu Rina' dulu
-    await user.click(screen.getByRole('button', { name: /Nama/ }));
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Nama/ }));
     const rowsDesc = screen.getAllByRole('row').slice(1);
     expect(rowsDesc[0]).toHaveTextContent('Bu Rina');
   });

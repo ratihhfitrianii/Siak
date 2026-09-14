@@ -135,20 +135,21 @@ describe('AdminKrsPage (T1.11c)', () => {
 
     await screen.findByText('Budi Santoso');
 
-    const nimHeader = screen.getByRole('button', { name: 'NIM' });
     // default asc: 2024001 sebelum 2024002
     const rows0 = screen.getAllByRole('row').map((r) => r.textContent ?? '');
     expect(rows0.findIndex((r) => r.includes('2024001'))).toBeLessThan(
       rows0.findIndex((r) => r.includes('2024002')),
     );
 
-    await user.click(nimHeader); // → asc (sama dengan default, urut tetap)
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^NIM/ })); // → asc (sama dengan default, urut tetap)
     const rowsAsc = screen.getAllByRole('row').map((r) => r.textContent ?? '');
     expect(rowsAsc.findIndex((r) => r.includes('2024001'))).toBeLessThan(
       rowsAsc.findIndex((r) => r.includes('2024002')),
     );
 
-    await user.click(nimHeader); // toggle → desc
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^NIM/ })); // toggle → desc
     const rows1 = screen.getAllByRole('row').map((r) => r.textContent ?? '');
     expect(rows1.findIndex((r) => r.includes('2024002'))).toBeLessThan(
       rows1.findIndex((r) => r.includes('2024001')),
@@ -345,7 +346,8 @@ describe('AdminKrsPage (T1.11c)', () => {
 
     const headers = ['NIM', 'Mahasiswa', 'Prodi', 'Diajukan', 'Kelas', 'SKS'];
     for (const h of headers) {
-      await user.click(screen.getByRole('button', { name: new RegExp(h) }));
+      await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+      await user.click(screen.getByRole('option', { name: new RegExp(`^${h}$`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
   });

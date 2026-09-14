@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { ApiError, approveKrs, getAdminPendingKrs, rejectKrs } from '../lib/api';
 import type { AdminKrsItem } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 /**
  * Halaman admin KRS (T1.11c) — daftar pengajuan menunggu persetujuan (perm krs.approve).
@@ -138,62 +139,41 @@ export function AdminKrsPage() {
             />
           </div>
           <div className="overflow-x-auto">
+            <div className="flex justify-end px-4 pt-3">
+              <SortMenu
+                options={[
+                  { key: 'nim', label: 'NIM' },
+                  { key: 'studentName', label: 'Mahasiswa' },
+                  { key: 'prodiCode', label: 'Prodi' },
+                  { key: 'submittedAt', label: 'Diajukan' },
+                  { key: 'itemCount', label: 'Kelas' },
+                  { key: 'totalCredits', label: 'SKS' },
+                ]}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                toggleSort={toggleSort}
+              />
+            </div>
             <table className="w-full min-w-max text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-left">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('nim')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      NIM <SortIcon active={sortKey === 'nim'} dir={sortDir} />
-                    </button>
+                    NIM
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('studentName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Mahasiswa <SortIcon active={sortKey === 'studentName'} dir={sortDir} />
-                    </button>
+                    Mahasiswa
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('prodiCode')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Prodi <SortIcon active={sortKey === 'prodiCode'} dir={sortDir} />
-                    </button>
+                    Prodi
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('submittedAt')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Diajukan <SortIcon active={sortKey === 'submittedAt'} dir={sortDir} />
-                    </button>
+                    Diajukan
                   </th>
                   <th scope="col" className="px-4 py-3 text-center font-medium text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('itemCount')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Kelas <SortIcon active={sortKey === 'itemCount'} dir={sortDir} />
-                    </button>
+                    Kelas
                   </th>
                   <th scope="col" className="px-4 py-3 text-center font-medium text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('totalCredits')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      SKS <SortIcon active={sortKey === 'totalCredits'} dir={sortDir} />
-                    </button>
+                    SKS
                   </th>
                   <th scope="col" className="px-4 py-3 font-medium text-slate-600">
                     Aksi

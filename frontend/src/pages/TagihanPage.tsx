@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getKrsAccess, getKrsPeriod, getMyPayments, ApiError } from '../lib/api';
 import type { MyPayment, KrsAccessResult } from '../lib/types';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 /**
  * Halaman Tagihan Mahasiswa — detail tagihan semester yang sedang berjalan (KRS aktif).
@@ -165,35 +166,29 @@ export function TagihanPage() {
                 />
               </div>
               <div className="overflow-x-auto">
+                <div className="flex justify-end px-4 py-2">
+                  <SortMenu
+                    options={[
+                      { key: 'description', label: 'Item' },
+                      { key: 'amount', label: 'Jumlah' },
+                      { key: 'isMandatory', label: 'Wajib' },
+                    ]}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    toggleSort={toggleSort}
+                  />
+                </div>
                 <table className="w-full min-w-[480px]">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        <button
-                          type="button"
-                          onClick={() => toggleSort('description')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Item <SortIcon active={sortKey === 'description'} dir={sortDir} />
-                        </button>
+                        Item
                       </th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        <button
-                          type="button"
-                          onClick={() => toggleSort('amount')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Jumlah <SortIcon active={sortKey === 'amount'} dir={sortDir} />
-                        </button>
+                        Jumlah
                       </th>
                       <th className="px-4 py-2 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        <button
-                          type="button"
-                          onClick={() => toggleSort('isMandatory')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Wajib <SortIcon active={sortKey === 'isMandatory'} dir={sortDir} />
-                        </button>
+                        Wajib
                       </th>
                     </tr>
                   </thead>

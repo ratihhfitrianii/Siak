@@ -4,7 +4,8 @@ import { apiRequest, checkInAttendance } from '../lib/api';
 import type { GradeItem, MyKrs, MyKrsItem } from '../lib/types';
 import { Spinner } from '../components/Spinner';
 import { FormAlert } from '../components/ErrorInline';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 const DAY_LABELS: Record<number, string> = {
   1: 'Senin',
@@ -227,64 +228,31 @@ export function JadwalKuliahPage() {
               </div>
 
               <div className="p-6 overflow-x-auto">
+                <div className="flex justify-end pb-3">
+                  <SortMenu
+                    options={[
+                      { key: 'courseName', label: 'Mata Kuliah' },
+                      { key: 'credits', label: 'SKS' },
+                      { key: 'classCode', label: 'Kelas' },
+                      { key: 'lecturerName', label: 'Nama Dosen' },
+                      { key: 'room', label: 'Ruang' },
+                      { key: 'dayOfWeek', label: 'Jam' },
+                    ]}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    toggleSort={toggleSort}
+                  />
+                </div>
                 <table className="w-full min-w-[700px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
                       <th className="py-2 pr-3 font-medium w-10 text-center">No</th>
-                      <th className="py-2 pr-3 font-medium">
-                        <button
-                          type="button"
-                          onClick={() => toggleSort('courseName')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Mata Kuliah <SortIcon active={sortKey === 'courseName'} dir={sortDir} />
-                        </button>
-                      </th>
-                      <th className="py-2 pr-3 font-medium text-center w-14">
-                        <button
-                          type="button"
-                          onClick={() => toggleSort('credits')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          SKS <SortIcon active={sortKey === 'credits'} dir={sortDir} />
-                        </button>
-                      </th>
-                      <th className="py-2 pr-3 font-medium text-center w-20">
-                        <button
-                          type="button"
-                          onClick={() => toggleSort('classCode')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Kelas <SortIcon active={sortKey === 'classCode'} dir={sortDir} />
-                        </button>
-                      </th>
-                      <th className="py-2 pr-3 font-medium">
-                        <button
-                          type="button"
-                          onClick={() => toggleSort('lecturerName')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Nama Dosen <SortIcon active={sortKey === 'lecturerName'} dir={sortDir} />
-                        </button>
-                      </th>
-                      <th className="py-2 pr-3 font-medium text-center w-20">
-                        <button
-                          type="button"
-                          onClick={() => toggleSort('room')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Ruang <SortIcon active={sortKey === 'room'} dir={sortDir} />
-                        </button>
-                      </th>
-                      <th className="py-2 pr-3 font-medium text-center w-28">
-                        <button
-                          type="button"
-                          onClick={() => toggleSort('dayOfWeek')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Jam <SortIcon active={sortKey === 'dayOfWeek'} dir={sortDir} />
-                        </button>
-                      </th>
+                      <th className="py-2 pr-3 font-medium">Mata Kuliah</th>
+                      <th className="py-2 pr-3 font-medium text-center w-14">SKS</th>
+                      <th className="py-2 pr-3 font-medium text-center w-20">Kelas</th>
+                      <th className="py-2 pr-3 font-medium">Nama Dosen</th>
+                      <th className="py-2 pr-3 font-medium text-center w-20">Ruang</th>
+                      <th className="py-2 pr-3 font-medium text-center w-28">Jam</th>
                       <th className="py-2 pr-3 font-medium text-center w-24">Presensi</th>
                     </tr>
                   </thead>

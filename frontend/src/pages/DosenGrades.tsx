@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 import {
   getGradesByClass,
   submitGrades,
@@ -286,36 +287,24 @@ export function DosenGrades() {
                 className="w-full sm:w-80 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
               />
             </div>
+            <div className="flex justify-end px-4 pt-3">
+              <SortMenu
+                options={[
+                  { key: 'nim', label: 'NIM' },
+                  { key: 'studentName', label: 'Nama' },
+                  { key: 'classCode', label: 'Kelas' },
+                ]}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                toggleSort={toggleSort}
+              />
+            </div>
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('nim')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      NIM <SortIcon active={sortKey === 'nim'} dir={sortDir} />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('studentName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Nama <SortIcon active={sortKey === 'studentName'} dir={sortDir} />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('classCode')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Kelas <SortIcon active={sortKey === 'classCode'} dir={sortDir} />
-                    </button>
-                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">NIM</th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">Nama</th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">Kelas</th>
                   <th className="px-4 py-3 text-center font-medium text-slate-700">Tugas (20%)</th>
                   <th className="px-4 py-3 text-center font-medium text-slate-700">UTS (30%)</th>
                   <th className="px-4 py-3 text-center font-medium text-slate-700">UAS (50%)</th>

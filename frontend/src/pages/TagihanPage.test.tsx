@@ -113,13 +113,15 @@ describe('TagihanPage', () => {
     await screen.findByText('SPP Semester Ganjil 2026/2027');
 
     // Sort by Jumlah (amount) asc: Praktikum (1jt) lalu SPP (4jt)
-    fireEvent.click(screen.getByRole('button', { name: /Jumlah/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Jumlah/ }));
     const rows = screen.getAllByRole('row').slice(1, 3); // two item rows
     expect(rows[0]).toHaveTextContent('Praktikum');
     expect(rows[1]).toHaveTextContent('SPP Semester Ganjil 2026/2027');
 
     // Toggle → desc: SPP dulu
-    fireEvent.click(screen.getByRole('button', { name: /Jumlah/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Jumlah/ }));
     const rowsDesc = screen.getAllByRole('row').slice(1, 3);
     expect(rowsDesc[0]).toHaveTextContent('SPP Semester Ganjil 2026/2027');
   });

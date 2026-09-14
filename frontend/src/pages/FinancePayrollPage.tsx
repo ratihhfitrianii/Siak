@@ -9,6 +9,7 @@ import {
 import type { SalarySlip, Prodi } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
+import { SortMenu } from '../lib/SortMenu';
 
 const BULAN = [
   'Januari',
@@ -455,31 +456,25 @@ export function FinancePayrollPage() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="flex justify-end px-4 pt-3">
+            <SortMenu
+              options={KOLON.map((c) => ({ key: c.key, label: c.label }))}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              toggleSort={toggleSort}
+            />
+          </div>
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
-                {KOLON.map((c) => {
-                  const aktif = c.key === sortKey;
-                  return (
-                    <th
-                      key={c.key}
-                      className={`px-4 py-3 ${c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : 'text-left'}`}
-                      aria-sort={aktif ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleSort(c.key)}
-                        aria-label={`Urutkan ${c.label}`}
-                        className={`inline-flex items-center gap-1 font-medium ${aktif ? 'text-primary-700' : 'text-slate-700'} hover:text-primary-700 transition`}
-                      >
-                        {c.label}
-                        <span className="text-[10px]" aria-hidden="true">
-                          {aktif ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
-                        </span>
-                      </button>
-                    </th>
-                  );
-                })}
+                {KOLON.map((c) => (
+                  <th
+                    key={c.key}
+                    className={`px-4 py-3 ${c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : 'text-left'} font-medium text-slate-700`}
+                  >
+                    {c.label}
+                  </th>
+                ))}
                 <th className="px-4 py-3 text-center font-medium text-slate-700">Aksi</th>
                 {selectMode && (
                   <th className="px-4 py-3 text-center font-medium text-slate-700">

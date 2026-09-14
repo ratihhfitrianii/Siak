@@ -43,7 +43,8 @@ import type {
   SemesterOption,
 } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 type ModalTab =
   'faculties' | 'prodis' | 'students' | 'lecturers' | 'rooms' | 'prodi-akademik' | 'courses' | null;
@@ -1140,38 +1141,25 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           </div>
 
           {/* Table Fakultas */}
+          <div className="flex justify-end px-4 pt-3">
+            <SortMenu
+              options={[
+                { key: 'code', label: 'Kode' },
+                { key: 'name', label: 'Nama' },
+                { key: 'isActive', label: 'Status' },
+              ]}
+              sortKey={facTools.sortKey}
+              sortDir={facTools.sortDir}
+              toggleSort={facTools.toggleSort}
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => facTools.toggleSort('code')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Kode <SortIcon active={facTools.sortKey === 'code'} dir={facTools.sortDir} />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => facTools.toggleSort('name')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Nama <SortIcon active={facTools.sortKey === 'name'} dir={facTools.sortDir} />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => facTools.toggleSort('isActive')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Status{' '}
-                      <SortIcon active={facTools.sortKey === 'isActive'} dir={facTools.sortDir} />
-                    </button>
-                  </th>
+                  <th className="pb-2 font-medium">Kode</th>
+                  <th className="pb-2 font-medium">Nama</th>
+                  <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Dibuat</th>
                   <th className="pb-2 font-medium">Aksi</th>
                 </tr>
@@ -1268,67 +1256,30 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           </div>
 
           {/* Table Prodi */}
+          <div className="flex justify-end px-4 pt-3">
+            <SortMenu
+              options={[
+                { key: 'code', label: 'Kode' },
+                { key: 'name', label: 'Nama' },
+                { key: 'facultyName', label: 'Fakultas' },
+                { key: 'degree', label: 'Jenjang' },
+                { key: 'isActive', label: 'Status' },
+              ]}
+              sortKey={prodiTools.sortKey}
+              sortDir={prodiTools.sortDir}
+              toggleSort={prodiTools.toggleSort}
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => prodiTools.toggleSort('code')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Kode{' '}
-                      <SortIcon active={prodiTools.sortKey === 'code'} dir={prodiTools.sortDir} />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => prodiTools.toggleSort('name')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Nama{' '}
-                      <SortIcon active={prodiTools.sortKey === 'name'} dir={prodiTools.sortDir} />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => prodiTools.toggleSort('facultyName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Fakultas{' '}
-                      <SortIcon
-                        active={prodiTools.sortKey === 'facultyName'}
-                        dir={prodiTools.sortDir}
-                      />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => prodiTools.toggleSort('degree')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Jenjang{' '}
-                      <SortIcon active={prodiTools.sortKey === 'degree'} dir={prodiTools.sortDir} />
-                    </button>
-                  </th>
+                  <th className="pb-2 font-medium">Kode</th>
+                  <th className="pb-2 font-medium">Nama</th>
+                  <th className="pb-2 font-medium">Fakultas</th>
+                  <th className="pb-2 font-medium">Jenjang</th>
                   <th className="pb-2 font-medium">Akr.</th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => prodiTools.toggleSort('isActive')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Status{' '}
-                      <SortIcon
-                        active={prodiTools.sortKey === 'isActive'}
-                        dir={prodiTools.sortDir}
-                      />
-                    </button>
-                  </th>
+                  <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Aksi</th>
                 </tr>
               </thead>
@@ -1424,88 +1375,31 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           </div>
 
           {/* Table Mahasiswa */}
+          <div className="flex justify-end px-4 pt-3">
+            <SortMenu
+              options={[
+                { key: 'nim', label: 'NIM' },
+                { key: 'fullName', label: 'Nama' },
+                { key: 'prodiCode', label: 'Prodi' },
+                { key: 'angkatan', label: 'Angkatan' },
+                { key: 'email', label: 'Email' },
+                { key: 'userActive', label: 'Status' },
+              ]}
+              sortKey={studentTools.sortKey}
+              sortDir={studentTools.sortDir}
+              toggleSort={studentTools.toggleSort}
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => studentTools.toggleSort('nim')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      NIM{' '}
-                      <SortIcon
-                        active={studentTools.sortKey === 'nim'}
-                        dir={studentTools.sortDir}
-                      />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => studentTools.toggleSort('fullName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Nama{' '}
-                      <SortIcon
-                        active={studentTools.sortKey === 'fullName'}
-                        dir={studentTools.sortDir}
-                      />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => studentTools.toggleSort('prodiCode')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Prodi{' '}
-                      <SortIcon
-                        active={studentTools.sortKey === 'prodiCode'}
-                        dir={studentTools.sortDir}
-                      />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => studentTools.toggleSort('angkatan')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Angkatan{' '}
-                      <SortIcon
-                        active={studentTools.sortKey === 'angkatan'}
-                        dir={studentTools.sortDir}
-                      />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => studentTools.toggleSort('email')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Email{' '}
-                      <SortIcon
-                        active={studentTools.sortKey === 'email'}
-                        dir={studentTools.sortDir}
-                      />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => studentTools.toggleSort('userActive')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Status{' '}
-                      <SortIcon
-                        active={studentTools.sortKey === 'userActive'}
-                        dir={studentTools.sortDir}
-                      />
-                    </button>
-                  </th>
+                  <th className="pb-2 font-medium">NIM</th>
+                  <th className="pb-2 font-medium">Nama</th>
+                  <th className="pb-2 font-medium">Prodi</th>
+                  <th className="pb-2 font-medium">Angkatan</th>
+                  <th className="pb-2 font-medium">Email</th>
+                  <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Aksi</th>
                 </tr>
               </thead>
@@ -1599,88 +1493,31 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
           </div>
 
           {/* Table Dosen */}
+          <div className="flex justify-end px-4 pt-3">
+            <SortMenu
+              options={[
+                { key: 'nidn', label: 'NIDN' },
+                { key: 'fullName', label: 'Nama' },
+                { key: 'prodiCode', label: 'Prodi' },
+                { key: 'email', label: 'Email' },
+                { key: 'userActive', label: 'Status' },
+                { key: 'isWali', label: 'Wali' },
+              ]}
+              sortKey={lecturerTools.sortKey}
+              sortDir={lecturerTools.sortDir}
+              toggleSort={lecturerTools.toggleSort}
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => lecturerTools.toggleSort('nidn')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      NIDN{' '}
-                      <SortIcon
-                        active={lecturerTools.sortKey === 'nidn'}
-                        dir={lecturerTools.sortDir}
-                      />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => lecturerTools.toggleSort('fullName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Nama{' '}
-                      <SortIcon
-                        active={lecturerTools.sortKey === 'fullName'}
-                        dir={lecturerTools.sortDir}
-                      />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => lecturerTools.toggleSort('prodiCode')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Prodi{' '}
-                      <SortIcon
-                        active={lecturerTools.sortKey === 'prodiCode'}
-                        dir={lecturerTools.sortDir}
-                      />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => lecturerTools.toggleSort('email')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Email{' '}
-                      <SortIcon
-                        active={lecturerTools.sortKey === 'email'}
-                        dir={lecturerTools.sortDir}
-                      />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => lecturerTools.toggleSort('userActive')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Status{' '}
-                      <SortIcon
-                        active={lecturerTools.sortKey === 'userActive'}
-                        dir={lecturerTools.sortDir}
-                      />
-                    </button>
-                  </th>
-                  <th className="pb-2 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => lecturerTools.toggleSort('isWali')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Wali{' '}
-                      <SortIcon
-                        active={lecturerTools.sortKey === 'isWali'}
-                        dir={lecturerTools.sortDir}
-                      />
-                    </button>
-                  </th>
+                  <th className="pb-2 font-medium">NIDN</th>
+                  <th className="pb-2 font-medium">Nama</th>
+                  <th className="pb-2 font-medium">Prodi</th>
+                  <th className="pb-2 font-medium">Email</th>
+                  <th className="pb-2 font-medium">Status</th>
+                  <th className="pb-2 font-medium">Wali</th>
                   <th className="pb-2 font-medium">Jenis</th>
                   <th className="pb-2 font-medium">Aksi</th>
                 </tr>
@@ -1820,56 +1657,27 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               </div>
 
               {/* Table Ruangan */}
+              <div className="flex justify-end px-4 pt-3">
+                <SortMenu
+                  options={[
+                    { key: 'code', label: 'Kode' },
+                    { key: 'name', label: 'Nama' },
+                    { key: 'capacity', label: 'Kapasitas' },
+                    { key: 'isActive', label: 'Status' },
+                  ]}
+                  sortKey={roomTools.sortKey}
+                  sortDir={roomTools.sortDir}
+                  toggleSort={roomTools.toggleSort}
+                />
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-500 border-b border-slate-200">
-                      <th className="pb-2 font-medium">
-                        <button
-                          type="button"
-                          onClick={() => roomTools.toggleSort('code')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Kode{' '}
-                          <SortIcon active={roomTools.sortKey === 'code'} dir={roomTools.sortDir} />
-                        </button>
-                      </th>
-                      <th className="pb-2 font-medium">
-                        <button
-                          type="button"
-                          onClick={() => roomTools.toggleSort('name')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Nama{' '}
-                          <SortIcon active={roomTools.sortKey === 'name'} dir={roomTools.sortDir} />
-                        </button>
-                      </th>
-                      <th className="pb-2 font-medium">
-                        <button
-                          type="button"
-                          onClick={() => roomTools.toggleSort('capacity')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Kapasitas{' '}
-                          <SortIcon
-                            active={roomTools.sortKey === 'capacity'}
-                            dir={roomTools.sortDir}
-                          />
-                        </button>
-                      </th>
-                      <th className="pb-2 font-medium">
-                        <button
-                          type="button"
-                          onClick={() => roomTools.toggleSort('isActive')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Status{' '}
-                          <SortIcon
-                            active={roomTools.sortKey === 'isActive'}
-                            dir={roomTools.sortDir}
-                          />
-                        </button>
-                      </th>
+                      <th className="pb-2 font-medium">Kode</th>
+                      <th className="pb-2 font-medium">Nama</th>
+                      <th className="pb-2 font-medium">Kapasitas</th>
+                      <th className="pb-2 font-medium">Status</th>
                       <th className="pb-2 font-medium">Aksi</th>
                     </tr>
                   </thead>
@@ -2009,63 +1817,28 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               </div>
 
               {/* Table Prodi */}
+              <div className="flex justify-end px-4 pt-3">
+                <SortMenu
+                  options={[
+                    { key: 'code', label: 'Kode' },
+                    { key: 'name', label: 'Nama' },
+                    { key: 'degree', label: 'Jenjang' },
+                    { key: 'isActive', label: 'Status' },
+                  ]}
+                  sortKey={akProdiTools.sortKey}
+                  sortDir={akProdiTools.sortDir}
+                  toggleSort={akProdiTools.toggleSort}
+                />
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-500 border-b border-slate-200">
-                      <th className="pb-2 font-medium">
-                        <button
-                          type="button"
-                          onClick={() => akProdiTools.toggleSort('code')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Kode{' '}
-                          <SortIcon
-                            active={akProdiTools.sortKey === 'code'}
-                            dir={akProdiTools.sortDir}
-                          />
-                        </button>
-                      </th>
-                      <th className="pb-2 font-medium">
-                        <button
-                          type="button"
-                          onClick={() => akProdiTools.toggleSort('name')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Nama{' '}
-                          <SortIcon
-                            active={akProdiTools.sortKey === 'name'}
-                            dir={akProdiTools.sortDir}
-                          />
-                        </button>
-                      </th>
-                      <th className="pb-2 font-medium">
-                        <button
-                          type="button"
-                          onClick={() => akProdiTools.toggleSort('degree')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Jenjang{' '}
-                          <SortIcon
-                            active={akProdiTools.sortKey === 'degree'}
-                            dir={akProdiTools.sortDir}
-                          />
-                        </button>
-                      </th>
+                      <th className="pb-2 font-medium">Kode</th>
+                      <th className="pb-2 font-medium">Nama</th>
+                      <th className="pb-2 font-medium">Jenjang</th>
                       <th className="pb-2 font-medium">Akr.</th>
-                      <th className="pb-2 font-medium">
-                        <button
-                          type="button"
-                          onClick={() => akProdiTools.toggleSort('isActive')}
-                          className="inline-flex items-center gap-1 hover:text-slate-900"
-                        >
-                          Status{' '}
-                          <SortIcon
-                            active={akProdiTools.sortKey === 'isActive'}
-                            dir={akProdiTools.sortDir}
-                          />
-                        </button>
-                      </th>
+                      <th className="pb-2 font-medium">Status</th>
                       <th className="pb-2 font-medium">Aksi</th>
                     </tr>
                   </thead>
@@ -2186,6 +1959,19 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
               let colorIdx = 0;
               return (
                 <div className="space-y-6">
+                  <div className="flex justify-end px-4 pt-3">
+                    <SortMenu
+                      options={[
+                        { key: 'code', label: 'Kode' },
+                        { key: 'name', label: 'Nama' },
+                        { key: 'credits', label: 'SKS' },
+                        { key: 'isActive', label: 'Status' },
+                      ]}
+                      sortKey={courseTools.sortKey}
+                      sortDir={courseTools.sortDir}
+                      toggleSort={courseTools.toggleSort}
+                    />
+                  </div>
                   {Array.from(grouped.entries()).map(([prodiName, items]) => {
                     const color = PRODI_COLORS[colorIdx % PRODI_COLORS.length];
                     colorIdx++;
@@ -2203,58 +1989,10 @@ export function AdminMasterPage({ akademikOnly = false }: { akademikOnly?: boole
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="text-left text-slate-500 border-b border-slate-200 bg-slate-50">
-                                <th className="px-4 py-2 font-medium">
-                                  <button
-                                    type="button"
-                                    onClick={() => courseTools.toggleSort('code')}
-                                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                                  >
-                                    Kode{' '}
-                                    <SortIcon
-                                      active={courseTools.sortKey === 'code'}
-                                      dir={courseTools.sortDir}
-                                    />
-                                  </button>
-                                </th>
-                                <th className="px-4 py-2 font-medium">
-                                  <button
-                                    type="button"
-                                    onClick={() => courseTools.toggleSort('name')}
-                                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                                  >
-                                    Nama{' '}
-                                    <SortIcon
-                                      active={courseTools.sortKey === 'name'}
-                                      dir={courseTools.sortDir}
-                                    />
-                                  </button>
-                                </th>
-                                <th className="px-4 py-2 font-medium">
-                                  <button
-                                    type="button"
-                                    onClick={() => courseTools.toggleSort('credits')}
-                                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                                  >
-                                    SKS{' '}
-                                    <SortIcon
-                                      active={courseTools.sortKey === 'credits'}
-                                      dir={courseTools.sortDir}
-                                    />
-                                  </button>
-                                </th>
-                                <th className="px-4 py-2 font-medium">
-                                  <button
-                                    type="button"
-                                    onClick={() => courseTools.toggleSort('isActive')}
-                                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                                  >
-                                    Status{' '}
-                                    <SortIcon
-                                      active={courseTools.sortKey === 'isActive'}
-                                      dir={courseTools.sortDir}
-                                    />
-                                  </button>
-                                </th>
+                                <th className="px-4 py-2 font-medium">Kode</th>
+                                <th className="px-4 py-2 font-medium">Nama</th>
+                                <th className="px-4 py-2 font-medium">SKS</th>
+                                <th className="px-4 py-2 font-medium">Status</th>
                                 <th className="px-4 py-2 font-medium">Deskripsi</th>
                                 <th className="px-4 py-2 font-medium">Aksi</th>
                               </tr>

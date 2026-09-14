@@ -7,7 +7,8 @@ import {
 } from '../lib/api';
 import type { Announcement, CreateAnnouncementInput } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 /** Real-time clock component — updates every second. */
 function RealTimeClock() {
@@ -356,63 +357,30 @@ export function AnnouncementPage() {
           />
         </div>
         <div className="overflow-x-auto">
+          <div className="flex justify-end px-4 pt-3">
+            <SortMenu
+              options={[
+                { key: 'title', label: 'Judul' },
+                { key: 'targetRoles', label: 'Target Role' },
+                { key: 'priority', label: 'Prioritas' },
+                { key: 'isActive', label: 'Status' },
+                { key: 'publishedAt', label: 'Publikasi' },
+                { key: 'expiresAt', label: 'Berakhir' },
+              ]}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              toggleSort={toggleSort}
+            />
+          </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-slate-500 border-b border-slate-200">
-                <th className="pb-2 font-medium">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('title')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Judul <SortIcon active={sortKey === 'title'} dir={sortDir} />
-                  </button>
-                </th>
-                <th className="pb-2 font-medium">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('targetRoles')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Target Role <SortIcon active={sortKey === 'targetRoles'} dir={sortDir} />
-                  </button>
-                </th>
-                <th className="pb-2 font-medium">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('priority')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Prioritas <SortIcon active={sortKey === 'priority'} dir={sortDir} />
-                  </button>
-                </th>
-                <th className="pb-2 font-medium">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('isActive')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Status <SortIcon active={sortKey === 'isActive'} dir={sortDir} />
-                  </button>
-                </th>
-                <th className="pb-2 font-medium">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('publishedAt')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Publikasi <SortIcon active={sortKey === 'publishedAt'} dir={sortDir} />
-                  </button>
-                </th>
-                <th className="pb-2 font-medium">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('expiresAt')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Berakhir <SortIcon active={sortKey === 'expiresAt'} dir={sortDir} />
-                  </button>
-                </th>
+                <th className="pb-2 font-medium">Judul</th>
+                <th className="pb-2 font-medium">Target Role</th>
+                <th className="pb-2 font-medium">Prioritas</th>
+                <th className="pb-2 font-medium">Status</th>
+                <th className="pb-2 font-medium">Publikasi</th>
+                <th className="pb-2 font-medium">Berakhir</th>
                 <th className="pb-2 font-medium">Aksi</th>
               </tr>
             </thead>

@@ -3,7 +3,8 @@ import { getMySalarySlips, downloadSalarySlipPdf } from '../lib/api';
 import type { SalarySlip } from '../lib/types';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 const BULAN = [
   'Januari',
@@ -206,64 +207,35 @@ export function DosenSalarySlip() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="flex justify-end px-4 pt-3">
+            <SortMenu
+              options={[
+                { key: 'periodStart', label: 'Periode' },
+                { key: 'baseSalary', label: 'Gaji Pokok' },
+                { key: 'totalHonor', label: 'Honor Mengajar' },
+                { key: 'deductions', label: 'Potongan' },
+                { key: 'netAmount', label: 'Total Diterima' },
+                { key: 'status', label: 'Status' },
+              ]}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              toggleSort={toggleSort}
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('periodStart')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Periode <SortIcon active={sortKey === 'periodStart'} dir={sortDir} />
-                    </button>
-                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-slate-700">Periode</th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-700">Gaji Pokok</th>
                   <th className="px-4 py-3 text-right font-medium text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('baseSalary')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Gaji Pokok <SortIcon active={sortKey === 'baseSalary'} dir={sortDir} />
-                    </button>
+                    Honor Mengajar
                   </th>
+                  <th className="px-4 py-3 text-right font-medium text-slate-700">Potongan</th>
                   <th className="px-4 py-3 text-right font-medium text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('totalHonor')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Honor Mengajar <SortIcon active={sortKey === 'totalHonor'} dir={sortDir} />
-                    </button>
+                    Total Diterima
                   </th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('deductions')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Potongan <SortIcon active={sortKey === 'deductions'} dir={sortDir} />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('netAmount')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Total Diterima <SortIcon active={sortKey === 'netAmount'} dir={sortDir} />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3 text-center font-medium text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('status')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Status <SortIcon active={sortKey === 'status'} dir={sortDir} />
-                    </button>
-                  </th>
+                  <th className="px-4 py-3 text-center font-medium text-slate-700">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

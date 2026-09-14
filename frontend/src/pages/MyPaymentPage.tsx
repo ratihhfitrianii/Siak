@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { getMyPayments, getKrsAccess, getKrsPeriod, ApiError } from '../lib/api';
 import type { MyPayment, KrsAccessResult, KrsPeriod } from '../lib/types';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 /** Halaman Pembayaran Mahasiswa — T2.6
  * Menampilkan semua tagihan setiap semester + status + detail items.
@@ -144,44 +145,33 @@ export function MyPaymentPage() {
             <h3 className="font-semibold text-slate-900">Semua Tagihan</h3>
           </div>
           <div className="overflow-x-auto">
+            <div className="flex justify-end px-6 py-3">
+              <SortMenu
+                options={[
+                  { key: 'semesterName', label: 'Semester' },
+                  { key: 'totalAmount', label: 'Total Tagihan' },
+                  { key: 'paidAmount', label: 'Terbayar' },
+                  { key: 'status', label: 'Status' },
+                ]}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                toggleSort={toggleSort}
+              />
+            </div>
             <table className="w-full">
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('semesterName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Semester <SortIcon active={sortKey === 'semesterName'} dir={sortDir} />
-                    </button>
+                    Semester
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('totalAmount')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Total Tagihan <SortIcon active={sortKey === 'totalAmount'} dir={sortDir} />
-                    </button>
+                    Total Tagihan
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('paidAmount')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Terbayar <SortIcon active={sortKey === 'paidAmount'} dir={sortDir} />
-                    </button>
+                    Terbayar
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('status')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Status <SortIcon active={sortKey === 'status'} dir={sortDir} />
-                    </button>
+                    Status
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Bukti

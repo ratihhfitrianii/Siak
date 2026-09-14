@@ -365,7 +365,8 @@ describe('AnnouncementPage (Informasi Penting)', () => {
     );
 
     // klik Prioritas → asc → Pembayaran (5) dulu
-    await user.click(screen.getByRole('button', { name: /Prioritas/ }));
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Prioritas/ }));
     const rows1 = screen.getAllByRole('row').map((r) => r.textContent ?? '');
     expect(rows1.findIndex((r) => r.includes('Pembayaran'))).toBeLessThan(
       rows1.findIndex((r) => r.includes('Jadwal UTS')),
@@ -381,7 +382,8 @@ describe('AnnouncementPage (Informasi Penting)', () => {
 
     const headers = ['Judul', 'Target Role', 'Prioritas', 'Status', 'Publikasi', 'Berakhir'];
     for (const h of headers) {
-      await user.click(screen.getByRole('button', { name: new RegExp(h) }));
+      await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+      await user.click(screen.getByRole('option', { name: new RegExp(`^${h}$`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
   });

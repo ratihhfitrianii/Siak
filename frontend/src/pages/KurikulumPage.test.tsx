@@ -106,18 +106,19 @@ describe('KurikulumPage', () => {
     expect(screen.getByText('-')).toBeInTheDocument();
   });
 
-  it('klik header kolom → urutan berubah (sort)', async () => {
+  it('klik ikon urutkan → dropdown → urutan berubah (sort)', async () => {
     vi.mocked(apiRequest).mockResolvedValue({ items: mockItems });
     render(<KurikulumPage />);
     await screen.findByText('Algoritma');
 
-    // Urutan awal: Algoritma (sem 1), Struktur Data (sem 2), Basis Data (sem 1)
-    // Sort by SKS asc: 3 (Algoritma), 3 (Struktur Data), 4 (Basis Data)
-    fireEvent.click(screen.getByRole('button', { name: /SKS/ }));
+    // Buka menu urutkan, pilih SKS → asc urut 3,3,4 (TI101, TI102, TI210)
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^SKS/ }));
     const codes = screen.getAllByText(/^TI\d+$/).map((el) => el.textContent);
     expect(codes).toEqual(['TI101', 'TI102', 'TI210']);
-    // Toggle again → desc: 4 (Basis Data) first
-    fireEvent.click(screen.getByRole('button', { name: /SKS/ }));
+    // Toggle lagi (item aktif pilihan ulang) → desc: 4 (TI210) pertama
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^SKS/ }));
     const codesDesc = screen.getAllByText(/^TI\d+$/).map((el) => el.textContent);
     expect(codesDesc[0]).toBe('TI210');
   });
@@ -138,14 +139,15 @@ describe('KurikulumPage', () => {
     expect(screen.getByText('1 MK')).toBeInTheDocument();
   });
 
-  it('klik semua header kolom sortable → sort berfungsi tanpa error', async () => {
+  it('klik semua opsi urutkan di dropdown → sort berfungsi tanpa error', async () => {
     vi.mocked(apiRequest).mockResolvedValue({ items: mockItems });
     render(<KurikulumPage />);
     await screen.findByText('Algoritma');
 
     const headers = ['Semester Kurikulum', 'Kode MK', 'Mata Kuliah', 'SKS', 'Dosen Pengampu'];
     for (const h of headers) {
-      fireEvent.click(screen.getByRole('button', { name: new RegExp(h) }));
+      fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+      fireEvent.click(screen.getByRole('option', { name: new RegExp(`^${h}`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
   });

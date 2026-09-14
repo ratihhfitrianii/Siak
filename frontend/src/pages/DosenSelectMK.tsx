@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getAvailableCourses, submitCourseSelection, getDosenSemesters } from '../lib/api';
 import type { LecturerCourseAvailable, SemesterOption } from '../lib/types';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 import { FormAlert } from '../components/ErrorInline';
 
 type ViewMode = 'grid' | 'list';
@@ -357,53 +358,21 @@ export function DosenSelectMK() {
           <p className="text-slate-500">Tidak ada mata kuliah yang cocok dengan pencarian.</p>
         ) : (
           <>
-            {/* Sort header */}
-            <div className="bg-white rounded-lg shadow-sm p-3 border-b border-slate-100 mb-4">
-              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
-                <span className="font-medium text-slate-700">Urutkan:</span>
-                <button
-                  type="button"
-                  onClick={() => toggleSort('course_name')}
-                  className="inline-flex items-center gap-1 hover:text-slate-900"
-                >
-                  Nama MK <SortIcon active={sortKey === 'course_name'} dir={sortDir} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleSort('course_code')}
-                  className="inline-flex items-center gap-1 hover:text-slate-900"
-                >
-                  Kode MK <SortIcon active={sortKey === 'course_code'} dir={sortDir} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleSort('credits')}
-                  className="inline-flex items-center gap-1 hover:text-slate-900"
-                >
-                  SKS <SortIcon active={sortKey === 'credits'} dir={sortDir} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleSort('semester_number')}
-                  className="inline-flex items-center gap-1 hover:text-slate-900"
-                >
-                  Semester <SortIcon active={sortKey === 'semester_number'} dir={sortDir} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleSort('available_classes')}
-                  className="inline-flex items-center gap-1 hover:text-slate-900"
-                >
-                  Kelas <SortIcon active={sortKey === 'available_classes'} dir={sortDir} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleSort('selection_status')}
-                  className="inline-flex items-center gap-1 hover:text-slate-900"
-                >
-                  Status <SortIcon active={sortKey === 'selection_status'} dir={sortDir} />
-                </button>
-              </div>
+            {/* Sort: ikon urutkan + dropdown pilihan kolom */}
+            <div className="flex justify-end mb-4">
+              <SortMenu
+                options={[
+                  { key: 'course_name', label: 'Nama MK' },
+                  { key: 'course_code', label: 'Kode MK' },
+                  { key: 'credits', label: 'SKS' },
+                  { key: 'semester_number', label: 'Semester' },
+                  { key: 'available_classes', label: 'Kelas' },
+                  { key: 'selection_status', label: 'Status' },
+                ]}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                toggleSort={toggleSort}
+              />
             </div>
 
             {selectableCourses.length === 0 ? (

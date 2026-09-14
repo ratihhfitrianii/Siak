@@ -116,19 +116,21 @@ describe('DosenSalarySlip', () => {
     expect(screen.getByRole('button', { name: /Download PDF/ })).toBeDisabled();
   });
 
-  it('klik header kolom → urutan berubah (sort)', async () => {
+  it('klik ikon urutkan → dropdown → urutan berubah (sort)', async () => {
     const user = userEvent.setup();
     render(<DosenSalarySlip />);
     await screen.findByText('Agustus 2026');
 
     // Sort Total Diterima (netAmount) asc: 5.35jt (September) lalu 5.55jt (Agustus)
-    await user.click(screen.getByRole('button', { name: /Total Diterima/ }));
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Total Diterima/ }));
     const rows = screen.getAllByRole('row').slice(1); // skip header
     expect(rows[0]).toHaveTextContent('September 2026');
     expect(rows[1]).toHaveTextContent('Agustus 2026');
 
     // Toggle → desc
-    await user.click(screen.getByRole('button', { name: /Total Diterima/ }));
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Total Diterima/ }));
     const rowsDesc = screen.getAllByRole('row').slice(1);
     expect(rowsDesc[0]).toHaveTextContent('Agustus 2026');
   });
@@ -143,7 +145,7 @@ describe('DosenSalarySlip', () => {
     expect(screen.getByText('September 2026')).toBeInTheDocument();
   });
 
-  it('klik semua header kolom sortable → sort berfungsi tanpa error', async () => {
+  it('klik semua opsi urutkan di dropdown → sort berfungsi tanpa error', async () => {
     const user = userEvent.setup();
     render(<DosenSalarySlip />);
     await screen.findByText('Agustus 2026');
@@ -157,7 +159,8 @@ describe('DosenSalarySlip', () => {
       'Status',
     ];
     for (const h of headers) {
-      await user.click(screen.getByRole('button', { name: new RegExp(h) }));
+      await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+      await user.click(screen.getByRole('option', { name: new RegExp(`^${h}`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
   });

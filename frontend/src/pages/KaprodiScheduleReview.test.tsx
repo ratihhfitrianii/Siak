@@ -116,19 +116,21 @@ describe('KaprodiScheduleReview — Persetujuan Jadwal Kaprodi', () => {
     await waitFor(() => expect(listScheduleSubmissions).toHaveBeenCalledWith('approved'));
   });
 
-  it('klik header kolom → urutan berubah (sort)', async () => {
+  it('klik ikon urutkan → dropdown → urutan berubah (sort)', async () => {
     const user = userEvent.setup();
     render(<KaprodiScheduleReview />);
     await waitFor(() => expect(screen.getByText('Dosen A')).toBeInTheDocument());
 
-    // Sort by Kelas (totalClasses) asc: Dosen B (2) lalu Dosen A (3)
-    await user.click(screen.getByRole('button', { name: /Kelas/ }));
+    // Buka menu, pilih Kelas → asc: Dosen B (2) lalu Dosen A (3)
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Kelas/ }));
     const rows = screen.getAllByRole('row').slice(1); // skip header
     expect(rows[0]).toHaveTextContent('Dosen B');
     expect(rows[1]).toHaveTextContent('Dosen A');
 
     // Toggle → desc: Dosen A lalu Dosen B
-    await user.click(screen.getByRole('button', { name: /Kelas/ }));
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Kelas/ }));
     const rowsDesc = screen.getAllByRole('row').slice(1);
     expect(rowsDesc[0]).toHaveTextContent('Dosen A');
     expect(rowsDesc[1]).toHaveTextContent('Dosen B');
@@ -144,14 +146,15 @@ describe('KaprodiScheduleReview — Persetujuan Jadwal Kaprodi', () => {
     expect(screen.getByText('Dosen B')).toBeInTheDocument();
   });
 
-  it('klik semua header kolom sortable → sort berfungsi tanpa error', async () => {
+  it('klik semua opsi urutkan di dropdown → sort berfungsi tanpa error', async () => {
     const user = userEvent.setup();
     render(<KaprodiScheduleReview />);
     await waitFor(() => expect(screen.getByText('Dosen A')).toBeInTheDocument());
 
     const headers = ['Dosen', 'Semester', 'Kelas', 'Diajukan', 'Status'];
     for (const h of headers) {
-      await user.click(screen.getByRole('button', { name: new RegExp(h) }));
+      await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+      await user.click(screen.getByRole('option', { name: new RegExp(`^${h}`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
   });

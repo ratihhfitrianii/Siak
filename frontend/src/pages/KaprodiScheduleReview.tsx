@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { listScheduleSubmissions, reviewScheduleSubmission } from '../lib/api';
 import { ApiError } from '../lib/api';
 import type { ScheduleSubmissionItem } from '../lib/types';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   awaiting: { label: 'Menunggu', color: 'bg-amber-100 text-amber-700' },
@@ -115,53 +116,37 @@ export function KaprodiScheduleReview() {
           </div>
         ) : (
           <div className="overflow-x-auto">
+            <div className="flex justify-end px-4 py-3">
+              <SortMenu
+                options={[
+                  { key: 'lecturerName', label: 'Dosen' },
+                  { key: 'semesterName', label: 'Semester' },
+                  { key: 'totalClasses', label: 'Kelas' },
+                  { key: 'submittedAt', label: 'Diajukan' },
+                  { key: 'status', label: 'Status' },
+                ]}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                toggleSort={toggleSort}
+              />
+            </div>
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('lecturerName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Dosen <SortIcon active={sortKey === 'lecturerName'} dir={sortDir} />
-                    </button>
+                    Dosen
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('semesterName')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Semester <SortIcon active={sortKey === 'semesterName'} dir={sortDir} />
-                    </button>
+                    Semester
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('totalClasses')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Kelas <SortIcon active={sortKey === 'totalClasses'} dir={sortDir} />
-                    </button>
+                    Kelas
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('submittedAt')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Diajukan <SortIcon active={sortKey === 'submittedAt'} dir={sortDir} />
-                    </button>
+                    Diajukan
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">
-                    <button
-                      type="button"
-                      onClick={() => toggleSort('status')}
-                      className="inline-flex items-center gap-1 hover:text-slate-900"
-                    >
-                      Status <SortIcon active={sortKey === 'status'} dir={sortDir} />
-                    </button>
+                    Status
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">
                     Aksi

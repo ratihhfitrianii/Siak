@@ -282,16 +282,12 @@ describe('AdminSchedulePage (T3.2 — kelola jadwal pengajar)', () => {
 
     await screen.findByText('TI101-A');
 
-    // Ikon sort di tiap header (↕ default)
-    const sortIcons = screen.getAllByText('↕');
-    expect(sortIcons.length).toBeGreaterThanOrEqual(6);
-
-    // Klik header "Kelas" → sort asc dulu (default dayOfWeek), jadi klik 2x untuk desc
-    const kelasHeader = screen.getByRole('button', { name: /^Kelas/ });
-    fireEvent.click(kelasHeader); // asc
-    expect(screen.getByText('▲')).toBeInTheDocument();
-    fireEvent.click(kelasHeader); // desc — TI201-B di atas TI101-A
-    expect(screen.getByText('▼')).toBeInTheDocument();
+    // Pilih "Kelas" di dropdown Urutkan → asc dulu (default dayOfWeek),
+    // pilih lagi → desc (TI201-B di atas TI101-A)
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Kelas$/ })); // asc
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Kelas$/ })); // desc
 
     const rows = screen.getAllByRole('row').slice(1);
     expect(rows[0].textContent).toContain('TI201-B');

@@ -224,13 +224,15 @@ describe('FinancePaymentsPage (grouped)', () => {
     await screen.findByText('2021001');
 
     // Asc: Ani Wijaya (2021002) lalu Budi Santoso (2021001)
-    fireEvent.click(screen.getByRole('button', { name: /Nama/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Nama/ }));
     const rows = screen.getAllByRole('row').slice(1, 3);
     expect(rows[0]).toHaveTextContent('Ani Wijaya');
     expect(rows[1]).toHaveTextContent('Budi Santoso');
 
     // Toggle → desc: Budi dulu
-    fireEvent.click(screen.getByRole('button', { name: /Nama/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Nama/ }));
     const rowsDesc = screen.getAllByRole('row').slice(1, 3);
     expect(rowsDesc[0]).toHaveTextContent('Budi Santoso');
   });

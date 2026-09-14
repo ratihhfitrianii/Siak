@@ -353,13 +353,15 @@ describe('JadwalKuliahPage', () => {
     await screen.findByText('Pemrograman Dasar');
 
     // Sort by Kelas (classCode) asc: TI-101-A lalu TI-102-A
-    await user.click(screen.getByRole('button', { name: /Kelas/ }));
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Kelas/ }));
     const rows = screen.getAllByRole('row').slice(1); // skip header
     expect(rows[0]).toHaveTextContent('Pemrograman Dasar');
     expect(rows[1]).toHaveTextContent('Struktur Data');
 
     // Toggle → desc
-    await user.click(screen.getByRole('button', { name: /Kelas/ }));
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Kelas/ }));
     const rowsDesc = screen.getAllByRole('row').slice(1);
     expect(rowsDesc[0]).toHaveTextContent('Struktur Data');
   });
@@ -389,7 +391,8 @@ describe('JadwalKuliahPage', () => {
 
     const headers = ['Mata Kuliah', 'SKS', 'Kelas', 'Nama Dosen', 'Ruang', 'Jam'];
     for (const h of headers) {
-      await user.click(screen.getByRole('button', { name: new RegExp(h) }));
+      await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+      await user.click(screen.getByRole('option', { name: new RegExp(`^${h}$`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
   });

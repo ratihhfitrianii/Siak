@@ -233,13 +233,15 @@ describe('DosenGrades (T3.8)', () => {
     await screen.findByText('Budi Santoso');
 
     // asc: Kelas TI101-A sebelum TI101-B
-    await user.click(screen.getByRole('button', { name: /^Kelas/ }));
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Kelas/ }));
     let rows = screen.getAllByRole('row').slice(1);
     expect(rows[0]).toHaveTextContent('Budi Santoso');
     expect(rows[1]).toHaveTextContent('Siti Aminah');
 
     // desc: sebaliknya
-    await user.click(screen.getByRole('button', { name: /^Kelas/ }));
+    await user.click(screen.getByRole('button', { name: /Urutkan/ }));
+    await user.click(screen.getByRole('option', { name: /^Kelas/ }));
     rows = screen.getAllByRole('row').slice(1);
     expect(rows[0]).toHaveTextContent('Siti Aminah');
     expect(rows[1]).toHaveTextContent('Budi Santoso');

@@ -256,14 +256,16 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     );
 
     // klik Kode → asc: FE sebelum FT
-    fireEvent.click(screen.getByRole('button', { name: 'Kode' }));
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Kode$/ }));
     const rowsAsc = screen.getAllByRole('row').map((r) => r.textContent ?? '');
     expect(rowsAsc.findIndex((r) => r.includes('Fakultas Ekonomi'))).toBeLessThan(
       rowsAsc.findIndex((r) => r.includes('Fakultas Teknik')),
     );
 
     // klik lagi → desc: FT sebelum FE
-    fireEvent.click(screen.getByRole('button', { name: 'Kode' }));
+    fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+    fireEvent.click(screen.getByRole('option', { name: /^Kode$/ }));
     const rowsDesc = screen.getAllByRole('row').map((r) => r.textContent ?? '');
     expect(rowsDesc.findIndex((r) => r.includes('Fakultas Teknik'))).toBeLessThan(
       rowsDesc.findIndex((r) => r.includes('Fakultas Ekonomi')),
@@ -299,7 +301,8 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
 
     // Tab Fakultas: Kode, Nama, Status
     for (const h of ['Kode', 'Nama', 'Status']) {
-      fireEvent.click(screen.getAllByRole('button', { name: new RegExp(h) })[0]);
+      fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+      fireEvent.click(screen.getByRole('option', { name: new RegExp(`^${h}$`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
 
@@ -307,7 +310,8 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     clickTab('Program Studi');
     await screen.findByText('Teknik Informatika');
     for (const h of ['Kode', 'Nama', 'Jenjang', 'Status']) {
-      fireEvent.click(screen.getAllByRole('button', { name: new RegExp(h) })[0]);
+      fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+      fireEvent.click(screen.getByRole('option', { name: new RegExp(`^${h}$`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
 
@@ -315,7 +319,8 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     clickTab('Mahasiswa');
     await screen.findByText('Budi Santoso');
     for (const h of ['NIM', 'Nama', 'Angkatan', 'Status']) {
-      fireEvent.click(screen.getAllByRole('button', { name: new RegExp(h) })[0]);
+      fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+      fireEvent.click(screen.getByRole('option', { name: new RegExp(`^${h}$`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
 
@@ -323,7 +328,8 @@ describe('AdminMasterPage (Fakultas & Prodi)', () => {
     clickTab('Dosen');
     await screen.findByText('Dr. Siti Rahayu');
     for (const h of ['NIDN', 'Nama', 'Status', 'Wali']) {
-      fireEvent.click(screen.getAllByRole('button', { name: new RegExp(h) })[0]);
+      fireEvent.click(screen.getByRole('button', { name: /Urutkan/ }));
+      fireEvent.click(screen.getByRole('option', { name: new RegExp(`^${h}$`) }));
       expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
     }
   });

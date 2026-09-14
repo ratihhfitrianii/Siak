@@ -4,7 +4,8 @@ import { ApiError, apiRequest } from '../lib/api';
 import type { GradeItem } from '../lib/types';
 import { Spinner } from '../components/Spinner';
 import { FormAlert } from '../components/ErrorInline';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
+import { SortMenu } from '../lib/SortMenu';
 
 /** Ambil label semester (Ganjil/Genap) dari kode "2024/2025-1" → "Ganjil". */
 function semesterLabel(code: string): string {
@@ -143,65 +144,32 @@ export function RiwayatStudiPage() {
       </div>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="flex justify-end px-4 pt-3">
+          <SortMenu
+            options={[
+              { key: 'courseCode', label: 'Kode MK' },
+              { key: 'courseName', label: 'Mata Kuliah' },
+              { key: 'credits', label: 'SKS' },
+              { key: 'gradeLetter', label: 'Nilai' },
+              { key: 'finalScore', label: 'Nilai Angka' },
+              { key: 'semester', label: 'Semester' },
+            ]}
+            sortKey={sortKey}
+            sortDir={sortDir}
+            toggleSort={toggleSort}
+          />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <th className="px-4 py-3 font-medium text-center w-10">No</th>
-                <th className="px-4 py-3 font-medium">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('courseCode')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Kode MK <SortIcon active={sortKey === 'courseCode'} dir={sortDir} />
-                  </button>
-                </th>
-                <th className="px-4 py-3 font-medium">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('courseName')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Mata Kuliah <SortIcon active={sortKey === 'courseName'} dir={sortDir} />
-                  </button>
-                </th>
-                <th className="px-4 py-3 font-medium text-center w-14">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('credits')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    SKS <SortIcon active={sortKey === 'credits'} dir={sortDir} />
-                  </button>
-                </th>
-                <th className="px-4 py-3 font-medium text-center w-16">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('gradeLetter')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Nilai <SortIcon active={sortKey === 'gradeLetter'} dir={sortDir} />
-                  </button>
-                </th>
-                <th className="px-4 py-3 font-medium text-center w-20">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('finalScore')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Nilai Angka <SortIcon active={sortKey === 'finalScore'} dir={sortDir} />
-                  </button>
-                </th>
-                <th className="px-4 py-3 font-medium text-center w-20">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('semester')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Semester <SortIcon active={sortKey === 'semester'} dir={sortDir} />
-                  </button>
-                </th>
+                <th className="px-4 py-3 font-medium">Kode MK</th>
+                <th className="px-4 py-3 font-medium">Mata Kuliah</th>
+                <th className="px-4 py-3 font-medium text-center w-14">SKS</th>
+                <th className="px-4 py-3 font-medium text-center w-16">Nilai</th>
+                <th className="px-4 py-3 font-medium text-center w-20">Nilai Angka</th>
+                <th className="px-4 py-3 font-medium text-center w-20">Semester</th>
                 <th className="px-4 py-3 font-medium text-center w-24">TA</th>
               </tr>
             </thead>

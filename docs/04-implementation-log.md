@@ -2618,3 +2618,10 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 
 ### 67. Hapus kolom urutkan + tambah filter status (Pengajuan Proposal & Bimbingan Mahasiswa Binaan)
 - DosenProposalReview & DosenBimbinganMahasiswaBinaan: blok "Urutkan:" (sort header) dihapus
+
+### 68. Semua kolom urutkan -> ikon urutkan + dropdown pilihan (semua halaman & peran)
+- Komponen baru src/lib/SortMenu.tsx: tombol ikon ↕/▲/▼ "Urutkan" -> klik membuka dropdown pilihan kolom (role=listbox/option); pilih kolom = sort asc, klik lagi = toggle desc; label tombol menampilkan kolom aktif.
+- 19 halaman direfactor: header kolom sortable jadi label polos (tombol sort dihapus); SortMenu diletakkan di kanan atas tiap tabel (flex justify-end).
+- Halaman: AdminMasterPage (7 tab), AdminSchedulePage, UsersPage, FinancePayrollPage, FinancePaymentsPage, TagihanPage, MyPaymentPage, DosenSalarySlip, DosenGrades, DosenAttendanceRecap, DosenSelectMK, JadwalKuliahPage, KurikulumPage, AnnouncementPage, AdminProposalReview, AdminKrsPage, KaprodiScheduleReview, RiwayatStudiPage.
+- SortMenu generic (<K>) agar kompatibel dgn toggleSort bertipe union SortKey lokal (AdminSchedulePage, FinancePayrollPage).
+- Test: ~30 test sort lama diupdate ke pola baru (buka Urutkan -> pilih option); 19+ test edit; FE 536/536 (3x run stabil, 0 flaky), tsc/build hijau.
