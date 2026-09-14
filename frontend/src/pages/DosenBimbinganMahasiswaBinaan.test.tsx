@@ -84,7 +84,7 @@ const PROPOSALS: SkripsiProposal[] = [
     prodiName: 'Teknik Informatika',
     title: 'Sistem E-Commerce Berbasis Mobile',
     proposalFile: null,
-    status: 'dalam_bimbingan',
+    status: 'siap_sidang',
     statusNotes: null,
     reviewedBy: null,
     reviewedAt: null,
@@ -152,22 +152,23 @@ describe('DosenBimbinganMahasiswaBinaan', () => {
     expect(await screen.findByText('Gagal memuat daftar mahasiswa binaan')).toBeInTheDocument();
   });
 
-  it('klik kolom NIM → urutan kartu berubah (sort)', async () => {
+  it('filter status — hanya kartu dengan status terpilih', async () => {
     const user = userEvent.setup();
     render(<DosenBimbinganMahasiswaBinaan />);
     await screen.findByText('Sistem Informasi Akademik Berbasis Web');
 
-    // asc: NIM 20241671 (Husni) sebelum 20241673 (Dewi)
-    await user.click(screen.getByRole('button', { name: /^NIM/ }));
-    let headings = screen.getAllByRole('heading', { level: 3 });
-    expect(headings[0]).toHaveTextContent('Sistem Informasi Akademik Berbasis Web');
-    expect(headings[1]).toHaveTextContent('Sistem E-Commerce Berbasis Mobile');
+    // Default: Semua Status → semua proposal tampil
+    expect(screen.getByText('Sistem Informasi Akademik Berbasis Web')).toBeInTheDocument();
+    expect(screen.getByText('Sistem E-Commerce Berbasis Mobile')).toBeInTheDocument();
 
-    // desc: sebaliknya
-    await user.click(screen.getByRole('button', { name: /^NIM/ }));
-    headings = screen.getAllByRole('heading', { level: 3 });
-    expect(headings[0]).toHaveTextContent('Sistem E-Commerce Berbasis Mobile');
-    expect(headings[1]).toHaveTextContent('Sistem Informasi Akademik Berbasis Web');
+    // Pilih status "Dalam Bimbingan" → hanya proposal dengan status itu
+    await user.selectOptions(screen.getByLabelText('Filter status'), 'dalam_bimbingan');
+    expect(screen.getByText('Sistem Informasi Akademik Berbasis Web')).toBeInTheDocument();
+    expect(screen.queryByText('Sistem E-Commerce Berbasis Mobile')).not.toBeInTheDocument();
+
+    // Kembali ke Semua Status
+    await user.selectOptions(screen.getByLabelText('Filter status'), '');
+    expect(screen.getByText('Sistem E-Commerce Berbasis Mobile')).toBeInTheDocument();
   });
 
   it('ketik query → hanya kartu cocok (search)', async () => {

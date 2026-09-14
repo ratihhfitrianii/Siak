@@ -2615,3 +2615,6 @@ Form "Buat User" (Kelola Pengguna) disederhanakan:
 - Rekap Kehadiran: fetch kelas+sesi PARALLEL (Promise.all, sebelumnya serial 2 round-trip) + includeNoRoom.
 - Backend /attendance/sessions: hilangkan subquery COUNT per-baris (N+1) -> 2 query agregat (hadir per sesi + terdaftar per kelas).
 - Test: dosen.test includeNoRoom=1 tampilkan kelas tanpa ruangan.
+
+### 67. Hapus kolom urutkan + tambah filter status (Pengajuan Proposal & Bimbingan Mahasiswa Binaan)
+- DosenProposalReview & DosenBimbinganMahasiswaBinaan: blok "Urutkan:" (sort header) dihapus

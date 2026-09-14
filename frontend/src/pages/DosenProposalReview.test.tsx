@@ -84,7 +84,7 @@ const PROPOSALS: SkripsiProposal[] = [
     prodiName: 'Teknik Informatika',
     title: 'Sistem E-Commerce Berbasis Mobile',
     proposalFile: null,
-    status: 'diajukan',
+    status: 'dilihat_dosen',
     statusNotes: null,
     reviewedBy: null,
     reviewedAt: null,
@@ -161,22 +161,23 @@ describe('DosenProposalReview', () => {
     expect(screen.getByText(/Tidak ada proposal yang cocok dengan pencarian/)).toBeInTheDocument();
   });
 
-  it('klik kolom NIM → urutan kartu berubah (sort)', async () => {
+  it('filter status — hanya proposal dengan status terpilih', async () => {
     const user = userEvent.setup();
     render(<DosenProposalReview />);
     await screen.findByText('Sistem Informasi Akademik Berbasis Web');
 
-    // asc: NIM 20241671 (Husni) sebelum 20241673 (Dewi)
-    await user.click(screen.getByRole('button', { name: /^NIM/ }));
-    let headings = screen.getAllByRole('heading', { level: 3 });
-    expect(headings[0]).toHaveTextContent('Sistem Informasi Akademik Berbasis Web');
-    expect(headings[1]).toHaveTextContent('Sistem E-Commerce Berbasis Mobile');
+    // Default: Semua Status → semua proposal tampil
+    expect(screen.getByText('Sistem Informasi Akademik Berbasis Web')).toBeInTheDocument();
+    expect(screen.getByText('Sistem E-Commerce Berbasis Mobile')).toBeInTheDocument();
 
-    // desc: sebaliknya
-    await user.click(screen.getByRole('button', { name: /^NIM/ }));
-    headings = screen.getAllByRole('heading', { level: 3 });
-    expect(headings[0]).toHaveTextContent('Sistem E-Commerce Berbasis Mobile');
-    expect(headings[1]).toHaveTextContent('Sistem Informasi Akademik Berbasis Web');
+    // Pilih "Diajukan" → proposal diajukan tetap, yang lain hilang
+    await user.selectOptions(screen.getByLabelText('Filter status'), 'diajukan');
+    expect(screen.getByText('Sistem Informasi Akademik Berbasis Web')).toBeInTheDocument();
+    expect(screen.queryByText('Sistem E-Commerce Berbasis Mobile')).not.toBeInTheDocument();
+
+    // Reset ke Semua Status
+    await user.selectOptions(screen.getByLabelText('Filter status'), '');
+    expect(screen.getByText('Sistem E-Commerce Berbasis Mobile')).toBeInTheDocument();
   });
 
   it('buka detail (expand) → aksi Setujui/Tolak DI ATAS grid lampiran + riwayat', async () => {

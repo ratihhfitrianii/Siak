@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { getSkripsiProposals, createSkripsiGuidanceLog, getSkripsiGuidanceLogs } from '../lib/api';
 import type { SkripsiProposal, SkripsiStatus, SkripsiGuidanceLog } from '../lib/types';
-import { useTableTools, SortIcon } from '../lib/useTableTools';
+import { useTableTools } from '../lib/useTableTools';
 import { FormAlert } from '../components/ErrorInline';
 import { Spinner } from '../components/Spinner';
 
@@ -121,8 +121,12 @@ export function DosenBimbinganMahasiswaBinaan() {
     }
   };
 
-  const { query, setQuery, sortKey, sortDir, toggleSort, submit, filtered } =
-    useTableTools(proposals);
+  const { query, setQuery, submit, filtered: searchFiltered } = useTableTools(proposals);
+  // Filter status (dropdown) — dikombinasikan dgn pencarian
+  const [statusFilter, setStatusFilter] = useState<SkripsiStatus | ''>('');
+  const filtered = statusFilter
+    ? searchFiltered.filter((p) => p.status === statusFilter)
+    : searchFiltered;
 
   const loadProposals = useCallback(async () => {
     try {
@@ -348,92 +352,62 @@ export function DosenBimbinganMahasiswaBinaan() {
 
   return (
     <div className="space-y-6">
-      {/* Pencarian */}
+      {/* Pencarian + Filter status */}
       <div className="bg-white rounded-lg shadow-sm p-4">
-        <div className="relative">
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              id="binaan-search"
+              type="text"
+              value={query}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuery(val);
+                submit(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submit(e.currentTarget.value, true);
+              }}
+              placeholder="Cari judul, NIM, nama mahasiswa, atau prodi..."
+              className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
-          </svg>
-          <input
-            id="binaan-search"
-            type="text"
-            value={query}
-            onChange={(e) => {
-              const val = e.target.value;
-              setQuery(val);
-              submit(val);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submit(e.currentTarget.value, true);
-            }}
-            placeholder="Cari judul, NIM, nama mahasiswa, atau prodi..."
-            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          />
+          </div>
+          {/* Filter status (kanan atas) */}
+          <div className="shrink-0">
+            <label htmlFor="binaan-status-filter" className="sr-only">
+              Filter status
+            </label>
+            <select
+              id="binaan-status-filter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as SkripsiStatus | '')}
+              className="w-full sm:w-48 px-3 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">Semua Status</option>
+              {Object.entries(STATUS_LABEL).map(([val, label]) => (
+                <option key={val} value={val}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       {error && <FormAlert>{error}</FormAlert>}
-
-      {/* Sort header for cards */}
-      {proposals.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm p-3 border-b border-slate-100">
-          <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
-            <span className="font-medium text-slate-700">Urutkan:</span>
-            <button
-              type="button"
-              onClick={() => toggleSort('title')}
-              className="inline-flex items-center gap-1 hover:text-slate-900"
-            >
-              Judul <SortIcon active={sortKey === 'title'} dir={sortDir} />
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleSort('nim')}
-              className="inline-flex items-center gap-1 hover:text-slate-900"
-            >
-              NIM <SortIcon active={sortKey === 'nim'} dir={sortDir} />
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleSort('studentName')}
-              className="inline-flex items-center gap-1 hover:text-slate-900"
-            >
-              Nama <SortIcon active={sortKey === 'studentName'} dir={sortDir} />
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleSort('prodiName')}
-              className="inline-flex items-center gap-1 hover:text-slate-900"
-            >
-              Prodi <SortIcon active={sortKey === 'prodiName'} dir={sortDir} />
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleSort('status')}
-              className="inline-flex items-center gap-1 hover:text-slate-900"
-            >
-              Status <SortIcon active={sortKey === 'status'} dir={sortDir} />
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleSort('updatedAt')}
-              className="inline-flex items-center gap-1 hover:text-slate-900"
-            >
-              Diperbarui <SortIcon active={sortKey === 'updatedAt'} dir={sortDir} />
-            </button>
-          </div>
-        </div>
-      )}
 
       {proposals.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
