@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Guide SIAK — Sistem Informasi Akademik</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #dbeafe;
+            --secondary: #0f172a;
+            --accent: #0ea5e9;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-800);
+            line-height: 1.7;
+        }
+
+        /* Cover Page */
+        .cover {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 50%, var(--secondary) 100%);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            page-break-after: always;
+        }
+
+        .cover-logo {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .cover h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .cover .subtitle {
+            font-size: 1.5rem;
+            opacity: 0.9;
+            margin-bottom: 3rem;
+        }
+
+        .cover .meta {
+            font-size: 1rem;
+            opacity: 0.7;
+            margin-top: 2rem;
+        }
+
+        .cover .version-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1.5rem;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Table of Contents */
+        .toc {
+            background: white;
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin: 2rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            page-break-after: always;
+        }
+
+        .toc h2 {
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid var(--primary-light);
+        }
+
+        .toc-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .toc-section h3 {
+            font-size: 1.1rem;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toc-section h3 .role-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .toc-section ul {
+            list-style: none;
+            padding-left: 1.5rem;
+        }
+
+        .toc-section ul li {
+            padding: 0.3rem 0;
+            color: var(--gray-600);
+            font-size: 0.95rem;
+        }
+
+        .toc-section ul li::before {
+            content: "→";
+            color: var(--primary);
+            margin-right: 0.5rem;
+        }
+
+        /* Role Sections */
+        .role-section {
+            page-break-before: always;
+            margin-top: 3rem;
+        }
+
+        .role-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 2rem 2.5rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+        }
+
+        .role-header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .role-header .role-desc {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        /* Feature Cards */
+        .feature-card {
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            page-break-inside: avoid;
+        }
+
+        .feature-card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .feature-card-header .feature-number {
+            background: var(--primary-light);
+            color: var(--primary);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .feature-card-header h3 {
+            font-size: 1.2rem;
+            color: var(--gray-800);
+        }
+
+        .feature-card-body {
+            padding: 1.5rem;
+        }
+
+        .feature-card-body p {
+            color: var(--gray-600);
+            margin-bottom: 1rem;
+        }
+
+        /* STEP BLOCK: langkah + screenshot sendiri */
+        .step-block {
+            margin: 1.5rem 0;
+            padding: 1rem 1.25rem;
+            background: var(--gray-50);
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+        }
+
+        .step-block .step-label {
+            font-weight: 700;
+            color: var(--primary-dark);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-block .step-desc {
+            color: var(--gray-600);
+            margin-bottom: 0.75rem;
+        }
+
+        .step-block .screenshot-container {
+            background: var(--gray-100);
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+
+        .step-block .screenshot-container img {
+            width: 100%;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: block;
+        }
+
+        .step-block .screenshot-caption {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        /* Info Boxes */
+        .info-box {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+        }
+
+        .info-box.tip {
+            background: #ecfdf5;
+            border-left: 4px solid var(--success);
+            color: #065f46;
+        }
+
+        .info-box.warning {
+            background: #fffbeb;
+            border-left: 4px solid var(--warning);
+            color: #92400e;
+        }
+
+        .info-box.info {
+            background: var(--primary-light);
+            border-left: 4px solid var(--primary);
+            color: var(--primary-dark);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--gray-200);
+            margin-top: 4rem;
+        }
+
+        @media print {
+            .cover { min-height: auto; padding: 4rem 2rem; }
+            .step-block { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+    <div class="cover-logo">S</div>
+    <h1>Manual Guide SIAK</h1>
+    <div class="subtitle">Sistem Informasi Akademik</div>
+    <div class="version-badge">Versi 1.0 — September 2026</div>
+    <div class="meta">
+        Panduan lengkap untuk Mahasiswa, Dosen, Admin Akademik, Admin Keuangan, dan Admin Sistem
+        <br>Untuk dukungan teknis, hubungi: IRMA (+62 852-2888-8296)
+    </div>
+</div>
+
+</body>
+</html>
