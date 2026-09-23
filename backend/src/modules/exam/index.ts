@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticate, authorize } from '../../lib/auth-middleware';
-import { pgPool } from '../../lib/db';
+import { pgPool } from '../../lib/pg';
 // import { AppError } from '../../lib/errors';
 import { z } from 'zod';
 
