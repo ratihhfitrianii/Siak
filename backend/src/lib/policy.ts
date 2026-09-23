@@ -52,6 +52,7 @@ export const PERMISSIONS = [
   'thesis.submit', // Mahasiswa submit proposal skripsi
   'thesis.review', // Dosen review proposal skripsi
   'thesis.manage', // Admin kelola semua proposal skripsi
+  'exam.period.manage', // Admin Sistem kelola periode ujian
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -142,6 +143,7 @@ const ROLE_PERMISSIONS: Record<RoleCode, ReadonlySet<Permission>> = {
     'course.manage',
     'audit.view',
     'import.data',
+    'exam.period.manage',
   ]),
 };
 
