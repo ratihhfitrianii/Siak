@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticate, authorize } from '../../lib/auth-middleware';
 import { pgPool } from '../../lib/db';
-import { AppError } from '../../lib/errors';
+// import { AppError } from '../../lib/errors';
 import { z } from 'zod';
 
 export const createExamRouter = () => {
