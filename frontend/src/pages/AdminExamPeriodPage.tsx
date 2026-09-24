@@ -32,7 +32,7 @@ export const AdminExamPeriodPage: React.FC = () => {
       setError(null);
       await apiRequest('/exam/periods', {
         method: 'POST',
-        body: JSON.stringify({ name, semesterId, startDate, endDate })
+        body: JSON.stringify({ name, semesterId, startDate, endDate }),
       });
       setName('');
       setSemesterId('');
@@ -48,16 +48,44 @@ export const AdminExamPeriodPage: React.FC = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Kelola Periode Ujian (Admin Sistem)</h1>
       {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded">{error}</div>}
-      
+
       <form onSubmit={handleCreate} className="mb-6 bg-white p-4 rounded shadow">
         <h2 className="text-lg font-semibold mb-2">Tambah Periode Ujian</h2>
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <input type="text" placeholder="Nama Periode" value={name} onChange={(e) => setName(e.target.value)} className="border p-2 rounded" required />
-          <input type="text" placeholder="Semester ID (e.g. 20261)" value={semesterId} onChange={(e) => setSemesterId(e.target.value)} className="border p-2 rounded" required />
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border p-2 rounded" required />
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="border p-2 rounded" required />
+          <input
+            type="text"
+            placeholder="Nama Periode"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="border p-2 rounded"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Semester ID (e.g. 20261)"
+            value={semesterId}
+            onChange={(e) => setSemesterId(e.target.value)}
+            className="border p-2 rounded"
+            required
+          />
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="border p-2 rounded"
+            required
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="border p-2 rounded"
+            required
+          />
         </div>
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+          Simpan
+        </button>
       </form>
 
       <div className="bg-white rounded shadow overflow-hidden">
@@ -73,9 +101,17 @@ export const AdminExamPeriodPage: React.FC = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="p-4 text-center">Loading...</td></tr>
+              <tr>
+                <td colSpan={5} className="p-4 text-center">
+                  Loading...
+                </td>
+              </tr>
             ) : periods.length === 0 ? (
-              <tr><td colSpan={5} className="p-4 text-center">Tidak ada periode ujian.</td></tr>
+              <tr>
+                <td colSpan={5} className="p-4 text-center">
+                  Tidak ada periode ujian.
+                </td>
+              </tr>
             ) : (
               periods.map((p) => (
                 <tr key={String(p.id)} className="border-b">

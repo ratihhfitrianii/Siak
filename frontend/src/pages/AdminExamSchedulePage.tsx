@@ -26,7 +26,7 @@ export const AdminExamSchedulePage: React.FC = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Kelola Jadwal Ujian (Admin Akademik)</h1>
       {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded">{error}</div>}
-      
+
       <div className="bg-white rounded shadow overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -40,9 +40,17 @@ export const AdminExamSchedulePage: React.FC = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="p-4 text-center">Loading...</td></tr>
+              <tr>
+                <td colSpan={5} className="p-4 text-center">
+                  Loading...
+                </td>
+              </tr>
             ) : schedules.length === 0 ? (
-              <tr><td colSpan={5} className="p-4 text-center">Tidak ada jadwal ujian.</td></tr>
+              <tr>
+                <td colSpan={5} className="p-4 text-center">
+                  Tidak ada jadwal ujian.
+                </td>
+              </tr>
             ) : (
               schedules.map((s) => (
                 <tr key={String(s.id)} className="border-b">
