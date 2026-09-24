@@ -260,6 +260,13 @@ const EXPECTED_MATRIX: Record<Permission, Record<RoleCode, boolean>> = {
     admin_keuangan: false,
     admin_sistem: true,
   },
+  'exam.period.manage': {
+    mahasiswa: false,
+    dosen: false,
+    admin_akademik: false,
+    admin_keuangan: false,
+    admin_sistem: true,
+  },
 };
 
 // Dosen Wali: penambahan akses dari atribut is_wali (binaan).
