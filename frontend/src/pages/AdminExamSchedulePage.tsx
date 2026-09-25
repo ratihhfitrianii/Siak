@@ -9,7 +9,7 @@ export const AdminExamSchedulePage: React.FC = () => {
   const fetchSchedules = async () => {
     try {
       setLoading(true);
-      const res = await apiRequest('/exam/schedules');
+      const res = await apiRequest<{ data: Array<Record<string, unknown>> }>('/exam/schedules');
       setSchedules(res.data || []);
     } catch (err: unknown) {
       setError((err as Error).message);

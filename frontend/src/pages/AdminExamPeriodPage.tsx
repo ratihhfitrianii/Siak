@@ -13,7 +13,7 @@ export const AdminExamPeriodPage: React.FC = () => {
   const fetchPeriods = async () => {
     try {
       setLoading(true);
-      const res = await apiRequest('/exam/periods');
+      const res = await apiRequest<{ data: Array<Record<string, unknown>> }>('/exam/periods');
       setPeriods(res.data || []);
     } catch (err: unknown) {
       setError((err as Error).message);
