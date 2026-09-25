@@ -9,7 +9,9 @@ export const StudentExamPage: React.FC = () => {
   const fetchExams = async () => {
     try {
       setLoading(true);
-      const res = await apiRequest<{ data: Array<Record<string, unknown>> }>('/exam/student/my-exams');
+      const res = await apiRequest<{ data: Array<Record<string, unknown>> }>(
+        '/exam/student/my-exams',
+      );
       setExams(res.data || []);
     } catch (err: unknown) {
       setError((err as Error).message);
