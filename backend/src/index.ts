@@ -20,7 +20,7 @@ function buildHealthDeps() {
   const deps: { pingDb?: () => Promise<void>; pingRedis?: () => Promise<void> } = {};
 
   if (env.DATABASE_URL) {
-    pool = new Pool({ connectionString: env.DATABASE_URL, max: 10 });
+    pool = new Pool({ connectionString: env.DATABASE_URL, max: env.DATABASE_POOL_MAX });
     deps.pingDb = async () => {
       await pool!.query('SELECT 1');
     };
@@ -77,7 +77,7 @@ server.listen(env.PORT, () => {
 // Idempotent (sekali per mahasiswa per periode); disabled di test. Interval via env
 // KRS_REMINDER_INTERVAL_MS (default 6 jam), tick pertama 1 menit setelah start.
 const reminderIntervalMs = Number(process.env.KRS_REMINDER_INTERVAL_MS ?? 6 * 60 * 60 * 1000);
-if (env.NODE_ENV !== 'test' && Number.isFinite(reminderIntervalMs) && reminderIntervalMs > 0) {
+if (env.NODE_ENV !== 'test' && !env.DISABLE_SCHEDULERS && Number.isFinite(reminderIntervalMs) && reminderIntervalMs > 0) {
   const tick = () => {
     void import('./modules/notification/index.js')
       .then(({ remindUnfilledStudents }) => remindUnfilledStudents())
@@ -98,6 +98,7 @@ if (env.NODE_ENV !== 'test' && Number.isFinite(reminderIntervalMs) && reminderIn
 const notifDeliveryIntervalMs = Number(process.env.NOTIF_DELIVERY_INTERVAL_MS ?? 5 * 60 * 1000);
 if (
   env.NODE_ENV !== 'test' &&
+  !env.DISABLE_SCHEDULERS &&
   Number.isFinite(notifDeliveryIntervalMs) &&
   notifDeliveryIntervalMs > 0
 ) {
@@ -121,7 +122,7 @@ if (
 // T1.13: sweeper sesi waiting room kadaluarsa → bebaskan slot → promosikan antrean.
 // Sesi TTL 15 menit (docs/02 §7.1); tick tiap 60 detik, unref agar tidak menahan exit.
 const wrSweepIntervalMs = 60_000;
-const wrSweeper = setInterval(() => {
+const wrSweeper = env.DISABLE_SCHEDULERS ? ({} as any) : setInterval(() => {
   void waitingRoom
     .sweepExpired()
     .then((promoted) => {
@@ -129,7 +130,7 @@ const wrSweeper = setInterval(() => {
     })
     .catch((err: unknown) => logger.warn({ err }, 'waiting room sweeper error'));
 }, wrSweepIntervalMs);
-if (env.NODE_ENV !== 'test') wrSweeper.unref();
+if (env.NODE_ENV !== 'test' && !env.DISABLE_SCHEDULERS && wrSweeper.unref) wrSweeper.unref();
 
 async function shutdown(signal: string): Promise<void> {
   logger.info(`menerima ${signal} — graceful shutdown dimulai`);

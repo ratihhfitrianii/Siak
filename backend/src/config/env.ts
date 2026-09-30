@@ -21,6 +21,7 @@ const envSchema = z
     WAITING_ROOM_THRESHOLD: z.coerce.number().int().positive().default(2000),
     // T1.14: ukuran pool PostgreSQL (kalibrasi load test; default 20 — test/CI aman)
     DATABASE_POOL_MAX: z.coerce.number().int().positive().default(20),
+    DISABLE_SCHEDULERS: z.coerce.boolean().default(false),
     NOTIFICATION_PROVIDER: z.string().default('inapp'),
     CORS_ORIGIN: z.string().default('http://localhost:5173'),
   })
@@ -64,3 +65,4 @@ if (!parsed.success) {
 }
 
 export const env: Env = parsed.data;
++export const DISABLE_SCHEDULERS = parsed.data.DISABLE_SCHEDULERS;

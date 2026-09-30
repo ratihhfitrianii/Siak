@@ -5,12 +5,11 @@ import { logger } from './logger';
 const { Pool } = pg;
 
 export const pgPool = new Pool({
-  connectionString:
-    env.DATABASE_URL ||
-    `postgres://${process.env.PGUSER || 'siak'}:${process.env.PGPASSWORD || 'siak_dev_password'}@${process.env.PGHOST || 'localhost'}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE || 'siak'}`,
-  max: env.DATABASE_POOL_MAX, // T1.14: kalibrasi via env (default 20)
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000, // Neon free: resume dari auto-suspend bisa >5 detik
+  connectionString: process.env.DATABASE_URL,
+  // FREE tier: max 5 connections
+  max: 5,                     // ≤ quota max connections
+  idleTimeoutMillis: 10000,   // tutup koneksi yang idle >10 s
+  connectionTimeoutMillis: 5000,
 });
 
 // Error pada client idle TIDAK fatal — Neon free (auto-suspend) menutup koneksi idle;
