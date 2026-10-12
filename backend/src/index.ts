@@ -1,6 +1,6 @@
 import http from 'http';
 import { createApp } from './app';
-import { env } from './config/env';
+import { env, DISABLE_SCHEDULERS } from './config/env';
 import { logger } from './lib/logger';
 import { closeRedis, getRedis } from './lib/redis';
 import { Pool } from 'pg';
